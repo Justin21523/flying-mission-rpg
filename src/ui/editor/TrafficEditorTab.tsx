@@ -13,9 +13,16 @@ export const TrafficEditorTab = () => {
   const signals = t.signals.filter((s) => s.areaId === areaId);
   const roads = t.roads.filter((r) => r.areaId === areaId);
   const roadIds = roads.map((r) => r.id);
+  const crosswalks = t.crosswalks.filter((c) => c.areaId === areaId);
 
   return (
     <div className="space-y-3 overflow-y-auto text-xs">
+      {/* Global emergency yield */}
+      <label className="flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5 text-[11px] text-slate-300">
+        <input type="checkbox" checked={t.emergencyYield} onChange={(e) => t.setEmergencyYield(e.target.checked)} className="accent-amber-500" />
+        🚨 Emergency yield — vehicles slow when an incident/rescue is active
+      </label>
+
       {/* Roads */}
       <section className="space-y-1.5">
         <div className="flex items-center justify-between"><span className={lbl}>Roads ({roads.length})</span>
@@ -23,8 +30,9 @@ export const TrafficEditorTab = () => {
         {roads.map((r) => (
           <div key={r.id} className="space-y-1 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-slate-400">{r.id} · {r.waypoints.length} pts (closed loop)</span>
-              <div className="flex gap-1">
+              <span className="text-[10px] text-slate-400">{r.id} · {r.waypoints.length} pts{r.closed ? ' · CLOSED' : ''}</span>
+              <div className="flex items-center gap-1">
+                <label className="flex items-center gap-1 text-[10px] text-rose-300"><input type="checkbox" checked={!!r.closed} onChange={(e) => t.setRoadClosed(r.id, e.target.checked)} className="accent-rose-500" />closed</label>
                 <button onClick={() => t.addRoadWaypoint(r.id, camPos())} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[10px] text-emerald-100">➕ at cam</button>
                 <button onClick={() => t.removeRoad(r.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
               </div>
@@ -98,6 +106,43 @@ export const TrafficEditorTab = () => {
               <Field label="green s"><input type="number" value={s.greenSeconds} onChange={(e) => t.updateSignal(s.id, { greenSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
               <Field label="yellow s"><input type="number" value={s.yellowSeconds} onChange={(e) => t.updateSignal(s.id, { yellowSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
               <Field label="red s"><input type="number" value={s.redSeconds} onChange={(e) => t.updateSignal(s.id, { redSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Crosswalks */}
+      <section className="space-y-1.5">
+        <div className="flex items-center justify-between"><span className={lbl}>Crosswalks ({crosswalks.length})</span>
+          <button onClick={() => t.addCrosswalk(areaId, camPos())} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ at cam</button></div>
+        {crosswalks.map((c) => (
+          <div key={c.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-400">{c.id}</span>
+              <button onClick={() => t.removeCrosswalk(c.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+            </div>
+            <Field label="position (x / y / z)">
+              <div className="flex gap-1">
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={0.5} value={c.position[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                    const next = [...c.position] as [number, number, number]; next[a] = parseFloat(e.target.value) || 0; t.updateCrosswalk(c.id, { position: next });
+                  }} />
+                ))}
+                <button onClick={() => t.updateCrosswalk(c.id, { position: camPos() })} className="rounded px-1 text-[10px] text-sky-300 hover:bg-slate-800">cam</button>
+              </div>
+            </Field>
+            <div className="grid grid-cols-3 gap-2">
+              <Field label="length"><input type="number" step={0.5} min={1} value={c.length} onChange={(e) => t.updateCrosswalk(c.id, { length: parseFloat(e.target.value) || 1 })} className={inp} /></Field>
+              <Field label="axis">
+                <select value={c.axis} onChange={(e) => t.updateCrosswalk(c.id, { axis: e.target.value as 'x' | 'z' })} className={inp}>
+                  <option value="x">x</option><option value="z">z</option>
+                </select>
+              </Field>
+              <Field label="linked signal">
+                <select value={c.linkedSignalId ?? ''} onChange={(e) => t.updateCrosswalk(c.id, { linkedSignalId: e.target.value || undefined })} className={inp}>
+                  <option value="">(always)</option>{signals.map((s) => <option key={s.id} value={s.id}>{s.id}</option>)}
+                </select>
+              </Field>
             </div>
           </div>
         ))}

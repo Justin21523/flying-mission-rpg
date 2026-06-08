@@ -23,6 +23,19 @@ export interface TrafficSignalDef {
   redSeconds: number;
 }
 
+export type CrosswalkAxis = 'x' | 'z';
+
+// A pedestrian crossing: zebra stripes + a walker that crosses when the linked signal is RED (cars stopped)
+// and waits at the curb otherwise. No linked signal → always crossing. Editable in the 🚦 Traffic tab.
+export interface Crosswalk {
+  id: string;
+  areaId: string;
+  position: [number, number, number]; // centre of the crossing
+  length: number;                     // span across the road (world units)
+  axis: CrosswalkAxis;                // direction the pedestrian walks
+  linkedSignalId?: string;            // pedestrian crosses while this signal is red
+}
+
 export interface VehicleDefinition {
   id: string;
   name: string;          // English display name (shown in game)

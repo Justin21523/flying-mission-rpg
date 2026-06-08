@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { getEditorVehicles, getEditorSignals, getEditorRoadPath } from './editorTrafficStore';
+import { getEditorVehicles, getEditorSignals, getEditorRoadPath, isRoadClosed, getEmergencyYield } from './editorTrafficStore';
 import { useWorldClockStore } from './worldClockStore';
+import { useIncidentStore } from './incidentStore';
+import { useRescueOperationStore } from './rescueOperationStore';
 import { getPathPosition, getPathHeading } from '../types/traffic';
 import type { TrafficPhase } from '../types/traffic';
 
@@ -51,8 +53,14 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       if (result.timer !== newTimers[sig.id]) newTimers[sig.id] = result.timer;
     }
 
+    // Emergency yield: when enabled and a rescue/incident is active, traffic slows to a crawl.
+    const yieldOn = getEmergencyYield();
+    const rescueActive = useRescueOperationStore.getState().isActive;
+
     for (const v of vehicles) {
       if (newProgress[v.id] === undefined) newProgress[v.id] = v.initialProgress;
+      // Road closure → vehicles hold (a simple reroute: they don't advance along a closed road).
+      if (isRoadClosed(v.pathId)) continue;
       const path = getEditorRoadPath(v.pathId);
       if (!path || path.totalLength === 0) continue;
 
@@ -61,7 +69,13 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         const ahead = (signal.progressOnPath - newProgress[v.id] + 1) % 1;
         if (ahead < 0.06) continue; // hold at stop line
       }
-      newProgress[v.id] = (newProgress[v.id] + (v.speed * dt) / path.totalLength) % 1;
+
+      // Slow down for an active emergency in this vehicle's area (yield to rescue vehicles).
+      let speedScale = 1;
+      if (yieldOn && (rescueActive || useIncidentStore.getState().getActiveForArea(v.areaId).length > 0)) {
+        speedScale = 0.3;
+      }
+      newProgress[v.id] = (newProgress[v.id] + (v.speed * speedScale * dt) / path.totalLength) % 1;
     }
 
     set({ vehicleProgress: newProgress, signalTimers: newTimers, signalPhases: newPhases });

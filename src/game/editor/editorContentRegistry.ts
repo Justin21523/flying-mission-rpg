@@ -137,7 +137,7 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
   {
     id: 'editorTraffic',
     label: 'Traffic',
-    serialize: () => { const s = useEditorTrafficStore.getState(); return { vehicles: s.vehicles, signals: s.signals, roads: s.roads }; },
+    serialize: () => { const s = useEditorTrafficStore.getState(); return { vehicles: s.vehicles, signals: s.signals, roads: s.roads, crosswalks: s.crosswalks, emergencyYield: s.emergencyYield }; },
     deserialize: (data) => { if (isObj(data)) useEditorTrafficStore.getState().importState(data as never); },
     clear: () => useEditorTrafficStore.getState().reset(),
     summary: () => { const s = useEditorTrafficStore.getState(); return `${s.vehicles.length} vehicles · ${s.signals.length} signals · ${s.roads.length} roads`; },
