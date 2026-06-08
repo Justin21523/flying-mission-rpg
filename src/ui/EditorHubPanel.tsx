@@ -35,19 +35,19 @@ const TABS: { id: Tab; label: string }[] = [
 export const EditorHubPanel = () => {
   const close = useUiStore((s) => s.toggleEditorHub);
   const [userTab, setUserTab] = useState<Tab>('debug');
-  // Snap to the POLI tab when a POLI character is selected — either an NPC clicked in 3D
-  // (kit sceneEditStore, npc-kind key) or a character chosen in the POLI panel. Clicking ANY other
-  // tab clears those selections so the snap never LOCKS the hub on POLI (the previous bug).
+  // Snap to the POLI tab ONLY for the player handle (key '…#npc#poli') or a character picked in the
+  // POLI panel — NOT for generic editor NPCs (those belong to the 🧑 NPC tab, which manages its own
+  // selection). Clicking any other tab clears these so the snap never locks the hub on POLI.
   const selectedKey = useSceneEditStore((s) => s.selectedKey);
   const poliSelectedId = useEditorPoliCharacterStore((s) => s.selectedId);
-  const selectedIsNpc = !!selectedKey && selectedKey.split('#')[1] === 'npc';
-  const tab: Tab = selectedIsNpc || poliSelectedId ? 'poli' : userTab;
+  const selectedIsPlayer = !!selectedKey && selectedKey.endsWith('#npc#poli');
+  const tab: Tab = selectedIsPlayer || poliSelectedId ? 'poli' : userTab;
   const setTab = (t: Tab) => {
     setUserTab(t);
     if (t !== 'poli') {
       useEditorPoliCharacterStore.getState().selectPoli(null);
       const k = useSceneEditStore.getState().selectedKey;
-      if (k && k.split('#')[1] === 'npc') useSceneEditStore.getState().clearSelection();
+      if (k && k.endsWith('#npc#poli')) useSceneEditStore.getState().clearSelection();
     }
   };
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
