@@ -32,15 +32,11 @@ export const TransformationController = ({ headingRef }: Props) => {
     useEditorPoliCharacterStore.getState().selectPoli('poli');
   };
 
+  // In Edit Mode the player's visual is rendered by the EditableObject proxy (in Player.tsx) so it
+  // is directly clickable/gizmo-movable; hide the in-body copy here to avoid a doubled mesh.
   return (
     <group ref={groupRef} position={[0, 0.5, 0]} onClick={onClick}>
-      <PlayerMesh mode={mode} />
-      {editMode && (
-        <mesh position={[0, 0.2, 0]}>
-          <boxGeometry args={[1.2, 2.2, 1.2]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-        </mesh>
-      )}
+      {!editMode && <PlayerMesh mode={mode} />}
     </group>
   );
 };

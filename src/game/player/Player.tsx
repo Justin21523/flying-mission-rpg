@@ -10,6 +10,7 @@ import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { applyMovement } from './MovementStateMachine';
 import { TransformationController } from './TransformationController';
+import { PlayerMesh } from './PlayerMesh';
 
 // Stable module-level initial spawn — MUST NOT be an inline array on <RigidBody>, or a per-render
 // new reference makes react-three-rapier reset the body to it every frame (pins the player at spawn).
@@ -29,6 +30,7 @@ export const Player = () => {
   const editMode = useUiStore((s) => s.editMode);
   const currentAreaId = usePlayerStore((s) => s.currentAreaId);
   const spawnRequest = usePlayerStore((s) => s.spawnRequest);
+  const mode = useTransformationStore((s) => s.mode);
   const requestTransform = useTransformationStore((s) => s.requestTransform);
   const keys = useRef<Record<string, boolean>>({});
   const headingRef = useRef(0);
@@ -104,10 +106,15 @@ export const Player = () => {
         <TransformationController headingRef={headingRef} />
       </RigidBody>
 
-      {/* Edit-Mode selectable handle — full kit pipeline (gizmo + W/E/R + inspector + persist). */}
+      {/* Edit-Mode selectable handle — full kit pipeline (gizmo + W/E/R + inspector + persist).
+          The VISIBLE player mesh lives here in Edit Mode (hidden in the body) so the thing you
+          see is exactly the thing you click and drag. */}
       {editMode && (
         <EditableObject objKey={pKey} base={base}>
-          {/* invisible grab box over the capsule so the player is reliably clickable */}
+          <group position={[0, 0.5, 0]}>
+            <PlayerMesh mode={mode} />
+          </group>
+          {/* invisible grab box guarantees a reliable click target */}
           <mesh position={[0, 0.5, 0]}>
             <boxGeometry args={[1.1, 2.2, 1.1]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
