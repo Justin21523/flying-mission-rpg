@@ -25,7 +25,7 @@ export function applyMovement(
     camera.getWorldDirection(_fwd);
     _fwd.y = 0;
     _fwd.normalize();
-    const rx = _fwd.z, rz = -_fwd.x;
+    const rx = -_fwd.z, rz = _fwd.x; // right = forward × up (three.js right-handed)
     let mx = 0, mz = 0;
     if (keys['KeyW']) mz += 1;
     if (keys['KeyS']) mz -= 1;
