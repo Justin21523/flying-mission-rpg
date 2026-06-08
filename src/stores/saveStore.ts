@@ -4,6 +4,12 @@ import { useProgressionStore } from './progressionStore';
 import { useInventoryStore } from './inventoryStore';
 import { useFlagStore } from './flagStore';
 import { useQuestStore } from './questStore';
+import { useWorldClockStore } from './worldClockStore';
+import { useTransformStore } from './transformStore';
+import type { PoliCharId, PoliForm } from './transformStore';
+import { useRelationshipStore } from './relationshipStore';
+import { useToolStore } from './toolStore';
+import type { ToolId } from '../types/tool';
 import type { Quest } from '../types/quest';
 
 // Kit — multi-slot game saves (play-mode 💾 tool). Snapshots the live game stores (player position/area,
@@ -16,6 +22,11 @@ export interface SaveData {
   inventory: { items: Record<string, number>; pickedUpItems: string[] };
   flags: Record<string, boolean>;
   quests: Record<string, { status: Quest['status']; objectives: Record<string, boolean> }>;
+  // Optional (added later — old saves still load): time, active character/form, trust, tools.
+  clock?: { timeMinutes: number; weather: string };
+  transform?: { charId: string; form: string };
+  relationships?: Record<string, number>;
+  tools?: { unlocked: string[]; equipped: string[] };
 }
 export interface SaveSlot { name: string; savedAt: string; data: SaveData }
 
@@ -49,6 +60,9 @@ export function snapshotGame(): SaveData {
   for (const [qid, q] of Object.entries(quests)) {
     questData[qid] = { status: q.status, objectives: Object.fromEntries(q.objectives.map((o) => [o.id, o.isCompleted])) };
   }
+  const clock = useWorldClockStore.getState().getSaveData();
+  const tf = useTransformStore.getState();
+  const tools = useToolStore.getState();
   return {
     version: 1,
     player: { currentAreaId: p.currentAreaId, position: p.position, distanceTraveled: p.distanceTraveled },
@@ -56,6 +70,10 @@ export function snapshotGame(): SaveData {
     inventory: { items: { ...inv.items }, pickedUpItems: [...inv.pickedUpItems] },
     flags: { ...flags },
     quests: questData,
+    clock: { timeMinutes: clock.timeMinutes, weather: clock.weather },
+    transform: { charId: tf.charId, form: tf.form },
+    relationships: { ...useRelationshipStore.getState().trust },
+    tools: { unlocked: [...tools.unlockedTools], equipped: [...tools.equippedTools] },
   };
 }
 
@@ -69,6 +87,11 @@ export function restoreGame(d: SaveData): void {
   for (const [qid, q] of Object.entries(d.quests)) { statuses[qid] = q.status; objStates[qid] = q.objectives; }
   useQuestStore.getState().setQuestStatuses(statuses);
   useQuestStore.getState().setObjectiveStates(objStates);
+  // Optional newer systems (guarded so old saves still load).
+  if (d.clock) useWorldClockStore.getState().loadSaveData({ timeMinutes: d.clock.timeMinutes, weather: d.clock.weather as never });
+  if (d.transform) useTransformStore.setState({ charId: d.transform.charId as PoliCharId, form: d.transform.form as PoliForm, flying: false });
+  if (d.relationships) useRelationshipStore.setState({ trust: { ...d.relationships } });
+  if (d.tools) useToolStore.setState({ unlockedTools: d.tools.unlocked as ToolId[], equippedTools: d.tools.equipped as ToolId[] });
   // Restore location last: set area + request a spawn so the Player teleports there.
   usePlayerStore.getState().setCurrentAreaId(d.player.currentAreaId);
   if (d.player.position) usePlayerStore.getState().requestSpawn(d.player.position);

@@ -38,6 +38,7 @@ interface EditorPoliCharacterState {
   setOverride: (id: string, patch: Partial<CharacterOverride>) => void;
   clearOverride: (id: string) => void;
   selectPoli: (id: string | null) => void;
+  importState: (data: { overrides?: Record<string, CharacterOverride> }) => void;
   reset: () => void;
 }
 
@@ -75,6 +76,12 @@ export const useEditorPoliCharacterStore = create<EditorPoliCharacterState>((set
   },
 
   selectPoli: (id) => set({ selectedId: id }),
+
+  importState: (data) => {
+    const overrides = data.overrides && typeof data.overrides === 'object' ? data.overrides : {};
+    set({ overrides });
+    persist({ overrides });
+  },
 
   reset: () => {
     set({ overrides: {}, selectedId: null });

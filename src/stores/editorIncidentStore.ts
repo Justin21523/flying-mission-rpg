@@ -21,6 +21,7 @@ interface EditorIncidentState {
   addWaypoint: (stageIndex: number, pos: [number, number, number]) => void;
   updateWaypoint: (stageIndex: number, wpIndex: number, pos: [number, number, number]) => void;
   removeWaypoint: (stageIndex: number, wpIndex: number) => void;
+  importState: (data: { incidents?: IncidentDefinition[] }) => void;
   reset: () => void;
 }
 
@@ -105,6 +106,10 @@ export const useEditorIncidentStore = create<EditorIncidentState>((set, get) => 
     updateWaypoint: (si, wi, pos) => mutate((d) => ({ ...d, stages: d.stages.map((s, i) => (i === si ? { ...s, waypointPositions: (s.waypointPositions ?? []).map((w, j) => (j === wi ? pos : w)) } : s)) })),
     removeWaypoint: (si, wi) => mutate((d) => ({ ...d, stages: d.stages.map((s, i) => (i === si ? { ...s, waypointPositions: (s.waypointPositions ?? []).filter((_, j) => j !== wi) } : s)) })),
 
+    importState: (data) => {
+      const incidents = Array.isArray(data.incidents) ? data.incidents.filter((d) => d?.id) : [];
+      set({ incidents, selectedId: null }); persist(incidents);
+    },
     reset: () => { const incidents = clone(POLI_INCIDENTS); set({ incidents, selectedId: null }); persist(incidents); },
   };
 });

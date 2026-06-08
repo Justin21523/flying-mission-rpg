@@ -19,6 +19,7 @@ interface EditorLandmarkState {
   updateLandmark: (id: string, patch: Partial<Landmark>) => void;
   removeLandmark: (id: string) => void;
   markSeeded: (list: Landmark[]) => void;
+  importState: (data: { landmarks?: Landmark[] }) => void;
   reset: () => void;
 }
 
@@ -60,6 +61,11 @@ export const useEditorLandmarkStore = create<EditorLandmarkState>((set, get) => 
   },
   markSeeded: (list) => {
     const landmarks = [...get().landmarks, ...list];
+    set({ landmarks, seeded: true });
+    persist({ landmarks, seeded: true });
+  },
+  importState: (data) => {
+    const landmarks = Array.isArray(data.landmarks) ? data.landmarks : [];
     set({ landmarks, seeded: true });
     persist({ landmarks, seeded: true });
   },

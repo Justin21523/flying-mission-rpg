@@ -6,6 +6,10 @@ import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useEditorQuestStore } from '../../stores/editorQuestStore';
 import { useEditorEncounterStore } from '../../stores/editorEncounterStore';
 import { useEditorActivityStore } from '../../stores/editorActivityStore';
+import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
+import { useEditorLandmarkStore } from '../../stores/editorLandmarkStore';
+import { useEditorIncidentStore } from '../../stores/editorIncidentStore';
+import { useEditorRandomEventStore } from '../../stores/editorRandomEventStore';
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
 // serialize / deserialize / clear / summary hooks. The foundation for the unified project Export/Import.
@@ -91,6 +95,38 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorActivityStore.getState().importState(data as { activities?: never }); },
     clear: () => useEditorActivityStore.getState().reset(),
     summary: () => `${useEditorActivityStore.getState().activities.length} mini-games`,
+  },
+  {
+    id: 'editorPoliCharacter',
+    label: 'POLI Characters',
+    serialize: () => ({ overrides: useEditorPoliCharacterStore.getState().overrides }),
+    deserialize: (data) => { if (isObj(data)) useEditorPoliCharacterStore.getState().importState(data as { overrides?: never }); },
+    clear: () => useEditorPoliCharacterStore.getState().reset(),
+    summary: () => `${Object.keys(useEditorPoliCharacterStore.getState().overrides).length} character overrides`,
+  },
+  {
+    id: 'editorLandmark',
+    label: 'Landmarks',
+    serialize: () => ({ landmarks: useEditorLandmarkStore.getState().landmarks }),
+    deserialize: (data) => { if (isObj(data)) useEditorLandmarkStore.getState().importState(data as { landmarks?: never }); },
+    clear: () => useEditorLandmarkStore.getState().reset(),
+    summary: () => `${useEditorLandmarkStore.getState().landmarks.length} landmarks`,
+  },
+  {
+    id: 'editorIncident',
+    label: 'Incidents',
+    serialize: () => ({ incidents: useEditorIncidentStore.getState().incidents }),
+    deserialize: (data) => { if (isObj(data)) useEditorIncidentStore.getState().importState(data as { incidents?: never }); },
+    clear: () => useEditorIncidentStore.getState().reset(),
+    summary: () => `${useEditorIncidentStore.getState().incidents.length} incidents`,
+  },
+  {
+    id: 'editorRandomEvent',
+    label: 'Random Events',
+    serialize: () => { const s = useEditorRandomEventStore.getState(); return { enabled: s.enabled, intervalSec: s.intervalSec, maxConcurrent: s.maxConcurrent, incidents: s.incidents, reaction: s.reaction }; },
+    deserialize: (data) => { if (isObj(data)) useEditorRandomEventStore.getState().importState(data as never); },
+    clear: () => useEditorRandomEventStore.getState().reset(),
+    summary: () => `director ${useEditorRandomEventStore.getState().enabled ? 'on' : 'off'}`,
   },
 ];
 

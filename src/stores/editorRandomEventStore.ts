@@ -20,6 +20,7 @@ interface EditorRandomEventState {
   setMaxConcurrent: (n: number) => void;
   setIncidentCfg: (id: string, patch: Partial<IncidentCfg>) => void;
   setReaction: (patch: Partial<ReactionCfg>) => void;
+  importState: (data: Partial<typeof DEFAULTS>) => void;
   reset: () => void;
 }
 
@@ -54,6 +55,7 @@ export const useEditorRandomEventStore = create<EditorRandomEventState>((set, ge
     set({ incidents }); persist(get());
   },
   setReaction: (patch) => { set({ reaction: { ...get().reaction, ...patch } }); persist(get()); },
+  importState: (data) => { set({ ...DEFAULTS, ...data }); persist(get()); },
   reset: () => { set({ ...DEFAULTS }); persist(get()); },
 }));
 
