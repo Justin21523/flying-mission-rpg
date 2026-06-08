@@ -1,10 +1,15 @@
 import { create } from 'zustand';
 import { playSfx } from '../game/audio/sfx';
+import { CORE_TEAM } from '../data/characters/coreTeam';
 
-// The 4 playable main characters (each has a vehicle + robot model in CORE_TEAM).
-export type PoliCharId = 'poli' | 'roy' | 'helly' | 'amber';
+// Playable main characters = any CORE_TEAM entry that has BOTH a vehicle and a robot model (so it can
+// transform). Data-driven so adding a character + its two GLBs to CORE_TEAM makes it cycle with C and
+// appear in the POLI tab automatically — no enum edits. charId is a free string (a CORE_TEAM id).
+export type PoliCharId = string;
 export type PoliForm = 'vehicle' | 'robot';
-export const POLI_ROSTER: PoliCharId[] = ['poli', 'roy', 'helly', 'amber'];
+export const POLI_ROSTER: PoliCharId[] = CORE_TEAM
+  .filter((c) => c.modelVehiclePath && c.modelRobotPath)
+  .map((c) => c.id);
 
 interface TransformState {
   charId: PoliCharId;   // which main character the player currently is
