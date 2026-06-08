@@ -12,7 +12,8 @@ interface TransformationState {
 }
 
 export const useTransformationStore = create<TransformationState>((set, get) => ({
-  mode: 'robot',
+  // Default = vehicle → shows the Poli car model; pressing T transforms to robot (transformer).
+  mode: 'vehicle',
   isTransforming: false,
   playerFacingAngle: Math.PI,
   isPlayerMoving: false,
