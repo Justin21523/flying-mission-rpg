@@ -5,6 +5,7 @@ import { Group } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useUiStore } from '../../stores/uiStore';
 import { useSceneEditStore } from '../../stores/sceneEditStore';
+import { useTransformStore } from '../../stores/transformStore';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
@@ -34,7 +35,15 @@ export const Player = () => {
   const pKey = playerKey(currentAreaId);
 
   useEffect(() => {
-    const down = (e: KeyboardEvent) => { keys.current[e.code] = true; };
+    const down = (e: KeyboardEvent) => {
+      // T transforms car⇄robot. Toggled via getState so Player never re-renders on T (PlayerMesh
+      // subscribes to the form and swaps which model is visible — both stay mounted).
+      if (e.code === 'KeyT' && !e.repeat) {
+        if (!useUiStore.getState().editMode) useTransformStore.getState().toggle();
+        return;
+      }
+      keys.current[e.code] = true;
+    };
     const up = (e: KeyboardEvent) => { keys.current[e.code] = false; };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
