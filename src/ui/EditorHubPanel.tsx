@@ -36,14 +36,19 @@ export const EditorHubPanel = () => {
   const close = useUiStore((s) => s.toggleEditorHub);
   const [userTab, setUserTab] = useState<Tab>('debug');
   // Snap to the POLI tab when a POLI character is selected — either an NPC clicked in 3D
-  // (kit sceneEditStore, npc-kind key) or the player/character chosen in the POLI panel.
+  // (kit sceneEditStore, npc-kind key) or a character chosen in the POLI panel. Clicking ANY other
+  // tab clears those selections so the snap never LOCKS the hub on POLI (the previous bug).
   const selectedKey = useSceneEditStore((s) => s.selectedKey);
   const poliSelectedId = useEditorPoliCharacterStore((s) => s.selectedId);
   const selectedIsNpc = !!selectedKey && selectedKey.split('#')[1] === 'npc';
   const tab: Tab = selectedIsNpc || poliSelectedId ? 'poli' : userTab;
   const setTab = (t: Tab) => {
     setUserTab(t);
-    if (t !== 'poli') useEditorPoliCharacterStore.getState().selectPoli(null);
+    if (t !== 'poli') {
+      useEditorPoliCharacterStore.getState().selectPoli(null);
+      const k = useSceneEditStore.getState().selectedKey;
+      if (k && k.split('#')[1] === 'npc') useSceneEditStore.getState().clearSelection();
+    }
   };
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(1); // hub zoom (60%–200%)
