@@ -5,6 +5,8 @@ import { useProgressionStore } from './progressionStore';
 import { useRelationshipStore } from './relationshipStore';
 import { useFlagStore } from './flagStore';
 import { useToolStore } from './toolStore';
+import { useRescueLicenseStore } from './rescueLicenseStore';
+import { useJinResearchStore } from './jinResearchStore';
 import { playSfx } from '../game/audio/sfx';
 import type { RescuePipelineStep } from '../types/incident';
 
@@ -153,6 +155,9 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
         }
       });
       useIncidentStore.getState().resolveIncident(def.id);
+      // Progression: count the rescue toward the license, and award a research point for Jin's station.
+      useRescueLicenseStore.getState().recordRescue();
+      useJinResearchStore.getState().addPoints(1);
     }
     set({
       isActive: false,

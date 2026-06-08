@@ -3,6 +3,7 @@ import { useInventoryStore } from '../../stores/inventoryStore';
 import { useProgressionStore } from '../../stores/progressionStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { useRelationshipStore } from '../../stores/relationshipStore';
+import { useJinResearchStore } from '../../stores/jinResearchStore';
 import { playSfx } from '../audio/sfx';
 
 // POLI quest reward handler (seam #2).
@@ -11,6 +12,7 @@ import { playSfx } from '../audio/sfx';
 export function setupPoliQuestRewards(): void {
   setQuestRewardHandler((reward) => {
     playSfx('questComplete');
+    useJinResearchStore.getState().addPoints(1); // helping residents earns a research point
     reward.items?.forEach((it) =>
       useInventoryStore.getState().addItem(it.itemId, it.quantity ?? 1),
     );

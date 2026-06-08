@@ -14,6 +14,8 @@ import { useEditorTrafficStore } from '../../stores/editorTrafficStore';
 import { useEditorToolStore } from '../../stores/editorToolStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
+import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
+import { useJinResearchStore } from '../../stores/jinResearchStore';
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
 // serialize / deserialize / clear / summary hooks. The foundation for the unified project Export/Import.
@@ -163,6 +165,22 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorLayoutStore.getState().importState(data as never); },
     clear: () => useEditorLayoutStore.getState().reset(),
     summary: () => `${Object.values(useEditorLayoutStore.getState().presets).reduce((n, l) => n + l.length, 0)} layout presets`,
+  },
+  {
+    id: 'editorLicense',
+    label: 'License',
+    serialize: () => { const s = useRescueLicenseStore.getState(); return { rescuesCompleted: s.rescuesCompleted, tiers: s.tiers }; },
+    deserialize: (data) => { if (isObj(data)) useRescueLicenseStore.getState().importState(data as never); },
+    clear: () => useRescueLicenseStore.getState().reset(),
+    summary: () => `${useRescueLicenseStore.getState().tiers.length} tiers`,
+  },
+  {
+    id: 'editorResearch',
+    label: 'Research',
+    serialize: () => { const s = useJinResearchStore.getState(); return { researchPoints: s.researchPoints, completed: s.completed, projects: s.projects }; },
+    deserialize: (data) => { if (isObj(data)) useJinResearchStore.getState().importState(data as never); },
+    clear: () => useJinResearchStore.getState().reset(),
+    summary: () => `${useJinResearchStore.getState().projects.length} projects`,
   },
 ];
 
