@@ -41,8 +41,8 @@ function usePoliInteraction(allChars: CharacterDefinition[]) {
 const NPC_HEIGHT = 1.9;
 const CharacterGlb = ({ path }: { path: string }) => {
   // Auto-fit to NPC_HEIGHT with feet at y=0, regardless of the GLB's native export units.
-  const obj = useNormalizedGlb(path, NPC_HEIGHT);
-  return <primitive object={obj} position={[0, 0, 0]} />;
+  const { scene, scale, yOffset } = useNormalizedGlb(path, NPC_HEIGHT);
+  return <primitive object={scene} scale={scale} position={[0, yOffset, 0]} />;
 };
 
 const CapsuleFallback = ({ color }: { color: string }) => (

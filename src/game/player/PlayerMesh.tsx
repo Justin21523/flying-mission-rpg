@@ -33,14 +33,14 @@ const VehicleFallback = () => (
 );
 
 const RobotGlb = ({ path }: { path: string }) => {
-  // Auto-fit to ROBOT_HEIGHT with feet at y=0, then drop so it straddles the capsule centre.
-  const obj = useNormalizedGlb(path, ROBOT_HEIGHT);
-  return <primitive object={obj} position={[0, -1.0, 0]} />;
+  // Auto-fit to ROBOT_HEIGHT; feet at local y=0, then drop 1.0 to straddle the capsule centre.
+  const { scene, scale, yOffset } = useNormalizedGlb(path, ROBOT_HEIGHT);
+  return <primitive object={scene} scale={scale} position={[0, yOffset - 1.0, 0]} />;
 };
 
 const VehicleGlb = ({ path }: { path: string }) => {
-  const obj = useNormalizedGlb(path, VEHICLE_HEIGHT);
-  return <primitive object={obj} position={[0, -1.0, 0]} />;
+  const { scene, scale, yOffset } = useNormalizedGlb(path, VEHICLE_HEIGHT);
+  return <primitive object={scene} scale={scale} position={[0, yOffset - 1.0, 0]} />;
 };
 
 interface Props {
