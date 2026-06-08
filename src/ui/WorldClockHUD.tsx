@@ -7,7 +7,7 @@ import { getKitArea } from '../data/areas';
 import { usePoll } from './usePoll';
 
 const TIME_ICON: Record<TimeOfDay, string> = { dawn: '🌅', day: '☀️', evening: '🌆', night: '🌙' };
-const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', fog: '🌫️' };
+const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', fog: '🌫️', storm: '⛈️' };
 
 // Kit — top-right HUD: current area + clock + time-of-day + weather + the FX toggle state.
 // timeMinutes ticks every frame, so we poll the clock ~4×/s via getState rather than subscribing to

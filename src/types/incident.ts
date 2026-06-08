@@ -1,6 +1,15 @@
 import type { SourceConfidence } from './character';
 
-export type IncidentType = 'fire' | 'lost_person' | 'road_hazard';
+export type IncidentType =
+  | 'fire'
+  | 'lost_person'
+  | 'road_hazard'
+  | 'fallen_cargo'
+  | 'flat_tire'
+  | 'fallen_tree'
+  | 'lost_pet'
+  | 'broken_signal'
+  | 'road_water';
 export type RescueStageType = 'action' | 'waypoints';
 export type RescuePipelineStep = 'on_scene' | 'success' | 'debrief' | 'retry';
 

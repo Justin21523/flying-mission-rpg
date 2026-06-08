@@ -6,7 +6,7 @@ import { spawnRandomIncident } from '../../game/incident/spawnIncident';
 import { Field, inp, lbl, csv, parseCsv } from './editorShared';
 import type { IncidentType, RescueStageType } from '../../types/incident';
 
-const INCIDENT_TYPES: IncidentType[] = ['fire', 'lost_person', 'road_hazard'];
+const INCIDENT_TYPES: IncidentType[] = ['fire', 'lost_person', 'road_hazard', 'fallen_cargo', 'flat_tire', 'fallen_tree', 'lost_pet', 'broken_signal', 'road_water'];
 const STAGE_TYPES: RescueStageType[] = ['action', 'waypoints'];
 const REACTION_MODES: ReactionMode[] = ['watch', 'approach', 'flee'];
 const camPos = (): [number, number, number] => [Math.round(editorSpawn.x * 100) / 100, 1, Math.round(editorSpawn.z * 100) / 100];

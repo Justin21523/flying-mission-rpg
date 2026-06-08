@@ -8,7 +8,7 @@ export type Weather = WeatherCondition;
 export const GAME_MINUTES_PER_REAL_SECOND = 3;
 const MINUTES_PER_DAY = 1440;
 const WEATHER_CHANGE_CHANCE_PER_HOUR = 0.2;
-const WEATHER_VALUES: Weather[] = ['clear', 'rain', 'fog'];
+const WEATHER_VALUES: Weather[] = ['clear', 'rain', 'fog', 'storm'];
 
 // Phase boundaries (minute-of-day): dawn 05:00, day 08:00, evening 17:00, night 20:00.
 const PHASE_START: Record<TimeOfDay, number> = { dawn: 300, day: 480, evening: 1020, night: 1200 };

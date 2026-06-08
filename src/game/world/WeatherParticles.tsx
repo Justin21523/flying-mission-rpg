@@ -135,15 +135,18 @@ export const WeatherParticles = () => {
   const timeOfDay = useWorldClockStore((s) => s.timeOfDay);
 
   if (!particlesEnabled) return null;
-  const showRain = weather === 'rain';
+  const isStorm = weather === 'storm';
+  const showRain = weather === 'rain' || isStorm;
   const showNight = timeOfDay === 'night';
   if (!showRain && !showNight) return null;
 
   const counts = DENSITY[density];
+  // Storm is heavier rain than a normal shower.
+  const rainCount = isStorm ? Math.round(counts.rain * 1.6) : counts.rain;
 
   return (
     <FollowGroup>
-      {showRain && <Rain key={`rain-${density}`} count={counts.rain} />}
+      {showRain && <Rain key={`rain-${density}-${isStorm ? 'storm' : 'rain'}`} count={rainCount} />}
       {showNight && <NightFx key={`night-${density}`} fireflyCount={counts.firefly} starCount={counts.star} />}
     </FollowGroup>
   );

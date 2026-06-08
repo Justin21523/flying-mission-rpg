@@ -23,6 +23,12 @@ const INCIDENT_COLORS: Record<string, string> = {
   fire: '#ff6633',
   lost_person: '#3399ff',
   road_hazard: '#ffcc00',
+  fallen_cargo: '#d97706',
+  flat_tire: '#a3a3a3',
+  fallen_tree: '#65a30d',
+  lost_pet: '#f472b6',
+  broken_signal: '#fbbf24',
+  road_water: '#38bdf8',
 };
 
 // ---- E-key hook ----------------------------------------------------------

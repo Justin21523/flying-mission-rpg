@@ -146,6 +146,19 @@ function applyWeather(base: WorldAmbience, weather: WeatherCondition): WorldAmbi
       hemisphere: { ...base.hemisphere, intensity: base.hemisphere.intensity * 0.75 },
     };
   }
+  if (weather === 'storm') {
+    // Storm = heavy rain: darker, lower light, fog pulled in harder. Still child-friendly (no horror).
+    return {
+      ...base,
+      skyColor: lerpColor(base.skyColor, '#4a5360', 0.75),
+      fogNear: Math.min(base.fogNear, 14),
+      fogFar: Math.min(base.fogFar, 60),
+      turbidity: base.turbidity + 7,
+      ambient: { ...base.ambient, intensity: base.ambient.intensity * 0.65 },
+      directional: { ...base.directional, intensity: base.directional.intensity * 0.4 },
+      hemisphere: { ...base.hemisphere, intensity: base.hemisphere.intensity * 0.6 },
+    };
+  }
   return base;
 }
 
