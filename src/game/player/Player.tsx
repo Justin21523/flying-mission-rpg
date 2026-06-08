@@ -6,11 +6,21 @@ import { usePlayerStore } from '../../stores/playerStore';
 import { useUiStore } from '../../stores/uiStore';
 import { useSceneEditStore } from '../../stores/sceneEditStore';
 import { useTransformStore } from '../../stores/transformStore';
+import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
+import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { applyMovement } from './MovementStateMachine';
 import { PlayerMesh } from './PlayerMesh';
+import { playerMotion } from './playerMotion';
+
+// Whether the currently-active main character can fly (base data ⊕ Edit-Mode override).
+function activeCanFly(): boolean {
+  const id = useTransformStore.getState().charId;
+  const base = CORE_TEAM.find((c) => c.id === id);
+  return base ? !!getMergedPoliCharacter(base).canFly : false;
+}
 
 // Stable module-level initial spawn — MUST NOT be an inline array on <RigidBody>, or a per-render
 // new reference makes react-three-rapier reset the body to it every frame (pins the player at spawn).
@@ -33,6 +43,7 @@ export const Player = () => {
   const spawnRequest = usePlayerStore((s) => s.spawnRequest);
   const keys = useRef<Record<string, boolean>>({});
   const headingRef = useRef(0);
+  const lastFlying = useRef(false); // tracks gravityScale transitions
   const { camera } = useThree();
 
   const pKey = playerKey(currentAreaId);
@@ -47,6 +58,10 @@ export const Player = () => {
       }
       if (e.code === 'KeyC' && !e.repeat) { // cycle the 4 main characters
         if (!useUiStore.getState().editMode) useTransformStore.getState().cycleCharacter();
+        return;
+      }
+      if (e.code === 'KeyF' && !e.repeat) { // toggle flight (only if the active character can fly)
+        if (!useUiStore.getState().editMode && activeCanFly()) useTransformStore.getState().toggleFlight();
         return;
       }
       keys.current[e.code] = true;
@@ -107,7 +122,20 @@ export const Player = () => {
     const tag = (document.activeElement?.tagName ?? '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
-    applyMovement(b, keys.current, camera, headingRef);
+    // Flight: toggle gravity on transition (0 while flying → true hover; 1 on the ground).
+    const flying = useTransformStore.getState().flying;
+    if (flying !== lastFlying.current) {
+      lastFlying.current = flying;
+      b.setGravityScale(flying ? 0 : 1, true);
+      if (flying) b.setLinvel({ x: 0, y: 0, z: 0 }, true); // clean hover start
+    }
+
+    applyMovement(b, keys.current, camera, headingRef, flying);
+
+    // Publish motion for the rotor + jet (no re-render). moving drives the rotor spin.
+    const k = keys.current;
+    playerMotion.heading = headingRef.current;
+    playerMotion.moving = flying && !!(k['KeyW'] || k['KeyS'] || k['KeyA'] || k['KeyD'] || k['Space'] || k['ShiftLeft']);
   });
 
   // Base for the Edit-Mode handle = the player's current position (read non-reactively).

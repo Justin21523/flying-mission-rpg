@@ -133,6 +133,17 @@ export const PoliCharacterEditorTab = () => {
                 />
               </Field>
 
+              <Field label="Can Fly (F to fly, e.g. Helly)">
+                <label className="flex items-center gap-2 text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={!!sel.canFly}
+                    onChange={(e) => set({ canFly: e.target.checked })}
+                  />
+                  <span className="text-[11px]">{sel.canFly ? 'Can enter flight mode' : 'Grounded'}</span>
+                </label>
+              </Field>
+
               <Field label="Display Name (English)">
                 <input
                   className={inp}

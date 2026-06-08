@@ -12,10 +12,10 @@ import { useTransformStore } from '../../stores/transformStore';
 // geometry ref inside one useFrame (needsUpdate); velocities/scalars live in a useRef. No per-frame
 // allocations, no mutation of memoized values.
 
-const SMOKE = 140;
-const GLOW = 64;
-const DURATION = 1.15;  // smoke lifetime (s)
-const GLOW_LIFE = 0.8;  // cyan sparkle lifetime (s)
+const SMOKE = 200;
+const GLOW = 90;
+const DURATION = 1.2;   // smoke lifetime (s)
+const GLOW_LIFE = 0.85; // cyan sparkle lifetime (s)
 
 function makeSoftTexture(): CanvasTexture {
   const s = 64;
@@ -66,18 +66,18 @@ export const TransformSmoke = () => {
       st.lastPulse = pulse;
       // Spawn across the whole height + girth of the (large) robot so the cloud fully envelops it.
       for (let i = 0; i < SMOKE; i++) {
-        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.9), sp = rnd(1.8, 4.2);
+        const a = rnd(0, Math.PI * 2), r = rnd(0, 1.0), sp = rnd(2.0, 4.6);
         smokeArr[i * 3] = Math.cos(a) * r;
-        smokeArr[i * 3 + 1] = rnd(0.0, 2.6);
+        smokeArr[i * 3 + 1] = rnd(-1.0, 1.8); // centred on the body (group sits at body centre)
         smokeArr[i * 3 + 2] = Math.sin(a) * r;
         st.smokeVel[i * 3] = Math.cos(a) * sp;
         st.smokeVel[i * 3 + 1] = rnd(0.8, 2.8);
         st.smokeVel[i * 3 + 2] = Math.sin(a) * sp;
       }
       for (let i = 0; i < GLOW; i++) {
-        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.7), sp = rnd(2.2, 4.6);
+        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.8), sp = rnd(2.4, 5.0);
         glowArr[i * 3] = Math.cos(a) * r;
-        glowArr[i * 3 + 1] = rnd(0.3, 2.4);
+        glowArr[i * 3 + 1] = rnd(-0.8, 1.6);
         glowArr[i * 3 + 2] = Math.sin(a) * r;
         st.glowVel[i * 3] = Math.cos(a) * sp;
         st.glowVel[i * 3 + 1] = rnd(1.0, 3.0);
@@ -86,10 +86,10 @@ export const TransformSmoke = () => {
       st.age = 0;
     }
 
-    // Keep the burst centred on the player.
+    // Keep the burst centred on the player's BODY (raised, not at the feet).
     const g = groupRef.current;
     const pos = usePlayerStore.getState().position;
-    if (g && pos) g.position.set(pos.x, 0, pos.z);
+    if (g && pos) g.position.set(pos.x, pos.y + 0.6, pos.z);
 
     const smokeMat = smokeRef.current?.material as PointsMaterial | undefined;
     const glowMat = glowRef.current?.material as PointsMaterial | undefined;
@@ -110,7 +110,7 @@ export const TransformSmoke = () => {
     if (smokeMat) {
       const fade = t < 0.18 ? t / 0.18 : Math.max(0, 1 - (t - 0.18) / (DURATION - 0.18));
       smokeMat.opacity = fade * 0.95;
-      smokeMat.size = 2.0 + t * 3.4; // large puffs that cover the whole robot
+      smokeMat.size = 2.6 + t * 4.0; // large puffs that fully cover the robot
     }
 
     if (glowArr && glowAttr) {

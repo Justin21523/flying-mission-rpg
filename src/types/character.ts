@@ -19,4 +19,5 @@ export interface CharacterDefinition {
   dialogueTreeId: string;
   modelRobotPath?: string;   // GLB for robot / humanoid NPC form
   modelVehiclePath?: string; // GLB for vehicle form
+  canFly?: boolean;          // playable: can enter flight mode (F) — e.g. Helly the helicopter
 }

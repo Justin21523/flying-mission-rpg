@@ -5,6 +5,7 @@ import { SkeletonUtils } from 'three-stdlib';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 import { useTransformStore, POLI_ROSTER, type PoliForm } from '../../stores/transformStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
+import { HelicopterRotor } from './HelicopterRotor';
 
 // The player is one of the 4 main characters (cycle with C), each with two forms (toggle with T):
 //   • vehicle (default) → the character's car/helicopter model (modelVehiclePath)
@@ -64,19 +65,24 @@ const BothForms = ({ carPath, robotPath, form }: { carPath: string; robotPath: s
 export const PlayerMesh = () => {
   const charId = useTransformStore((s) => s.charId);
   const form = useTransformStore((s) => s.form);
+  const flying = useTransformStore((s) => s.flying);
   const override = useEditorPoliCharacterStore((s) => s.overrides[charId]);
 
   const base = CORE_TEAM.find((c) => c.id === charId);
   const carPath = override?.modelVehiclePath || base?.modelVehiclePath || '';
   const robotPath = override?.modelRobotPath || base?.modelRobotPath || '';
+  const canFly = override?.canFly ?? base?.canFly ?? false;
 
   // Keyed by charId: switching character mounts the new pair (the old unmounts) — hidden under the
   // smoke cover. One <Suspense> so a capsule only shows during the very first load.
   return (
-    <Suspense fallback={<Capsule />}>
-      {carPath && robotPath
-        ? <BothForms key={charId} carPath={carPath} robotPath={robotPath} form={form} />
-        : <Capsule />}
-    </Suspense>
+    <>
+      <Suspense fallback={<Capsule />}>
+        {carPath && robotPath
+          ? <BothForms key={charId} carPath={carPath} robotPath={robotPath} form={form} />
+          : <Capsule />}
+      </Suspense>
+      {canFly && flying && <HelicopterRotor />}
+    </>
   );
 };

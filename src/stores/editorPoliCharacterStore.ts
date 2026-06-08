@@ -18,6 +18,7 @@ export interface CharacterOverride {
   color?: string;
   homeAreaId?: string;
   description?: string;
+  canFly?: boolean;
 }
 
 interface EditorPoliCharacterState {
@@ -85,5 +86,6 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.color !== undefined && { color: ov.color }),
     ...(ov.homeAreaId !== undefined && { homeAreaId: ov.homeAreaId }),
     ...(ov.description !== undefined && { description: ov.description }),
+    ...(ov.canFly !== undefined && { canFly: ov.canFly }),
   };
 }
