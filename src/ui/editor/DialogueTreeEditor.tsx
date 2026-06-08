@@ -59,6 +59,26 @@ export const DialogueTreeEditor = ({ treeId }: { treeId: string }) => {
         </div>
       )}
 
+      {/* Flow overview — each node and where it leads (→ next, ?→ fallback, choices). */}
+      <details className="rounded border border-slate-700/60 bg-slate-900/40 px-2 py-1 text-[10px] text-slate-300">
+        <summary className="cursor-pointer select-none text-slate-400">🔀 Flow overview</summary>
+        <div className="mt-1 space-y-0.5">
+          {nodeIds.map((nid) => {
+            const n = tree.nodes[nid];
+            const edges: string[] = [];
+            if (n.nextNodeId) edges.push(`→ ${n.nextNodeId}`);
+            if (n.fallbackNodeId) edges.push(`?→ ${n.fallbackNodeId}`);
+            for (const c of n.choices ?? []) edges.push(`[${c.text || '…'}]→ ${c.nextNodeId ?? 'end'}`);
+            return (
+              <div key={nid} className="truncate">
+                <span className={tree.rootNodeId === nid ? 'text-emerald-300' : 'text-slate-200'}>{nid}</span>
+                <span className="text-slate-500"> {edges.length ? edges.join('  ') : '· (end)'}</span>
+              </div>
+            );
+          })}
+        </div>
+      </details>
+
       <div className="space-y-2">
         {nodeIds.map((nid) => (
           <DialogueNodeEditor

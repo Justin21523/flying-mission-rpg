@@ -21,11 +21,13 @@ export const DIALOGUE_EFFECT_TYPES: DialogueEffectType[] = [
   'startQuest', 'completeQuest', 'updateObjective', 'completeObjective',
   'addItem', 'giveItem', 'setWorldFlag', 'startBattle', 'startActivity', 'closeDialogue',
   'increaseTrust', 'startIncident', 'unlockTool',
+  'setForm', 'setActiveCharacter', 'spawnRandomIncident',
 ];
 
 export const DIALOGUE_CONDITION_TYPES: DialogueConditionType[] = [
   'hasItem', 'questInProgress', 'questCompleted', 'objectiveCompleted',
   'doorUnlocked', 'worldFlagSet', 'playerLevel', 'trustLevel',
+  'toolUnlocked', 'activeCharIs', 'activeFormIs',
 ];
 
 export const EFFECT_FIELDS: Record<DialogueEffectType, MechField[]> = {
@@ -42,6 +44,9 @@ export const EFFECT_FIELDS: Record<DialogueEffectType, MechField[]> = {
   increaseTrust: [{ key: 'characterId', label: 'characterId', kind: 'string' }, { key: 'amount', label: 'amount', kind: 'number' }],
   startIncident: [{ key: 'incidentId', label: 'Incident ID', kind: 'string' }],
   unlockTool: [{ key: 'toolId', label: 'Tool ID', kind: 'string' }],
+  setForm: [{ key: 'form', label: 'form (vehicle/robot)', kind: 'string' }],
+  setActiveCharacter: [{ key: 'charId', label: 'charId (poli/roy/helly/amber)', kind: 'string' }],
+  spawnRandomIncident: [],
 };
 
 export const COND_FIELDS: Record<DialogueConditionType, MechField[]> = {
@@ -53,6 +58,9 @@ export const COND_FIELDS: Record<DialogueConditionType, MechField[]> = {
   worldFlagSet: [{ key: 'flag', label: 'flag', kind: 'string' }],
   playerLevel: [{ key: 'level', label: 'level', kind: 'number' }],
   trustLevel: [{ key: 'characterId', label: 'characterId', kind: 'string' }, { key: 'minTrust', label: 'minTrust', kind: 'number' }],
+  toolUnlocked: [{ key: 'toolId', label: 'Tool ID', kind: 'string' }],
+  activeCharIs: [{ key: 'charId', label: 'charId', kind: 'string' }],
+  activeFormIs: [{ key: 'form', label: 'form (vehicle/robot)', kind: 'string' }],
 };
 
 // Build a typed object from string/number field inputs (coerces number fields).

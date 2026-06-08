@@ -7,7 +7,15 @@ import { useQuestStore } from '../stores/questStore';
 import { useDoorStore } from '../stores/doorStore';
 import { useFlagStore } from '../stores/flagStore';
 import { useProgressionStore } from '../stores/progressionStore';
+import { useRelationshipStore } from '../stores/relationshipStore';
+import { useToolStore } from '../stores/toolStore';
+import { useTransformStore } from '../stores/transformStore';
 import type { DialogueChoice, DialogueEmotion } from '../types/dialogue';
+
+// Emoji shown on the portrait avatar per emotion.
+const EMOTION_EMOJI: Record<DialogueEmotion, string> = {
+  neutral: '🙂', happy: '😄', sad: '😢', angry: '😠', surprised: '😲', worried: '😟', thinking: '🤔', excited: '🤩',
+};
 
 // Light portrait tint per speaker emotion.
 const EMOTION_TINT: Record<DialogueEmotion, string> = {
@@ -59,6 +67,14 @@ export const DialogueBox = () => {
           return flags[cond.flag] === true;
         case 'playerLevel':
           return playerLevel >= cond.level;
+        case 'trustLevel':
+          return useRelationshipStore.getState().getTrust(cond.characterId) >= cond.minTrust;
+        case 'toolUnlocked':
+          return useToolStore.getState().unlockedTools.includes(cond.toolId as never);
+        case 'activeCharIs':
+          return useTransformStore.getState().charId === cond.charId;
+        case 'activeFormIs':
+          return useTransformStore.getState().form === cond.form;
         default:
           return false;
       }
@@ -126,7 +142,7 @@ export const DialogueBox = () => {
                 node.speaker === 'System' ? 'border-slate-500/60 bg-slate-800 text-slate-200' : EMOTION_TINT[node.emotion ?? 'neutral']
               }`}
             >
-              {node.speaker.charAt(0)}
+              {node.speaker === 'System' ? node.speaker.charAt(0) : EMOTION_EMOJI[node.emotion ?? 'neutral']}
             </div>
           </div>
           <div className="min-w-0">

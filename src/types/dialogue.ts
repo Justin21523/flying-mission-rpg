@@ -39,7 +39,10 @@ export type DialogueCondition =
   | { type: 'doorUnlocked'; doorId: string }
   | { type: 'worldFlagSet'; flag: string }
   | { type: 'playerLevel'; level: number }
-  | { type: 'trustLevel'; characterId: string; minTrust: number };
+  | { type: 'trustLevel'; characterId: string; minTrust: number }
+  | { type: 'toolUnlocked'; toolId: string }
+  | { type: 'activeCharIs'; charId: string }
+  | { type: 'activeFormIs'; form: string };
 
 export type DialogueEffect =
   | { type: 'addItem'; itemId: string; quantity?: number }
@@ -54,7 +57,10 @@ export type DialogueEffect =
   | { type: 'closeDialogue' }
   | { type: 'increaseTrust'; characterId: string; amount: number }
   | { type: 'startIncident'; incidentId: string }
-  | { type: 'unlockTool'; toolId: string };
+  | { type: 'unlockTool'; toolId: string }
+  | { type: 'setForm'; form: string }
+  | { type: 'setActiveCharacter'; charId: string }
+  | { type: 'spawnRandomIncident' };
 
 export interface DialogueChoice {
   id: string;

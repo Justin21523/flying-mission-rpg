@@ -10,6 +10,9 @@ import { useActivityStore } from '../stores/activityStore';
 import { useRelationshipStore } from '../stores/relationshipStore';
 import { useRescueOperationStore } from '../stores/rescueOperationStore';
 import { useToolStore } from '../stores/toolStore';
+import { useTransformStore } from '../stores/transformStore';
+import type { PoliCharId, PoliForm } from '../stores/transformStore';
+import { spawnRandomIncident } from './incident/spawnIncident';
 
 // Kit — apply a generic dialogue/choice/quest effect to the live stores. Add a case here when you add
 // an effect kind to DialogueEffect.
@@ -52,6 +55,15 @@ export function executeEffect(effect: DialogueEffect): void {
       break;
     case 'unlockTool':
       useToolStore.getState().unlockTool(effect.toolId as ToolId);
+      break;
+    case 'setForm':
+      useTransformStore.setState({ form: effect.form as PoliForm });
+      break;
+    case 'setActiveCharacter':
+      useTransformStore.setState({ charId: effect.charId as PoliCharId, flying: false });
+      break;
+    case 'spawnRandomIncident':
+      spawnRandomIncident();
       break;
   }
 }
