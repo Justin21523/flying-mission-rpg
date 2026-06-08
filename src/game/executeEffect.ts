@@ -6,6 +6,7 @@ import { useDialogueStore } from '../stores/dialogueStore';
 import { getEditorEncounter } from '../stores/editorEncounterStore';
 import { startEditorEncounter } from './battle/startEncounter';
 import { useActivityStore } from '../stores/activityStore';
+import { useRelationshipStore } from '../stores/relationshipStore';
 
 // Kit — apply a generic dialogue/choice/quest effect to the live stores. Add a case here when you add
 // an effect kind to DialogueEffect.
@@ -38,6 +39,9 @@ export function executeEffect(effect: DialogueEffect): void {
       break;
     case 'closeDialogue':
       useDialogueStore.getState().endDialogue();
+      break;
+    case 'increaseTrust':
+      useRelationshipStore.getState().increaseTrust(effect.characterId, effect.amount);
       break;
   }
 }

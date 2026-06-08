@@ -4,6 +4,7 @@ import { useQuestStore } from '../stores/questStore';
 import { useDoorStore } from '../stores/doorStore';
 import { useFlagStore } from '../stores/flagStore';
 import { useProgressionStore } from '../stores/progressionStore';
+import { useRelationshipStore } from '../stores/relationshipStore';
 
 // Kit — evaluate a generic dialogue/choice condition against the live stores. Add a case here when you
 // add a condition kind to DialogueCondition.
@@ -25,5 +26,7 @@ export function evaluateCondition(cond: DialogueCondition): boolean {
       return useFlagStore.getState().hasFlag(cond.flag);
     case 'playerLevel':
       return useProgressionStore.getState().level >= cond.level;
+    case 'trustLevel':
+      return useRelationshipStore.getState().getTrust(cond.characterId) >= cond.minTrust;
   }
 }

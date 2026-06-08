@@ -1,0 +1,61 @@
+import type { CharacterDefinition } from '../../types/character';
+
+// Brooms Town residents. SecondarySource characters appear in episodes; GameAdaptation
+// characters are original for this game. Never present GameAdaptation content as official canon.
+export const RESIDENTS: CharacterDefinition[] = [
+  {
+    id: 'mayor_lee',
+    name: 'Mayor Lee',
+    nameZhTW: '李市長',
+    role: 'Town Mayor',
+    description: 'A warm-hearted mayor dedicated to keeping Brooms Town safe and welcoming.',
+    sourceConfidence: 'SecondarySource',
+    homeAreaId: 'central_plaza',
+    color: '#f97316',
+    dialogueTreeId: 'dlg_mayor',
+  },
+  {
+    id: 'teacher_mi',
+    name: 'Teacher Mi',
+    nameZhTW: '米老師',
+    role: 'School Teacher',
+    description: 'An enthusiastic teacher who always weaves safety lessons into every subject.',
+    sourceConfidence: 'SecondarySource',
+    homeAreaId: 'school_district',
+    color: '#ec4899',
+    dialogueTreeId: 'dlg_teacher',
+  },
+  {
+    id: 'dr_kim',
+    name: 'Dr. Kim',
+    nameZhTW: '金醫生',
+    role: 'Town Doctor',
+    description: 'A calm and caring doctor who keeps the whole town healthy.',
+    sourceConfidence: 'SecondarySource',
+    homeAreaId: 'central_plaza',
+    color: '#06b6d4',
+    dialogueTreeId: 'dlg_dr_kim',
+  },
+  {
+    id: 'harbor_worker',
+    name: 'Harbor Worker',
+    nameZhTW: '港務員',
+    role: 'Harbor Staff',
+    description: 'A sturdy worker who keeps cargo moving safely at the Brooms Town harbor.',
+    sourceConfidence: 'GameAdaptation',
+    homeAreaId: 'harbor_front',
+    color: '#64748b',
+    dialogueTreeId: 'dlg_harbor_worker',
+  },
+  {
+    id: 'site_foreman',
+    name: 'Site Foreman',
+    nameZhTW: '工地主任',
+    role: 'Construction Lead',
+    description: 'A strict but fair foreman who insists on safety at the construction site.',
+    sourceConfidence: 'GameAdaptation',
+    homeAreaId: 'construction_site',
+    color: '#d97706',
+    dialogueTreeId: 'dlg_site_foreman',
+  },
+];

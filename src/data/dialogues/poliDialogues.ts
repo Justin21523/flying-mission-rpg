@@ -1,0 +1,305 @@
+import type { DialogueTree } from '../../types/dialogue';
+
+// POLI rescue team and resident dialogue trees.
+// All characters: OfficialConfirmed or labelled per residents.ts sourceConfidence.
+export const POLI_DIALOGUES: DialogueTree[] = [
+  // ────────────────────────────── Roy ──────────────────────────────
+  {
+    id: 'dlg_roy',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Roy',
+        text: 'Hey! Great timing. I\'m about to run a rescue drill on Main Road. Want to help?',
+        emotion: 'happy',
+        nextNodeId: 'drill_offer',
+      },
+      drill_offer: {
+        id: 'drill_offer',
+        speaker: 'Roy',
+        text: 'Every practice run makes us better prepared for real emergencies!',
+        emotion: 'excited',
+        choices: [
+          {
+            id: 'learn',
+            text: 'Tell me about the drills.',
+            nextNodeId: 'drill_detail',
+          },
+          {
+            id: 'help',
+            text: "I'll protect Brooms Town!",
+            nextNodeId: 'encourage',
+            effect: { type: 'increaseTrust', characterId: 'roy', amount: 5 },
+          },
+          { id: 'later', text: 'Maybe later.', nextNodeId: null },
+        ],
+      },
+      drill_detail: {
+        id: 'drill_detail',
+        speaker: 'Roy',
+        text: 'We rush to the incident scene, assess the situation, then guide citizens to safety. Speed and calm are both key!',
+        emotion: 'thinking',
+        actions: [{ type: 'increaseTrust', characterId: 'roy', amount: 10 }],
+        nextNodeId: null,
+      },
+      encourage: {
+        id: 'encourage',
+        speaker: 'Roy',
+        text: "That spirit is what Brooms Town needs! We protect this place together.",
+        emotion: 'excited',
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Helly ──────────────────────────────
+  {
+    id: 'dlg_helly',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Helly',
+        text: "Hi! I just finished an aerial survey. Everything looks peaceful from above!",
+        emotion: 'happy',
+        nextNodeId: 'area_report',
+      },
+      area_report: {
+        id: 'area_report',
+        speaker: 'Helly',
+        text: "The harbor is busy, the forest is calm, and the construction site is progressing well.",
+        emotion: 'neutral',
+        choices: [
+          { id: 'danger', text: 'Any danger areas?', nextNodeId: 'all_clear' },
+          {
+            id: 'map',
+            text: 'Can you show me your map?',
+            nextNodeId: 'map_hint',
+            condition: { type: 'trustLevel', characterId: 'helly', minTrust: 21 },
+          },
+          { id: 'thanks', text: "Thanks, Helly!", nextNodeId: null },
+        ],
+      },
+      all_clear: {
+        id: 'all_clear',
+        speaker: 'Helly',
+        text: "All clear for now! But weather can change fast — I keep watch every day.",
+        emotion: 'happy',
+        nextNodeId: null,
+      },
+      map_hint: {
+        id: 'map_hint',
+        speaker: 'Helly',
+        text: "Of course! I mapped all 8 districts. Watch the harbor area especially — the docks get tricky in fog.",
+        emotion: 'excited',
+        actions: [{ type: 'setWorldFlag', flag: 'helly_map_shared' }],
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Mayor Lee ──────────────────────────────
+  {
+    id: 'dlg_mayor',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Mayor Lee',
+        text: "Welcome to Brooms Town! I'm Mayor Lee. Our city is peaceful, thanks to our wonderful rescue team.",
+        emotion: 'happy',
+        nextNodeId: 'town_history',
+      },
+      town_history: {
+        id: 'town_history',
+        speaker: 'Mayor Lee',
+        text: "Brooms Town was built on the idea that neighbors help neighbors. The Rescue HQ made that official.",
+        emotion: 'neutral',
+        nextNodeId: 'rescue_origin',
+      },
+      rescue_origin: {
+        id: 'rescue_origin',
+        speaker: 'Mayor Lee',
+        text: "Poli and the team keep everyone safe — from fires to floods, they handle it all!",
+        emotion: 'happy',
+        choices: [
+          { id: 'team', text: 'Tell me about the rescue team.', nextNodeId: 'team_info' },
+          {
+            id: 'help',
+            text: 'How can I help the town?',
+            nextNodeId: 'help_appeal',
+            effect: { type: 'increaseTrust', characterId: 'mayor_lee', amount: 5 },
+          },
+        ],
+      },
+      team_info: {
+        id: 'team_info',
+        speaker: 'Mayor Lee',
+        text: "Roy handles fires, Helly handles aerial rescues, Spoki keeps order, and Jin invents the tools they need. A great team!",
+        emotion: 'excited',
+        nextNodeId: null,
+      },
+      help_appeal: {
+        id: 'help_appeal',
+        speaker: 'Mayor Lee',
+        text: "Wonderful! The best way to help is to stay alert and report any unusual situations to the rescue team.",
+        emotion: 'happy',
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Teacher Mi ──────────────────────────────
+  {
+    id: 'dlg_teacher',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Teacher Mi',
+        text: "Hello! Safety is the most important lesson I teach. May I share a tip?",
+        emotion: 'happy',
+        nextNodeId: 'lesson_1',
+      },
+      lesson_1: {
+        id: 'lesson_1',
+        speaker: 'Teacher Mi',
+        text: "Lesson 1: If you see something dangerous — fire, flood, or someone hurt — stay calm and call for help right away.",
+        emotion: 'thinking',
+        nextNodeId: 'lesson_2',
+      },
+      lesson_2: {
+        id: 'lesson_2',
+        speaker: 'Teacher Mi',
+        text: "Lesson 2: Never handle a serious emergency alone. The rescue team is always ready to help!",
+        emotion: 'thinking',
+        nextNodeId: 'lesson_done',
+      },
+      lesson_done: {
+        id: 'lesson_done',
+        speaker: 'Teacher Mi',
+        text: "Remember: knowing when to ask for help IS real bravery. Stay safe out there!",
+        emotion: 'excited',
+        actions: [
+          { type: 'setWorldFlag', flag: 'safety_lesson_1' },
+          { type: 'increaseTrust', characterId: 'teacher_mi', amount: 10 },
+        ],
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Spoki ──────────────────────────────
+  {
+    id: 'dlg_spoki',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Spoki',
+        text: "Halt! … Just kidding. Hi! I'm Officer Spoki, keeping Brooms Town safe and orderly.",
+        emotion: 'happy',
+        nextNodeId: 'order_speech',
+      },
+      order_speech: {
+        id: 'order_speech',
+        speaker: 'Spoki',
+        text: "My job is to make sure everyone follows the rules — not because rules are fun, but because they keep people safe!",
+        emotion: 'neutral',
+        choices: [
+          { id: 'incidents', text: 'Any incidents recently?', nextNodeId: 'quiet_report' },
+          {
+            id: 'watch',
+            text: "I'll keep watch too!",
+            nextNodeId: 'partner_mode',
+            effect: { type: 'increaseTrust', characterId: 'spoki', amount: 8 },
+          },
+        ],
+      },
+      quiet_report: {
+        id: 'quiet_report',
+        speaker: 'Spoki',
+        text: "Quiet day so far! The harbor workers are a bit noisy, but nothing serious. Stay alert though — incidents happen fast.",
+        emotion: 'neutral',
+        nextNodeId: null,
+      },
+      partner_mode: {
+        id: 'partner_mode',
+        speaker: 'Spoki',
+        text: "That's the spirit! With two of us watching, nothing slips by. Welcome to the neighborhood watch!",
+        emotion: 'excited',
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Jin ──────────────────────────────
+  {
+    id: 'dlg_jin',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Jin',
+        text: "Ah, fascinating! I'm running calculations on the latest rescue scenario. Science helps us save lives more efficiently!",
+        emotion: 'excited',
+        nextNodeId: 'research',
+      },
+      research: {
+        id: 'research',
+        speaker: 'Jin',
+        text: "My current project: a faster way to detect flooding before it reaches homes. Prevention is always better than rescue!",
+        emotion: 'thinking',
+        actions: [{ type: 'increaseTrust', characterId: 'jin', amount: 5 }],
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Dr. Kim ──────────────────────────────
+  {
+    id: 'dlg_dr_kim',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Dr. Kim',
+        text: "Hello! I'm Dr. Kim, the town doctor. Remember: if you or anyone gets hurt, come to me right away!",
+        emotion: 'happy',
+        actions: [{ type: 'increaseTrust', characterId: 'dr_kim', amount: 5 }],
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Harbor Worker ──────────────────────────────
+  {
+    id: 'dlg_harbor_worker',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Harbor Worker',
+        text: "Hey there! Busy day at the docks. Ships coming in, cargo going out. The lifeblood of Brooms Town!",
+        emotion: 'neutral',
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Site Foreman ──────────────────────────────
+  {
+    id: 'dlg_site_foreman',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Site Foreman',
+        text: "Watch your step around here! Construction zone. We're building new facilities for Brooms Town. Safety first!",
+        emotion: 'neutral',
+        nextNodeId: null,
+      },
+    },
+  },
+];

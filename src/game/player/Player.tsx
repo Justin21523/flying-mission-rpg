@@ -7,9 +7,9 @@ import { useTransformationStore } from '../../stores/transformationStore';
 import { applyMovement } from './MovementStateMachine';
 import { TransformationController } from './TransformationController';
 
-// Kit — generic capsule player: camera-relative WASD + Space jump, Rapier dynamic body. Writes its
-// position to playerStore each frame (the camera follows it). Movement is suspended in Edit Mode.
-// POLI seam: mesh replaced by TransformationController; movement delegated to MovementStateMachine.
+// Module-level: preserves last known facing angle between frames without ref allocation.
+let _prevFacingAngle = Math.PI;
+
 export const Player = () => {
   const body = useRef<RapierRigidBody>(null);
   const editMode = useUiStore((s) => s.editMode);
@@ -53,6 +53,15 @@ export const Player = () => {
 
     const { mode } = useTransformationStore.getState();
     applyMovement(b, keys.current, camera, mode, headingRef, delta);
+
+    // Write facing angle so FollowCamera can spring behind the player.
+    const linvel = b.linvel();
+    const hSpeed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
+    const nextAngle = mode === 'vehicle'
+      ? headingRef.current
+      : (hSpeed > 0.3 ? Math.atan2(linvel.x, linvel.z) : _prevFacingAngle);
+    _prevFacingAngle = nextAngle;
+    useTransformationStore.getState().setFacingAngle(nextAngle, hSpeed > 0.3);
   });
 
   return (

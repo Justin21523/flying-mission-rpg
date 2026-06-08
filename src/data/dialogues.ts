@@ -1,4 +1,5 @@
 import type { DialogueTree } from '../types/dialogue';
+import { POLI_DIALOGUES } from './dialogues/poliDialogues';
 
 // Kit — sample dialogue trees. `dlg_guide` shows choices, a startQuest effect, a node-entry action
 // (completeObjective), and a condition-gated branch. The door trees are system messages reused by the
@@ -54,4 +55,5 @@ export const SEED_DIALOGUES: DialogueTree[] = [
     rootNodeId: 'n',
     nodes: { n: { id: 'n', speaker: 'System', text: 'The old key turns with a satisfying clunk — the storehouse creaks open!', nextNodeId: null } },
   },
+  ...POLI_DIALOGUES,
 ];

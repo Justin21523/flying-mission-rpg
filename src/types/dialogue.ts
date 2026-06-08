@@ -38,7 +38,8 @@ export type DialogueCondition =
   | { type: 'objectiveCompleted'; questId: string; objectiveId: string }
   | { type: 'doorUnlocked'; doorId: string }
   | { type: 'worldFlagSet'; flag: string }
-  | { type: 'playerLevel'; level: number };
+  | { type: 'playerLevel'; level: number }
+  | { type: 'trustLevel'; characterId: string; minTrust: number };
 
 export type DialogueEffect =
   | { type: 'addItem'; itemId: string; quantity?: number }
@@ -50,7 +51,8 @@ export type DialogueEffect =
   | { type: 'setWorldFlag'; flag: string }
   | { type: 'startBattle'; encounterId: string }
   | { type: 'startActivity'; activityId: string }
-  | { type: 'closeDialogue' };
+  | { type: 'closeDialogue' }
+  | { type: 'increaseTrust'; characterId: string; amount: number };
 
 export interface DialogueChoice {
   id: string;

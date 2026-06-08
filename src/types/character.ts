@@ -1,0 +1,20 @@
+export type SourceConfidence =
+  | 'OfficialConfirmed'
+  | 'EpisodeObserved'
+  | 'CrossSourceConfirmed'
+  | 'SecondarySource'
+  | 'FanCompiled'
+  | 'Unverified'
+  | 'GameAdaptation';
+
+export interface CharacterDefinition {
+  id: string;
+  name: string;
+  nameZhTW: string;
+  role: string;
+  description: string;
+  sourceConfidence: SourceConfidence;
+  homeAreaId: string;
+  color: string;           // hex — used for capsule placeholder and UI
+  dialogueTreeId: string;
+}

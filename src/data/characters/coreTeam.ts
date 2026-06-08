@@ -1,0 +1,61 @@
+import type { CharacterDefinition } from '../../types/character';
+
+// Poli is the player character — included here for data/lore purposes only.
+// The NPC schedule excludes Poli so he is never rendered as a world NPC.
+export const CORE_TEAM: CharacterDefinition[] = [
+  {
+    id: 'poli',
+    name: 'Poli',
+    nameZhTW: '波力',
+    role: 'Rescue Leader',
+    description: 'A blue police-car robot who leads the Brooms Town rescue team.',
+    sourceConfidence: 'OfficialConfirmed',
+    homeAreaId: 'rescue_hq',
+    color: '#3b82f6',
+    dialogueTreeId: '',
+  },
+  {
+    id: 'roy',
+    name: 'Roy',
+    nameZhTW: '羅伊',
+    role: 'Fire Fighter',
+    description: 'A red fire-truck robot — brave, cheerful, and always first into a blaze.',
+    sourceConfidence: 'OfficialConfirmed',
+    homeAreaId: 'rescue_hq',
+    color: '#ef4444',
+    dialogueTreeId: 'dlg_roy',
+  },
+  {
+    id: 'helly',
+    name: 'Helly',
+    nameZhTW: '赫利',
+    role: 'Aerial Rescue',
+    description: 'A yellow helicopter robot who handles aerial observation and rescue.',
+    sourceConfidence: 'OfficialConfirmed',
+    homeAreaId: 'rescue_hq',
+    color: '#eab308',
+    dialogueTreeId: 'dlg_helly',
+  },
+  {
+    id: 'spoki',
+    name: 'Spoki',
+    nameZhTW: '斯波基',
+    role: 'Police Officer',
+    description: 'A purple police-car robot who maintains order and traffic safety.',
+    sourceConfidence: 'OfficialConfirmed',
+    homeAreaId: 'rescue_hq',
+    color: '#8b5cf6',
+    dialogueTreeId: 'dlg_spoki',
+  },
+  {
+    id: 'jin',
+    name: 'Jin',
+    nameZhTW: '金博士',
+    role: 'Scientist',
+    description: 'A green science-car robot who invents new tools to help the rescue team.',
+    sourceConfidence: 'OfficialConfirmed',
+    homeAreaId: 'rescue_hq',
+    color: '#10b981',
+    dialogueTreeId: 'dlg_jin',
+  },
+];

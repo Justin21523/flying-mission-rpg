@@ -1,3 +1,6 @@
 // POLI RPG — data module index.
-// Future phases append exports here (characters, quests, npcs, dialogues, incidents, tools, …).
 export { BROOMS_TOWN_AREAS } from './broomsTownAreas';
+export { CORE_TEAM } from '../characters/coreTeam';
+export { RESIDENTS } from '../characters/residents';
+export { BROOMS_TOWN_SCHEDULES } from '../schedules/broomsTownSchedules';
+export { POLI_DIALOGUES } from '../dialogues/poliDialogues';

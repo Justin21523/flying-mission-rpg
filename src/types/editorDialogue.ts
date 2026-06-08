@@ -20,11 +20,12 @@ export const DIALOGUE_EMOTIONS: DialogueEmotion[] = [
 export const DIALOGUE_EFFECT_TYPES: DialogueEffectType[] = [
   'startQuest', 'completeQuest', 'updateObjective', 'completeObjective',
   'addItem', 'giveItem', 'setWorldFlag', 'startBattle', 'startActivity', 'closeDialogue',
+  'increaseTrust',
 ];
 
 export const DIALOGUE_CONDITION_TYPES: DialogueConditionType[] = [
   'hasItem', 'questInProgress', 'questCompleted', 'objectiveCompleted',
-  'doorUnlocked', 'worldFlagSet', 'playerLevel',
+  'doorUnlocked', 'worldFlagSet', 'playerLevel', 'trustLevel',
 ];
 
 export const EFFECT_FIELDS: Record<DialogueEffectType, MechField[]> = {
@@ -38,6 +39,7 @@ export const EFFECT_FIELDS: Record<DialogueEffectType, MechField[]> = {
   startBattle: [{ key: 'encounterId', label: 'encounterId', kind: 'string' }],
   startActivity: [{ key: 'activityId', label: 'activityId', kind: 'string' }],
   closeDialogue: [],
+  increaseTrust: [{ key: 'characterId', label: 'characterId', kind: 'string' }, { key: 'amount', label: 'amount', kind: 'number' }],
 };
 
 export const COND_FIELDS: Record<DialogueConditionType, MechField[]> = {
@@ -48,6 +50,7 @@ export const COND_FIELDS: Record<DialogueConditionType, MechField[]> = {
   doorUnlocked: [{ key: 'doorId', label: 'doorId', kind: 'string' }],
   worldFlagSet: [{ key: 'flag', label: 'flag', kind: 'string' }],
   playerLevel: [{ key: 'level', label: 'level', kind: 'number' }],
+  trustLevel: [{ key: 'characterId', label: 'characterId', kind: 'string' }, { key: 'minTrust', label: 'minTrust', kind: 'number' }],
 };
 
 // Build a typed object from string/number field inputs (coerces number fields).
