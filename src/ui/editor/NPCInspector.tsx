@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import type { EditorNpc, NpcType } from '../../types/editorNPC';
-import { NPC_TYPES, NPC_TYPE_LABEL, NPC_TYPE_COLOR } from '../../types/editorNPC';
+import type { EditorNpc, NpcType, NpcMovement } from '../../types/editorNPC';
+import { NPC_TYPES, NPC_TYPE_LABEL, NPC_TYPE_COLOR, NPC_MOVEMENT } from '../../types/editorNPC';
+import type { TimeOfDay } from '../../types/randomEvent';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
 import { useUiStore } from '../../stores/uiStore';
@@ -24,6 +25,78 @@ const Vec3Row = ({ label, value, step, onChange }: { label: string; value: [numb
     </div>
   </div>
 );
+
+const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day' };
+const TIME_SLOTS: TimeOfDay[] = ['dawn', 'day', 'evening', 'night'];
+
+// Movement authoring: static / patrol loop (closed waypoints) / per-time-of-day positions. "at cam"
+// uses the Edit-Mode camera focus (editorSpawn) so you can place points where you're looking.
+const MovementSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<EditorNpc>) => void }) => {
+  const mode = npc.movement ?? 'static';
+  const wps = npc.patrolWaypoints ?? [];
+  const camPos = (): [number, number, number] => [Math.round(editorSpawn.x * 100) / 100, 0, Math.round(editorSpawn.z * 100) / 100];
+  return (
+    <div className="space-y-2 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+      <div className={lbl}>Movement</div>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="mode">
+          <select value={mode} onChange={(e) => set({ movement: e.target.value as NpcMovement })} className={inp}>
+            {NPC_MOVEMENT.map((m) => <option key={m} value={m}>{MOVE_LABEL[m]}</option>)}
+          </select>
+        </Field>
+        <Field label="moveSpeed">
+          <input type="number" step={0.1} min={0.1} value={npc.moveSpeed ?? 1.6} onChange={(e) => set({ moveSpeed: parseFloat(e.target.value) || 0.1 })} className={inp} />
+        </Field>
+      </div>
+
+      {mode === 'patrol' && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className={lbl}>Waypoints (closed loop)</span>
+            <button onClick={() => set({ patrolWaypoints: [...wps, camPos()] })} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ add at cam</button>
+          </div>
+          {wps.length === 0 && <div className="text-[11px] text-slate-500">No waypoints — add 2+ for a loop.</div>}
+          {wps.map((wp, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <span className="w-5 text-[10px] text-slate-400">{i + 1}</span>
+              {([0, 1, 2] as const).map((a) => (
+                <input key={a} type="number" step={0.5} value={wp[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                  const next = wps.map((p) => [...p] as [number, number, number]);
+                  next[i][a] = parseFloat(e.target.value) || 0;
+                  set({ patrolWaypoints: next });
+                }} />
+              ))}
+              <button onClick={() => set({ patrolWaypoints: wps.filter((_, j) => j !== i) })} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {mode === 'schedule' && (
+        <div className="space-y-1">
+          <span className={lbl}>Position per time-of-day</span>
+          {TIME_SLOTS.map((slot) => {
+            const p = npc.schedulePositions?.[slot];
+            return (
+              <div key={slot} className="flex items-center gap-1">
+                <span className="w-14 text-[10px] capitalize text-slate-400">{slot}</span>
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={0.5} value={p?.[a] ?? 0} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                    const cur = (p ?? [0, 0, 0]) as [number, number, number];
+                    const next = [...cur] as [number, number, number];
+                    next[a] = parseFloat(e.target.value) || 0;
+                    set({ schedulePositions: { ...npc.schedulePositions, [slot]: next } });
+                  }} />
+                ))}
+                <button onClick={() => set({ schedulePositions: { ...npc.schedulePositions, [slot]: camPos() } })} className="rounded px-1 text-[10px] text-sky-300 hover:bg-slate-800" title="Set to camera focus">cam</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Kit — full inspector for one Editor NPC: identity + archetype + transform + model + dialogue binding +
 // quest bindings (offer / turn-in) + validation + an in-game preview. (No yokai bindings.)
@@ -115,10 +188,10 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
 
           <div className="grid grid-cols-2 gap-2">
             <Field label="shopId"><input value={npc.shopId ?? ''} onChange={(e) => set({ shopId: e.target.value || null })} className={inp} /></Field>
-            <Field label="scheduleProfileId"><input value={npc.scheduleProfileId ?? ''} onChange={(e) => set({ scheduleProfileId: e.target.value || null })} className={inp} /></Field>
-            <Field label="behaviorProfileId"><input value={npc.behaviorProfileId ?? ''} onChange={(e) => set({ behaviorProfileId: e.target.value || null })} className={inp} /></Field>
             <Field label="tags (,)"><input value={csv(npc.tags)} onChange={(e) => set({ tags: parseCsv(e.target.value) })} className={inp} /></Field>
           </div>
+
+          <MovementSection npc={npc} set={set} />
         </>
       )}
 

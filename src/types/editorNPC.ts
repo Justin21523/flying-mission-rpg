@@ -1,4 +1,5 @@
 import type { Vec3 } from '../game/edit/sceneEditMerge';
+import type { TimeOfDay } from './randomEvent';
 
 // Kit — NPC archetype (drives the default role label, the stub colour, and the palette). Generic set
 // (the yokai-specific 'yokaiFriend' archetype was dropped).
@@ -64,7 +65,15 @@ export interface EditorNpc {
   interactionLabel: string;      // proximity prompt, e.g. 'Talk to Mina'
   color: string;
   tags: string[];
+  // ── Movement (editable in the NPC tab) ──────────────────────────────────────
+  movement?: NpcMovement;        // how the NPC moves in Play Mode (default 'static')
+  patrolWaypoints?: Vec3[];      // closed loop for 'patrol' (last → first; no dead-end)
+  schedulePositions?: Partial<Record<TimeOfDay, Vec3>>; // per-phase target for 'schedule'
+  moveSpeed?: number;            // world units / sec (default 1.6)
 }
+
+export type NpcMovement = 'static' | 'patrol' | 'schedule';
+export const NPC_MOVEMENT: NpcMovement[] = ['static', 'patrol', 'schedule'];
 
 let npcCodeSeq = 0;
 export function makeNpcCode(npcType: NpcType = 'student'): string {
@@ -80,5 +89,6 @@ export function createDefaultEditorNpc(id: string, areaId: string, position: Vec
     relatedQuestIds: [], startsQuestIds: [], completesQuestIds: [],
     scheduleProfileId: null, behaviorProfileId: null, shopId: null,
     modelAssetId: null, interactionLabel: 'Talk', color: NPC_TYPE_COLOR[npcType], tags: [],
+    movement: 'static', patrolWaypoints: [], schedulePositions: {}, moveSpeed: 1.6,
   };
 }

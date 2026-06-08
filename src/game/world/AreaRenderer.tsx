@@ -9,6 +9,7 @@ import { PbrPatchLayer } from './PbrPatchLayer';
 import { SceneSetPieceLayer } from './SceneSetPieceLayer';
 import { SampleEntities } from './SampleEntities';
 import { EditableNpcLayer } from './EditableNpcLayer';
+import { LandmarkLayer } from './LandmarkLayer';
 import { EditableTriggerRenderer } from '../editor/EditableTriggerRenderer';
 import { QuestMarkerRenderer } from '../editor/QuestMarkerRenderer';
 import { EncounterMarkerRenderer } from '../editor/EncounterMarkerRenderer';
@@ -73,6 +74,7 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {/* POLI seam #1c: traffic layer — NPC vehicles + traffic signals */}
       {!POLI_SANDBOX && <TrafficLayer areaId={areaId} />}
       <EditableNpcLayer areaId={areaId} />
+      <LandmarkLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />
       <EncounterMarkerRenderer areaId={areaId} />
