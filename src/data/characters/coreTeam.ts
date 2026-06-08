@@ -42,6 +42,8 @@ export const CORE_TEAM: CharacterDefinition[] = [
     modelRobotPath: '/models/characters/Helly+transformer+3d+model.glb',
     modelVehiclePath: '/models/characters/Helly helicopter 3d model.glb',
     canFly: true,
+    rotorOffset: [0, 1.25, 0],
+    rotorScale: 1,
   },
   {
     id: 'amber',

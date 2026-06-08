@@ -19,6 +19,8 @@ export interface CharacterOverride {
   homeAreaId?: string;
   description?: string;
   canFly?: boolean;
+  rotorOffset?: [number, number, number];
+  rotorScale?: number;
 }
 
 interface EditorPoliCharacterState {
@@ -87,5 +89,7 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.homeAreaId !== undefined && { homeAreaId: ov.homeAreaId }),
     ...(ov.description !== undefined && { description: ov.description }),
     ...(ov.canFly !== undefined && { canFly: ov.canFly }),
+    ...(ov.rotorOffset !== undefined && { rotorOffset: ov.rotorOffset }),
+    ...(ov.rotorScale !== undefined && { rotorScale: ov.rotorScale }),
   };
 }

@@ -144,6 +144,41 @@ export const PoliCharacterEditorTab = () => {
                 </label>
               </Field>
 
+              {sel.canFly && (
+                <>
+                  <Field label="Rotor Offset (x / y / z)">
+                    <div className="flex gap-1">
+                      {([0, 1, 2] as const).map((i) => {
+                        const cur = sel.rotorOffset ?? [0, 1.25, 0];
+                        return (
+                          <input
+                            key={i}
+                            type="number"
+                            step="0.05"
+                            className={inp + ' w-0 flex-1 text-center'}
+                            value={cur[i]}
+                            onChange={(e) => {
+                              const next = [...cur] as [number, number, number];
+                              next[i] = parseFloat(e.target.value) || 0;
+                              set({ rotorOffset: next });
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </Field>
+                  <Field label="Rotor Scale">
+                    <input
+                      type="number"
+                      step="0.05"
+                      className={inp}
+                      value={sel.rotorScale ?? 1}
+                      onChange={(e) => set({ rotorScale: parseFloat(e.target.value) || 0.01 })}
+                    />
+                  </Field>
+                </>
+              )}
+
               <Field label="Display Name (English)">
                 <input
                   className={inp}
