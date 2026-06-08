@@ -25,7 +25,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 
 export const FollowCamera = () => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const playerPosition = usePlayerStore((s) => s.position);
+  // Do NOT subscribe to player position — that changes every frame and would re-render this
+  // component (and OrbitControls) every frame inside the R3F loop, causing jank/apparent freezes.
+  // Read it via getState() inside useFrame instead.
   const editMode = useUiStore((s) => s.editMode);
   const terrainTool = useTerrainBrushStore((s) => s.tool);
   const terrainShiftHeld = useTerrainBrushStore((s) => s.shiftHeld);
@@ -71,6 +73,7 @@ export const FollowCamera = () => {
       if (c) { editorSpawn.x = c.target.x; editorSpawn.y = c.target.y; editorSpawn.z = c.target.z; }
       return;
     }
+    const playerPosition = usePlayerStore.getState().position;
     if (!playerPosition) return;
 
     // Follow: orbit around the player's chest at the user's chosen yaw/pitch/distance.

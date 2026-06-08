@@ -34,13 +34,18 @@ import { useRescueOperationStore } from './stores/rescueOperationStore';
 
 // Kit — top-level: the 3D <Canvas> with DOM overlays layered over it. F1 toggles Edit Mode; in Edit
 // Mode the camera free-pans, gizmos appear, and the Editor Hub + floating terrain palette are usable.
-// Tiny play-mode diagnostic — shows player XYZ so we can confirm the body is moving.
+// Tiny diagnostic — shows current mode + player XYZ so we can confirm the body is actually moving
+// (and that we're not accidentally stuck in Edit Mode, where the player is intentionally frozen).
 const PlayerPosDebug = () => {
   const pos = usePlayerStore((s) => s.position);
+  const editMode = useUiStore((s) => s.editMode);
   if (!pos) return null;
   return (
-    <div className="pointer-events-none fixed bottom-2 left-2 rounded bg-black/60 px-2 py-1 font-mono text-[10px] text-green-400">
-      pos {pos.x.toFixed(2)} / {pos.y.toFixed(2)} / {pos.z.toFixed(2)} | WASD move · drag rotate
+    <div className="pointer-events-none fixed bottom-2 left-2 rounded bg-black/70 px-2 py-1 font-mono text-[10px]">
+      <span className={editMode ? 'text-amber-400' : 'text-emerald-400'}>
+        {editMode ? 'EDIT (player frozen — F1 to play)' : 'PLAY (WASD move · drag rotate · T transform)'}
+      </span>
+      <span className="text-slate-300"> · pos {pos.x.toFixed(1)} / {pos.y.toFixed(1)} / {pos.z.toFixed(1)}</span>
     </div>
   );
 };
@@ -113,7 +118,7 @@ export const App = () => {
       {editMode && <EditModeInspector />}
       {editMode && <TerrainBrushHud />}
       {editMode && editorHubOpen && <EditorHubPanel />}
-      {!editMode && <PlayerPosDebug />}
+      <PlayerPosDebug />
       {/* DPR capped lower (high-DPI screens were fill-bound); a PerformanceMonitor in Scene adapts it. */}
       <CanvasErrorBoundary>
         <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 5, 10], fov: 50, near: 0.1, far: 1500 }}>
