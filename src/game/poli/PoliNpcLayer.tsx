@@ -46,9 +46,9 @@ const markEditHelper = (t: Object3D | null) => { if (t) t.userData.__editHelper 
 // ---- GLB body + capsule fallback -------------------------------------------
 const NPC_HEIGHT = 1.9;
 const CharacterGlb = ({ path }: { path: string }) => {
-  // Auto-fit to NPC_HEIGHT with feet at y=0, regardless of the GLB's native export units.
-  const { scene, scale, yOffset } = useNormalizedGlb(path, NPC_HEIGHT);
-  return <primitive object={scene} scale={scale} position={[0, yOffset, 0]} />;
+  // Auto-fit to NPC_HEIGHT, recentred on X/Z with feet at y=0, regardless of native units/pivot.
+  const { scene, scale, offset } = useNormalizedGlb(path, NPC_HEIGHT);
+  return <primitive object={scene} scale={scale} position={offset} />;
 };
 
 const CapsuleFallback = ({ color }: { color: string }) => (

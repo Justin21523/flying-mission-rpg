@@ -32,19 +32,25 @@ const Capsule = ({ color }: { color: string }) => (
 );
 
 // One normalized, cloned GLB. Kept mounted; `visible` toggles whether it shows.
+// Recentres on X/Z (so a model authored off-centre from its pivot still sits ON the player
+// instead of flying off into the "background") and drops it so its feet rest at local y=0.
 const ModelView = ({ path, height, visible }: { path: string; height: number; visible: boolean }) => {
   const { scene } = useGLTF(path);
-  const { clone, scale, yOff } = useMemo(() => {
+  const { clone, scale, offset } = useMemo(() => {
     const c = scene.clone(true);
     const box = new Box3().setFromObject(c);
     const size = new Vector3();
+    const center = new Vector3();
     box.getSize(size);
+    box.getCenter(center);
     const nativeH = Number.isFinite(size.y) && size.y > 1e-4 ? size.y : 1;
     const s = height / nativeH;
-    const y = Number.isFinite(box.min.y) ? -box.min.y * s : 0;
-    return { clone: c, scale: s, yOff: y };
+    const ox = Number.isFinite(center.x) ? -center.x * s : 0;
+    const oy = Number.isFinite(box.min.y) ? -box.min.y * s : 0;
+    const oz = Number.isFinite(center.z) ? -center.z * s : 0;
+    return { clone: c, scale: s, offset: [ox, oy, oz] as [number, number, number] };
   }, [scene, height]);
-  return <primitive object={clone} scale={scale} position={[0, yOff, 0]} visible={visible} />;
+  return <primitive object={clone} scale={scale} position={offset} visible={visible} />;
 };
 
 interface Props {
