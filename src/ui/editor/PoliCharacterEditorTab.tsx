@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
+import { useSceneEditStore } from '../../stores/sceneEditStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { RESIDENTS } from '../../data/characters/residents';
 import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
@@ -12,9 +14,14 @@ export const PoliCharacterEditorTab = () => {
   const overrides = useEditorPoliCharacterStore((s) => s.overrides);
   const setOverride = useEditorPoliCharacterStore((s) => s.setOverride);
   const clearOverride = useEditorPoliCharacterStore((s) => s.clearOverride);
-  // selectedNpcId is driven by clicking NPCs in the 3D view; also settable from the list.
-  const selId = useEditorPoliCharacterStore((s) => s.selectedNpcId);
-  const selectNpc = useEditorPoliCharacterStore((s) => s.selectNpc);
+  // List selection: clicking an NPC in the 3D view selects it through the kit's sceneEditStore
+  // (objKey areaId#npc#charId). We derive charId from that so the 3D selection and this data
+  // panel always agree; a manual list click sets a local fallback selection.
+  const [localSel, setLocalSel] = useState<string | null>(null);
+  const sceneKey = useSceneEditStore((s) => s.selectedKey);
+  const npcCharId = sceneKey && sceneKey.split('#')[1] === 'npc' ? sceneKey.split('#')[2] : null;
+  const selId = npcCharId ?? localSel;
+  const setSelId = setLocalSel;
 
   const mergedChars = ALL_CHARS.map(getMergedPoliCharacter);
   const sel = selId ? mergedChars.find((c) => c.id === selId) ?? null : null;
@@ -24,7 +31,6 @@ export const PoliCharacterEditorTab = () => {
     if (!selId) return;
     setOverride(selId, patch);
   };
-  const setSelId = selectNpc;
 
   return (
     <div className="flex h-full gap-3 text-xs">
@@ -133,38 +139,13 @@ export const PoliCharacterEditorTab = () => {
                 />
               </Field>
 
-              {/* Position override — shown/set when dragging NPC in Edit Mode */}
-              {overrides[selId!]?.positionOverride && (
-                <Field label="Position Override (x / y / z)">
-                  <div className="flex gap-1">
-                    {(['x', 'y', 'z'] as const).map((axis, i) => (
-                      <input
-                        key={axis}
-                        type="number"
-                        step="0.1"
-                        className={inp + ' w-0 flex-1 text-center'}
-                        value={overrides[selId!]!.positionOverride![i].toFixed(2)}
-                        onChange={(e) => {
-                          const pos = [...(overrides[selId!]!.positionOverride ?? [0, 0, 0])] as [number, number, number];
-                          pos[i] = parseFloat(e.target.value) || 0;
-                          setOverride(selId!, { positionOverride: pos });
-                        }}
-                      />
-                    ))}
-                    <button
-                      className="rounded px-1 text-[10px] text-rose-400 hover:bg-slate-800"
-                      onClick={() => {
-                        const ov = { ...overrides[selId!] };
-                        delete ov.positionOverride;
-                        if (Object.keys(ov).length <= 1) clearOverride(selId!);
-                        else setOverride(selId!, { positionOverride: undefined });
-                      }}
-                      title="Clear position override"
-                    >✕</button>
-                  </div>
-                  <div className="mt-0.5 text-[9px] text-slate-500">Drag NPC in Edit Mode to set; clear to restore schedule position</div>
-                </Field>
-              )}
+              {/* Position is edited in 3D: click the NPC, then use the gizmo or the transform
+                  inspector (top-right). It auto-saves to the kit scene-edit store and applies
+                  in Play Mode — the same pipeline every other object uses. */}
+              <div className="rounded-lg bg-slate-900/40 px-3 py-2 text-[10px] text-slate-500">
+                📍 To move this character: click it in the 3D view, then drag the gizmo or edit
+                the transform in the top-right inspector. Position auto-saves and syncs to Play Mode.
+              </div>
 
               <div className="mt-2 rounded-lg bg-slate-900/50 px-3 py-2 text-[10px] text-slate-500">
                 <span className="font-semibold text-slate-400">Source confidence:</span>{' '}

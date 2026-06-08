@@ -25,7 +25,8 @@ export interface TrafficSignalDef {
 
 export interface VehicleDefinition {
   id: string;
-  nameZhTW: string;
+  name: string;          // English display name (shown in game)
+  nameZhTW?: string;     // optional zh-TW reference, not displayed
   areaId: string;
   pathId: string;
   speed: number;            // world-units per second

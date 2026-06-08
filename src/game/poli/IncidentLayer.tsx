@@ -6,8 +6,21 @@ import type { Mesh } from 'three';
 import { useFlagStore } from '../../stores/flagStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useRescueOperationStore } from '../../stores/rescueOperationStore';
+import { useUiStore } from '../../stores/uiStore';
+import { useMergedTransform, useSceneEditStore } from '../../stores/sceneEditStore';
+import { objKey } from '../edit/sceneEditMerge';
+import type { BaseTransform } from '../edit/sceneEditMerge';
+import { EditableObject } from '../edit/EditableObject';
 import { POLI_INCIDENTS } from '../../data/incidents/broomsTownIncidents';
 import type { IncidentDefinition } from '../../types/incident';
+
+// Effective marker position = authored markerPosition ⊕ any kit scene-edit override.
+// Reads the live override store directly so the E-key trigger uses the moved location too.
+function effectiveMarkerPosition(areaId: string, def: IncidentDefinition): [number, number, number] {
+  const key = objKey(areaId, 'trigger', def.id);
+  const ov = useSceneEditStore.getState().overrides[key]?.position;
+  return ov ?? def.markerPosition;
+}
 
 // Radius for triggering a rescue (E-key near marker).
 const RESCUE_TRIGGER_RADIUS = 4.0;
@@ -52,7 +65,7 @@ function useIncidentInteraction(areaId: string) {
           !useFlagStore.getState().hasFlag(`incident_resolved_${d.id}`),
       );
       for (const def of activeIncidents) {
-        _markerPos.set(...def.markerPosition);
+        _markerPos.set(...effectiveMarkerPosition(areaId, def));
         if (_playerPos.distanceTo(_markerPos) <= RESCUE_TRIGGER_RADIUS) {
           rescue.startRescue(def.id);
           return;
@@ -65,11 +78,15 @@ function useIncidentInteraction(areaId: string) {
 }
 
 // ---- Pulsing incident marker -----------------------------------------------
+// Edit Mode: a kit EditableObject (click → centred gizmo + transform inspector, drag/edit
+// auto-saves to sceneEditStore and applies in play). Play Mode: pulsing marker at the merged
+// (authored ⊕ edited) position. Same Edit Mode pipeline as every other world object.
 interface IncidentMarkerProps {
   def: IncidentDefinition;
+  areaId: string;
 }
 
-const IncidentMarker = ({ def }: IncidentMarkerProps) => {
+const IncidentMarkerVisual = ({ def }: { def: IncidentDefinition }) => {
   const meshRef = useRef<Mesh>(null);
   const pulseRef = useRef(0);
   const color = INCIDENT_COLORS[def.type] ?? '#ffffff';
@@ -82,7 +99,7 @@ const IncidentMarker = ({ def }: IncidentMarkerProps) => {
   });
 
   return (
-    <group position={def.markerPosition}>
+    <>
       <mesh ref={meshRef} position={[0, 0.8, 0]} castShadow>
         <sphereGeometry args={[0.55, 16, 12]} />
         <meshStandardMaterial
@@ -102,6 +119,22 @@ const IncidentMarker = ({ def }: IncidentMarkerProps) => {
       >
         [E] Start Rescue
       </Text>
+    </>
+  );
+};
+
+const IncidentMarker = ({ def, areaId }: IncidentMarkerProps) => {
+  const editMode = useUiStore((s) => s.editMode);
+  const key = objKey(areaId, 'trigger', def.id);
+  const base: BaseTransform = { position: def.markerPosition, rotation: [0, 0, 0], scale: 1 };
+  const m = useMergedTransform(key, base);
+
+  if (editMode) {
+    return <EditableObject objKey={key} base={base}><IncidentMarkerVisual def={def} /></EditableObject>;
+  }
+  return (
+    <group position={m.position} rotation={m.rotation} scale={m.scale}>
+      <IncidentMarkerVisual def={def} />
     </group>
   );
 };
@@ -183,7 +216,7 @@ export const IncidentLayer = ({ areaId }: IncidentLayerProps) => {
     <>
       <RescueTicker />
       {activeIncidents.map((def) => (
-        <IncidentMarker key={def.id} def={def} />
+        <IncidentMarker key={def.id} def={def} areaId={areaId} />
       ))}
       {rescue.isActive &&
         rescue.step === 'on_scene' &&

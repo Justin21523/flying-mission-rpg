@@ -2,7 +2,12 @@ import { Suspense, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import type { TransformMode } from '../../stores/transformationStore';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
+import { useNormalizedGlb } from '../poli/normalizeGlb';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
+
+// Target heights so any GLB (whatever its native export units) fits the capsule collider.
+const ROBOT_HEIGHT = 1.9;
+const VEHICLE_HEIGHT = 1.2;
 
 const POLI_BASE = CORE_TEAM.find((c) => c.id === 'poli')!;
 const DEFAULT_ROBOT_PATH = POLI_BASE.modelRobotPath!;
@@ -28,16 +33,14 @@ const VehicleFallback = () => (
 );
 
 const RobotGlb = ({ path }: { path: string }) => {
-  const { scene } = useGLTF(path);
-  const clone = useMemo(() => scene.clone(), [scene]);
-  // scale / position may need visual tuning.
-  return <primitive object={clone} scale={1.0} position={[0, -0.9, 0]} />;
+  // Auto-fit to ROBOT_HEIGHT with feet at y=0, then drop so it straddles the capsule centre.
+  const obj = useNormalizedGlb(path, ROBOT_HEIGHT);
+  return <primitive object={obj} position={[0, -1.0, 0]} />;
 };
 
 const VehicleGlb = ({ path }: { path: string }) => {
-  const { scene } = useGLTF(path);
-  const clone = useMemo(() => scene.clone(), [scene]);
-  return <primitive object={clone} scale={1.0} position={[0, -0.3, 0]} />;
+  const obj = useNormalizedGlb(path, VEHICLE_HEIGHT);
+  return <primitive object={obj} position={[0, -1.0, 0]} />;
 };
 
 interface Props {

@@ -3,6 +3,11 @@ import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import type { Group } from 'three';
 import { useTrafficStore } from '../../stores/trafficStore';
+import { useUiStore } from '../../stores/uiStore';
+import { useMergedTransform } from '../../stores/sceneEditStore';
+import { objKey } from '../edit/sceneEditMerge';
+import type { BaseTransform } from '../edit/sceneEditMerge';
+import { EditableObject } from '../edit/EditableObject';
 import { POLI_VEHICLES } from '../../data/traffic/broomsTownVehicles';
 import { TRAFFIC_SIGNALS } from '../../data/traffic/broomsTownSignals';
 import { POLI_ROADS } from '../../data/traffic/broomsTownRoads';
@@ -76,7 +81,7 @@ const VehicleMesh = ({ def }: VehicleMeshProps) => {
         outlineColor="#000000"
         renderOrder={1}
       >
-        {def.nameZhTW}
+        {def.name}
       </Text>
     </group>
   );
@@ -87,12 +92,12 @@ interface TrafficSignalMeshProps {
   def: TrafficSignalDef;
 }
 
-const TrafficSignalMesh = ({ def }: TrafficSignalMeshProps) => {
+const TrafficSignalVisual = ({ def }: TrafficSignalMeshProps) => {
   // Subscribe only to this signal's phase — re-renders every ~8–10 seconds, not every frame.
   const phase = useTrafficStore((s) => s.signalPhases[def.id] ?? 'green');
 
   return (
-    <group position={def.position}>
+    <>
       {/* Pole */}
       <mesh position={[0, 1.5, 0]} castShadow>
         <cylinderGeometry args={[0.07, 0.07, 3.0, 8]} />
@@ -115,6 +120,24 @@ const TrafficSignalMesh = ({ def }: TrafficSignalMeshProps) => {
           />
         </mesh>
       ))}
+    </>
+  );
+};
+
+// Edit Mode: kit EditableObject (click → centred gizmo + inspector, auto-save + play-sync).
+// Play Mode: at the merged (authored ⊕ edited) position.
+const TrafficSignalMesh = ({ def, areaId }: TrafficSignalMeshProps & { areaId: string }) => {
+  const editMode = useUiStore((s) => s.editMode);
+  const key = objKey(areaId, 'trigger', def.id);
+  const base: BaseTransform = { position: def.position, rotation: [0, 0, 0], scale: 1 };
+  const m = useMergedTransform(key, base);
+
+  if (editMode) {
+    return <EditableObject objKey={key} base={base}><TrafficSignalVisual def={def} /></EditableObject>;
+  }
+  return (
+    <group position={m.position} rotation={m.rotation} scale={m.scale}>
+      <TrafficSignalVisual def={def} />
     </group>
   );
 };
@@ -139,7 +162,7 @@ export const TrafficLayer = ({ areaId }: TrafficLayerProps) => {
         <VehicleMesh key={v.id} def={v} />
       ))}
       {signals.map((s) => (
-        <TrafficSignalMesh key={s.id} def={s} />
+        <TrafficSignalMesh key={s.id} def={s} areaId={areaId} />
       ))}
     </>
   );

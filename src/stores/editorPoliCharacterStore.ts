@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import type { CharacterDefinition } from '../types/character';
 
-// POLI — per-character field overrides stored in localStorage.
+// POLI — per-character DATA overrides stored in localStorage (model paths, colour, name, etc.).
 // Mirrors the editorNpcStore pattern: every mutation auto-persists, load() is tolerant.
 // Runtime layers call getMergedPoliCharacter(base) to get the merged definition.
+//
+// NOTE: spatial transform (position / rotation / scale) is NOT stored here — it lives in the
+// kit's core sceneEditStore via objKey(areaId, 'npc', charId), so POLI NPCs reuse the exact
+// same Edit Mode pipeline (EditableObject → SceneEditorGizmo → EditModeInspector) as every
+// other object in the world. This store only owns non-spatial character data.
 
 export interface CharacterOverride {
   id: string;
@@ -13,16 +18,12 @@ export interface CharacterOverride {
   color?: string;
   homeAreaId?: string;
   description?: string;
-  positionOverride?: [number, number, number]; // pins the NPC at a specific world position
 }
 
 interface EditorPoliCharacterState {
   overrides: Record<string, CharacterOverride>;
-  /** Character selected in Edit Mode (drives inspector + single gizmo). */
-  selectedNpcId: string | null;
   setOverride: (id: string, patch: Partial<CharacterOverride>) => void;
   clearOverride: (id: string) => void;
-  selectNpc: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -43,7 +44,6 @@ function load(): { overrides: Record<string, CharacterOverride> } {
 
 export const useEditorPoliCharacterStore = create<EditorPoliCharacterState>((set, get) => ({
   ...load(),
-  selectedNpcId: null,
 
   setOverride: (id, patch) => {
     const prev = get().overrides[id] ?? { id };
@@ -59,10 +59,8 @@ export const useEditorPoliCharacterStore = create<EditorPoliCharacterState>((set
     persist({ overrides: updated });
   },
 
-  selectNpc: (id) => set({ selectedNpcId: id }),
-
   reset: () => {
-    set({ overrides: {}, selectedNpcId: null });
+    set({ overrides: {} });
     persist({ overrides: {} });
   },
 }));

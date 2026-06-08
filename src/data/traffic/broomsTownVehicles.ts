@@ -6,6 +6,7 @@ import type { VehicleDefinition } from '../../types/traffic';
 export const POLI_VEHICLES: VehicleDefinition[] = [
   {
     id: 'vehicle_roy_patrol',
+    name: 'Roy Patrol Car',
     nameZhTW: '羅伊巡邏車',
     areaId: 'main_road',
     pathId: 'path_main_road',
@@ -17,6 +18,7 @@ export const POLI_VEHICLES: VehicleDefinition[] = [
   },
   {
     id: 'vehicle_harbor_truck',
+    name: 'Harbor Truck',
     nameZhTW: '港口貨車',
     areaId: 'harbor_front',
     pathId: 'path_harbor',
@@ -28,6 +30,7 @@ export const POLI_VEHICLES: VehicleDefinition[] = [
   },
   {
     id: 'vehicle_school_bus',
+    name: 'School Bus',
     nameZhTW: '校車',
     areaId: 'school_district',
     pathId: 'path_school',
