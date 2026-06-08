@@ -26,15 +26,24 @@ const LayoutPieceEntity = ({ areaId, pc }: { areaId: string; pc: LayoutPiece }) 
   const m = useMergedTransform(key, base);
 
   if (editMode) {
+    // Visual-only in Edit Mode so the gizmo can move it freely (no physics fighting the drag).
     return (
       <EditableObject objKey={key} base={base} assetId={pc.assetId}>
         <Suspense fallback={null}><NormalizedGlbModel assetId={pc.assetId} target={pc.normalize} /></Suspense>
       </EditableObject>
     );
   }
+  // Play Mode: solid — a fixed trimesh Rapier body at the merged transform so the player collides with it.
   return (
-    <group position={m.position} rotation={m.rotation} scale={m.scale}>
-      <Suspense fallback={null}><NormalizedGlbModel assetId={pc.assetId} target={pc.normalize} /></Suspense>
-    </group>
+    <Suspense fallback={null}>
+      <NormalizedGlbModel
+        assetId={pc.assetId}
+        target={pc.normalize}
+        collision={pc.collision ?? 'trimesh'}
+        position={m.position}
+        rotation={m.rotation}
+        scale={m.scale}
+      />
+    </Suspense>
   );
 };

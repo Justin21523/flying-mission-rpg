@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { TEXTURE_SETS } from '../game/world/textureLibrary';
 import { useEditorEnvironmentStore } from './editorEnvironmentStore';
 import { addedForArea, useSceneEditStore } from './sceneEditStore';
+import type { CollisionShape } from '../game/edit/sceneEditMerge';
 
 // POLI — per-area LAYOUT PRESETS: multiple swappable arrangements of placed models + a paved ground per
 // area (🗺 World tab → Layouts). The active preset's pieces are rendered by LayoutLayer (an AreaRenderer
@@ -16,7 +17,8 @@ export interface LayoutPiece {
   position: Vec3;
   rotation: Vec3;
   scale: number;
-  normalize?: number; // target largest-dimension in world units (size-normalised); folder default if unset
+  normalize?: number;        // target largest-dimension in world units (size-normalised); folder default if unset
+  collision?: CollisionShape; // physics collider in play mode; defaults to 'trimesh' when unset
 }
 export interface LayoutPreset {
   id: string;

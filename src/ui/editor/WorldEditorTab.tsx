@@ -150,8 +150,14 @@ const LayoutsPanel = ({ areaId }: { areaId: string }) => {
               <div key={pc.id} className="flex items-center gap-1.5 rounded bg-slate-800/60 px-1.5 py-1">
                 <span className="flex-1 truncate text-[10px] text-slate-300" title={pc.assetId}>{pc.assetId.split('/').pop()}</span>
                 <label className="flex items-center gap-1 text-[9px] text-slate-500">size
-                  <input type="number" step={0.5} value={pc.normalize ?? defaultNormalizeFor(pc.assetId)} onChange={(e) => st.updatePiece(areaId, pc.id, { normalize: parseFloat(e.target.value) || 0 })} className="w-14 rounded bg-slate-900 px-1 py-0.5 text-slate-100" />
+                  <input type="number" step={0.5} value={pc.normalize ?? defaultNormalizeFor(pc.assetId)} onChange={(e) => st.updatePiece(areaId, pc.id, { normalize: parseFloat(e.target.value) || 0 })} className="w-12 rounded bg-slate-900 px-1 py-0.5 text-slate-100" />
                 </label>
+                <select value={pc.collision ?? 'trimesh'} onChange={(e) => st.updatePiece(areaId, pc.id, { collision: e.target.value as typeof pc.collision })} title="Physics collider" className="rounded bg-slate-900 px-1 py-0.5 text-[9px] text-slate-100">
+                  <option value="trimesh">trimesh</option>
+                  <option value="hull">hull</option>
+                  <option value="cuboid">cuboid</option>
+                  <option value="none">none</option>
+                </select>
                 <button onClick={() => st.removePiece(areaId, pc.id)} className="rounded px-1 text-[10px] text-rose-400 hover:bg-slate-700">🗑</button>
               </div>
             ))}
