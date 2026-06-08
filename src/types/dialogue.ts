@@ -52,7 +52,8 @@ export type DialogueEffect =
   | { type: 'startBattle'; encounterId: string }
   | { type: 'startActivity'; activityId: string }
   | { type: 'closeDialogue' }
-  | { type: 'increaseTrust'; characterId: string; amount: number };
+  | { type: 'increaseTrust'; characterId: string; amount: number }
+  | { type: 'startIncident'; incidentId: string };
 
 export interface DialogueChoice {
   id: string;

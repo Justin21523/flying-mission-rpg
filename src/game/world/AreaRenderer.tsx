@@ -15,6 +15,7 @@ import { EncounterMarkerRenderer } from '../editor/EncounterMarkerRenderer';
 import { ActivityArenaRenderer } from '../editor/ActivityArenaRenderer';
 import { ZoneGate } from './ZoneGate';
 import { PoliNpcLayer } from '../poli/PoliNpcLayer';
+import { IncidentLayer } from '../poli/IncidentLayer';
 
 // Kit — renders one area's world: the ground stack (flat / flat-PBR / heightfield terrain via the
 // environment system), placed GLB set-pieces, PBR patch decals, and a travel gate to every connected
@@ -35,6 +36,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <SampleEntities areaId={areaId} />
       {/* POLI seam #1: additive NPC layer — schedule-driven, trust-gated dialogue */}
       <PoliNpcLayer areaId={areaId} />
+      {/* POLI seam #1b: incident layer — world incidents + rescue interaction */}
+      <IncidentLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />
