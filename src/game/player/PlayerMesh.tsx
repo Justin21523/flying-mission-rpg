@@ -41,7 +41,12 @@ interface Props {
 export const PlayerMesh = ({ mode }: Props) => {
   // Only the editor override drives the model — base data stays capsule by default.
   const override = useEditorPoliCharacterStore((s) => s.overrides['poli']);
-  const path = mode === 'robot' ? override?.modelRobotPath : override?.modelVehiclePath;
+  // Use the current mode's model, but fall back to the other mode's model if only one is set,
+  // so pressing T (transform) never makes a configured model disappear — it just stays until a
+  // separate model is assigned to that mode in the POLI tab.
+  const path = mode === 'robot'
+    ? (override?.modelRobotPath ?? override?.modelVehiclePath)
+    : (override?.modelVehiclePath ?? override?.modelRobotPath);
   const height = mode === 'robot' ? ROBOT_HEIGHT : VEHICLE_HEIGHT;
 
   if (path) {
