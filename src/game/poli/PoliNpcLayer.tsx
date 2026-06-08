@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useMemo } from 'react';
 import { Text } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
+import type { Object3D } from 'three';
 import { useNormalizedGlb } from './normalizeGlb';
 import { useNpcScheduleStore } from '../../stores/npcScheduleStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
@@ -36,6 +37,11 @@ function usePoliInteraction(allChars: CharacterDefinition[]) {
     return () => window.removeEventListener('keydown', handler);
   }, [allChars]);
 }
+
+// Mark a troika <Text> mesh so the kit's EditableObject selection-tint traversal skips it.
+// Cloning troika's derived material (what EditableObject does to every mesh on select) corrupts
+// it and crashes the render loop ("baseMaterial.addEventListener is not a function").
+const markEditHelper = (t: Object3D | null) => { if (t) t.userData.__editHelper = true; };
 
 // ---- GLB body + capsule fallback -------------------------------------------
 const NPC_HEIGHT = 1.9;
@@ -82,6 +88,7 @@ const PoliNpcEntity = ({ char, areaId }: PoliNpcEntityProps) => {
     <>
       <NpcBodyMesh char={char} />
       <Text
+        ref={markEditHelper}
         position={[0, 2.2, 0]} fontSize={0.32} color="#ffffff"
         anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#000000" renderOrder={1}
       >

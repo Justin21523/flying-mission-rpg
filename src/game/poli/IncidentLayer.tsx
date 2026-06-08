@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import { Vector3 } from 'three';
-import type { Mesh } from 'three';
+import type { Mesh, Object3D } from 'three';
 import { useFlagStore } from '../../stores/flagStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useRescueOperationStore } from '../../stores/rescueOperationStore';
@@ -35,6 +35,10 @@ const INCIDENT_COLORS: Record<string, string> = {
   lost_person: '#3399ff',
   road_hazard: '#ffcc00',
 };
+
+// Mark a troika <Text> so EditableObject's selection-tint traversal skips it (cloning troika's
+// derived material corrupts it → render-loop crash).
+const markEditHelper = (t: Object3D | null) => { if (t) t.userData.__editHelper = true; };
 
 // ---- E-key hook ----------------------------------------------------------
 function useIncidentInteraction(areaId: string) {
@@ -108,12 +112,14 @@ const IncidentMarkerVisual = ({ def }: { def: IncidentDefinition }) => {
         />
       </mesh>
       <Text
+        ref={markEditHelper}
         position={[0, 2.0, 0]} fontSize={0.35} color="#ffffff"
         anchorX="center" anchorY="middle" outlineWidth={0.06} outlineColor="#000000" renderOrder={1}
       >
         {def.title}
       </Text>
       <Text
+        ref={markEditHelper}
         position={[0, 1.5, 0]} fontSize={0.22} color="#ffeecc"
         anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#000000" renderOrder={1}
       >
