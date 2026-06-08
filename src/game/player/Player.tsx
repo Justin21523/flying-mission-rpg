@@ -44,6 +44,7 @@ export const Player = () => {
   const keys = useRef<Record<string, boolean>>({});
   const headingRef = useRef(0);
   const lastFlying = useRef(false); // tracks gravityScale transitions
+  const wasEdit = useRef(false);    // detects the play→edit transition (to adopt the live position)
   const { camera } = useThree();
 
   const pKey = playerKey(currentAreaId);
@@ -118,13 +119,22 @@ export const Player = () => {
     }
 
     if (editMode) {
+      // On the play→edit transition, adopt the CURRENT play position as the override so the gizmo/handle
+      // appear where the player actually is — not at the last edited spot. (Done before the snap below,
+      // and before reading the override, so there's no one-frame revert race.)
+      if (!wasEdit.current) {
+        wasEdit.current = true;
+        useSceneEditStore.getState().setOverride(pKey, { position: [p.x, p.y, p.z] });
+      }
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
       headingRef.current = 0; // idle facing shows the pure edited yaw, matching the gizmo
-      if (ov?.position && (ov.position[0] !== p.x || ov.position[1] !== p.y || ov.position[2] !== p.z)) {
-        b.setTranslation({ x: ov.position[0], y: ov.position[1], z: ov.position[2] }, true);
+      const ovNow = useSceneEditStore.getState().overrides[pKey];
+      if (ovNow?.position && (ovNow.position[0] !== p.x || ovNow.position[1] !== p.y || ovNow.position[2] !== p.z)) {
+        b.setTranslation({ x: ovNow.position[0], y: ovNow.position[1], z: ovNow.position[2] }, true);
       }
       return;
     }
+    wasEdit.current = false;
 
     const tag = (document.activeElement?.tagName ?? '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
