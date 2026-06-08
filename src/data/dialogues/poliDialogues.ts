@@ -2,6 +2,8 @@ import type { DialogueTree } from '../../types/dialogue';
 
 // POLI rescue team and resident dialogue trees.
 // All characters: OfficialConfirmed or labelled per residents.ts sourceConfidence.
+// Quest givers (site_foreman, mayor_lee, dr_kim) use conditional roots to branch
+// on quest state: completed → thanks | in progress → check-in | not started → offer.
 export const POLI_DIALOGUES: DialogueTree[] = [
   // ────────────────────────────── Roy ──────────────────────────────
   {
@@ -21,11 +23,7 @@ export const POLI_DIALOGUES: DialogueTree[] = [
         text: 'Every practice run makes us better prepared for real emergencies!',
         emotion: 'excited',
         choices: [
-          {
-            id: 'learn',
-            text: 'Tell me about the drills.',
-            nextNodeId: 'drill_detail',
-          },
+          { id: 'learn', text: 'Tell me about the drills.', nextNodeId: 'drill_detail' },
           {
             id: 'help',
             text: "I'll protect Brooms Town!",
@@ -99,23 +97,55 @@ export const POLI_DIALOGUES: DialogueTree[] = [
     },
   },
 
-  // ────────────────────────────── Mayor Lee ──────────────────────────────
+  // ────────────────────────────── Mayor Lee (quest giver: quest_town_patrol) ──────────────────────────────
   {
     id: 'dlg_mayor',
     rootNodeId: 'start',
     nodes: {
+      // Routing gate: questCompleted → thank-you | else → check in-progress
       start: {
         id: 'start',
         speaker: 'Mayor Lee',
-        text: "Welcome to Brooms Town! I'm Mayor Lee. Our city is peaceful, thanks to our wonderful rescue team.",
-        emotion: 'happy',
-        nextNodeId: 'town_history',
+        text: "Excellent work! Brooms Town is even safer thanks to your patrol report.",
+        emotion: 'excited',
+        conditions: [{ type: 'questCompleted', targetId: 'quest_town_patrol' }],
+        fallbackNodeId: 'patrol_check',
+        nextNodeId: null,
       },
+      // If quest in progress → show check-in with report-back choice
+      patrol_check: {
+        id: 'patrol_check',
+        speaker: 'Mayor Lee',
+        text: "Have you finished scouting Harbor Front, Construction Site, and Forest Edge yet?",
+        emotion: 'neutral',
+        conditions: [{ type: 'questInProgress', targetId: 'quest_town_patrol' }],
+        fallbackNodeId: 'town_history',
+        choices: [
+          { id: 'report', text: "I've scouted all three areas.", nextNodeId: 'patrol_report' },
+          { id: 'still', text: 'Still patrolling.', nextNodeId: 'patrol_still' },
+        ],
+      },
+      patrol_report: {
+        id: 'patrol_report',
+        speaker: 'Mayor Lee',
+        text: "Wonderful! I knew I could count on you. Brooms Town is in safe hands!",
+        emotion: 'excited',
+        actions: [{ type: 'completeObjective', questId: 'quest_town_patrol', objectiveId: 'obj_report_mayor' }],
+        nextNodeId: null,
+      },
+      patrol_still: {
+        id: 'patrol_still',
+        speaker: 'Mayor Lee',
+        text: "No rush! Visit all three areas when you can — your safety comes first.",
+        emotion: 'neutral',
+        nextNodeId: null,
+      },
+      // Original welcome flow (quest not started)
       town_history: {
         id: 'town_history',
         speaker: 'Mayor Lee',
-        text: "Brooms Town was built on the idea that neighbors help neighbors. The Rescue HQ made that official.",
-        emotion: 'neutral',
+        text: "Welcome to Brooms Town! I'm Mayor Lee. Our city is peaceful, thanks to our wonderful rescue team.",
+        emotion: 'happy',
         nextNodeId: 'rescue_origin',
       },
       rescue_origin: {
@@ -131,7 +161,20 @@ export const POLI_DIALOGUES: DialogueTree[] = [
             nextNodeId: 'help_appeal',
             effect: { type: 'increaseTrust', characterId: 'mayor_lee', amount: 5 },
           },
+          {
+            id: 'patrol',
+            text: "I'll scout the outer districts for you!",
+            nextNodeId: 'patrol_accepted',
+            effect: { type: 'startQuest', questId: 'quest_town_patrol' },
+          },
         ],
+      },
+      patrol_accepted: {
+        id: 'patrol_accepted',
+        speaker: 'Mayor Lee',
+        text: "Wonderful! Please visit Harbor Front, Construction Site, and Forest Edge — then come back and tell me what you found.",
+        emotion: 'excited',
+        nextNodeId: null,
       },
       team_info: {
         id: 'team_info',
@@ -183,6 +226,7 @@ export const POLI_DIALOGUES: DialogueTree[] = [
         emotion: 'excited',
         actions: [
           { type: 'setWorldFlag', flag: 'safety_lesson_1' },
+          { type: 'setWorldFlag', flag: 'npc_talked_teacher_mi' },
           { type: 'increaseTrust', characterId: 'teacher_mi', amount: 10 },
         ],
         nextNodeId: null,
@@ -257,17 +301,71 @@ export const POLI_DIALOGUES: DialogueTree[] = [
     },
   },
 
-  // ────────────────────────────── Dr. Kim ──────────────────────────────
+  // ────────────────────────────── Dr. Kim (quest giver: quest_house_calls) ──────────────────────────────
   {
     id: 'dlg_dr_kim',
     rootNodeId: 'start',
     nodes: {
+      // Routing gate: questCompleted → thank-you | else → check in-progress
       start: {
         id: 'start',
+        speaker: 'Dr. Kim',
+        text: "Thank you for helping me check on everyone! Brooms Town is healthier for your kindness.",
+        emotion: 'excited',
+        conditions: [{ type: 'questCompleted', targetId: 'quest_house_calls' }],
+        fallbackNodeId: 'dr_progress',
+        nextNodeId: null,
+      },
+      // If quest in progress → show check-in with report-back choice
+      dr_progress: {
+        id: 'dr_progress',
+        speaker: 'Dr. Kim',
+        text: "How are the house calls going? Teacher Mi and the harbor should be your first stops.",
+        emotion: 'neutral',
+        conditions: [{ type: 'questInProgress', targetId: 'quest_house_calls' }],
+        fallbackNodeId: 'dr_intro',
+        choices: [
+          { id: 'report', text: "I've visited Teacher Mi and the harbor.", nextNodeId: 'dr_report' },
+          { id: 'still', text: 'Still making the rounds.', nextNodeId: 'dr_still' },
+        ],
+      },
+      dr_report: {
+        id: 'dr_report',
+        speaker: 'Dr. Kim',
+        text: "Wonderful! The whole town benefits when we look out for each other. Thank you, Poli!",
+        emotion: 'excited',
+        actions: [{ type: 'completeObjective', questId: 'quest_house_calls', objectiveId: 'obj_return_dr' }],
+        nextNodeId: null,
+      },
+      dr_still: {
+        id: 'dr_still',
+        speaker: 'Dr. Kim',
+        text: "Take your time. Teacher Mi is at the school, and the harbor staff are at the docks.",
+        emotion: 'neutral',
+        nextNodeId: null,
+      },
+      // Original intro (quest not started)
+      dr_intro: {
+        id: 'dr_intro',
         speaker: 'Dr. Kim',
         text: "Hello! I'm Dr. Kim, the town doctor. Remember: if you or anyone gets hurt, come to me right away!",
         emotion: 'happy',
         actions: [{ type: 'increaseTrust', characterId: 'dr_kim', amount: 5 }],
+        choices: [
+          {
+            id: 'help',
+            text: "How can I help?",
+            nextNodeId: 'dr_offer',
+            effect: { type: 'startQuest', questId: 'quest_house_calls' },
+          },
+          { id: 'ok', text: "Take care, Doctor!", nextNodeId: null },
+        ],
+      },
+      dr_offer: {
+        id: 'dr_offer',
+        speaker: 'Dr. Kim',
+        text: "Perfect! Please visit Teacher Mi at the School District and check on the harbor staff — then come back and let me know how they are.",
+        emotion: 'excited',
         nextNodeId: null,
       },
     },
@@ -288,16 +386,70 @@ export const POLI_DIALOGUES: DialogueTree[] = [
     },
   },
 
-  // ────────────────────────────── Site Foreman ──────────────────────────────
+  // ────────────────────────────── Site Foreman (quest giver: quest_lost_toolbox) ──────────────────────────────
   {
     id: 'dlg_site_foreman',
     rootNodeId: 'start',
     nodes: {
+      // Routing gate: questCompleted → thank-you | else → check in-progress
       start: {
         id: 'start',
         speaker: 'Site Foreman',
-        text: "Watch your step around here! Construction zone. We're building new facilities for Brooms Town. Safety first!",
+        text: "You found clues about my toolbox — and now I've tracked it down! Can't thank you enough.",
+        emotion: 'excited',
+        conditions: [{ type: 'questCompleted', targetId: 'quest_lost_toolbox' }],
+        fallbackNodeId: 'foreman_progress',
+        nextNodeId: null,
+      },
+      // If quest in progress → show check-in with report-back choice
+      foreman_progress: {
+        id: 'foreman_progress',
+        speaker: 'Site Foreman',
+        text: "Any luck finding my toolbox? Remember — Harbor Front and Forest Edge are the areas to check.",
         emotion: 'neutral',
+        conditions: [{ type: 'questInProgress', targetId: 'quest_lost_toolbox' }],
+        fallbackNodeId: 'foreman_intro',
+        choices: [
+          { id: 'report', text: "I've searched both areas.", nextNodeId: 'foreman_report' },
+          { id: 'still', text: 'Still looking.', nextNodeId: 'foreman_still' },
+        ],
+      },
+      foreman_report: {
+        id: 'foreman_report',
+        speaker: 'Site Foreman',
+        text: "You searched both places? Great — the driver must have dropped it along that route. I'll go look. Thank you!",
+        emotion: 'happy',
+        actions: [{ type: 'completeObjective', questId: 'quest_lost_toolbox', objectiveId: 'obj_report_back' }],
+        nextNodeId: null,
+      },
+      foreman_still: {
+        id: 'foreman_still',
+        speaker: 'Site Foreman',
+        text: "No rush! Check Harbor Front and Forest Edge when you can. Safety first out there!",
+        emotion: 'neutral',
+        nextNodeId: null,
+      },
+      // Original intro (quest not started)
+      foreman_intro: {
+        id: 'foreman_intro',
+        speaker: 'Site Foreman',
+        text: "Watch your step! Construction zone. We're building great things for Brooms Town. By the way — I've lost my toolbox somewhere on the delivery route. Have you seen it?",
+        emotion: 'neutral',
+        choices: [
+          {
+            id: 'help',
+            text: "I'll help you find it!",
+            nextNodeId: 'foreman_offer',
+            effect: { type: 'startQuest', questId: 'quest_lost_toolbox' },
+          },
+          { id: 'nope', text: "Haven't seen it, sorry.", nextNodeId: null },
+        ],
+      },
+      foreman_offer: {
+        id: 'foreman_offer',
+        speaker: 'Site Foreman',
+        text: "Thanks! The last delivery went from Harbor Front to Forest Edge. Check both spots — it must be along that route!",
+        emotion: 'happy',
         nextNodeId: null,
       },
     },

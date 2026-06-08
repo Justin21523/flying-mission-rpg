@@ -1,4 +1,5 @@
 import type { Quest } from '../types/quest';
+import { POLI_QUESTS } from './quests/poliQuests';
 
 // Kit — sample quest. Objectives auto-complete the quest when all are done; the reward (items + player
 // exp + a world flag) flows through questStore's onQuestReward hook.
@@ -17,4 +18,5 @@ export const SEED_QUESTS: Quest[] = [
     ],
     reward: { items: [{ itemId: 'item_herb', quantity: 2 }], exp: 50, flags: ['intro_done'] },
   },
+  ...POLI_QUESTS,
 ];

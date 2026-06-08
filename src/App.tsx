@@ -25,6 +25,7 @@ import { useBattleStore } from './stores/battleStore';
 import { ActivityHud } from './ui/ActivityHud';
 import { useActivityStore } from './stores/activityStore';
 import { PlayToolbar } from './ui/play/PlayToolbar';
+import { PoliSystemBoot } from './game/poli/PoliSystemBoot';
 
 // Kit — top-level: the 3D <Canvas> with DOM overlays layered over it. F1 toggles Edit Mode; in Edit
 // Mode the camera free-pans, gizmos appear, and the Editor Hub + floating terrain palette are usable.
@@ -76,6 +77,7 @@ export const App = () => {
     <div className="fixed inset-0 bg-gray-900">
       <InteractionHandler />
       <QuestTrackerController />
+      <PoliSystemBoot />
       <Dock />
       <WorldClockHUD />
       {/* Overworld-only HUD (hidden while editing). */}
