@@ -41,7 +41,32 @@ function getStage(incidentId: string, stageIndex: number) {
 
 const ZERO_BONUS: ToolBonus = { actionBonus: 0, timeBonus: 0, radiusBonus: 0 };
 
-export const useRescueOperationStore = create<RescueOperationState>((set, get) => ({
+export const useRescueOperationStore = create<RescueOperationState>((set, get) => {
+  // A stage just finished: advance to the next stage (resetting its progress/timer), or — if it was
+  // the last stage — move to the success screen. This is what makes multi-stage incidents run fully.
+  const completeStage = () => {
+    const s = get();
+    if (!s.incidentId) return;
+    const def = getEditorIncident(s.incidentId);
+    const lastIndex = (def?.stages.length ?? 1) - 1;
+    if (s.stageIndex < lastIndex) {
+      const nextIdx = s.stageIndex + 1;
+      const stage = getStage(s.incidentId, nextIdx);
+      set({
+        stageIndex: nextIdx,
+        step: 'on_scene',
+        actionProgress: 0,
+        waypointsFound: stage?.type === 'waypoints'
+          ? new Array(stage.waypointPositions?.length ?? 0).fill(false)
+          : [],
+        timeLeft: (stage?.timeLimitSeconds ?? 0) + s.toolBonus.timeBonus,
+      });
+    } else {
+      set({ step: 'success' });
+    }
+  };
+
+  return {
   isActive: false,
   incidentId: null,
   stageIndex: 0,
@@ -89,7 +114,7 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     const count = stage.actionCount ?? 1;
     const next = Math.min(1, s.actionProgress + 1 / count + s.toolBonus.actionBonus);
     set({ actionProgress: next });
-    if (next >= 1) set({ step: 'success' });
+    if (next >= 1) completeStage();
   },
 
   markWaypoint: (idx) => {
@@ -98,7 +123,7 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     if (s.waypointsFound[idx]) return;
     const updated = s.waypointsFound.map((v, i) => (i === idx ? true : v));
     set({ waypointsFound: updated });
-    if (updated.every(Boolean)) set({ step: 'success' });
+    if (updated.every(Boolean)) completeStage();
   },
 
   confirmSuccess: () => {
@@ -171,4 +196,5 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     const s = get();
     return 2.5 + s.toolBonus.radiusBonus;
   },
-}));
+  };
+});

@@ -57,7 +57,7 @@ export const RescueHud = () => {
           style={{ background: 'rgba(30,20,5,0.92)', border: '2px solid #f97316', minWidth: 320, pointerEvents: 'none' }}
         >
           <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#f97316' }}>
-            🚒 RESCUE IN PROGRESS
+            🚒 RESCUE IN PROGRESS{def.stages.length > 1 ? ` · STAGE ${stageIndex + 1}/${def.stages.length}` : ''}
           </div>
           <div className="text-2xl font-bold text-white mb-1">{stage.title}</div>
           <div className="text-sm mb-4" style={{ color: '#d1d5db' }}>{stage.description}</div>
