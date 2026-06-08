@@ -16,7 +16,7 @@ export const ActivityArenaRenderer = ({ areaId }: { areaId: string }) => {
   const activities = useEditorActivityStore((s) => s.activities);
   const selId = useEditorActivityStore((s) => s.selectedId);
   if (!editMode) return null;
-  const ea = activities.find((a) => a.def.id === selId);
+  const ea = activities.find((a) => a.def?.id === selId);
   if (!ea || ea.def.zoneId !== areaId) return null;
 
   return (

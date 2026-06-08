@@ -18,8 +18,11 @@ export interface CharacterOverride {
 
 interface EditorPoliCharacterState {
   overrides: Record<string, CharacterOverride>;
+  /** Character selected in Edit Mode (drives inspector + single gizmo). */
+  selectedNpcId: string | null;
   setOverride: (id: string, patch: Partial<CharacterOverride>) => void;
   clearOverride: (id: string) => void;
+  selectNpc: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -40,6 +43,7 @@ function load(): { overrides: Record<string, CharacterOverride> } {
 
 export const useEditorPoliCharacterStore = create<EditorPoliCharacterState>((set, get) => ({
   ...load(),
+  selectedNpcId: null,
 
   setOverride: (id, patch) => {
     const prev = get().overrides[id] ?? { id };
@@ -55,8 +59,10 @@ export const useEditorPoliCharacterStore = create<EditorPoliCharacterState>((set
     persist({ overrides: updated });
   },
 
+  selectNpc: (id) => set({ selectedNpcId: id }),
+
   reset: () => {
-    set({ overrides: {} });
+    set({ overrides: {}, selectedNpcId: null });
     persist({ overrides: {} });
   },
 }));

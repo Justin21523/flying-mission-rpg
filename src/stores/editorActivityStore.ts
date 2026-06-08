@@ -60,7 +60,16 @@ function persist(activities: EditorActivity[]): void {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ activities })); } catch { /* ignore */ }
 }
 function load(): EditorActivity[] {
-  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) { const p = JSON.parse(raw); if (Array.isArray(p.activities)) return p.activities as EditorActivity[]; } } catch { /* ignore */ }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (Array.isArray(p.activities)) {
+        // Filter out any entries whose def or def.id is missing (corrupted / schema-migrated data).
+        return (p.activities as EditorActivity[]).filter((a) => a?.def?.id);
+      }
+    }
+  } catch { /* ignore */ }
   return [];
 }
 

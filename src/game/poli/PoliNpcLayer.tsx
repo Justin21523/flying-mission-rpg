@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Text, TransformControls } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
+import { Vector3 } from 'three';
 import type { Group } from 'three';
 import { useNpcScheduleStore } from '../../stores/npcScheduleStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
@@ -15,6 +16,9 @@ import { RESIDENTS } from '../../data/characters/residents';
 // Preload all known robot model paths so NPCs appear without stutter.
 const KNOWN_ROBOT_PATHS = CORE_TEAM.filter((c) => c.modelRobotPath).map((c) => c.modelRobotPath!);
 KNOWN_ROBOT_PATHS.forEach((p) => useGLTF.preload(p));
+
+// Module-level temp vec — avoids per-frame allocation in gizmo drag handlers.
+const _wp = new Vector3();
 
 // ---- E-key interaction hook ------------------------------------------------
 function usePoliInteraction(allChars: CharacterDefinition[]) {
@@ -81,35 +85,63 @@ const PoliNpcEntity = ({ char, position }: PoliNpcEntityProps) => (
   </Interactable>
 );
 
-// ---- NPC entity (edit mode — shows gizmo, saves position on drag) -----------
+// ---- NPC entity (edit mode) -------------------------------------------------
+// Outer group is positioned at world coords; inner body is at local origin so
+// TransformControls gizmo appears centered on the character, not at scene origin.
 interface EditableNpcEntityProps {
   char: CharacterDefinition;
   position: [number, number, number];
+  isSelected: boolean;
 }
 
-const EditableNpcEntity = ({ char, position }: EditableNpcEntityProps) => {
+const EditableNpcEntity = ({ char, position, isSelected }: EditableNpcEntityProps) => {
   const groupRef = useRef<Group>(null);
   const setOverride = useEditorPoliCharacterStore((s) => s.setOverride);
+  const selectNpc = useEditorPoliCharacterStore((s) => s.selectNpc);
 
-  const onDragEnd = () => {
+  // Called every frame while dragging — saves world position into override store.
+  const onPositionChange = () => {
     if (!groupRef.current) return;
-    const { x, y, z } = groupRef.current.position;
-    setOverride(char.id, { positionOverride: [x, y, z] });
+    groupRef.current.getWorldPosition(_wp);
+    setOverride(char.id, { positionOverride: [_wp.x, _wp.y, _wp.z] });
   };
 
   return (
-    <TransformControls mode="translate" onMouseUp={onDragEnd}>
-      <group ref={groupRef} position={position}>
-        <NpcBodyMesh char={char} />
-        {/* Edit-mode label */}
-        <Text
-          position={[0, 2.6, 0]} fontSize={0.28} color="#a78bfa"
-          anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#1e1e2e" renderOrder={1}
-        >
-          {char.name} [{char.id}]
-        </Text>
-      </group>
-    </TransformControls>
+    // Outer group anchors the object at its world position.
+    // The gizmo/body inside is at local [0,0,0] = the world position.
+    <group position={position}>
+      {isSelected ? (
+        <TransformControls mode="translate" onObjectChange={onPositionChange}>
+          <group ref={groupRef}>
+            <NpcBodyMesh char={char} />
+            <Text
+              position={[0, 2.6, 0]} fontSize={0.28} color="#a78bfa"
+              anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#1e1e2e" renderOrder={1}
+            >
+              {char.name} [{char.id}]
+            </Text>
+          </group>
+        </TransformControls>
+      ) : (
+        <group>
+          <NpcBodyMesh char={char} />
+          {/* Translucent hit volume — click to select this NPC in Edit Mode. */}
+          <mesh
+            position={[0, 1, 0]}
+            onClick={(e) => { e.stopPropagation(); selectNpc(char.id); }}
+          >
+            <boxGeometry args={[0.9, 2, 0.9]} />
+            <meshBasicMaterial color={char.color} transparent opacity={0.18} depthWrite={false} />
+          </mesh>
+          <Text
+            position={[0, 2.6, 0]} fontSize={0.28} color="#94a3b8"
+            anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#1e1e2e" renderOrder={1}
+          >
+            {char.name} [{char.id}]
+          </Text>
+        </group>
+      )}
+    </group>
   );
 };
 
@@ -122,6 +154,7 @@ export const PoliNpcLayer = ({ areaId }: PoliNpcLayerProps) => {
   const activeAreaMap = useNpcScheduleStore((s) => s.activeAreaMap);
   const editMode = useUiStore((s) => s.editMode);
   const overrides = useEditorPoliCharacterStore((s) => s.overrides);
+  const selectedNpcId = useEditorPoliCharacterStore((s) => s.selectedNpcId);
 
   const allChars = useMemo(
     () =>
@@ -132,15 +165,16 @@ export const PoliNpcLayer = ({ areaId }: PoliNpcLayerProps) => {
     [overrides],
   );
 
-  // In edit mode show ALL characters registered in schedules for this area (ignores time-of-day).
-  // In play mode show only characters whose active area matches.
+  // Edit mode: show every character that has any position defined for this area.
+  // Play mode: only show characters whose schedule puts them here right now.
   const npcs = useMemo(() => {
     if (editMode) {
-      // Show all characters that have a position defined for this area.
       return allChars.filter((c) => {
-        if (overrides[c.id]?.positionOverride) return activeAreaMap[c.id] === areaId;
+        const ov = overrides[c.id];
+        if (ov?.positionOverride) return true;
         const schedPos = useNpcScheduleStore.getState().getCharacterPosition(c.id, areaId);
-        return schedPos[0] !== 0 || schedPos[2] !== 0 || useNpcScheduleStore.getState().activeAreaMap[c.id] === areaId;
+        return schedPos[0] !== 0 || schedPos[1] !== 0 || schedPos[2] !== 0
+          || useNpcScheduleStore.getState().activeAreaMap[c.id] === areaId;
       });
     }
     return allChars.filter((c) => activeAreaMap[c.id] === areaId);
@@ -151,12 +185,18 @@ export const PoliNpcLayer = ({ areaId }: PoliNpcLayerProps) => {
   return (
     <>
       {npcs.map((char) => {
-        // Resolve position: positionOverride > schedule-based
         const schedPos = useNpcScheduleStore.getState().getCharacterPosition(char.id, areaId);
         const pos = (overrides[char.id]?.positionOverride ?? schedPos) as [number, number, number];
 
         if (editMode) {
-          return <EditableNpcEntity key={char.id} char={char} position={pos} />;
+          return (
+            <EditableNpcEntity
+              key={char.id}
+              char={char}
+              position={pos}
+              isSelected={selectedNpcId === char.id}
+            />
+          );
         }
         return <PoliNpcEntity key={char.id} char={char} position={pos} />;
       })}

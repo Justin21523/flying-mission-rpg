@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { RESIDENTS } from '../../data/characters/residents';
@@ -13,7 +12,9 @@ export const PoliCharacterEditorTab = () => {
   const overrides = useEditorPoliCharacterStore((s) => s.overrides);
   const setOverride = useEditorPoliCharacterStore((s) => s.setOverride);
   const clearOverride = useEditorPoliCharacterStore((s) => s.clearOverride);
-  const [selId, setSelId] = useState<string | null>(null);
+  // selectedNpcId is driven by clicking NPCs in the 3D view; also settable from the list.
+  const selId = useEditorPoliCharacterStore((s) => s.selectedNpcId);
+  const selectNpc = useEditorPoliCharacterStore((s) => s.selectNpc);
 
   const mergedChars = ALL_CHARS.map(getMergedPoliCharacter);
   const sel = selId ? mergedChars.find((c) => c.id === selId) ?? null : null;
@@ -23,6 +24,7 @@ export const PoliCharacterEditorTab = () => {
     if (!selId) return;
     setOverride(selId, patch);
   };
+  const setSelId = selectNpc;
 
   return (
     <div className="flex h-full gap-3 text-xs">

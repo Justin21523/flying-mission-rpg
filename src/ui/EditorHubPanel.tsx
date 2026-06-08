@@ -9,6 +9,7 @@ import { DebugTab } from './editor/DebugTab';
 import { EncounterEditorTab } from './editor/EncounterEditorTab';
 import { ActivityEditorTab } from './editor/ActivityEditorTab';
 import { PoliCharacterEditorTab } from './editor/PoliCharacterEditorTab';
+import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
 type Tab = 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli';
@@ -28,7 +29,15 @@ const TABS: { id: Tab; label: string }[] = [
 // Translucent so it doesn't block the scene. (The Assets palette is a separate left-centre panel.)
 export const EditorHubPanel = () => {
   const close = useUiStore((s) => s.toggleEditorHub);
-  const [tab, setTab] = useState<Tab>('debug');
+  const [userTab, setUserTab] = useState<Tab>('debug');
+  // When an NPC is selected in 3D, the active tab snaps to POLI automatically.
+  // Clicking any other tab clears the 3D selection so the user can freely browse.
+  const selectedNpcId = useEditorPoliCharacterStore((s) => s.selectedNpcId);
+  const tab: Tab = selectedNpcId ? 'poli' : userTab;
+  const setTab = (t: Tab) => {
+    setUserTab(t);
+    if (t !== 'poli') useEditorPoliCharacterStore.getState().selectNpc(null);
+  };
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(1); // hub zoom (60%–200%)
   const dragRef = useRef<{ ox: number; oy: number } | null>(null);
