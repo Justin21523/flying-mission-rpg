@@ -12,10 +12,10 @@ import { useTransformStore } from '../../stores/transformStore';
 // geometry ref inside one useFrame (needsUpdate); velocities/scalars live in a useRef. No per-frame
 // allocations, no mutation of memoized values.
 
-const SMOKE = 54;
-const GLOW = 26;
-const DURATION = 1.0;   // smoke lifetime (s)
-const GLOW_LIFE = 0.7;  // cyan sparkle lifetime (s)
+const SMOKE = 140;
+const GLOW = 64;
+const DURATION = 1.15;  // smoke lifetime (s)
+const GLOW_LIFE = 0.8;  // cyan sparkle lifetime (s)
 
 function makeSoftTexture(): CanvasTexture {
   const s = 64;
@@ -64,22 +64,23 @@ export const TransformSmoke = () => {
     const pulse = useTransformStore.getState().pulseId;
     if (pulse !== st.lastPulse && smokeArr && glowArr) {
       st.lastPulse = pulse;
+      // Spawn across the whole height + girth of the (large) robot so the cloud fully envelops it.
       for (let i = 0; i < SMOKE; i++) {
-        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.35), sp = rnd(1.2, 2.8);
+        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.9), sp = rnd(1.8, 4.2);
         smokeArr[i * 3] = Math.cos(a) * r;
-        smokeArr[i * 3 + 1] = rnd(0.2, 1.4);
+        smokeArr[i * 3 + 1] = rnd(0.0, 2.6);
         smokeArr[i * 3 + 2] = Math.sin(a) * r;
         st.smokeVel[i * 3] = Math.cos(a) * sp;
-        st.smokeVel[i * 3 + 1] = rnd(0.6, 1.8);
+        st.smokeVel[i * 3 + 1] = rnd(0.8, 2.8);
         st.smokeVel[i * 3 + 2] = Math.sin(a) * sp;
       }
       for (let i = 0; i < GLOW; i++) {
-        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.25), sp = rnd(1.8, 3.6);
+        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.7), sp = rnd(2.2, 4.6);
         glowArr[i * 3] = Math.cos(a) * r;
-        glowArr[i * 3 + 1] = rnd(0.4, 1.6);
+        glowArr[i * 3 + 1] = rnd(0.3, 2.4);
         glowArr[i * 3 + 2] = Math.sin(a) * r;
         st.glowVel[i * 3] = Math.cos(a) * sp;
-        st.glowVel[i * 3 + 1] = rnd(0.8, 2.2);
+        st.glowVel[i * 3 + 1] = rnd(1.0, 3.0);
         st.glowVel[i * 3 + 2] = Math.sin(a) * sp;
       }
       st.age = 0;
@@ -108,8 +109,8 @@ export const TransformSmoke = () => {
     }
     if (smokeMat) {
       const fade = t < 0.18 ? t / 0.18 : Math.max(0, 1 - (t - 0.18) / (DURATION - 0.18));
-      smokeMat.opacity = fade * 0.9;
-      smokeMat.size = 0.9 + t * 1.6;
+      smokeMat.opacity = fade * 0.95;
+      smokeMat.size = 2.0 + t * 3.4; // large puffs that cover the whole robot
     }
 
     if (glowArr && glowAttr) {
@@ -119,7 +120,7 @@ export const TransformSmoke = () => {
     if (glowMat) {
       const gf = t < 0.1 ? t / 0.1 : Math.max(0, 1 - (t - 0.1) / (GLOW_LIFE - 0.1));
       glowMat.opacity = gf;
-      glowMat.size = 0.5 + t * 0.8;
+      glowMat.size = 1.0 + t * 1.6;
     }
   });
 
