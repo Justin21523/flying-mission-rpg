@@ -28,8 +28,10 @@ for (const id of POLI_ROSTER) {
   if (c?.modelRobotPath) useGLTF.preload(c.modelRobotPath);
 }
 
+// Placeholder shown only during first GLB load. The visual group's origin is at the feet (ground), so
+// the capsule centre sits at half its height (~0.95) to stand on the floor rather than sink halfway in.
 const Capsule = () => (
-  <mesh castShadow position={[0, 0, 0]}>
+  <mesh castShadow position={[0, 0.95, 0]}>
     <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
     <meshStandardMaterial color="#3b82f6" roughness={0.5} metalness={0.2} />
   </mesh>

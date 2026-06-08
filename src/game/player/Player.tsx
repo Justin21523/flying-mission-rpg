@@ -157,7 +157,11 @@ export const Player = () => {
     <>
       <RigidBody ref={body} type="dynamic" colliders={false} lockRotations canSleep={false} position={INITIAL_POS}>
         <CapsuleCollider args={[0.5, 0.5]} />
-        <group ref={visualRef} position={[0, 0.5, 0]}>
+        {/* The capsule (half-height 0.5 + radius 0.5) spans ±1.0 around the body, so its BOTTOM is at
+            body-1.0 — exactly the resting ground (y=0). PlayerMesh normalises each model with feet at
+            local y=0, so the visual group sits at -1.0 to plant the feet on the floor (no float). The
+            whole group shifts together, so rotor/FX offsets stay correct relative to the model. */}
+        <group ref={visualRef} position={[0, -1.0, 0]}>
           <PlayerMesh />
         </group>
       </RigidBody>
