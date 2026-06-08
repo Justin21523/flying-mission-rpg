@@ -156,12 +156,12 @@ export const Player = () => {
   return (
     <>
       <RigidBody ref={body} type="dynamic" colliders={false} lockRotations canSleep={false} position={INITIAL_POS}>
-        <CapsuleCollider args={[0.5, 0.5]} />
-        {/* The capsule (half-height 0.5 + radius 0.5) spans ±1.0 around the body, so its BOTTOM is at
-            body-1.0 — exactly the resting ground (y=0). PlayerMesh normalises each model with feet at
-            local y=0, so the visual group sits at -1.0 to plant the feet on the floor (no float). The
-            whole group shifts together, so rotor/FX offsets stay correct relative to the model. */}
-        <group ref={visualRef} position={[0, -1.0, 0]}>
+        {/* Pivot at the FEET: the capsule (half-height 0.5 + radius 0.5, total ±1.0) is raised by 1.0 so
+            it spans 0..2 ABOVE the body origin. The body origin therefore sits at the capsule bottom =
+            the feet, so when the player object is at y=0 the feet rest exactly on the ground (y=0).
+            PlayerMesh normalises each model with feet at local y=0, so the visual group is at the origin. */}
+        <CapsuleCollider args={[0.5, 0.5]} position={[0, 1.0, 0]} />
+        <group ref={visualRef} position={[0, 0, 0]}>
           <PlayerMesh />
         </group>
       </RigidBody>
@@ -171,7 +171,7 @@ export const Player = () => {
           W/E/R + inspector; the gizmo writes the override (auto-saved), mirrored above. */}
       {editMode && (
         <EditableObject objKey={pKey} base={base}>
-          <mesh position={[0, 0.9, 0]}>
+          <mesh position={[0, 1.0, 0]}>
             <boxGeometry args={[1.1, 2.2, 1.1]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
