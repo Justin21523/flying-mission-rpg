@@ -16,6 +16,7 @@ import { ActivityArenaRenderer } from '../editor/ActivityArenaRenderer';
 import { ZoneGate } from './ZoneGate';
 import { PoliNpcLayer } from '../poli/PoliNpcLayer';
 import { IncidentLayer } from '../poli/IncidentLayer';
+import { TrafficLayer } from '../poli/TrafficLayer';
 
 // Kit — renders one area's world: the ground stack (flat / flat-PBR / heightfield terrain via the
 // environment system), placed GLB set-pieces, PBR patch decals, and a travel gate to every connected
@@ -38,6 +39,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <PoliNpcLayer areaId={areaId} />
       {/* POLI seam #1b: incident layer — world incidents + rescue interaction */}
       <IncidentLayer areaId={areaId} />
+      {/* POLI seam #1c: traffic layer — NPC vehicles + traffic signals */}
+      <TrafficLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />
