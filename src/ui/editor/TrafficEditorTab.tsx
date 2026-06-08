@@ -1,0 +1,107 @@
+import { useEditorTrafficStore } from '../../stores/editorTrafficStore';
+import { usePlayerStore } from '../../stores/playerStore';
+import { editorSpawn } from '../../stores/sceneEditStore';
+import { Field, inp, lbl } from './editorShared';
+
+const camPos = (): [number, number, number] => [Math.round(editorSpawn.x * 100) / 100, 0.5, Math.round(editorSpawn.z * 100) / 100];
+
+// 🚦 Traffic tab — edit vehicles, signals and road loops for the current area. Auto-saves; applies live.
+export const TrafficEditorTab = () => {
+  const areaId = usePlayerStore((s) => s.currentAreaId);
+  const t = useEditorTrafficStore();
+  const vehicles = t.vehicles.filter((v) => v.areaId === areaId);
+  const signals = t.signals.filter((s) => s.areaId === areaId);
+  const roads = t.roads.filter((r) => r.areaId === areaId);
+  const roadIds = roads.map((r) => r.id);
+
+  return (
+    <div className="space-y-3 overflow-y-auto text-xs">
+      {/* Roads */}
+      <section className="space-y-1.5">
+        <div className="flex items-center justify-between"><span className={lbl}>Roads ({roads.length})</span>
+          <button onClick={() => t.addRoad(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ road</button></div>
+        {roads.map((r) => (
+          <div key={r.id} className="space-y-1 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-400">{r.id} · {r.waypoints.length} pts (closed loop)</span>
+              <div className="flex gap-1">
+                <button onClick={() => t.addRoadWaypoint(r.id, camPos())} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[10px] text-emerald-100">➕ at cam</button>
+                <button onClick={() => t.removeRoad(r.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+              </div>
+            </div>
+            {r.waypoints.map((wp, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <span className="w-5 text-[10px] text-slate-500">{i + 1}</span>
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={0.5} value={wp[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                    const next = [...wp] as [number, number, number]; next[a] = parseFloat(e.target.value) || 0; t.updateRoadWaypoint(r.id, i, next);
+                  }} />
+                ))}
+                <button onClick={() => t.removeRoadWaypoint(r.id, i)} className="rounded px-1 text-[10px] text-rose-400 hover:bg-slate-800">✕</button>
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+
+      {/* Vehicles */}
+      <section className="space-y-1.5">
+        <div className="flex items-center justify-between"><span className={lbl}>Vehicles ({vehicles.length})</span>
+          <button onClick={() => t.addVehicle(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ vehicle</button></div>
+        {vehicles.map((v) => (
+          <div key={v.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+            <div className="flex items-center gap-2">
+              <input type="color" value={v.color} onChange={(e) => t.updateVehicle(v.id, { color: e.target.value })} className="h-6 w-8 rounded border-0 bg-transparent" />
+              <input value={v.name} onChange={(e) => t.updateVehicle(v.id, { name: e.target.value })} className={inp + ' flex-1'} placeholder="name" />
+              <button onClick={() => t.removeVehicle(v.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="path">
+                <select value={v.pathId} onChange={(e) => t.updateVehicle(v.id, { pathId: e.target.value })} className={inp}>
+                  <option value="">—</option>{roadIds.map((id) => <option key={id} value={id}>{id}</option>)}
+                </select>
+              </Field>
+              <Field label="speed"><input type="number" step={0.5} value={v.speed} onChange={(e) => t.updateVehicle(v.id, { speed: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="start offset (0–1)"><input type="number" step={0.05} min={0} max={1} value={v.initialProgress} onChange={(e) => t.updateVehicle(v.id, { initialProgress: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Signals */}
+      <section className="space-y-1.5">
+        <div className="flex items-center justify-between"><span className={lbl}>Signals ({signals.length})</span>
+          <button onClick={() => t.addSignal(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ signal</button></div>
+        {signals.map((s) => (
+          <div key={s.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-400">{s.id}</span>
+              <button onClick={() => t.removeSignal(s.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+            </div>
+            <Field label="position (x / y / z)">
+              <div className="flex gap-1">
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={0.5} value={s.position[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                    const next = [...s.position] as [number, number, number]; next[a] = parseFloat(e.target.value) || 0; t.updateSignal(s.id, { position: next });
+                  }} />
+                ))}
+                <button onClick={() => t.updateSignal(s.id, { position: camPos() })} className="rounded px-1 text-[10px] text-sky-300 hover:bg-slate-800">cam</button>
+              </div>
+            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="on path">
+                <select value={s.pathId} onChange={(e) => t.updateSignal(s.id, { pathId: e.target.value })} className={inp}>
+                  <option value="">—</option>{roadIds.map((id) => <option key={id} value={id}>{id}</option>)}
+                </select>
+              </Field>
+              <Field label="stop at (0–1)"><input type="number" step={0.05} min={0} max={1} value={s.progressOnPath} onChange={(e) => t.updateSignal(s.id, { progressOnPath: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="green s"><input type="number" value={s.greenSeconds} onChange={(e) => t.updateSignal(s.id, { greenSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="yellow s"><input type="number" value={s.yellowSeconds} onChange={(e) => t.updateSignal(s.id, { yellowSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="red s"><input type="number" value={s.redSeconds} onChange={(e) => t.updateSignal(s.id, { redSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+};

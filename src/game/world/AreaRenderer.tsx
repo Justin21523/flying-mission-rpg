@@ -72,8 +72,9 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {/* POLI seam #1b: incident layer — shows only incidents SPAWNED by the IncidentDirector
           (random), so it's safe to render even in sandbox mode. */}
       <IncidentLayer areaId={areaId} />
-      {/* POLI seam #1c: traffic layer — NPC vehicles + traffic signals */}
-      {!POLI_SANDBOX && <TrafficLayer areaId={areaId} />}
+      {/* POLI seam #1c: traffic layer — editable NPC vehicles + traffic signals (always rendered;
+          edit them in the 🚦 Traffic tab). */}
+      <TrafficLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
       <LandmarkLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />

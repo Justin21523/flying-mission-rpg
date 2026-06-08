@@ -8,9 +8,7 @@ import { useMergedTransform } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
-import { POLI_VEHICLES } from '../../data/traffic/broomsTownVehicles';
-import { TRAFFIC_SIGNALS } from '../../data/traffic/broomsTownSignals';
-import { POLI_ROADS } from '../../data/traffic/broomsTownRoads';
+import { useEditorTrafficStore, getEditorRoadPath } from '../../stores/editorTrafficStore';
 import { getPathPosition, getPathHeading } from '../../types/traffic';
 import type { VehicleDefinition, TrafficSignalDef, TrafficPhase } from '../../types/traffic';
 
@@ -28,7 +26,6 @@ interface VehicleMeshProps {
 
 const VehicleMesh = ({ def }: VehicleMeshProps) => {
   const groupRef = useRef<Group>(null);
-  const path = useMemo(() => POLI_ROADS.find((r) => r.id === def.pathId), [def.pathId]);
 
   // Wheel offsets computed once from bodySize.
   const wheelOffsets = useMemo<[number, number, number][]>(() => {
@@ -43,7 +40,9 @@ const VehicleMesh = ({ def }: VehicleMeshProps) => {
 
   // Update position + heading directly via ref to avoid React re-renders every frame.
   useFrame(() => {
-    if (!groupRef.current || !path) return;
+    if (!groupRef.current) return;
+    const path = getEditorRoadPath(def.pathId);
+    if (!path) return;
     const progress = useTrafficStore.getState().vehicleProgress[def.id] ?? 0;
     const [x, y, z] = getPathPosition(path, progress);
     const heading = getPathHeading(path, progress);
@@ -148,8 +147,8 @@ interface TrafficLayerProps {
 }
 
 export const TrafficLayer = ({ areaId }: TrafficLayerProps) => {
-  const vehicles = useMemo(() => POLI_VEHICLES.filter((v) => v.areaId === areaId), [areaId]);
-  const signals = useMemo(() => TRAFFIC_SIGNALS.filter((s) => s.areaId === areaId), [areaId]);
+  const vehicles = useEditorTrafficStore((s) => s.vehicles).filter((v) => v.areaId === areaId);
+  const signals = useEditorTrafficStore((s) => s.signals).filter((s) => s.areaId === areaId);
 
   // Advance the traffic simulation each frame (called once, not per vehicle).
   useFrame((_, delta) => {
