@@ -3,13 +3,13 @@ import { useEditorQuestStore } from '../../stores/editorQuestStore';
 import { getQuest } from './editorQuestToQuest';
 import { getNpcProfile } from '../../data/npcs';
 import { getItem } from '../../data/items';
-import { SEED_AREAS } from '../../data/areas';
+import { getAllAreas } from '../../data/areas';
 
 // Kit — validate an editor quest. Blocking errors (structural) + non-blocking warnings (best-effort
 // reference resolution). The inspector shows them; nothing blocks authoring/export.
 export interface QuestValidation { ok: boolean; errors: string[]; warnings: string[]; }
 
-const areaExists = (id: string): boolean => SEED_AREAS.some((a) => a.id === id);
+const areaExists = (id: string): boolean => getAllAreas().some((a) => a.id === id);
 
 // Objective kinds that don't strictly require a target id.
 const TARGET_OPTIONAL = new Set(['visitArea', 'reachLocation', 'collectItem', 'custom']);

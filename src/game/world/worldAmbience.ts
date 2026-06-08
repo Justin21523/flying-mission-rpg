@@ -174,6 +174,8 @@ const BIOME_FOG_SCALE: Partial<Record<string, number>> = {
   sky: 1.45,
   yokaiRealm: 0.7,
   city: 0.95,
+  desert: 1.3,
+  industrial: 0.9,
 };
 
 // Phase 60 — give each OUTDOOR biome its own atmosphere by tinting the shared

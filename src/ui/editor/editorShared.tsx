@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- shared editor form helpers (mixed exports) */
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { SEED_AREAS } from '../../data/areas';
+import { getAllAreas } from '../../data/areas';
 import { SEED_ITEMS } from '../../data/items';
 import { SEED_NPCS } from '../../data/npcs';
 import { useQuestStore } from '../../stores/questStore';
@@ -30,10 +30,10 @@ export const parseCsv = (s: string) => s.split(',').map((x) => x.trim()).filter(
 
 // --- live id / option sources (for IdSelect / IdMultiPicker dropdowns) ---------------------------------
 export function useAreaIds(): string[] {
-  return useMemo(() => SEED_AREAS.map((a) => a.id), []);
+  return useMemo(() => getAllAreas().map((a) => a.id), []);
 }
 export function useAreaOptions(): IdOption[] {
-  return useMemo(() => SEED_AREAS.map((a) => ({ id: a.id, label: a.name })), []);
+  return useMemo(() => getAllAreas().map((a) => ({ id: a.id, label: a.name })), []);
 }
 
 export function useQuestIds(): string[] {

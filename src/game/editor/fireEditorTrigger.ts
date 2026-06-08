@@ -14,7 +14,7 @@ import { useQuestStore } from '../../stores/questStore';
 import { useProgressionStore } from '../../stores/progressionStore';
 import { executeEffect } from '../executeEffect';
 import { runQuestTracking } from '../quest/questTracking';
-import { SEED_AREAS } from '../../data/areas';
+import { getAllAreas } from '../../data/areas';
 
 // Kit — central trigger dispatcher (7 generic types). Used by the InteractionHandler 'editorTrigger'
 // branch (E-press) and the inspector Test button. `test` bypasses condition gating + once/cooldown.
@@ -42,7 +42,7 @@ export function fireEditorTrigger(t: EditorTrigger | undefined, opts?: { test?: 
         if (!opts?.test && useInventoryStore.getState().getItemQuantity(g.costItemId) < need) return { ok: false, message: `Need ${need}× ${g.costItemId} to pass.` };
         if (!opts?.test) useInventoryStore.getState().removeItem(g.costItemId, need);
       }
-      const area = SEED_AREAS.find((a) => a.id === g.targetAreaId);
+      const area = getAllAreas().find((a) => a.id === g.targetAreaId);
       if (!area) return { ok: false, message: `Area not found: ${g.targetAreaId}` };
       const spawn = g.targetPosition ? { x: g.targetPosition[0], y: g.targetPosition[1], z: g.targetPosition[2] } : (area.spawnPoint ?? { x: 0, y: 3, z: 0 });
       usePlayerStore.getState().travelToArea(area.id, spawn);

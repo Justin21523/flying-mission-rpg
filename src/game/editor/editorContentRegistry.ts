@@ -12,6 +12,8 @@ import { useEditorIncidentStore } from '../../stores/editorIncidentStore';
 import { useEditorRandomEventStore } from '../../stores/editorRandomEventStore';
 import { useEditorTrafficStore } from '../../stores/editorTrafficStore';
 import { useEditorToolStore } from '../../stores/editorToolStore';
+import { useEditorWorldStore } from '../../stores/editorWorldStore';
+import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
 // serialize / deserialize / clear / summary hooks. The foundation for the unified project Export/Import.
@@ -145,6 +147,22 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorToolStore.getState().importState(data as never); },
     clear: () => useEditorToolStore.getState().reset(),
     summary: () => `${useEditorToolStore.getState().tools.length} tools`,
+  },
+  {
+    id: 'editorWorld',
+    label: 'World',
+    serialize: () => { const s = useEditorWorldStore.getState(); return { districts: s.districts, areas: s.areas }; },
+    deserialize: (data) => { if (isObj(data)) useEditorWorldStore.getState().importState(data as never); },
+    clear: () => useEditorWorldStore.getState().reset(),
+    summary: () => { const s = useEditorWorldStore.getState(); return `${s.districts.length} districts · ${s.areas.length} areas`; },
+  },
+  {
+    id: 'editorLayout',
+    label: 'Layouts',
+    serialize: () => { const s = useEditorLayoutStore.getState(); return { presets: s.presets, activePresetId: s.activePresetId }; },
+    deserialize: (data) => { if (isObj(data)) useEditorLayoutStore.getState().importState(data as never); },
+    clear: () => useEditorLayoutStore.getState().reset(),
+    summary: () => `${Object.values(useEditorLayoutStore.getState().presets).reduce((n, l) => n + l.length, 0)} layout presets`,
   },
 ];
 

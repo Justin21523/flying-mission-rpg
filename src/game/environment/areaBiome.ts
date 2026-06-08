@@ -1,12 +1,14 @@
 import type { EnvironmentTheme } from '../../types/environment';
-import { SEED_AREAS } from '../../data/areas';
+import { getAllAreas } from '../../data/areas';
+import { getWorldAreas } from '../../stores/editorWorldStore';
 import { getEnvironmentTheme } from './environmentTheme';
 
-// Kit — resolve an area's biome theme. An explicit `ambientTheme` on the area wins; otherwise the biome
-// is inferred from the areaId by keyword (see environmentTheme.inferBiome). (No procedural-generation
-// layer in the kit — that was yokai-game-specific.)
+// Kit — resolve an area's biome theme. An explicit editable `biome` (🗺 World tab) wins, then the area's
+// `ambientTheme`; otherwise the biome is inferred from the areaId by keyword (environmentTheme.inferBiome).
 export function areaBiomeOverride(areaId: string): string | undefined {
-  return SEED_AREAS.find((a) => a.id === areaId)?.ambientTheme;
+  const wa = getWorldAreas().find((a) => a.id === areaId);
+  if (wa?.biome) return wa.biome;
+  return getAllAreas().find((a) => a.id === areaId)?.ambientTheme;
 }
 
 export function resolveAreaTheme(areaId: string): EnvironmentTheme {

@@ -3,7 +3,7 @@ import type { EditorObjective, EditorObjectiveType } from '../../types/editorQue
 import { EDITOR_OBJECTIVE_TYPES } from '../../types/editorQuest';
 import { useEditorQuestStore } from '../../stores/editorQuestStore';
 import { SEED_DOORS } from '../../data/doors';
-import { SEED_AREAS } from '../../data/areas';
+import { getAllAreas } from '../../data/areas';
 import { SEED_COMBATANTS } from '../../data/combatants';
 import { SEED_ACTIVITIES } from '../../data/activities';
 import { useEditorEncounterStore } from '../../stores/editorEncounterStore';
@@ -94,7 +94,7 @@ export const QuestObjectiveEditor = ({ questId, obj, index, count }: { questId: 
         <Field label="markerArea">
           <select value={obj.relatedAreaId ?? ''} onChange={(e) => set({ relatedAreaId: e.target.value || undefined })} className={inp}>
             <option value="">(quest areas)</option>
-            {SEED_AREAS.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {getAllAreas().map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </Field>
       </div>

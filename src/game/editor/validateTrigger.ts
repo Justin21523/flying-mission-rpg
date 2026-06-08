@@ -2,7 +2,7 @@ import type { EditorTrigger } from '../../types/editorTrigger';
 import { EDITOR_TRIGGER_TYPES, gateConfig } from '../../types/editorTrigger';
 import { useEditorTriggerStore } from '../../stores/editorTriggerStore';
 import { useQuestStore } from '../../stores/questStore';
-import { SEED_AREAS } from '../../data/areas';
+import { getAllAreas } from '../../data/areas';
 
 // Kit — validate an editor trigger. Pure (takes a context). Human-readable errors; the UI shows them.
 export interface TriggerValidationContext {
@@ -38,7 +38,7 @@ export function validateTrigger(t: EditorTrigger, ctx: TriggerValidationContext)
 function buildContext(): TriggerValidationContext {
   return {
     allTriggers: useEditorTriggerStore.getState().triggers,
-    knownAreaIds: new Set<string>(SEED_AREAS.map((a) => a.id)),
+    knownAreaIds: new Set<string>(getAllAreas().map((a) => a.id)),
     knownQuestIds: new Set<string>(Object.keys(useQuestStore.getState().quests)),
   };
 }

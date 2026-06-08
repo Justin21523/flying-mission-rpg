@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import { SEED_AREAS } from '../data/areas';
+import { getAllAreas } from '../data/areas';
 
 // Kit — tracks which areas the player has discovered (reached at least once). The starting area is
 // discovered up front. Travel gates only let you walk to connected areas; discovery is what a map /
 // fast-travel UI would read. Generic — no yokai/quest coupling.
-const START_AREA_ID = SEED_AREAS[0]?.id ?? 'area_field';
+const START_AREA_ID = getAllAreas()[0]?.id ?? 'rescue_hq';
 
 interface WorldState {
   discoveredAreaIds: string[];

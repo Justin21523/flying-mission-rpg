@@ -10,6 +10,7 @@ import { SceneSetPieceLayer } from './SceneSetPieceLayer';
 import { SampleEntities } from './SampleEntities';
 import { EditableNpcLayer } from './EditableNpcLayer';
 import { LandmarkLayer } from './LandmarkLayer';
+import { LayoutLayer } from './LayoutLayer';
 import { EditableTriggerRenderer } from '../editor/EditableTriggerRenderer';
 import { QuestMarkerRenderer } from '../editor/QuestMarkerRenderer';
 import { EncounterMarkerRenderer } from '../editor/EncounterMarkerRenderer';
@@ -75,6 +76,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {/* POLI seam #1c: traffic layer — editable NPC vehicles + traffic signals (always rendered;
           edit them in the 🚦 Traffic tab). */}
       <TrafficLayer areaId={areaId} />
+      {/* POLI seam #1d: layout layer — the active layout preset's placed models (🗺 World tab). */}
+      <LayoutLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
       <LandmarkLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />

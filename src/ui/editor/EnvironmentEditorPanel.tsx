@@ -3,7 +3,7 @@ import { usePlayerStore } from '../../stores/playerStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { resolveAreaEnvironment, type ResolvedEnvironment } from '../../game/environment/resolveAreaEnvironment';
 import { DEFAULT_STABLE_OVERRIDE, type BackgroundMode, type GroundType, type LockTime, type PbrPatch } from '../../types/environmentOverride';
-import { SEED_AREAS } from '../../data/areas';
+import { getAllAreas } from '../../data/areas';
 import { TEXTURE_SETS } from '../../game/world/textureLibrary';
 import { useTextureThumb } from '../../game/world/useTextureThumb';
 import { MATERIAL_SETS } from '../../game/world/gltfMaterial';
@@ -355,7 +355,7 @@ export const EnvironmentEditorPanel = () => {
   const resetArea = useEditorEnvironmentStore((s) => s.resetArea);
   const setDefaultMode = useEditorEnvironmentStore((s) => s.setDefaultMode);
 
-  const areas = SEED_AREAS.map((a) => ({ id: a.id, name: a.name }));
+  const areas = getAllAreas().map((a) => ({ id: a.id, name: a.name }));
 
   const [areaId, setAreaId] = useState<string>(currentAreaId);
   const env = resolveAreaEnvironment(areaId);

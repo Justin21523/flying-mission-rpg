@@ -19,6 +19,8 @@ export type BiomeType =
   | 'port'
   | 'sky'
   | 'underground'
+  | 'desert'
+  | 'industrial'
   | 'yokaiRealm';
 
 export type EnvironmentMood =

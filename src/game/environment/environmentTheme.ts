@@ -14,6 +14,8 @@ export function inferBiome(areaId: string): BiomeType {
     return 'underground';
   }
   if (id.includes('airport') || id.includes('runway') || id.includes('terminal')) return 'airport';
+  if (id.includes('desert') || id.includes('dune') || id.includes('outpost')) return 'desert';
+  if (id.includes('industrial') || id.includes('factory') || id.includes('warehouse') || id.includes('yard')) return 'industrial';
   if (id.includes('port') || id.includes('harbor') || id.includes('dock')) return 'port';
   if (id.includes('sky') || id.includes('cloud') || id.includes('aerial')) return 'sky';
   if (id.includes('offshore') || id.includes('ocean') || id.includes('sea')) return 'ocean';

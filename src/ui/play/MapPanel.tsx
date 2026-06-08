@@ -1,5 +1,5 @@
 import { usePlayerStore } from '../../stores/playerStore';
-import { SEED_AREAS, getKitArea } from '../../data/areas';
+import { getAllAreas, getKitArea } from '../../data/areas';
 import { PanelCard, closePanel } from './playShared';
 
 // Kit — play-mode 🗺 Map: every area as a card with its connections; the current area is highlighted and
@@ -14,7 +14,7 @@ export const MapPanel = () => {
   return (
     <PanelCard title="World Map" icon="🗺" onClose={closePanel} width="26rem">
       <div className="space-y-2">
-        {SEED_AREAS.map((a) => {
+        {getAllAreas().map((a) => {
           const here = a.id === current;
           const connected = (getKitArea(current)?.connectedAreaIds ?? []).includes(a.id);
           return (
