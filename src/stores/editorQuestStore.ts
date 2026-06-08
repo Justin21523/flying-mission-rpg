@@ -12,6 +12,7 @@ interface EditorQuestState {
   items: Item[];
   // quest CRUD
   newQuest: () => string;
+  upsertQuest: (q: EditorQuest) => void; // add or replace by id (used by content seeding)
   updateQuest: (id: string, patch: Partial<EditorQuest>) => void;
   removeQuest: (id: string) => void;
   duplicateQuest: (id: string) => string | null;
@@ -66,6 +67,10 @@ export const useEditorQuestStore = create<EditorQuestState>((set, get) => {
       const id = `quest_${Date.now().toString(36)}`;
       commit([...get().quests, createDefaultEditorQuest(id)]);
       return id;
+    },
+    upsertQuest: (q) => {
+      const exists = get().quests.some((x) => x.id === q.id);
+      commit(exists ? get().quests.map((x) => (x.id === q.id ? q : x)) : [...get().quests, q]);
     },
     updateQuest: (id, patch) => patchQuest(id, (q) => ({ ...q, ...patch })),
     removeQuest: (id) => commit(get().quests.filter((q) => q.id !== id)),

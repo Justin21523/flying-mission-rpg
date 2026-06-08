@@ -1,9 +1,12 @@
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useEditorLandmarkStore } from '../../stores/editorLandmarkStore';
 import type { Landmark } from '../../stores/editorLandmarkStore';
+import { useEditorQuestStore } from '../../stores/editorQuestStore';
+import { useEditorIncidentStore } from '../../stores/editorIncidentStore';
 import { RESIDENTS } from '../../data/characters/residents';
 import { BROOMS_TOWN_SCHEDULES } from '../../data/schedules/broomsTownSchedules';
 import { BROOMS_TOWN_AREAS } from '../../data/poli/broomsTownAreas';
+import { BROOMS_TOWN_SIDE_QUESTS } from '../../data/quests/broomsTownSideQuests';
 import type { Vec3 } from '../edit/sceneEditMerge';
 
 // One-time, idempotent seed so the Brooms Town world starts populated AND fully editable:
@@ -20,6 +23,12 @@ function homePosition(charId: string, areaId: string): Vec3 {
 }
 
 export function seedPoliWorld(): void {
+  // Always-run, fully idempotent content seeds (safe for existing saves that already passed SEED_FLAG):
+  //   • merge any incident definitions added to the data file but missing from the editor store
+  //   • seed the three resident side-quests + their giver NPCs (by stable quest id / giver name)
+  useEditorIncidentStore.getState().mergeMissingFromSeed();
+  seedSideQuests();
+
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
   } catch { /* ignore */ }
@@ -57,4 +66,36 @@ export function seedPoliWorld(): void {
   }
 
   try { localStorage.setItem(SEED_FLAG, '1'); } catch { /* ignore */ }
+}
+
+// Idempotent: seed each side-quest + its giver NPC only if the quest id is not already present.
+// The giver NPC is created first (so we can bind startsQuestIds/completesQuestIds), then the quest is
+// upserted with startingNPCId pointing back at the giver. Re-running is a no-op once seeded.
+function seedSideQuests(): void {
+  const questStore = useEditorQuestStore.getState();
+  const npcStore = useEditorNpcStore.getState();
+  for (const g of BROOMS_TOWN_SIDE_QUESTS) {
+    if (questStore.quests.some((q) => q.id === g.quest.id)) continue;
+
+    // Reuse an existing giver NPC with the same display name, else create one.
+    let giverId = npcStore.addedNpcs.find((n) => n.displayName === g.name)?.id;
+    if (!giverId) {
+      giverId = useEditorNpcStore.getState().addNpc(g.areaId, [g.position[0], 0, g.position[2]]);
+      useEditorNpcStore.getState().updateNpc(giverId, {
+        displayName: g.name,
+        role: g.role,
+        description: g.description,
+        color: g.color,
+        interactionLabel: `Talk to ${g.name}`,
+        movement: 'static',
+        moveSpeed: 1.4,
+      });
+    }
+    // Bind the giver to offer + accept turn-in of this quest.
+    useEditorNpcStore.getState().updateNpc(giverId, {
+      startsQuestIds: [g.quest.id],
+      completesQuestIds: [g.quest.id],
+    });
+    useEditorQuestStore.getState().upsertQuest({ ...g.quest, startingNPCId: giverId });
+  }
 }

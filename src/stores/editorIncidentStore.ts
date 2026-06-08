@@ -22,6 +22,7 @@ interface EditorIncidentState {
   updateWaypoint: (stageIndex: number, wpIndex: number, pos: [number, number, number]) => void;
   removeWaypoint: (stageIndex: number, wpIndex: number) => void;
   importState: (data: { incidents?: IncidentDefinition[] }) => void;
+  mergeMissingFromSeed: () => void; // add any POLI_INCIDENTS not already present (for existing saves)
   reset: () => void;
 }
 
@@ -109,6 +110,13 @@ export const useEditorIncidentStore = create<EditorIncidentState>((set, get) => 
     importState: (data) => {
       const incidents = Array.isArray(data.incidents) ? data.incidents.filter((d) => d?.id) : [];
       set({ incidents, selectedId: null }); persist(incidents);
+    },
+    mergeMissingFromSeed: () => {
+      const have = new Set(get().incidents.map((d) => d.id));
+      const missing = POLI_INCIDENTS.filter((d) => !have.has(d.id));
+      if (missing.length === 0) return;
+      const incidents = [...get().incidents, ...clone(missing)];
+      set({ incidents }); persist(incidents);
     },
     reset: () => { const incidents = clone(POLI_INCIDENTS); set({ incidents, selectedId: null }); persist(incidents); },
   };

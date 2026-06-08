@@ -7,6 +7,9 @@ import { useProgressionStore } from '../../stores/progressionStore';
 import { useQuestStore } from '../../stores/questStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
+import { useIncidentStore } from '../../stores/incidentStore';
+import { getEditorIncidents } from '../../stores/editorIncidentStore';
+import { spawnRandomIncident } from '../../game/incident/spawnIncident';
 import { getItem } from '../../data/items';
 import { Field, inp, useItemOptions } from './editorShared';
 import { IdSelect } from './idPickers';
@@ -179,13 +182,42 @@ const InventorySection = () => {
   );
 };
 
+// ── Incidents (spawn / reset) ───────────────────────────────────────────────
+const IncidentSection = () => {
+  const activeIds = useIncidentStore((s) => s.activeIds);
+  const defs = getEditorIncidents();
+  return (
+    <section className="space-y-2">
+      <Head>Incidents · {activeIds.length} active / {defs.length} defined</Head>
+      <div className="flex flex-wrap gap-1.5">
+        <Btn tone="amber" onClick={() => spawnRandomIncident()}>🚨 Spawn random now</Btn>
+        <Btn tone="red" onClick={() => useIncidentStore.getState().resetAll()}>♻ Reset incidents</Btn>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {defs.map((d) => {
+          const active = activeIds.includes(d.id);
+          const resolved = useIncidentStore.getState().isResolved(d.id);
+          return (
+            <button key={d.id} onClick={() => useIncidentStore.getState().spawn(d.id)}
+              title={`${d.title} — ${d.stages.length} stage(s) @ ${d.spawnAreaId}`}
+              className={`rounded px-2 py-0.5 text-[10px] ${active ? 'bg-amber-600/40 text-amber-50' : resolved ? 'bg-slate-800 text-slate-500' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
+              {active ? '▶ ' : resolved ? '✓ ' : ''}{d.title}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
 // Kit — 🧪 Debug tab: a generic director console (world/time, player level, quest status board, flags,
-// inventory). All changes hit the live stores and reflect immediately in play mode.
+// inventory, POLI incidents). All changes hit the live stores and reflect immediately in play mode.
 export const DebugTab = () => (
   <div className="space-y-4 text-sm">
     <WorldSection />
     <PlayerSection />
     <QuestSection />
+    <IncidentSection />
     <FlagSection />
     <InventorySection />
   </div>

@@ -12,6 +12,7 @@ interface IncidentState {
   clear: (id: string) => void;
   isResolved: (defId: string) => boolean;
   resolveIncident: (defId: string) => void;
+  resetAll: () => void; // clear active + every incident_resolved_* flag (re-test incidents)
   getActiveForArea: (areaId: string) => IncidentDefinition[];
 }
 
@@ -23,6 +24,15 @@ export const useIncidentStore = create<IncidentState>((set, get) => ({
   resolveIncident: (defId) => {
     useFlagStore.getState().setFlag(`incident_resolved_${defId}`);
     set({ activeIds: get().activeIds.filter((x) => x !== defId) });
+  },
+  resetAll: () => {
+    const fs = useFlagStore.getState();
+    const cleared: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(fs.flags)) {
+      if (!k.startsWith('incident_resolved_')) cleared[k] = v;
+    }
+    fs.setFlags(cleared);
+    set({ activeIds: [] });
   },
   getActiveForArea: (areaId) => {
     const active = get().activeIds;
