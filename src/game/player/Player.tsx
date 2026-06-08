@@ -15,11 +15,11 @@ import { applyMovement } from './MovementStateMachine';
 import { PlayerMesh } from './PlayerMesh';
 import { playerMotion } from './playerMotion';
 
-// Whether the currently-active main character can fly (base data ⊕ Edit-Mode override).
-function activeCanFly(): boolean {
+// Merged (base ⊕ Edit-Mode override) data for the currently-active main character.
+function activeMergedChar() {
   const id = useTransformStore.getState().charId;
   const base = CORE_TEAM.find((c) => c.id === id);
-  return base ? !!getMergedPoliCharacter(base).canFly : false;
+  return base ? getMergedPoliCharacter(base) : undefined;
 }
 
 // Stable module-level initial spawn — MUST NOT be an inline array on <RigidBody>, or a per-render
@@ -61,7 +61,14 @@ export const Player = () => {
         return;
       }
       if (e.code === 'KeyF' && !e.repeat) { // toggle flight (only if the active character can fly)
-        if (!useUiStore.getState().editMode && activeCanFly()) useTransformStore.getState().toggleFlight();
+        if (!useUiStore.getState().editMode && activeMergedChar()?.canFly) useTransformStore.getState().toggleFlight();
+        return;
+      }
+      if (e.code === 'KeyQ' && !e.repeat) { // special ability — colour smoke + ripple
+        if (!useUiStore.getState().editMode) {
+          const c = activeMergedChar();
+          if (c) useTransformStore.getState().triggerAbility(c.abilityColor || c.color);
+        }
         return;
       }
       keys.current[e.code] = true;
@@ -130,7 +137,7 @@ export const Player = () => {
       if (flying) b.setLinvel({ x: 0, y: 0, z: 0 }, true); // clean hover start
     }
 
-    applyMovement(b, keys.current, camera, headingRef, flying);
+    applyMovement(b, keys.current, camera, headingRef, flying, useTransformStore.getState().form);
 
     // Publish motion for the rotor + jet (no re-render). moving drives the rotor spin.
     const k = keys.current;

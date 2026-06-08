@@ -13,13 +13,18 @@ import { playerMotion } from './playerMotion';
 // from the merged character data (base ⊕ override) — nothing about it is hardcoded-only.
 const SPIN = 26; // rad/s when moving
 const DEFAULT_OFFSET: [number, number, number] = [0, 1.25, 0];
+const DEFAULT_OFFSET_ROBOT: [number, number, number] = [0, 2.0, 0];
 
 export const HelicopterRotor = () => {
   const spinRef = useRef<Group>(null);
   const charId = useTransformStore((s) => s.charId);
+  const form = useTransformStore((s) => s.form);
   const override = useEditorPoliCharacterStore((s) => s.overrides[charId]);
   const base = CORE_TEAM.find((c) => c.id === charId);
-  const offset = override?.rotorOffset ?? base?.rotorOffset ?? DEFAULT_OFFSET;
+  // Dynamic per-form height: lower in vehicle (helicopter) form, higher in robot form.
+  const offset = form === 'robot'
+    ? (override?.rotorOffsetRobot ?? base?.rotorOffsetRobot ?? DEFAULT_OFFSET_ROBOT)
+    : (override?.rotorOffset ?? base?.rotorOffset ?? DEFAULT_OFFSET);
   const scale = override?.rotorScale ?? base?.rotorScale ?? 1;
 
   useFrame((_, dt) => {

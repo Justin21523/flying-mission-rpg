@@ -20,6 +20,9 @@ export interface CharacterDefinition {
   modelRobotPath?: string;   // GLB for robot / humanoid NPC form
   modelVehiclePath?: string; // GLB for vehicle form
   canFly?: boolean;          // playable: can enter flight mode (F) — e.g. Helly the helicopter
-  rotorOffset?: [number, number, number]; // local offset of the flight rotor (editable in POLI tab)
+  rotorOffset?: [number, number, number];      // flight rotor offset in VEHICLE form (editable)
+  rotorOffsetRobot?: [number, number, number]; // flight rotor offset in ROBOT form (editable)
   rotorScale?: number;       // uniform scale of the flight rotor (editable in POLI tab)
+  abilityName?: string;      // playable special ability (Q) name (editable)
+  abilityColor?: string;     // ability VFX colour, hex; defaults to the character colour (editable)
 }

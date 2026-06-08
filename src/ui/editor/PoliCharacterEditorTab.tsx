@@ -146,7 +146,7 @@ export const PoliCharacterEditorTab = () => {
 
               {sel.canFly && (
                 <>
-                  <Field label="Rotor Offset (x / y / z)">
+                  <Field label="Rotor Offset — Vehicle form (x / y / z)">
                     <div className="flex gap-1">
                       {([0, 1, 2] as const).map((i) => {
                         const cur = sel.rotorOffset ?? [0, 1.25, 0];
@@ -167,6 +167,27 @@ export const PoliCharacterEditorTab = () => {
                       })}
                     </div>
                   </Field>
+                  <Field label="Rotor Offset — Robot form (x / y / z)">
+                    <div className="flex gap-1">
+                      {([0, 1, 2] as const).map((i) => {
+                        const cur = sel.rotorOffsetRobot ?? [0, 2.0, 0];
+                        return (
+                          <input
+                            key={i}
+                            type="number"
+                            step="0.05"
+                            className={inp + ' w-0 flex-1 text-center'}
+                            value={cur[i]}
+                            onChange={(e) => {
+                              const next = [...cur] as [number, number, number];
+                              next[i] = parseFloat(e.target.value) || 0;
+                              set({ rotorOffsetRobot: next });
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </Field>
                   <Field label="Rotor Scale">
                     <input
                       type="number"
@@ -178,6 +199,31 @@ export const PoliCharacterEditorTab = () => {
                   </Field>
                 </>
               )}
+
+              <Field label="Ability Name (Q)">
+                <input
+                  className={inp}
+                  value={sel.abilityName ?? ''}
+                  placeholder="e.g. Water Spray"
+                  onChange={(e) => set({ abilityName: e.target.value })}
+                />
+              </Field>
+              <Field label="Ability Colour">
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={sel.abilityColor ?? sel.color}
+                    onChange={(e) => set({ abilityColor: e.target.value })}
+                    className="h-7 w-12 rounded cursor-pointer border-0 bg-transparent"
+                  />
+                  <input
+                    className={inp + ' flex-1'}
+                    value={sel.abilityColor ?? ''}
+                    placeholder="defaults to character colour"
+                    onChange={(e) => set({ abilityColor: e.target.value })}
+                  />
+                </div>
+              </Field>
 
               <Field label="Display Name (English)">
                 <input

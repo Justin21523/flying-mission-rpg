@@ -11,10 +11,13 @@ interface TransformState {
   flying: boolean;      // flight mode (F) — only meaningful for characters whose data canFly
   pulseId: number;      // increments on every transform → triggers the smoke burst
   animStart: number;    // performance.now()/1000 when the last transform began (cover/reveal window)
+  abilityPulseId: number; // increments on each ability use → triggers AbilityFx
+  abilityColor: string;   // colour of the most-recent ability VFX
   toggleForm: () => void;     // T — flip vehicle⇄robot
   cycleCharacter: () => void; // C — next character in the roster (keeps the current form)
   setFlying: (b: boolean) => void;
   toggleFlight: () => void;   // F (caller checks canFly)
+  triggerAbility: (color: string) => void; // Q (caller passes the active char's ability colour)
 }
 
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
@@ -30,6 +33,8 @@ export const useTransformStore = create<TransformState>((set, get) => {
     flying: false,
     pulseId: 0,
     animStart: 0,
+    abilityPulseId: 0,
+    abilityColor: '#3b82f6',
     toggleForm: () => pulse({ form: get().form === 'vehicle' ? 'robot' : 'vehicle' }),
     cycleCharacter: () => {
       const i = POLI_ROSTER.indexOf(get().charId);
@@ -38,5 +43,6 @@ export const useTransformStore = create<TransformState>((set, get) => {
     },
     setFlying: (b) => set({ flying: b }),
     toggleFlight: () => set({ flying: !get().flying }),
+    triggerAbility: (color) => set({ abilityColor: color, abilityPulseId: get().abilityPulseId + 1 }),
   };
 });

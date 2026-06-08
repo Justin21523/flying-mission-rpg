@@ -15,6 +15,8 @@ export const CORE_TEAM: CharacterDefinition[] = [
     dialogueTreeId: '',
     modelRobotPath: '/models/characters/Poli+transformer+3d+model.glb',
     modelVehiclePath: '/models/characters/Poli car 3d model.glb',
+    abilityName: 'Rescue Rally',
+    abilityColor: '#3b82f6',
   },
   {
     id: 'roy',
@@ -28,6 +30,8 @@ export const CORE_TEAM: CharacterDefinition[] = [
     dialogueTreeId: 'dlg_roy',
     modelRobotPath: '/models/characters/Roy+transformer+3d+model.glb',
     modelVehiclePath: '/models/characters/Roy car 3d model.glb',
+    abilityName: 'Water Spray',
+    abilityColor: '#ef4444',
   },
   {
     id: 'helly',
@@ -43,7 +47,10 @@ export const CORE_TEAM: CharacterDefinition[] = [
     modelVehiclePath: '/models/characters/Helly helicopter 3d model.glb',
     canFly: true,
     rotorOffset: [0, 1.25, 0],
+    rotorOffsetRobot: [0, 2.0, 0],
     rotorScale: 1,
+    abilityName: 'Wind Gust',
+    abilityColor: '#eab308',
   },
   {
     id: 'amber',
@@ -57,6 +64,8 @@ export const CORE_TEAM: CharacterDefinition[] = [
     dialogueTreeId: 'dlg_amber',
     modelRobotPath: '/models/characters/Amber+transformer+3d+model.glb',
     modelVehiclePath: '/models/characters/Amber car 3d model.glb',
+    abilityName: 'Healing Aura',
+    abilityColor: '#f97316',
   },
   {
     id: 'spoki',

@@ -20,7 +20,10 @@ export interface CharacterOverride {
   description?: string;
   canFly?: boolean;
   rotorOffset?: [number, number, number];
+  rotorOffsetRobot?: [number, number, number];
   rotorScale?: number;
+  abilityName?: string;
+  abilityColor?: string;
 }
 
 interface EditorPoliCharacterState {
@@ -90,6 +93,9 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.description !== undefined && { description: ov.description }),
     ...(ov.canFly !== undefined && { canFly: ov.canFly }),
     ...(ov.rotorOffset !== undefined && { rotorOffset: ov.rotorOffset }),
+    ...(ov.rotorOffsetRobot !== undefined && { rotorOffsetRobot: ov.rotorOffsetRobot }),
     ...(ov.rotorScale !== undefined && { rotorScale: ov.rotorScale }),
+    ...(ov.abilityName !== undefined && { abilityName: ov.abilityName }),
+    ...(ov.abilityColor !== undefined && { abilityColor: ov.abilityColor }),
   };
 }
