@@ -10,7 +10,6 @@ import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { applyMovement } from './MovementStateMachine';
 import { TransformationController } from './TransformationController';
-import { PlayerMesh } from './PlayerMesh';
 
 // Stable module-level initial spawn — MUST NOT be an inline array on <RigidBody>, or a per-render
 // new reference makes react-three-rapier reset the body to it every frame (pins the player at spawn).
@@ -30,7 +29,6 @@ export const Player = () => {
   const editMode = useUiStore((s) => s.editMode);
   const currentAreaId = usePlayerStore((s) => s.currentAreaId);
   const spawnRequest = usePlayerStore((s) => s.spawnRequest);
-  const mode = useTransformationStore((s) => s.mode);
   const requestTransform = useTransformationStore((s) => s.requestTransform);
   const keys = useRef<Record<string, boolean>>({});
   const headingRef = useRef(0);
@@ -58,12 +56,13 @@ export const Player = () => {
     }
   }, [spawnRequest]);
 
-  // On mount / area change, honour a saved Edit-Mode position override for this area (persisted
-  // in the kit sceneEditStore) so an edited player position applies in Play Mode and after reload.
+  // On mount / area change, honour the saved Edit-Mode position override for this area (persisted in
+  // the kit sceneEditStore) so the player spawns where it was placed. The edited yaw is applied as a
+  // relative offset in TransformationController, so headingRef stays movement-driven (no seeding).
   useEffect(() => {
-    const ov = useSceneEditStore.getState().overrides[playerKey(currentAreaId)]?.position;
-    if (ov && body.current) {
-      body.current.setTranslation({ x: ov[0], y: ov[1], z: ov[2] }, true);
+    const ov = useSceneEditStore.getState().overrides[playerKey(currentAreaId)];
+    if (ov?.position && body.current) {
+      body.current.setTranslation({ x: ov.position[0], y: ov.position[1], z: ov.position[2] }, true);
       body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
   }, [currentAreaId]);
@@ -76,10 +75,12 @@ export const Player = () => {
 
     if (editMode) {
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      // Mirror the gizmo/inspector edit onto the physics body so play mode uses it.
-      const ov = useSceneEditStore.getState().overrides[pKey]?.position;
-      if (ov && (ov[0] !== p.x || ov[1] !== p.y || ov[2] !== p.z)) {
-        b.setTranslation({ x: ov[0], y: ov[1], z: ov[2] }, true);
+      // Idle while editing → zero the movement heading so the visible mesh shows the pure edited
+      // yaw offset (matching the gizmo). Mirror the gizmo position edit onto the body.
+      headingRef.current = 0;
+      const ov = useSceneEditStore.getState().overrides[pKey];
+      if (ov?.position && (ov.position[0] !== p.x || ov.position[1] !== p.y || ov.position[2] !== p.z)) {
+        b.setTranslation({ x: ov.position[0], y: ov.position[1], z: ov.position[2] }, true);
       }
       return;
     }
@@ -106,16 +107,13 @@ export const Player = () => {
         <TransformationController headingRef={headingRef} />
       </RigidBody>
 
-      {/* Edit-Mode selectable handle — full kit pipeline (gizmo + W/E/R + inspector + persist).
-          The VISIBLE player mesh lives here in Edit Mode (hidden in the body) so the thing you
-          see is exactly the thing you click and drag. */}
+      {/* Edit-Mode selectable handle — an INVISIBLE box aligned to the player. The visible player
+          mesh always stays in the RigidBody (never hidden/duplicated). Clicking this box selects
+          the player via the kit pipeline → centred gizmo + W/E/R + inspector; the gizmo writes the
+          override (auto-saved) which the body/mesh mirror in both modes. */}
       {editMode && (
         <EditableObject objKey={pKey} base={base}>
-          <group position={[0, 0.5, 0]}>
-            <PlayerMesh mode={mode} />
-          </group>
-          {/* invisible grab box guarantees a reliable click target */}
-          <mesh position={[0, 0.5, 0]}>
+          <mesh position={[0, 0.9, 0]}>
             <boxGeometry args={[1.1, 2.2, 1.1]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>

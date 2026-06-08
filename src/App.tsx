@@ -8,6 +8,7 @@ import { usePbrPatchEditStore } from './stores/pbrPatchEditStore';
 import { useEditorEnvironmentStore } from './stores/editorEnvironmentStore';
 import { usePlayerStore } from './stores/playerStore';
 import { Scene } from './game/core/Scene';
+import { CanvasErrorBoundary } from './ui/CanvasErrorBoundary';
 import { syncEditorQuests } from './game/editor/editorQuestToQuest';
 import { QuestTrackerController } from './game/quest/questTracking';
 import { InteractionHandler } from './game/interaction/InteractionHandler';
@@ -114,9 +115,11 @@ export const App = () => {
       {editMode && editorHubOpen && <EditorHubPanel />}
       {!editMode && <PlayerPosDebug />}
       {/* DPR capped lower (high-DPI screens were fill-bound); a PerformanceMonitor in Scene adapts it. */}
-      <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 5, 10], fov: 50, near: 0.1, far: 1500 }}>
-        <Scene />
-      </Canvas>
+      <CanvasErrorBoundary>
+        <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 5, 10], fov: 50, near: 0.1, far: 1500 }}>
+          <Scene />
+        </Canvas>
+      </CanvasErrorBoundary>
     </div>
   );
 };
