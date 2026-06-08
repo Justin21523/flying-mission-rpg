@@ -28,6 +28,7 @@ import { PlayToolbar } from './ui/play/PlayToolbar';
 import { PoliSystemBoot } from './game/poli/PoliSystemBoot';
 import { IncidentDirector } from './game/incident/IncidentDirector';
 import { RescueHud } from './ui/RescueHud';
+import { ToolBeltHud } from './ui/ToolBeltHud';
 import { useRescueOperationStore } from './stores/rescueOperationStore';
 
 // Kit — top-level: the 3D <Canvas> with DOM overlays layered over it. F1 toggles Edit Mode; in Edit
@@ -89,6 +90,7 @@ export const App = () => {
       {!editMode && !inBattle && !inActivity && !isRescueActive && <InteractionPrompt />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <QuestTracker />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <PlayToolbar />}
+      {!editMode && !inBattle && !inActivity && !isRescueActive && <ToolBeltHud />}
       <DialogueBox />
       <BattleOverlay />
       <ActivityHud />

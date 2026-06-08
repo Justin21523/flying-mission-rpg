@@ -137,20 +137,20 @@ export const FollowCamera = () => {
 
     if (!playerPosition) return;
 
-    // Third-person spring camera: orbit target = player head; yaw springs behind
-    // player when moving, hand-drag temporarily overrides the spring.
+    // Third-person spring camera: orbit target = player head; yaw always springs
+    // behind the player. Mouse drag temporarily overrides the spring.
     const t = tmpTarget.current;
     t.set(playerPosition.x, playerPosition.y + 1, playerPosition.z);
     c.target.copy(t);
 
-    const { playerFacingAngle, isPlayerMoving } = useTransformationStore.getState();
+    const { playerFacingAngle } = useTransformationStore.getState();
     const targetYaw = playerFacingAngle + Math.PI;
-    if (isPlayerMoving && !isDragging.current) {
-      // Shortest-arc lerp — prevents 360° spin when angle crosses ±π.
+    if (!isDragging.current) {
+      // Always spring behind — shortest-arc lerp prevents 360° spin at ±π.
       let delta = targetYaw - yaw.current;
       while (delta > Math.PI) delta -= 2 * Math.PI;
       while (delta < -Math.PI) delta += 2 * Math.PI;
-      yaw.current += delta * 0.07;
+      yaw.current += delta * 0.1;
     }
 
     const sinP = Math.sin(pitch.current);

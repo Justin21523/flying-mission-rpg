@@ -20,7 +20,7 @@ export const DIALOGUE_EMOTIONS: DialogueEmotion[] = [
 export const DIALOGUE_EFFECT_TYPES: DialogueEffectType[] = [
   'startQuest', 'completeQuest', 'updateObjective', 'completeObjective',
   'addItem', 'giveItem', 'setWorldFlag', 'startBattle', 'startActivity', 'closeDialogue',
-  'increaseTrust', 'startIncident',
+  'increaseTrust', 'startIncident', 'unlockTool',
 ];
 
 export const DIALOGUE_CONDITION_TYPES: DialogueConditionType[] = [
@@ -41,6 +41,7 @@ export const EFFECT_FIELDS: Record<DialogueEffectType, MechField[]> = {
   closeDialogue: [],
   increaseTrust: [{ key: 'characterId', label: 'characterId', kind: 'string' }, { key: 'amount', label: 'amount', kind: 'number' }],
   startIncident: [{ key: 'incidentId', label: 'Incident ID', kind: 'string' }],
+  unlockTool: [{ key: 'toolId', label: 'Tool ID', kind: 'string' }],
 };
 
 export const COND_FIELDS: Record<DialogueConditionType, MechField[]> = {

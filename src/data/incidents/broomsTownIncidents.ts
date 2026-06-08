@@ -2,29 +2,29 @@ import type { IncidentDefinition } from '../../types/incident';
 
 // POLI RPG — Brooms Town incident definitions.
 // All three are GameAdaptation (no official incident scenarios from the show; designed for playability).
-// Trust reward flags use the same 'trust:{charId}:{amount}' encoding as quest rewards.
+// Trust reward flags use the 'trust:{charId}:{amount}' encoding shared with quest rewards.
 export const POLI_INCIDENTS: IncidentDefinition[] = [
   {
     id: 'incident_harbor_fire',
     type: 'fire',
-    titleZhTW: '港口小火災',
-    descriptionZhTW: '港口倉庫冒出火煙！需要馬上控制火勢。',
+    title: 'Harbor Fire!',
+    description: 'Smoke is rising from the harbor warehouse — contain the fire fast!',
     spawnAreaId: 'harbor_front',
     markerPosition: [5, 1, -5],
     stages: [
       {
         id: 'stage_connect_hose',
         type: 'action',
-        titleZhTW: '接上水管！',
-        descriptionZhTW: '快速按下 [E] 把滅火水管接到消防栓！',
+        title: 'Connect the Hose!',
+        description: 'Press [E] rapidly to connect the fire hose to the hydrant!',
         actionCount: 10,
         timeLimitSeconds: 20,
-        retryHintZhTW: '再試一次！按快一點！',
+        retryHint: 'Try again — press [E] faster!',
       },
     ],
     safetyLesson: {
-      titleZhTW: '火災安全',
-      lessonZhTW: '火災現場讓專業人員處理，自己要馬上遠離危險區域！',
+      title: 'Fire Safety',
+      lesson: 'Leave fire zones to the professionals. Move to safety and call for help right away!',
     },
     reward: { exp: 100, flags: ['trust:harbor_worker:10'] },
     sourceConfidence: 'GameAdaptation',
@@ -32,27 +32,27 @@ export const POLI_INCIDENTS: IncidentDefinition[] = [
   {
     id: 'incident_lost_child',
     type: 'lost_person',
-    titleZhTW: '森林走失的小朋友',
-    descriptionZhTW: '有一個小朋友在森林邊緣迷路了！到附近搜尋吧。',
+    title: 'Lost Child in the Forest',
+    description: 'A child went missing near the forest edge — search the area!',
     spawnAreaId: 'forest_edge',
     markerPosition: [-2, 1, -2],
     stages: [
       {
         id: 'stage_search_waypoints',
         type: 'waypoints',
-        titleZhTW: '搜尋小朋友！',
-        descriptionZhTW: '走到地圖上標示的三個搜尋地點，尋找小朋友的蹤跡。',
+        title: 'Search the Area!',
+        description: 'Visit all three marked search points to find the missing child.',
         waypointPositions: [
           [4, 1, 3],
           [-5, 1, 6],
           [1, 1, 9],
         ],
-        retryHintZhTW: '繼續找！還有地點還沒搜尋到。',
+        retryHint: 'Keep searching! Some locations have not been checked yet.',
       },
     ],
     safetyLesson: {
-      titleZhTW: '森林安全',
-      lessonZhTW: '走進森林一定要告訴大人，永遠不要獨自行動！',
+      title: 'Forest Safety',
+      lesson: 'Always tell an adult before entering a forest. Never explore alone!',
     },
     reward: { exp: 120, flags: ['trust:teacher_mi:10'] },
     sourceConfidence: 'GameAdaptation',
@@ -60,24 +60,24 @@ export const POLI_INCIDENTS: IncidentDefinition[] = [
   {
     id: 'incident_construction_hazard',
     type: 'road_hazard',
-    titleZhTW: '工地緊急疏散',
-    descriptionZhTW: '工地有危險狀況！必須立刻疏散附近的人員。',
+    title: 'Construction Site Evacuation',
+    description: 'A hazard has been detected at the construction site — evacuate everyone now!',
     spawnAreaId: 'construction_site',
     markerPosition: [-3, 1, 4],
     stages: [
       {
         id: 'stage_evacuate',
         type: 'action',
-        titleZhTW: '疏散人群！',
-        descriptionZhTW: '快速按下 [E] 指揮工地人員撤離危險區域！',
+        title: 'Evacuate Workers!',
+        description: 'Press [E] rapidly to direct workers away from the danger zone!',
         actionCount: 8,
         timeLimitSeconds: 15,
-        retryHintZhTW: '繼續疏散！還有人在危險區域！',
+        retryHint: 'Keep going — more workers are still in the danger zone!',
       },
     ],
     safetyLesson: {
-      titleZhTW: '工地安全',
-      lessonZhTW: '工地有警示標誌代表有危險，一定要繞道，不能靠近！',
+      title: 'Construction Site Safety',
+      lesson: 'Warning signs mean danger. Always take the long way around — never enter a restricted zone!',
     },
     reward: { exp: 100, flags: ['trust:site_foreman:10'] },
     sourceConfidence: 'GameAdaptation',

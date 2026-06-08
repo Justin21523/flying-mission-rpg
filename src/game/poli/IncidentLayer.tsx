@@ -9,9 +9,8 @@ import { useRescueOperationStore } from '../../stores/rescueOperationStore';
 import { POLI_INCIDENTS } from '../../data/incidents/broomsTownIncidents';
 import type { IncidentDefinition } from '../../types/incident';
 
-// Interaction radius for triggering a rescue and detecting waypoints.
+// Radius for triggering a rescue (E-key near marker).
 const RESCUE_TRIGGER_RADIUS = 4.0;
-const WAYPOINT_COLLECT_RADIUS = 2.5;
 
 // Module-level vectors — no per-frame allocation.
 const _playerPos = new Vector3();
@@ -25,16 +24,13 @@ const INCIDENT_COLORS: Record<string, string> = {
 };
 
 // ---- E-key hook ----------------------------------------------------------
-// Handles two cases:
-//   1. No active rescue + player near an incident marker → startRescue
-//   2. Active rescue in on_scene + action stage → pressAction
 function useIncidentInteraction(areaId: string) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.code !== 'KeyE' || e.repeat) return;
       const rescue = useRescueOperationStore.getState();
 
-      // Case 2: action press during active rescue
+      // Action press during active rescue
       if (rescue.isActive && rescue.step === 'on_scene' && rescue.incidentId) {
         const def = POLI_INCIDENTS.find((d) => d.id === rescue.incidentId);
         const stage = def?.stages[rescue.stageIndex];
@@ -44,7 +40,7 @@ function useIncidentInteraction(areaId: string) {
         }
       }
 
-      // Case 1: start a new rescue
+      // Start a new rescue when near a marker
       if (rescue.isActive) return;
       const playerPos = usePlayerStore.getState().position;
       if (!playerPos) return;
@@ -90,36 +86,21 @@ const IncidentMarker = ({ def }: IncidentMarkerProps) => {
       <mesh ref={meshRef} position={[0, 0.8, 0]} castShadow>
         <sphereGeometry args={[0.55, 16, 12]} />
         <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.5}
-          roughness={0.4}
-          metalness={0.3}
+          color={color} emissive={color} emissiveIntensity={0.5}
+          roughness={0.4} metalness={0.3}
         />
       </mesh>
       <Text
-        position={[0, 2.0, 0]}
-        fontSize={0.35}
-        color="#ffffff"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.06}
-        outlineColor="#000000"
-        renderOrder={1}
+        position={[0, 2.0, 0]} fontSize={0.35} color="#ffffff"
+        anchorX="center" anchorY="middle" outlineWidth={0.06} outlineColor="#000000" renderOrder={1}
       >
-        {def.titleZhTW}
+        {def.title}
       </Text>
       <Text
-        position={[0, 1.5, 0]}
-        fontSize={0.22}
-        color="#ffeecc"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.04}
-        outlineColor="#000000"
-        renderOrder={1}
+        position={[0, 1.5, 0]} fontSize={0.22} color="#ffeecc"
+        anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#000000" renderOrder={1}
       >
-        [E] 開始救援
+        [E] Start Rescue
       </Text>
     </group>
   );
@@ -137,11 +118,8 @@ const WaypointOrb = ({ position, found }: WaypointOrbProps) => {
     <mesh position={position} castShadow>
       <sphereGeometry args={[0.35, 12, 8]} />
       <meshStandardMaterial
-        color="#ffee44"
-        emissive="#ffcc00"
-        emissiveIntensity={0.6}
-        roughness={0.3}
-        metalness={0.2}
+        color="#ffee44" emissive="#ffcc00" emissiveIntensity={0.6}
+        roughness={0.3} metalness={0.2}
       />
     </mesh>
   );
@@ -160,10 +138,13 @@ const WaypointTracker = () => {
     if (!playerPos) return;
     _playerPos.set(playerPos.x, playerPos.y, playerPos.z);
 
+    // Dynamic radius from toolBonus (rescue_rope / signal_scanner equipped).
+    const radius = rescue.getWaypointRadius();
+
     stage.waypointPositions.forEach((wp, idx) => {
       if (rescue.waypointsFound[idx]) return;
       _waypointPos.set(...wp);
-      if (_playerPos.distanceTo(_waypointPos) <= WAYPOINT_COLLECT_RADIUS) {
+      if (_playerPos.distanceTo(_waypointPos) <= radius) {
         rescue.markWaypoint(idx);
       }
     });
@@ -185,12 +166,9 @@ interface IncidentLayerProps {
 }
 
 export const IncidentLayer = ({ areaId }: IncidentLayerProps) => {
-  // Re-render when flags change so resolved markers disappear.
   const flags = useFlagStore((s) => s.flags);
   const activeIncidents = POLI_INCIDENTS.filter(
-    (d) =>
-      d.spawnAreaId === areaId &&
-      !flags[`incident_resolved_${d.id}`],
+    (d) => d.spawnAreaId === areaId && !flags[`incident_resolved_${d.id}`],
   );
 
   const rescue = useRescueOperationStore();
@@ -207,7 +185,6 @@ export const IncidentLayer = ({ areaId }: IncidentLayerProps) => {
       {activeIncidents.map((def) => (
         <IncidentMarker key={def.id} def={def} />
       ))}
-      {/* Waypoint orbs rendered only during an active waypoints-stage rescue in this area */}
       {rescue.isActive &&
         rescue.step === 'on_scene' &&
         activeStage?.type === 'waypoints' &&

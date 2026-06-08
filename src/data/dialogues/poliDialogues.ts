@@ -278,24 +278,145 @@ export const POLI_DIALOGUES: DialogueTree[] = [
     },
   },
 
-  // ────────────────────────────── Jin ──────────────────────────────
+  // ────────────────────────────── Jin (trust-gated research tiers) ──────────────────────────────
   {
     id: 'dlg_jin',
     rootNodeId: 'start',
     nodes: {
+      // Router: trust 50+ → expert tier; else check mid tier
       start: {
         id: 'start',
         speaker: 'Jin',
-        text: "Ah, fascinating! I'm running calculations on the latest rescue scenario. Science helps us save lives more efficiently!",
+        text: "Ah, perfect timing! I'm deep in research on optimising our rescue response times.",
         emotion: 'excited',
-        nextNodeId: 'research',
+        conditions: [{ type: 'trustLevel', characterId: 'jin', minTrust: 50 }],
+        fallbackNodeId: 'jin_mid_check',
+        nextNodeId: 'jin_expert',
       },
-      research: {
-        id: 'research',
+      // Router: trust 21–49 → research 2; else → basic intro
+      jin_mid_check: {
+        id: 'jin_mid_check',
+        speaker: 'Jin',
+        text: "Ah, good to see you! I have some interesting data to share.",
+        emotion: 'thinking',
+        conditions: [{ type: 'trustLevel', characterId: 'jin', minTrust: 21 }],
+        fallbackNodeId: 'jin_intro',
+        nextNodeId: 'jin_research_2',
+      },
+      // ── Tier 1: trust 0–20 ──
+      jin_intro: {
+        id: 'jin_intro',
+        speaker: 'Jin',
+        text: "Fascinating! I'm running calculations on the latest rescue scenario. Science helps us save lives more efficiently!",
+        emotion: 'excited',
+        nextNodeId: 'jin_research_1',
+      },
+      jin_research_1: {
+        id: 'jin_research_1',
         speaker: 'Jin',
         text: "My current project: a faster way to detect flooding before it reaches homes. Prevention is always better than rescue!",
         emotion: 'thinking',
         actions: [{ type: 'increaseTrust', characterId: 'jin', amount: 5 }],
+        nextNodeId: null,
+      },
+      // ── Tier 2: trust 21–49 ──
+      jin_research_2: {
+        id: 'jin_research_2',
+        speaker: 'Jin',
+        text: "I've finished prototyping the rescue stretcher and the rope system. I'd like you to carry them on missions.",
+        emotion: 'excited',
+        actions: [
+          { type: 'unlockTool', toolId: 'stretcher' },
+          { type: 'unlockTool', toolId: 'rescue_rope' },
+          { type: 'increaseTrust', characterId: 'jin', amount: 8 },
+        ],
+        nextNodeId: 'jin_research_2_done',
+      },
+      jin_research_2_done: {
+        id: 'jin_research_2_done',
+        speaker: 'Jin',
+        text: "The stretcher reduces handling time, and the rope extends your search radius in open terrain. Use them wisely!",
+        emotion: 'thinking',
+        nextNodeId: null,
+      },
+      // ── Tier 3: trust 50+ ──
+      jin_expert: {
+        id: 'jin_expert',
+        speaker: 'Jin',
+        text: "I've completed two major breakthroughs: a signal scanner that detects life signs, and a high-powered megaphone. Which would you like first?",
+        emotion: 'excited',
+        choices: [
+          { id: 'scanner', text: 'Tell me about the scanner.', nextNodeId: 'jin_scanner' },
+          { id: 'megaphone', text: 'I need the megaphone.', nextNodeId: 'jin_megaphone' },
+        ],
+      },
+      jin_scanner: {
+        id: 'jin_scanner',
+        speaker: 'Jin',
+        text: "The signal scanner detects bio-electric signatures up to 20 metres away — perfect for locating missing persons fast!",
+        emotion: 'excited',
+        actions: [
+          { type: 'unlockTool', toolId: 'signal_scanner' },
+          { type: 'increaseTrust', characterId: 'jin', amount: 10 },
+        ],
+        nextNodeId: null,
+      },
+      jin_megaphone: {
+        id: 'jin_megaphone',
+        speaker: 'Jin',
+        text: "The megaphone can clear a whole city block in 30 seconds. That extra time could save lives at construction emergencies!",
+        emotion: 'excited',
+        actions: [
+          { type: 'unlockTool', toolId: 'megaphone' },
+          { type: 'increaseTrust', characterId: 'jin', amount: 10 },
+        ],
+        nextNodeId: null,
+      },
+    },
+  },
+
+  // ────────────────────────────── Amber ──────────────────────────────
+  {
+    id: 'dlg_amber',
+    rootNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        speaker: 'Amber',
+        text: "Hi! I'm Amber, the ambulance rescue bot. I'm always ready for medical emergencies. Can I share a quick health tip?",
+        emotion: 'happy',
+        nextNodeId: 'amber_tip',
+      },
+      amber_tip: {
+        id: 'amber_tip',
+        speaker: 'Amber',
+        text: "If someone is hurt, call 119 right away! Don't move an injured person unless there's immediate danger — wait for medical help.",
+        emotion: 'thinking',
+        nextNodeId: 'amber_offer',
+      },
+      amber_offer: {
+        id: 'amber_offer',
+        speaker: 'Amber',
+        text: "Would you like to learn some basic first-aid principles? It could help in a real emergency!",
+        emotion: 'happy',
+        choices: [
+          { id: 'yes', text: "Yes, teach me!", nextNodeId: 'amber_medical' },
+          { id: 'no', text: "Maybe next time.", nextNodeId: 'amber_bye' },
+        ],
+      },
+      amber_medical: {
+        id: 'amber_medical',
+        speaker: 'Amber',
+        text: "Great! Step one: Stay calm. Step two: Check for danger. Step three: Call for help. Step four: Keep the person warm and still until help arrives.",
+        emotion: 'excited',
+        actions: [{ type: 'increaseTrust', characterId: 'amber', amount: 8 }],
+        nextNodeId: null,
+      },
+      amber_bye: {
+        id: 'amber_bye',
+        speaker: 'Amber',
+        text: "No problem! You know where to find me if you change your mind. Stay safe out there!",
+        emotion: 'happy',
         nextNodeId: null,
       },
     },

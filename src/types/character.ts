@@ -17,4 +17,6 @@ export interface CharacterDefinition {
   homeAreaId: string;
   color: string;           // hex — used for capsule placeholder and UI
   dialogueTreeId: string;
+  modelRobotPath?: string;   // GLB for robot / humanoid NPC form
+  modelVehiclePath?: string; // GLB for vehicle form
 }

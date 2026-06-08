@@ -1,0 +1,72 @@
+import type { ToolDefinition } from '../../types/tool';
+
+// POLI rescue tools — 6 tools unlocked progressively via level + Jin research trust.
+// OfficialConfirmed: fire_hose / traffic_cone (canonical rescue kit items).
+// GameAdaptation: stretcher / rescue_rope / signal_scanner / megaphone (adapted for game mechanics).
+export const POLI_TOOLS: ToolDefinition[] = [
+  {
+    id: 'fire_hose',
+    name: 'Fire Hose',
+    nameZhTW: '消防水管',
+    description: 'High-pressure water jet that rapidly extinguishes small fires — standard rescue equipment.',
+    icon: '🚒',
+    unlockLevel: 1,
+    unlockTrustWithJin: 0,
+    incidentBonus: { incidentId: 'incident_harbor_fire', actionBonus: 0.05 },
+    sourceConfidence: 'OfficialConfirmed',
+  },
+  {
+    id: 'traffic_cone',
+    name: 'Traffic Cone',
+    nameZhTW: '交通錐',
+    description: 'Seals off hazard zones so the rescue team can work safely, buying extra time.',
+    icon: '🔶',
+    unlockLevel: 1,
+    unlockTrustWithJin: 0,
+    incidentBonus: { incidentId: 'incident_construction_hazard', timeBonus: 5 },
+    sourceConfidence: 'OfficialConfirmed',
+  },
+  {
+    id: 'stretcher',
+    name: 'Rescue Stretcher',
+    nameZhTW: '急救擔架',
+    description: "Safely transports injured people — Jin's ergonomic design reduces handling time.",
+    icon: '🏥',
+    unlockLevel: 2,
+    unlockTrustWithJin: 30,
+    sourceConfidence: 'GameAdaptation',
+  },
+  {
+    id: 'rescue_rope',
+    name: 'Rescue Rope',
+    nameZhTW: '救援繩索',
+    description: 'Heavy-duty rope for locating people in difficult terrain — extends your search radius.',
+    icon: '🪢',
+    unlockLevel: 2,
+    unlockTrustWithJin: 30,
+    incidentBonus: { incidentId: 'incident_lost_child', radiusBonus: 1.0 },
+    sourceConfidence: 'GameAdaptation',
+  },
+  {
+    id: 'signal_scanner',
+    name: 'Signal Scanner',
+    nameZhTW: '信號掃描儀',
+    description: "Jin's special device that detects life signs — greatly expands your search radius.",
+    icon: '📡',
+    unlockLevel: 3,
+    unlockTrustWithJin: 50,
+    incidentBonus: { incidentId: 'incident_lost_child', radiusBonus: 2.0 },
+    sourceConfidence: 'GameAdaptation',
+  },
+  {
+    id: 'megaphone',
+    name: 'Megaphone',
+    nameZhTW: '擴音器',
+    description: 'Broadcast emergency instructions quickly, clearing the area faster and buying more response time.',
+    icon: '📢',
+    unlockLevel: 3,
+    unlockTrustWithJin: 70,
+    incidentBonus: { incidentId: 'incident_construction_hazard', timeBonus: 8 },
+    sourceConfidence: 'GameAdaptation',
+  },
+];

@@ -53,7 +53,8 @@ export type DialogueEffect =
   | { type: 'startActivity'; activityId: string }
   | { type: 'closeDialogue' }
   | { type: 'increaseTrust'; characterId: string; amount: number }
-  | { type: 'startIncident'; incidentId: string };
+  | { type: 'startIncident'; incidentId: string }
+  | { type: 'unlockTool'; toolId: string };
 
 export interface DialogueChoice {
   id: string;

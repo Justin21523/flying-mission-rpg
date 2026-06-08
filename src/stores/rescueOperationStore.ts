@@ -4,7 +4,14 @@ import { useIncidentStore } from './incidentStore';
 import { useProgressionStore } from './progressionStore';
 import { useRelationshipStore } from './relationshipStore';
 import { useFlagStore } from './flagStore';
+import { useToolStore } from './toolStore';
 import type { RescuePipelineStep } from '../types/incident';
+
+interface ToolBonus {
+  actionBonus: number;
+  timeBonus: number;
+  radiusBonus: number;
+}
 
 interface RescueOperationState {
   isActive: boolean;
@@ -15,6 +22,7 @@ interface RescueOperationState {
   waypointsFound: boolean[];
   timeLeft: number;
   retryCount: number;
+  toolBonus: ToolBonus;
 
   startRescue: (incidentId: string) => void;
   tick: (dt: number) => void;
@@ -24,11 +32,14 @@ interface RescueOperationState {
   dismissDebrief: () => void;
   retryStage: () => void;
   cancelRescue: () => void;
+  getWaypointRadius: () => number;
 }
 
 function getStage(incidentId: string, stageIndex: number) {
   return POLI_INCIDENTS.find((d) => d.id === incidentId)?.stages[stageIndex] ?? null;
 }
+
+const ZERO_BONUS: ToolBonus = { actionBonus: 0, timeBonus: 0, radiusBonus: 0 };
 
 export const useRescueOperationStore = create<RescueOperationState>((set, get) => ({
   isActive: false,
@@ -39,10 +50,12 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
   waypointsFound: [],
   timeLeft: 0,
   retryCount: 0,
+  toolBonus: ZERO_BONUS,
 
   startRescue: (incidentId) => {
     const stage = getStage(incidentId, 0);
     if (!stage) return;
+    const toolBonus = useToolStore.getState().getActiveBonus(incidentId);
     set({
       isActive: true,
       incidentId,
@@ -52,8 +65,9 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
       waypointsFound: stage.type === 'waypoints'
         ? new Array(stage.waypointPositions?.length ?? 0).fill(false)
         : [],
-      timeLeft: stage.timeLimitSeconds ?? 0,
+      timeLeft: (stage.timeLimitSeconds ?? 0) + toolBonus.timeBonus,
       retryCount: 0,
+      toolBonus,
     });
   },
 
@@ -73,7 +87,7 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     const stage = getStage(s.incidentId, s.stageIndex);
     if (!stage || stage.type !== 'action') return;
     const count = stage.actionCount ?? 1;
-    const next = Math.min(1, s.actionProgress + 1 / count);
+    const next = Math.min(1, s.actionProgress + 1 / count + s.toolBonus.actionBonus);
     set({ actionProgress: next });
     if (next >= 1) set({ step: 'success' });
   },
@@ -135,7 +149,7 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
       waypointsFound: stage.type === 'waypoints'
         ? new Array(stage.waypointPositions?.length ?? 0).fill(false)
         : [],
-      timeLeft: stage.timeLimitSeconds ?? 0,
+      timeLeft: (stage.timeLimitSeconds ?? 0) + s.toolBonus.timeBonus,
       retryCount: s.retryCount + 1,
     });
   },
@@ -150,5 +164,11 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
       waypointsFound: [],
       timeLeft: 0,
       retryCount: 0,
+      toolBonus: ZERO_BONUS,
     }),
+
+  getWaypointRadius: () => {
+    const s = get();
+    return 2.5 + s.toolBonus.radiusBonus;
+  },
 }));

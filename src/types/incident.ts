@@ -7,24 +7,24 @@ export type RescuePipelineStep = 'on_scene' | 'success' | 'debrief' | 'retry';
 export interface RescueStage {
   id: string;
   type: RescueStageType;
-  titleZhTW: string;
-  descriptionZhTW: string;
+  title: string;
+  description: string;
   actionCount?: number;
   timeLimitSeconds?: number;
   waypointPositions?: [number, number, number][];
-  retryHintZhTW: string;
+  retryHint: string;
 }
 
 export interface SafetyLesson {
-  titleZhTW: string;
-  lessonZhTW: string;
+  title: string;
+  lesson: string;
 }
 
 export interface IncidentDefinition {
   id: string;
   type: IncidentType;
-  titleZhTW: string;
-  descriptionZhTW: string;
+  title: string;
+  description: string;
   spawnAreaId: string;
   markerPosition: [number, number, number];
   stages: RescueStage[];

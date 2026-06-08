@@ -9,6 +9,14 @@ export interface NpcSchedule {
 // Poli is excluded — he is the player character.
 export const BROOMS_TOWN_SCHEDULES: NpcSchedule[] = [
   {
+    characterId: 'amber',
+    slots: { dawn: 'rescue_hq', day: 'central_plaza', evening: 'rescue_hq', night: 'rescue_hq' },
+    positions: {
+      rescue_hq: [2, 0, -4],
+      central_plaza: [1, 0, 2],
+    },
+  },
+  {
     characterId: 'roy',
     slots: { dawn: 'rescue_hq', day: 'main_road', evening: 'rescue_hq', night: 'rescue_hq' },
     positions: {

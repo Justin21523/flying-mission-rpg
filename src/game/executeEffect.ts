@@ -1,4 +1,5 @@
 import type { DialogueEffect } from '../types/dialogue';
+import type { ToolId } from '../types/tool';
 import { useInventoryStore } from '../stores/inventoryStore';
 import { useQuestStore } from '../stores/questStore';
 import { useFlagStore } from '../stores/flagStore';
@@ -8,6 +9,7 @@ import { startEditorEncounter } from './battle/startEncounter';
 import { useActivityStore } from '../stores/activityStore';
 import { useRelationshipStore } from '../stores/relationshipStore';
 import { useRescueOperationStore } from '../stores/rescueOperationStore';
+import { useToolStore } from '../stores/toolStore';
 
 // Kit — apply a generic dialogue/choice/quest effect to the live stores. Add a case here when you add
 // an effect kind to DialogueEffect.
@@ -47,6 +49,9 @@ export function executeEffect(effect: DialogueEffect): void {
     case 'startIncident':
       useDialogueStore.getState().endDialogue();
       useRescueOperationStore.getState().startRescue(effect.incidentId);
+      break;
+    case 'unlockTool':
+      useToolStore.getState().unlockTool(effect.toolId as ToolId);
       break;
   }
 }

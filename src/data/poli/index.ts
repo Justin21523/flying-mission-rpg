@@ -9,3 +9,4 @@ export { POLI_INCIDENTS } from '../incidents/broomsTownIncidents';
 export { POLI_ROADS } from '../traffic/broomsTownRoads';
 export { POLI_VEHICLES } from '../traffic/broomsTownVehicles';
 export { TRAFFIC_SIGNALS } from '../traffic/broomsTownSignals';
+export { POLI_TOOLS } from '../tools/poliTools';
