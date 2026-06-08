@@ -1,6 +1,7 @@
 import { Suspense, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Box3, Vector3 } from 'three';
+import { SkeletonUtils } from 'three-stdlib';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 import { useTransformStore } from '../../stores/transformStore';
 
@@ -33,7 +34,9 @@ const Capsule = () => (
 const ModelView = ({ path, height, visible }: { path: string; height: number; visible: boolean }) => {
   const { scene } = useGLTF(path);
   const { clone, scale, offset } = useMemo(() => {
-    const c = scene.clone(true);
+    // SkeletonUtils.clone (not scene.clone) so RIGGED/skinned models — like the transformer — clone
+    // correctly instead of collapsing to nothing. Same approach the kit's GLB renderers use.
+    const c = SkeletonUtils.clone(scene);
     const box = new Box3().setFromObject(c);
     const size = new Vector3();
     const center = new Vector3();

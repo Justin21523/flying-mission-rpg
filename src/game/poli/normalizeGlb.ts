@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Box3, Vector3 } from 'three';
 import type { Object3D } from 'three';
+import { SkeletonUtils } from 'three-stdlib';
 import { useGLTF } from '@react-three/drei';
 
 // POLI — character GLBs come from many sources with wildly different native scales (some are
@@ -18,7 +19,8 @@ export interface NormalizedGlb {
 export function useNormalizedGlb(path: string, targetHeight: number): NormalizedGlb {
   const { scene } = useGLTF(path);
   return useMemo(() => {
-    const clone = scene.clone(true);
+    // SkeletonUtils.clone so rigged/skinned character GLBs clone correctly (scene.clone breaks them).
+    const clone = SkeletonUtils.clone(scene);
     const box = new Box3().setFromObject(clone);
     const size = new Vector3();
     const center = new Vector3();
