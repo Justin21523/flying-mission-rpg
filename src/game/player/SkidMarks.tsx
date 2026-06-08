@@ -7,8 +7,8 @@ import { playerMotion } from './playerMotion';
 // Brief skid-mark puffs laid near the ground behind the vehicle while braking/coasting fast
 // (playerMotion.skidding). Recycled pool, kit particle pattern; idle → invisible.
 
-const POOL = 40;
-const LIFE = 0.6;
+const POOL = 64;
+const LIFE = 0.9;
 
 function makeSoftTexture(): CanvasTexture {
   const s = 64;
@@ -49,12 +49,12 @@ export const SkidMarks = () => {
     if (playerMotion.skidding) {
       const h = playerMotion.heading;
       const bx = -Math.sin(h), bz = -Math.cos(h);
-      let toSpawn = 2;
+      let toSpawn = 4;
       for (let i = 0; i < POOL && toSpawn > 0; i++) {
         if (st.age[i] >= LIFE) {
-          arr[i * 3] = bx * rnd(0.1, 0.7) + rnd(-0.3, 0.3);
+          arr[i * 3] = bx * rnd(0.1, 0.9) + rnd(-0.4, 0.4);
           arr[i * 3 + 1] = 0.06;
-          arr[i * 3 + 2] = bz * rnd(0.1, 0.7) + rnd(-0.3, 0.3);
+          arr[i * 3 + 2] = bz * rnd(0.1, 0.9) + rnd(-0.4, 0.4);
           st.vel[i * 3] = rnd(-0.2, 0.2);
           st.vel[i * 3 + 2] = rnd(-0.2, 0.2);
           st.age[i] = 0;
@@ -72,7 +72,7 @@ export const SkidMarks = () => {
       anyAlive = true;
     }
     attr.needsUpdate = true;
-    if (mat) { mat.opacity = anyAlive ? 0.4 : 0; mat.size = 0.7; }
+    if (mat) { mat.opacity = anyAlive ? 0.6 : 0; mat.size = 1.2; }
   });
 
   return (
@@ -81,7 +81,7 @@ export const SkidMarks = () => {
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[init, 3]} count={POOL} />
         </bufferGeometry>
-        <pointsMaterial map={tex} color="#3a3a3a" size={0.7} transparent opacity={0} depthWrite={false} sizeAttenuation />
+        <pointsMaterial map={tex} color="#222222" size={1.2} transparent opacity={0} depthWrite={false} sizeAttenuation />
       </points>
     </group>
   );

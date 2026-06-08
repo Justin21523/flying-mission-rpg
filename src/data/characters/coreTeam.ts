@@ -50,7 +50,7 @@ export const CORE_TEAM: CharacterDefinition[] = [
     rotorOffsetRobot: [0, 2.0, 0],
     rotorScale: 1,
     abilityName: 'Wind Gust',
-    abilityColor: '#eab308',
+    abilityColor: '#22c55e',
   },
   {
     id: 'amber',
@@ -65,7 +65,7 @@ export const CORE_TEAM: CharacterDefinition[] = [
     modelRobotPath: '/models/characters/Amber+transformer+3d+model.glb',
     modelVehiclePath: '/models/characters/Amber car 3d model.glb',
     abilityName: 'Healing Aura',
-    abilityColor: '#f97316',
+    abilityColor: '#ec4899',
   },
   {
     id: 'spoki',

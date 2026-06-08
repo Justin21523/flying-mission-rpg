@@ -10,7 +10,7 @@ const JUMP = 5.5;
 const FLY_V = 6;           // vertical ascend/descend speed while flying
 const VEHICLE_ACCEL = 10;  // how fast the car reaches target velocity
 const VEHICLE_DECEL = 4;   // slower → coast/brake feel on release
-const SKID_SPEED = 6;      // horizontal speed above which braking leaves skid marks
+const SKID_SPEED = 3;      // horizontal speed above which braking leaves skid marks
 
 // Module-level reusable vectors — no per-frame allocations.
 const _fwd = new Vector3();
@@ -58,7 +58,8 @@ export function applyMovement(
   const speed = SPEED * sprint;
 
   if (flying) {
-    const vy = keys['Space'] ? FLY_V : keys['ShiftLeft'] ? -FLY_V : 0;
+    // Shift+WASD = horizontal sprint (no descend); Shift ALONE (no move key) = descend; Space = ascend.
+    const vy = keys['Space'] ? FLY_V : (keys['ShiftLeft'] && !moving) ? -FLY_V : 0;
     b.setLinvel({ x: _dir.x * speed, y: vy, z: _dir.z * speed }, true);
     playerMotion.skidding = false;
     playerMotion.speed = Math.hypot(_dir.x * speed, _dir.z * speed);
