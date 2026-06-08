@@ -8,6 +8,8 @@ export type ParticleDensity = 'low' | 'medium' | 'high';
 interface PersistedSettings {
   particlesEnabled: boolean;
   particleDensity: ParticleDensity;
+  sfxEnabled: boolean;   // POLI WebAudio synth placeholders (transform/ability/rescue/…)
+  sfxVolume: number;     // 0..1
 }
 
 interface AudioState extends PersistedSettings {
@@ -15,11 +17,13 @@ interface AudioState extends PersistedSettings {
   toggleAudio: () => void;
   toggleParticles: () => void;
   setParticleDensity: (density: ParticleDensity) => void;
+  toggleSfx: () => void;
+  setSfxVolume: (v: number) => void;
 }
 
 const STORAGE_KEY = 'r3f-rpg-builder-settings-v1';
 const DENSITIES: ParticleDensity[] = ['low', 'medium', 'high'];
-const DEFAULTS: PersistedSettings = { particlesEnabled: true, particleDensity: 'medium' };
+const DEFAULTS: PersistedSettings = { particlesEnabled: true, particleDensity: 'medium', sfxEnabled: true, sfxVolume: 0.4 };
 
 function load(): PersistedSettings {
   try {
@@ -31,6 +35,8 @@ function load(): PersistedSettings {
       particleDensity: DENSITIES.includes(p.particleDensity as ParticleDensity)
         ? (p.particleDensity as ParticleDensity)
         : DEFAULTS.particleDensity,
+      sfxEnabled: typeof p.sfxEnabled === 'boolean' ? p.sfxEnabled : DEFAULTS.sfxEnabled,
+      sfxVolume: typeof p.sfxVolume === 'number' ? Math.min(1, Math.max(0, p.sfxVolume)) : DEFAULTS.sfxVolume,
     };
   } catch {
     return DEFAULTS;
@@ -39,7 +45,13 @@ function load(): PersistedSettings {
 
 function persist(s: PersistedSettings): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    const out: PersistedSettings = {
+      particlesEnabled: s.particlesEnabled,
+      particleDensity: s.particleDensity,
+      sfxEnabled: s.sfxEnabled,
+      sfxVolume: s.sfxVolume,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
   } catch {
     /* ignore quota / private-mode errors */
   }
@@ -52,10 +64,20 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   toggleParticles: () => {
     const particlesEnabled = !get().particlesEnabled;
     set({ particlesEnabled });
-    persist({ particlesEnabled, particleDensity: get().particleDensity });
+    persist({ ...get(), particlesEnabled });
   },
   setParticleDensity: (particleDensity) => {
     set({ particleDensity });
-    persist({ particlesEnabled: get().particlesEnabled, particleDensity });
+    persist({ ...get(), particleDensity });
+  },
+  toggleSfx: () => {
+    const sfxEnabled = !get().sfxEnabled;
+    set({ sfxEnabled });
+    persist({ ...get(), sfxEnabled });
+  },
+  setSfxVolume: (sfxVolume) => {
+    const v = Math.min(1, Math.max(0, sfxVolume));
+    set({ sfxVolume: v });
+    persist({ ...get(), sfxVolume: v });
   },
 }));

@@ -3,12 +3,14 @@ import { useInventoryStore } from '../../stores/inventoryStore';
 import { useProgressionStore } from '../../stores/progressionStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { useRelationshipStore } from '../../stores/relationshipStore';
+import { playSfx } from '../audio/sfx';
 
 // POLI quest reward handler (seam #2).
 // Preserves the kit default (items, exp, world flags) and adds trust-grant support.
 // Trust gains are encoded as 'trust:{characterId}:{amount}' flag strings in reward.flags.
 export function setupPoliQuestRewards(): void {
   setQuestRewardHandler((reward) => {
+    playSfx('questComplete');
     reward.items?.forEach((it) =>
       useInventoryStore.getState().addItem(it.itemId, it.quantity ?? 1),
     );

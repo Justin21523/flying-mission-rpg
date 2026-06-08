@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { playSfx } from '../game/audio/sfx';
 
 // The 4 playable main characters (each has a vehicle + robot model in CORE_TEAM).
 export type PoliCharId = 'poli' | 'roy' | 'helly' | 'amber';
@@ -24,8 +25,10 @@ const now = () => (typeof performance !== 'undefined' ? performance.now() : Date
 
 export const useTransformStore = create<TransformState>((set, get) => {
   // Start a transform: bump the pulse (smoke) and record the time (cover window).
-  const pulse = (patch: Partial<TransformState>) =>
+  const pulse = (patch: Partial<TransformState>) => {
+    playSfx('transform');
     set({ ...patch, pulseId: get().pulseId + 1, animStart: now() });
+  };
 
   return {
     charId: 'poli',
@@ -43,6 +46,6 @@ export const useTransformStore = create<TransformState>((set, get) => {
     },
     setFlying: (b) => set({ flying: b }),
     toggleFlight: () => set({ flying: !get().flying }),
-    triggerAbility: (color) => set({ abilityColor: color, abilityPulseId: get().abilityPulseId + 1 }),
+    triggerAbility: (color) => { playSfx('ability'); set({ abilityColor: color, abilityPulseId: get().abilityPulseId + 1 }); },
   };
 });

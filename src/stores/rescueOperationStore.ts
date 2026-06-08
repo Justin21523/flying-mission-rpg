@@ -5,6 +5,7 @@ import { useProgressionStore } from './progressionStore';
 import { useRelationshipStore } from './relationshipStore';
 import { useFlagStore } from './flagStore';
 import { useToolStore } from './toolStore';
+import { playSfx } from '../game/audio/sfx';
 import type { RescuePipelineStep } from '../types/incident';
 
 interface ToolBonus {
@@ -61,8 +62,10 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
           : [],
         timeLeft: (stage?.timeLimitSeconds ?? 0) + s.toolBonus.timeBonus,
       });
+      playSfx('questComplete'); // intermediate stage cleared
     } else {
       set({ step: 'success' });
+      playSfx('rescueSuccess');
     }
   };
 
@@ -103,7 +106,7 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     if (!stage || stage.type !== 'action') return;
     const timeLeft = Math.max(0, s.timeLeft - dt);
     set({ timeLeft });
-    if (timeLeft <= 0) set({ step: 'retry' });
+    if (timeLeft <= 0) { set({ step: 'retry' }); playSfx('rescueFail'); }
   },
 
   pressAction: () => {

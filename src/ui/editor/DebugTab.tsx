@@ -33,10 +33,12 @@ const WorldSection = () => {
   const weather = useWorldClockStore((s) => s.weather);
   const particlesEnabled = useAudioStore((s) => s.particlesEnabled);
   const density = useAudioStore((s) => s.particleDensity);
+  const sfxEnabled = useAudioStore((s) => s.sfxEnabled);
+  const sfxVolume = useAudioStore((s) => s.sfxVolume);
   return (
     <section className="space-y-2">
       <Head>World — {formatClock(time)} · {phase} · {weather}</Head>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Btn onClick={() => useWorldClockStore.getState().advanceTime()}>⏭ Skip phase</Btn>
         <Btn onClick={() => useWorldClockStore.getState().cycleWeather()}>🌧 Cycle weather</Btn>
         <Btn tone={particlesEnabled ? 'emerald' : 'slate'} onClick={() => useAudioStore.getState().toggleParticles()}>✨ Particles {particlesEnabled ? 'on' : 'off'}</Btn>
@@ -44,6 +46,14 @@ const WorldSection = () => {
           <select value={density} onChange={(e) => useAudioStore.getState().setParticleDensity(e.target.value as 'low' | 'medium' | 'high')} className="rounded bg-slate-800 px-1.5 py-1 text-[11px] text-slate-100">
             <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
           </select>
+        )}
+        <Btn tone={sfxEnabled ? 'emerald' : 'slate'} onClick={() => useAudioStore.getState().toggleSfx()}>🔊 SFX {sfxEnabled ? 'on' : 'off'}</Btn>
+        {sfxEnabled && (
+          <label className="flex items-center gap-1 text-[11px] text-slate-300">
+            vol
+            <input type="range" min={0} max={1} step={0.05} value={sfxVolume}
+              onChange={(e) => useAudioStore.getState().setSfxVolume(parseFloat(e.target.value))} className="w-20" />
+          </label>
         )}
       </div>
     </section>
