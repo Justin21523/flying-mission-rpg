@@ -35,7 +35,7 @@ const Capsule = () => (
   </mesh>
 );
 
-const ModelView = ({ path, height, visible }: { path: string; height: number; visible: boolean }) => {
+const ModelView = ({ path, height, yOffset, visible }: { path: string; height: number; yOffset: number; visible: boolean }) => {
   const { scene } = useGLTF(path);
   const { clone, scale, offset } = useMemo(() => {
     const c = SkeletonUtils.clone(scene); // not scene.clone() — keeps rigged models intact
@@ -47,18 +47,19 @@ const ModelView = ({ path, height, visible }: { path: string; height: number; vi
     const nativeH = Number.isFinite(size.y) && size.y > 1e-4 ? size.y : 1;
     const s = height / nativeH;
     const ox = Number.isFinite(center.x) ? -center.x * s : 0;
-    const oy = Number.isFinite(box.min.y) ? -box.min.y * s : 0;
+    const oy = (Number.isFinite(box.min.y) ? -box.min.y * s : 0) + yOffset;
     const oz = Number.isFinite(center.z) ? -center.z * s : 0;
     return { clone: c, scale: s, offset: [ox, oy, oz] as [number, number, number] };
-  }, [scene, height]);
+  }, [scene, height, yOffset]);
   return <primitive object={clone} scale={scale} position={offset} visible={visible} />;
 };
 
-// Both forms of one character, always mounted; only visibility differs.
-const BothForms = ({ carPath, robotPath, form }: { carPath: string; robotPath: string; form: PoliForm }) => (
+// Both forms of one character, always mounted; only visibility differs. Heights + y-offset are
+// per-character editable (POLI tab) so each model can be sized/seated correctly.
+const BothForms = ({ carPath, robotPath, form, carH, robotH, yOff }: { carPath: string; robotPath: string; form: PoliForm; carH: number; robotH: number; yOff: number }) => (
   <>
-    <ModelView path={carPath} height={CAR_HEIGHT} visible={form === 'vehicle'} />
-    <ModelView path={robotPath} height={ROBOT_HEIGHT} visible={form === 'robot'} />
+    <ModelView path={carPath} height={carH} yOffset={yOff} visible={form === 'vehicle'} />
+    <ModelView path={robotPath} height={robotH} yOffset={yOff} visible={form === 'robot'} />
   </>
 );
 
@@ -72,6 +73,9 @@ export const PlayerMesh = () => {
   const carPath = override?.modelVehiclePath || base?.modelVehiclePath || '';
   const robotPath = override?.modelRobotPath || base?.modelRobotPath || '';
   const canFly = override?.canFly ?? base?.canFly ?? false;
+  const carH = override?.vehicleHeight ?? base?.vehicleHeight ?? CAR_HEIGHT;
+  const robotH = override?.robotHeight ?? base?.robotHeight ?? ROBOT_HEIGHT;
+  const yOff = override?.modelYOffset ?? base?.modelYOffset ?? 0;
 
   // Keyed by charId: switching character mounts the new pair (the old unmounts) — hidden under the
   // smoke cover. One <Suspense> so a capsule only shows during the very first load.
@@ -79,7 +83,7 @@ export const PlayerMesh = () => {
     <>
       <Suspense fallback={<Capsule />}>
         {carPath && robotPath
-          ? <BothForms key={charId} carPath={carPath} robotPath={robotPath} form={form} />
+          ? <BothForms key={charId} carPath={carPath} robotPath={robotPath} form={form} carH={carH} robotH={robotH} yOff={yOff} />
           : <Capsule />}
       </Suspense>
       {canFly && flying && <HelicopterRotor />}

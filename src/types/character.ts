@@ -25,4 +25,7 @@ export interface CharacterDefinition {
   rotorScale?: number;       // uniform scale of the flight rotor (editable in POLI tab)
   abilityName?: string;      // playable special ability (Q) name (editable)
   abilityColor?: string;     // ability VFX colour, hex; defaults to the character colour (editable)
+  vehicleHeight?: number;    // normalize target height of the vehicle/car model (editable, default 1.4)
+  robotHeight?: number;      // normalize target height of the robot model (editable, default 1.9)
+  modelYOffset?: number;     // extra vertical nudge applied to the model (editable, default 0)
 }

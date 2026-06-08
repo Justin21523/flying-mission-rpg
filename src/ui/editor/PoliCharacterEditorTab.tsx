@@ -133,6 +133,21 @@ export const PoliCharacterEditorTab = () => {
                 />
               </Field>
 
+              <div className="grid grid-cols-3 gap-2">
+                <Field label="Car height">
+                  <input type="number" step={0.1} min={0.1} className={inp} value={sel.vehicleHeight ?? 1.4}
+                    onChange={(e) => set({ vehicleHeight: parseFloat(e.target.value) || 0.1 })} />
+                </Field>
+                <Field label="Robot height">
+                  <input type="number" step={0.1} min={0.1} className={inp} value={sel.robotHeight ?? 1.9}
+                    onChange={(e) => set({ robotHeight: parseFloat(e.target.value) || 0.1 })} />
+                </Field>
+                <Field label="Y offset">
+                  <input type="number" step={0.05} className={inp} value={sel.modelYOffset ?? 0}
+                    onChange={(e) => set({ modelYOffset: parseFloat(e.target.value) || 0 })} />
+                </Field>
+              </div>
+
               <Field label="Can Fly (F to fly, e.g. Helly)">
                 <label className="flex items-center gap-2 text-slate-300">
                   <input

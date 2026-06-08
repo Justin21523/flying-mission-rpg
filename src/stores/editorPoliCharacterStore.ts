@@ -24,6 +24,9 @@ export interface CharacterOverride {
   rotorScale?: number;
   abilityName?: string;
   abilityColor?: string;
+  vehicleHeight?: number;
+  robotHeight?: number;
+  modelYOffset?: number;
 }
 
 interface EditorPoliCharacterState {
@@ -97,5 +100,8 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.rotorScale !== undefined && { rotorScale: ov.rotorScale }),
     ...(ov.abilityName !== undefined && { abilityName: ov.abilityName }),
     ...(ov.abilityColor !== undefined && { abilityColor: ov.abilityColor }),
+    ...(ov.vehicleHeight !== undefined && { vehicleHeight: ov.vehicleHeight }),
+    ...(ov.robotHeight !== undefined && { robotHeight: ov.robotHeight }),
+    ...(ov.modelYOffset !== undefined && { modelYOffset: ov.modelYOffset }),
   };
 }
