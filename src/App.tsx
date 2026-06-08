@@ -43,7 +43,7 @@ const PlayerPosDebug = () => {
   return (
     <div className="pointer-events-none fixed bottom-2 left-2 rounded bg-black/70 px-2 py-1 font-mono text-[10px]">
       <span className={editMode ? 'text-amber-400' : 'text-emerald-400'}>
-        {editMode ? 'EDIT (player frozen — F1 to play)' : 'PLAY (WASD move · drag rotate · T transform)'}
+        {editMode ? 'EDIT (player frozen — F1 to play)' : 'PLAY (WASD move · drag rotate · T transform · C switch character)'}
       </span>
       <span className="text-slate-300"> · pos {pos.x.toFixed(1)} / {pos.y.toFixed(1)} / {pos.z.toFixed(1)}</span>
     </div>

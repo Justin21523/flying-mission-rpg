@@ -16,6 +16,9 @@ import { PlayerMesh } from './PlayerMesh';
 // new reference makes react-three-rapier reset the body to it every frame (pins the player at spawn).
 const INITIAL_POS: [number, number, number] = [0, 2, 0];
 
+// Seconds the player mesh stays hidden after a transform, while the smoke is dense (then revealed).
+const TRANSFORM_COVER = 0.35;
+
 // The player's Edit-Mode handle reuses the kit core like every other object: an EditableObject keyed
 // area#npc#poli. Selecting it gives the shared centred gizmo + W/E/R + inspector and writes the
 // transform override (auto-saved). The body/mesh mirror that override so edits apply in Play Mode.
@@ -36,10 +39,14 @@ export const Player = () => {
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      // T transforms car⇄robot. Toggled via getState so Player never re-renders on T (PlayerMesh
-      // subscribes to the form and swaps which model is visible — both stay mounted).
-      if (e.code === 'KeyT' && !e.repeat) {
-        if (!useUiStore.getState().editMode) useTransformStore.getState().toggle();
+      // Handled via getState so Player never re-renders on these (PlayerMesh subscribes and swaps
+      // which model is visible; the smoke + cover window conceal the swap).
+      if (e.code === 'KeyT' && !e.repeat) { // transform vehicle⇄robot
+        if (!useUiStore.getState().editMode) useTransformStore.getState().toggleForm();
+        return;
+      }
+      if (e.code === 'KeyC' && !e.repeat) { // cycle the 4 main characters
+        if (!useUiStore.getState().editMode) useTransformStore.getState().cycleCharacter();
         return;
       }
       keys.current[e.code] = true;
@@ -81,6 +88,11 @@ export const Player = () => {
       visualRef.current.rotation.y = headingRef.current + (ov?.rotation?.[1] ?? 0);
       const s = ov?.scale ?? 1;
       visualRef.current.scale.set(s, s, s);
+      // Conceal the model while the transform smoke is dense, then reveal as it fades (the smoke
+      // covers the instant model/character swap). animStart=0 → no transform in progress.
+      const animStart = useTransformStore.getState().animStart;
+      const elapsed = animStart ? (performance.now() / 1000) - animStart : 99;
+      visualRef.current.visible = elapsed > TRANSFORM_COVER;
     }
 
     if (editMode) {

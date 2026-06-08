@@ -1,16 +1,35 @@
 import { create } from 'zustand';
 
-// Poli's two forms. 'car' is the default (police car); 'robot' is the transformer. Toggled with T.
-export type PoliForm = 'car' | 'robot';
+// The 4 playable main characters (each has a vehicle + robot model in CORE_TEAM).
+export type PoliCharId = 'poli' | 'roy' | 'helly' | 'amber';
+export type PoliForm = 'vehicle' | 'robot';
+export const POLI_ROSTER: PoliCharId[] = ['poli', 'roy', 'helly', 'amber'];
 
 interface TransformState {
-  form: PoliForm;
-  toggle: () => void;
-  setForm: (f: PoliForm) => void;
+  charId: PoliCharId;   // which main character the player currently is
+  form: PoliForm;       // car/vehicle (default) or robot (transformer)
+  pulseId: number;      // increments on every transform → triggers the smoke burst
+  animStart: number;    // performance.now()/1000 when the last transform began (cover/reveal window)
+  toggleForm: () => void;     // T — flip vehicle⇄robot
+  cycleCharacter: () => void; // C — next character in the roster (keeps the current form)
 }
 
-export const useTransformStore = create<TransformState>((set, get) => ({
-  form: 'car',
-  toggle: () => set({ form: get().form === 'car' ? 'robot' : 'car' }),
-  setForm: (f) => set({ form: f }),
-}));
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+
+export const useTransformStore = create<TransformState>((set, get) => {
+  // Start a transform: bump the pulse (smoke) and record the time (cover window).
+  const pulse = (patch: Partial<TransformState>) =>
+    set({ ...patch, pulseId: get().pulseId + 1, animStart: now() });
+
+  return {
+    charId: 'poli',
+    form: 'vehicle',
+    pulseId: 0,
+    animStart: 0,
+    toggleForm: () => pulse({ form: get().form === 'vehicle' ? 'robot' : 'vehicle' }),
+    cycleCharacter: () => {
+      const i = POLI_ROSTER.indexOf(get().charId);
+      pulse({ charId: POLI_ROSTER[(i + 1) % POLI_ROSTER.length] });
+    },
+  };
+});
