@@ -4,15 +4,17 @@ import type { TimeOfDay } from '../types/randomEvent';
 import type { Weather } from '../stores/worldClockStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { getKitArea } from '../data/areas';
+import { usePoll } from './usePoll';
 
 const TIME_ICON: Record<TimeOfDay, string> = { dawn: '🌅', day: '☀️', evening: '🌆', night: '🌙' };
 const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', fog: '🌫️' };
 
 // Kit — top-right HUD: current area + clock + time-of-day + weather + the FX toggle state.
+// timeMinutes ticks every frame, so we poll the clock ~4×/s via getState rather than subscribing to
+// it (a 60 Hz React re-render here janks the editor panels). timeOfDay/weather change rarely → keep reactive.
 export const WorldClockHUD = () => {
-  const timeMinutes = useWorldClockStore((s) => s.timeMinutes);
-  const timeOfDay = useWorldClockStore((s) => s.timeOfDay);
-  const weather = useWorldClockStore((s) => s.weather);
+  usePoll(250);
+  const { timeMinutes, timeOfDay, weather } = useWorldClockStore.getState();
   const particlesEnabled = useAudioStore((s) => s.particlesEnabled);
   const areaId = usePlayerStore((s) => s.currentAreaId);
   const areaName = getKitArea(areaId)?.name ?? areaId;

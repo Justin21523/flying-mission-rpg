@@ -10,6 +10,7 @@ import { useInventoryStore } from '../../stores/inventoryStore';
 import { getItem } from '../../data/items';
 import { Field, inp, useItemOptions } from './editorShared';
 import { IdSelect } from './idPickers';
+import { usePoll } from '../usePoll';
 
 const btn = 'rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-40';
 const tones: Record<string, string> = {
@@ -26,7 +27,8 @@ const Head = ({ children }: { children: ReactNode }) => <h4 className="mb-1 text
 
 // ── World (time / weather / particles) ──────────────────────────────────────
 const WorldSection = () => {
-  const time = useWorldClockStore((s) => s.timeMinutes);
+  usePoll(250); // poll the per-frame clock minute instead of subscribing (avoids 60 Hz re-render)
+  const time = useWorldClockStore.getState().timeMinutes;
   const phase = useWorldClockStore((s) => s.timeOfDay);
   const weather = useWorldClockStore((s) => s.weather);
   const particlesEnabled = useAudioStore((s) => s.particlesEnabled);

@@ -9,6 +9,7 @@ import { useEditorEnvironmentStore } from './stores/editorEnvironmentStore';
 import { usePlayerStore } from './stores/playerStore';
 import { Scene } from './game/core/Scene';
 import { CanvasErrorBoundary } from './ui/CanvasErrorBoundary';
+import { usePoll } from './ui/usePoll';
 import { syncEditorQuests } from './game/editor/editorQuestToQuest';
 import { QuestTrackerController } from './game/quest/questTracking';
 import { InteractionHandler } from './game/interaction/InteractionHandler';
@@ -37,7 +38,8 @@ import { useRescueOperationStore } from './stores/rescueOperationStore';
 // Tiny diagnostic — shows current mode + player XYZ so we can confirm the body is actually moving
 // (and that we're not accidentally stuck in Edit Mode, where the player is intentionally frozen).
 const PlayerPosDebug = () => {
-  const pos = usePlayerStore((s) => s.position);
+  usePoll(200); // poll position (per-frame) instead of subscribing → no 60 Hz re-render
+  const pos = usePlayerStore.getState().position;
   const editMode = useUiStore((s) => s.editMode);
   if (!pos) return null;
   return (

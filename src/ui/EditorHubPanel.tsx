@@ -10,11 +10,12 @@ import { EncounterEditorTab } from './editor/EncounterEditorTab';
 import { ActivityEditorTab } from './editor/ActivityEditorTab';
 import { PoliCharacterEditorTab } from './editor/PoliCharacterEditorTab';
 import { LandmarkEditorTab } from './editor/LandmarkEditorTab';
+import { IncidentEditorTab } from './editor/IncidentEditorTab';
 import { useSceneEditStore } from '../stores/sceneEditStore';
 import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
-type Tab = 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark';
+type Tab = 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'debug', label: '🧪 Debug' },
   { id: 'trigger', label: '⚡ Triggers' },
@@ -26,6 +27,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'environment', label: '🌤 Environment' },
   { id: 'poli', label: '🤖 POLI' },
   { id: 'landmark', label: '🗺 Landmarks' },
+  { id: 'incident', label: '🚨 Incidents' },
 ];
 
 // Kit — the tabbed Editor Hub (opens centred, free-move via the header, free-resize via the CSS handle).
@@ -88,7 +90,7 @@ export const EditorHubPanel = () => {
       </div>
       <div className="relative min-w-0 flex-1 overflow-auto p-4 pr-10">
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
-        {tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : <EnvironmentEditorPanel />}
+        {tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : <EnvironmentEditorPanel />}
       </div>
     </div>
   );

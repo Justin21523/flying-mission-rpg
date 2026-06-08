@@ -69,8 +69,9 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {!POLI_SANDBOX && <SampleEntities areaId={areaId} />}
       {/* POLI seam #1: additive NPC layer — schedule-driven, trust-gated dialogue */}
       {!POLI_SANDBOX && <PoliNpcLayer areaId={areaId} />}
-      {/* POLI seam #1b: incident layer — world incidents + rescue interaction */}
-      {!POLI_SANDBOX && <IncidentLayer areaId={areaId} />}
+      {/* POLI seam #1b: incident layer — shows only incidents SPAWNED by the IncidentDirector
+          (random), so it's safe to render even in sandbox mode. */}
+      <IncidentLayer areaId={areaId} />
       {/* POLI seam #1c: traffic layer — NPC vehicles + traffic signals */}
       {!POLI_SANDBOX && <TrafficLayer areaId={areaId} />}
       <EditableNpcLayer areaId={areaId} />

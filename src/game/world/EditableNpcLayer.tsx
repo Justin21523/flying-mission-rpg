@@ -8,10 +8,11 @@ import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useWorldClockStore } from '../../stores/worldClockStore';
 import { useInteractionStore } from '../../stores/interactionStore';
+import { useIncidentStore } from '../../stores/incidentStore';
+import { useEditorRandomEventStore } from '../../stores/editorRandomEventStore';
 import { useMergedTransform } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import type { Vec3 } from '../edit/sceneEditMerge';
-import { Interactable } from '../interaction/Interactable';
 import { EditableObject } from '../edit/EditableObject';
 import { AnimatedGlbModel } from './AnimatedGlbModel';
 
@@ -54,23 +55,15 @@ const EditorNpcEntity = ({ npc }: { npc: EditorNpc }) => {
   if (editMode) {
     return <EditableObject objKey={key} base={base}>{<NpcVisual npc={npc} />}</EditableObject>;
   }
-
-  const moves = (npc.movement === 'patrol' && (npc.patrolWaypoints?.length ?? 0) > 1)
-    || npc.movement === 'schedule';
-
-  if (!moves) {
-    return (
-      <Interactable id={npc.id} type="npc" label={npc.interactionLabel || `Talk to ${npc.displayName}`} position={m.position} isSolid colliderArgs={[0.5, 1, 0.5]}>
-        <group rotation={m.rotation} scale={m.scale}><NpcVisual npc={npc} /></group>
-      </Interactable>
-    );
-  }
+  // Play Mode: all NPCs go through the driven path so they can move (patrol/schedule) AND react to
+  // nearby incidents. Static NPCs simply hold their start position until something happens.
   return <MovingNpc npc={npc} start={m.position} />;
 };
 
-// Patrol/schedule NPC — driven group + distance-based interaction.
+// Driven NPC — patrol/schedule/static movement + nearby-incident reaction + distance interaction.
 const MovingNpc = ({ npc, start }: { npc: EditorNpc; start: Vec3 }) => {
   const groupRef = useRef<Group>(null);
+  const alertRef = useRef<Group>(null);
   const st = useRef({ wp: 0, near: false });
   const speed = npc.moveSpeed ?? 1.6;
   const label = npc.interactionLabel || `Talk to ${npc.displayName}`;
@@ -80,19 +73,52 @@ const MovingNpc = ({ npc, start }: { npc: EditorNpc; start: Vec3 }) => {
     if (!g) return;
     const dt = Math.min(dtRaw, 0.05);
 
-    // Resolve current target.
-    if (npc.movement === 'patrol' && npc.patrolWaypoints && npc.patrolWaypoints.length > 1) {
-      const wps = npc.patrolWaypoints;
-      const i = st.current.wp % wps.length;
-      _target.set(wps[i][0], g.position.y, wps[i][2]);
-      if (g.position.distanceTo(_target) < ARRIVE) st.current.wp = (st.current.wp + 1) % wps.length;
-    } else {
-      const phase = useWorldClockStore.getState().timeOfDay;
-      const p = npc.schedulePositions?.[phase] ?? start;
-      _target.set(p[0], g.position.y, p[2]);
+    // ── React to the nearest spawned incident in this area (overrides normal movement). ──
+    let reacting = false;
+    let faceYaw: number | null = null;
+    const rcfg = useEditorRandomEventStore.getState().reaction;
+    if (rcfg.enabled) {
+      const incs = useIncidentStore.getState().getActiveForArea(npc.areaId);
+      let best: { x: number; z: number; d: number } | null = null;
+      for (const d of incs) {
+        const dx = d.markerPosition[0] - g.position.x;
+        const dz = d.markerPosition[2] - g.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < rcfg.radius && (!best || dist < best.d)) best = { x: d.markerPosition[0], z: d.markerPosition[2], d: dist };
+      }
+      if (best) {
+        reacting = true;
+        faceYaw = Math.atan2(best.x - g.position.x, best.z - g.position.z);
+        if (rcfg.mode === 'approach') {
+          // Move toward the incident but stop ~2.2 units short.
+          if (best.d > 2.2) _target.set(best.x, g.position.y, best.z);
+          else _target.copy(g.position);
+        } else if (rcfg.mode === 'flee') {
+          const len = best.d || 1;
+          _target.set(g.position.x - (best.x - g.position.x) / len * 3, g.position.y, g.position.z - (best.z - g.position.z) / len * 3);
+        } else { // watch
+          _target.copy(g.position);
+        }
+      }
     }
 
-    // Step toward target + face travel direction.
+    // ── Normal movement target when not reacting. ──
+    if (!reacting) {
+      if (npc.movement === 'patrol' && npc.patrolWaypoints && npc.patrolWaypoints.length > 1) {
+        const wps = npc.patrolWaypoints;
+        const i = st.current.wp % wps.length;
+        _target.set(wps[i][0], g.position.y, wps[i][2]);
+        if (g.position.distanceTo(_target) < ARRIVE) st.current.wp = (st.current.wp + 1) % wps.length;
+      } else if (npc.movement === 'schedule') {
+        const phase = useWorldClockStore.getState().timeOfDay;
+        const p = npc.schedulePositions?.[phase] ?? start;
+        _target.set(p[0], g.position.y, p[2]);
+      } else {
+        _target.set(start[0], g.position.y, start[2]); // static
+      }
+    }
+
+    // Step toward target + face travel direction (or the incident when reacting & idle).
     _step.copy(_target).sub(g.position);
     const dist = _step.length();
     if (dist > 1e-3) {
@@ -100,7 +126,12 @@ const MovingNpc = ({ npc, start }: { npc: EditorNpc; start: Vec3 }) => {
       _step.multiplyScalar(move / dist);
       g.position.add(_step);
       g.rotation.y = Math.atan2(_step.x, _step.z);
+    } else if (faceYaw !== null) {
+      g.rotation.y = faceYaw;
     }
+
+    // "!" alert above the NPC while reacting.
+    if (alertRef.current) alertRef.current.visible = reacting;
 
     // Distance interaction (hysteresis) so [E]/dialogue work while walking.
     const pp = usePlayerStore.getState().position;
@@ -114,6 +145,9 @@ const MovingNpc = ({ npc, start }: { npc: EditorNpc; start: Vec3 }) => {
   return (
     <group ref={groupRef} position={[start[0], start[1], start[2]]} scale={npc.scale ?? 1}>
       <NpcVisual npc={npc} />
+      <group ref={alertRef} visible={false}>
+        <Text position={[0, 2.7, 0]} fontSize={0.6} color="#fde047" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#000" renderOrder={2}>!</Text>
+      </group>
     </group>
   );
 };

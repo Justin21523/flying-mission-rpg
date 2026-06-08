@@ -1,5 +1,5 @@
 import { useRescueOperationStore } from '../stores/rescueOperationStore';
-import { POLI_INCIDENTS } from '../data/incidents/broomsTownIncidents';
+import { getEditorIncident } from '../stores/editorIncidentStore';
 
 // Circular SVG progress ring — radius 44, stroke-width 8 → circumference ≈ 276.
 const RING_RADIUS = 44;
@@ -42,7 +42,7 @@ export const RescueHud = () => {
 
   if (!isActive || !incidentId) return null;
 
-  const def = POLI_INCIDENTS.find((d) => d.id === incidentId);
+  const def = getEditorIncident(incidentId);
   if (!def) return null;
   const stage = def.stages[stageIndex];
 

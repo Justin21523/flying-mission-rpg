@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { POLI_INCIDENTS } from '../data/incidents/broomsTownIncidents';
+import { getEditorIncident } from './editorIncidentStore';
 import { useIncidentStore } from './incidentStore';
 import { useProgressionStore } from './progressionStore';
 import { useRelationshipStore } from './relationshipStore';
@@ -36,7 +36,7 @@ interface RescueOperationState {
 }
 
 function getStage(incidentId: string, stageIndex: number) {
-  return POLI_INCIDENTS.find((d) => d.id === incidentId)?.stages[stageIndex] ?? null;
+  return getEditorIncident(incidentId)?.stages[stageIndex] ?? null;
 }
 
 const ZERO_BONUS: ToolBonus = { actionBonus: 0, timeBonus: 0, radiusBonus: 0 };
@@ -109,7 +109,7 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
   dismissDebrief: () => {
     const s = get();
     if (!s.incidentId) return;
-    const def = POLI_INCIDENTS.find((d) => d.id === s.incidentId);
+    const def = getEditorIncident(s.incidentId);
     if (def) {
       if (def.reward.exp) useProgressionStore.getState().addExp(def.reward.exp);
       def.reward.flags?.forEach((f) => {
