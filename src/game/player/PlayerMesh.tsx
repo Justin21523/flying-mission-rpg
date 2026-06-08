@@ -1,40 +1,26 @@
 import { Suspense, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Box3, Vector3 } from 'three';
-import type { TransformMode } from '../../stores/transformationStore';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 
-// Clean, crash-proof player visual.
-//
-// Poli is a police CAR that transforms into a ROBOT:
-//   • vehicle mode (default)  → DEFAULT_CAR     ("Poli car 3d model.glb")
-//   • robot   mode (press T)  → DEFAULT_ROBOT   ("Poli+transformer+3d+model.glb")
-//
-// BOTH models stay mounted the whole time and we just toggle `visible` — so pressing T never
-// unmounts/remounts a GLB and the player can never "disappear" on transform. Each model is
-// auto-normalized to a sensible height (feet at y=0) regardless of its native export scale.
-// The paths default to Poli but remain overridable in Edit Mode (POLI tab) — not hardcoded-only.
+// Single Poli player model (the transform/T system was removed). The model is auto-normalized:
+// recentred on X/Z (so an off-centre pivot doesn't fling it into the background) with its feet at
+// local y=0. Defaults to the Poli car but is overridable in Edit Mode → POLI tab (either model
+// field sets the player model); falls back to a visible capsule while loading.
 
-const DEFAULT_CAR = '/models/characters/Poli car 3d model.glb';
-const DEFAULT_ROBOT = '/models/characters/Poli+transformer+3d+model.glb';
-const CAR_HEIGHT = 1.3;
-const ROBOT_HEIGHT = 1.9;
+const DEFAULT_MODEL = '/models/characters/Poli car 3d model.glb';
+const HEIGHT = 1.4;
 
-// Preload both so the very first transform is instant (no flash).
-useGLTF.preload(DEFAULT_CAR);
-useGLTF.preload(DEFAULT_ROBOT);
+useGLTF.preload(DEFAULT_MODEL);
 
-const Capsule = ({ color }: { color: string }) => (
+const Capsule = () => (
   <mesh castShadow position={[0, 0, 0]}>
     <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
-    <meshStandardMaterial color={color} roughness={0.5} metalness={0.2} />
+    <meshStandardMaterial color="#3b82f6" roughness={0.5} metalness={0.2} />
   </mesh>
 );
 
-// One normalized, cloned GLB. Kept mounted; `visible` toggles whether it shows.
-// Recentres on X/Z (so a model authored off-centre from its pivot still sits ON the player
-// instead of flying off into the "background") and drops it so its feet rest at local y=0.
-const ModelView = ({ path, height, visible }: { path: string; height: number; visible: boolean }) => {
+const ModelView = ({ path }: { path: string }) => {
   const { scene } = useGLTF(path);
   const { clone, scale, offset } = useMemo(() => {
     const c = scene.clone(true);
@@ -44,35 +30,21 @@ const ModelView = ({ path, height, visible }: { path: string; height: number; vi
     box.getSize(size);
     box.getCenter(center);
     const nativeH = Number.isFinite(size.y) && size.y > 1e-4 ? size.y : 1;
-    const s = height / nativeH;
+    const s = HEIGHT / nativeH;
     const ox = Number.isFinite(center.x) ? -center.x * s : 0;
     const oy = Number.isFinite(box.min.y) ? -box.min.y * s : 0;
     const oz = Number.isFinite(center.z) ? -center.z * s : 0;
     return { clone: c, scale: s, offset: [ox, oy, oz] as [number, number, number] };
-  }, [scene, height]);
-  return <primitive object={clone} scale={scale} position={offset} visible={visible} />;
+  }, [scene]);
+  return <primitive object={clone} scale={scale} position={offset} />;
 };
 
-interface Props {
-  mode: TransformMode;
-}
-
-export const PlayerMesh = ({ mode }: Props) => {
-  // Paths default to Poli but honour an Edit-Mode override (auto-saved in the POLI tab).
+export const PlayerMesh = () => {
   const ov = useEditorPoliCharacterStore((s) => s.overrides['poli']);
-  const carPath = ov?.modelVehiclePath || DEFAULT_CAR;
-  const robotPath = ov?.modelRobotPath || DEFAULT_ROBOT;
-
+  const path = ov?.modelRobotPath || ov?.modelVehiclePath || DEFAULT_MODEL;
   return (
-    <>
-      {/* Car (vehicle, default). Capsule fallback only while THIS model is still loading. */}
-      <Suspense fallback={mode === 'vehicle' ? <Capsule color="#f59e0b" /> : null}>
-        <ModelView path={carPath} height={CAR_HEIGHT} visible={mode === 'vehicle'} />
-      </Suspense>
-      {/* Robot (transformer, press T). */}
-      <Suspense fallback={mode === 'robot' ? <Capsule color="#3b82f6" /> : null}>
-        <ModelView path={robotPath} height={ROBOT_HEIGHT} visible={mode === 'robot'} />
-      </Suspense>
-    </>
+    <Suspense fallback={<Capsule />}>
+      <ModelView path={path} />
+    </Suspense>
   );
 };
