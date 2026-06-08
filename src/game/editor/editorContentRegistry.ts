@@ -11,6 +11,7 @@ import { useEditorLandmarkStore } from '../../stores/editorLandmarkStore';
 import { useEditorIncidentStore } from '../../stores/editorIncidentStore';
 import { useEditorRandomEventStore } from '../../stores/editorRandomEventStore';
 import { useEditorTrafficStore } from '../../stores/editorTrafficStore';
+import { useEditorToolStore } from '../../stores/editorToolStore';
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
 // serialize / deserialize / clear / summary hooks. The foundation for the unified project Export/Import.
@@ -136,6 +137,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorTrafficStore.getState().importState(data as never); },
     clear: () => useEditorTrafficStore.getState().reset(),
     summary: () => { const s = useEditorTrafficStore.getState(); return `${s.vehicles.length} vehicles · ${s.signals.length} signals · ${s.roads.length} roads`; },
+  },
+  {
+    id: 'editorTool',
+    label: 'Tools',
+    serialize: () => { const s = useEditorToolStore.getState(); return { tools: s.tools, upgrades: s.upgrades }; },
+    deserialize: (data) => { if (isObj(data)) useEditorToolStore.getState().importState(data as never); },
+    clear: () => useEditorToolStore.getState().reset(),
+    summary: () => `${useEditorToolStore.getState().tools.length} tools`,
   },
 ];
 

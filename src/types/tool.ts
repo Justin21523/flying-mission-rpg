@@ -24,5 +24,8 @@ export interface ToolDefinition {
   unlockTrustWithJin: number; // 0 = no trust gate
   unlockLevel: number;
   incidentBonus?: ToolBonus;
+  prerequisites?: string[];  // tool ids that must be unlocked first (skill-tree edges)
+  maxUpgrade?: number;       // upgrade tiers available (0 = none)
+  upgradeBonusPerLevel?: number; // multiplier added per upgrade level to incidentBonus (e.g. 0.25)
   sourceConfidence: SourceConfidence;
 }

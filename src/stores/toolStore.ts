@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { POLI_TOOLS } from '../data/tools/poliTools';
+import { getEditorTools, getEditorTool, getToolUpgrade } from './editorToolStore';
 import type { ToolId } from '../types/tool';
 
 interface ActiveBonus {
@@ -35,6 +35,10 @@ export const useToolStore = create<ToolState>((set, get) => ({
 
   unlockTool: (id) => {
     if (get().unlockedTools.includes(id)) return;
+    // Skill-tree gate: every prerequisite tool must already be unlocked.
+    const def = getEditorTool(id);
+    const prereqs = def?.prerequisites ?? [];
+    if (prereqs.length && !prereqs.every((p) => get().unlockedTools.includes(p as ToolId))) return;
     set((s) => ({ unlockedTools: [...s.unlockedTools, id] }));
   },
 
@@ -54,9 +58,12 @@ export const useToolStore = create<ToolState>((set, get) => ({
   isEquipped: (id) => get().equippedTools.includes(id),
 
   checkLevelUnlocks: (level, jinTrust) => {
-    for (const tool of POLI_TOOLS) {
-      if (level >= tool.unlockLevel && jinTrust >= tool.unlockTrustWithJin) {
-        get().unlockTool(tool.id);
+    // Several passes so a chain of prerequisites can unlock in one check.
+    for (let pass = 0; pass < 4; pass++) {
+      for (const tool of getEditorTools()) {
+        if (level >= tool.unlockLevel && jinTrust >= tool.unlockTrustWithJin) {
+          get().unlockTool(tool.id as ToolId);
+        }
       }
     }
   },
@@ -65,11 +72,13 @@ export const useToolStore = create<ToolState>((set, get) => ({
     const bonus: ActiveBonus = { actionBonus: 0, timeBonus: 0, radiusBonus: 0 };
     const { equippedTools } = get();
     for (const id of equippedTools) {
-      const def = POLI_TOOLS.find((t) => t.id === id);
+      const def = getEditorTool(id);
       if (!def?.incidentBonus || def.incidentBonus.incidentId !== incidentId) continue;
-      bonus.actionBonus += def.incidentBonus.actionBonus ?? 0;
-      bonus.timeBonus += def.incidentBonus.timeBonus ?? 0;
-      bonus.radiusBonus += def.incidentBonus.radiusBonus ?? 0;
+      // Upgrade level scales the bonus: ×(1 + level × upgradeBonusPerLevel).
+      const mult = 1 + getToolUpgrade(id) * (def.upgradeBonusPerLevel ?? 0);
+      bonus.actionBonus += (def.incidentBonus.actionBonus ?? 0) * mult;
+      bonus.timeBonus += (def.incidentBonus.timeBonus ?? 0) * mult;
+      bonus.radiusBonus += (def.incidentBonus.radiusBonus ?? 0) * mult;
     }
     return bonus;
   },

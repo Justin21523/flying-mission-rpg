@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToolStore } from '../stores/toolStore';
 import { useRescueOperationStore } from '../stores/rescueOperationStore';
-import { POLI_TOOLS } from '../data/tools/poliTools';
+import { getEditorTool } from '../stores/editorToolStore';
 import type { ToolId } from '../types/tool';
 
 // Shows 3 equipped tool slots in the top-right corner (below WorldClockHUD).
@@ -16,7 +16,7 @@ function ToolSlot({ slotIndex }: { slotIndex: number }) {
   const incidentId = useRescueOperationStore((s) => s.incidentId);
 
   const toolId = equipped[slotIndex] as ToolId | undefined;
-  const def = toolId ? POLI_TOOLS.find((t) => t.id === toolId) : undefined;
+  const def = toolId ? getEditorTool(toolId) : undefined;
 
   // Highlight if this tool has a bonus for the current active incident.
   const isRelevant =
@@ -69,7 +69,7 @@ function ToolPicker({ onClose }: { onClose: () => void }) {
         <div className="text-xs text-slate-500">No tools unlocked yet.<br />Talk to Jin to unlock tools.</div>
       )}
       {unlockedTools.map((id) => {
-        const def = POLI_TOOLS.find((t) => t.id === id);
+        const def = getEditorTool(id);
         if (!def) return null;
         const isEquipped = equippedTools.includes(id);
         const isFull = equippedTools.length >= 3 && !isEquipped;
