@@ -85,6 +85,10 @@ export const FollowCamera = () => {
       t.z + r * sp * Math.cos(yaw.current),
     );
     state.camera.lookAt(t);
+    // Keep OrbitControls' target on the player so switching to Edit Mode (F1) keeps the view
+    // centred on the player instead of snapping to the world origin (then you can see + click it).
+    const c = controlsRef.current;
+    if (c) c.target.copy(t);
   });
 
   return (
