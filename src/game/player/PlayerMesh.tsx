@@ -1,45 +1,36 @@
-import { Suspense, useMemo } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { Suspense } from 'react';
 import type { TransformMode } from '../../stores/transformationStore';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 import { useNormalizedGlb } from '../poli/normalizeGlb';
-import { CORE_TEAM } from '../../data/characters/coreTeam';
 
-// Target heights so any GLB (whatever its native export units) fits the capsule collider.
+// Rebuilt player visual. DEFAULT = a simple, always-visible capsule (blue robot / amber vehicle)
+// with a white nose cone showing the forward (+Z) direction. The model is OPTIONAL and chosen in
+// Edit Mode → 🤖 POLI tab → Player: setting a Robot/Vehicle model path swaps the capsule for that
+// GLB (auto-normalized so any export scale fits). No path set → capsule. This guarantees the
+// player is never invisible and is fully swappable from the editor.
+
 const ROBOT_HEIGHT = 1.9;
 const VEHICLE_HEIGHT = 1.2;
 
-const POLI_BASE = CORE_TEAM.find((c) => c.id === 'poli')!;
-const DEFAULT_ROBOT_PATH = POLI_BASE.modelRobotPath!;
-const DEFAULT_VEHICLE_PATH = POLI_BASE.modelVehiclePath!;
-
-// Preload both forms so mode-switch has no stutter.
-useGLTF.preload(DEFAULT_ROBOT_PATH);
-useGLTF.preload(DEFAULT_VEHICLE_PATH);
-
-// Capsule shown while GLBs load — same dimensions as the physics collider.
-const RobotFallback = () => (
-  <mesh position={[0, 0, 0]} castShadow>
-    <capsuleGeometry args={[0.4, 0.9, 4, 8]} />
-    <meshStandardMaterial color="#3b82f6" roughness={0.55} metalness={0.15} />
-  </mesh>
-);
-
-const VehicleFallback = () => (
-  <mesh position={[0, 0.1, 0]} castShadow>
-    <boxGeometry args={[1.2, 0.6, 2.2]} />
-    <meshStandardMaterial color="#3b82f6" roughness={0.5} />
-  </mesh>
-);
-
-const RobotGlb = ({ path }: { path: string }) => {
-  // Auto-fit to ROBOT_HEIGHT; feet at local y=0, then drop 1.0 to straddle the capsule centre.
-  const { scene, scale, yOffset } = useNormalizedGlb(path, ROBOT_HEIGHT);
-  return <primitive object={scene} scale={scale} position={[0, yOffset - 1.0, 0]} />;
+const CapsulePlayer = ({ mode }: { mode: TransformMode }) => {
+  const color = mode === 'vehicle' ? '#f59e0b' : '#3b82f6';
+  return (
+    <group>
+      <mesh castShadow position={[0, 0, 0]}>
+        <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
+        <meshStandardMaterial color={color} roughness={0.5} metalness={0.2} />
+      </mesh>
+      {/* Forward (+Z) indicator */}
+      <mesh position={[0, 0.1, 0.62]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <coneGeometry args={[0.18, 0.42, 12]} />
+        <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  );
 };
 
-const VehicleGlb = ({ path }: { path: string }) => {
-  const { scene, scale, yOffset } = useNormalizedGlb(path, VEHICLE_HEIGHT);
+const GlbPlayer = ({ path, targetHeight }: { path: string; targetHeight: number }) => {
+  const { scene, scale, yOffset } = useNormalizedGlb(path, targetHeight);
   return <primitive object={scene} scale={scale} position={[0, yOffset - 1.0, 0]} />;
 };
 
@@ -48,26 +39,17 @@ interface Props {
 }
 
 export const PlayerMesh = ({ mode }: Props) => {
-  // Re-read whenever the editor override for Poli changes (e.g. model path swapped in Edit Mode).
-  const poliOverride = useEditorPoliCharacterStore((s) => s.overrides[POLI_BASE.id]);
-  const poli = useMemo(
-    () => (poliOverride ? { ...POLI_BASE, ...poliOverride } : POLI_BASE),
-    [poliOverride],
-  );
+  // Only the editor override drives the model — base data stays capsule by default.
+  const override = useEditorPoliCharacterStore((s) => s.overrides['poli']);
+  const path = mode === 'robot' ? override?.modelRobotPath : override?.modelVehiclePath;
+  const height = mode === 'robot' ? ROBOT_HEIGHT : VEHICLE_HEIGHT;
 
-  const robotPath = poli.modelRobotPath ?? DEFAULT_ROBOT_PATH;
-  const vehiclePath = poli.modelVehiclePath ?? DEFAULT_VEHICLE_PATH;
-
-  if (mode === 'robot') {
+  if (path) {
     return (
-      <Suspense fallback={<RobotFallback />}>
-        <RobotGlb path={robotPath} />
+      <Suspense fallback={<CapsulePlayer mode={mode} />}>
+        <GlbPlayer path={path} targetHeight={height} />
       </Suspense>
     );
   }
-  return (
-    <Suspense fallback={<VehicleFallback />}>
-      <VehicleGlb path={vehiclePath} />
-    </Suspense>
-  );
+  return <CapsulePlayer mode={mode} />;
 };

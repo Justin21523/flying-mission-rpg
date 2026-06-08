@@ -22,8 +22,13 @@ export interface CharacterOverride {
 
 interface EditorPoliCharacterState {
   overrides: Record<string, CharacterOverride>;
+  /** Which character is open in the POLI data panel. Pure UI selection (NOT spatial — the
+   *  transform gizmo selection still lives in the kit sceneEditStore). Set by clicking the
+   *  list, or by clicking the player/NPC in the 3D view. */
+  selectedId: string | null;
   setOverride: (id: string, patch: Partial<CharacterOverride>) => void;
   clearOverride: (id: string) => void;
+  selectPoli: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -44,6 +49,7 @@ function load(): { overrides: Record<string, CharacterOverride> } {
 
 export const useEditorPoliCharacterStore = create<EditorPoliCharacterState>((set, get) => ({
   ...load(),
+  selectedId: null,
 
   setOverride: (id, patch) => {
     const prev = get().overrides[id] ?? { id };
@@ -59,8 +65,10 @@ export const useEditorPoliCharacterStore = create<EditorPoliCharacterState>((set
     persist({ overrides: updated });
   },
 
+  selectPoli: (id) => set({ selectedId: id }),
+
   reset: () => {
-    set({ overrides: {} });
+    set({ overrides: {}, selectedId: null });
     persist({ overrides: {} });
   },
 }));

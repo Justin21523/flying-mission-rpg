@@ -1,164 +1,88 @@
 import { OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { MOUSE, Vector3 } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useUiStore } from '../../stores/uiStore';
 import { useTerrainBrushStore } from '../../stores/terrainBrushStore';
-import { useTransformationStore } from '../../stores/transformationStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
 
+// Rebuilt simple third-person follow camera.
+//
+// PLAY MODE: a plain orbit-follow. The camera always sits behind+above the player at a
+// user-controlled angle and looks at the player. The angle ONLY changes when the user drags
+// the mouse (or zooms with the wheel) — there is deliberately NO auto-spring toward the
+// player's facing, because that created a feedback loop with camera-relative movement and
+// made the camera look like it was "moving on its own". The player moves; the camera follows.
+//
+// EDIT MODE: the kit's OrbitControls drives the camera (free orbit/pan/zoom) so the transform
+// gizmo works exactly as in the rest of the kit. We only mirror the orbit target into
+// editorSpawn so the Add-Model palette drops new objects at the camera focus.
+
 const LOOK_SENSITIVITY = 0.0025;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export const FollowCamera = () => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const playerPosition = usePlayerStore((state) => state.position);
-  const editMode = useUiStore((state) => state.editMode);
-  const terrainTool = useTerrainBrushStore((state) => state.tool);
-  const terrainShiftHeld = useTerrainBrushStore((state) => state.shiftHeld);
-  const gl = useThree((state) => state.gl);
+  const playerPosition = usePlayerStore((s) => s.position);
+  const editMode = useUiStore((s) => s.editMode);
+  const terrainTool = useTerrainBrushStore((s) => s.tool);
+  const terrainShiftHeld = useTerrainBrushStore((s) => s.shiftHeld);
+  const gl = useThree((s) => s.gl);
 
-  // Pointer-lock double-click mode (unchanged from kit).
-  const [pointerLook, setPointerLook] = useState(false);
-  const shiftPan = useRef(false);
-  const yaw = useRef(0);
-  const pitch = useRef(1.0);
-  const dist = useRef(8);
-  const tmpTarget = useRef(new Vector3());
+  // Play-mode orbit state (refs → no re-render, no per-frame allocation).
+  const yaw = useRef(Math.PI);   // start behind the player (looking down +Z toward them)
+  const pitch = useRef(0.9);     // 0 = horizon, ~1.4 = top-down-ish
+  const dist = useRef(9);
+  const dragging = useRef(false);
+  const target = useRef(new Vector3());
 
-  // Play-mode drag: mouse-drag to orbit without pointer lock.
-  const isDragging = useRef(false);
-
-  // Pointer-lock setup (unchanged from kit).
+  // Mouse-drag to orbit + wheel to zoom — play mode only.
   useEffect(() => {
     const dom = gl.domElement;
-    const onDblClick = () => {
-      if (document.pointerLockElement === dom) {
-        document.exitPointerLock();
-      } else {
-        const c = controlsRef.current;
-        if (c) {
-          yaw.current = c.getAzimuthalAngle();
-          pitch.current = c.getPolarAngle();
-          dist.current = c.getDistance();
-        }
-        void dom.requestPointerLock?.();
-      }
-    };
-    const onLockChange = () => setPointerLook(document.pointerLockElement === dom);
-    const onMouseMove = (e: MouseEvent) => {
-      if (document.pointerLockElement !== dom) return;
+    const onDown = () => { if (!useUiStore.getState().editMode) dragging.current = true; };
+    const onUp = () => { dragging.current = false; };
+    const onMove = (e: PointerEvent) => {
+      if (!dragging.current || useUiStore.getState().editMode) return;
       yaw.current -= e.movementX * LOOK_SENSITIVITY;
-      pitch.current = Math.max(0.2, Math.min(Math.PI - 0.2, pitch.current + e.movementY * LOOK_SENSITIVITY));
+      pitch.current = clamp(pitch.current + e.movementY * LOOK_SENSITIVITY, 0.25, 1.45);
     };
-    const onShift = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftPan.current = e.type === 'keydown'; };
-    dom.addEventListener('dblclick', onDblClick);
-    document.addEventListener('pointerlockchange', onLockChange);
-    document.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('keydown', onShift);
-    window.addEventListener('keyup', onShift);
+    const onWheel = (e: WheelEvent) => {
+      if (useUiStore.getState().editMode) return;
+      dist.current = clamp(dist.current + e.deltaY * 0.01, 4, 18);
+    };
+    dom.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointermove', onMove);
+    dom.addEventListener('wheel', onWheel, { passive: true });
     return () => {
-      dom.removeEventListener('dblclick', onDblClick);
-      document.removeEventListener('pointerlockchange', onLockChange);
-      document.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('keydown', onShift);
-      window.removeEventListener('keyup', onShift);
+      dom.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointermove', onMove);
+      dom.removeEventListener('wheel', onWheel);
     };
   }, [gl]);
 
-  // Play-mode drag: rotate camera by dragging canvas; scroll wheel adjusts distance.
-  useEffect(() => {
-    const dom = gl.domElement;
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (editMode || pointerLook) return;
-      isDragging.current = true;
-      dom.setPointerCapture(e.pointerId);
-    };
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDragging.current || editMode || pointerLook) return;
-      yaw.current -= e.movementX * LOOK_SENSITIVITY;
-      pitch.current = Math.max(0.2, Math.min(Math.PI / 2.2, pitch.current + e.movementY * LOOK_SENSITIVITY));
-    };
-    const onPointerUp = () => { isDragging.current = false; };
-    const onWheel = (e: WheelEvent) => {
-      if (editMode || pointerLook) return;
-      dist.current = Math.max(5, Math.min(16, dist.current + e.deltaY * 0.01));
-    };
-
-    dom.addEventListener('pointerdown', onPointerDown);
-    dom.addEventListener('pointermove', onPointerMove);
-    dom.addEventListener('pointerup', onPointerUp);
-    dom.addEventListener('wheel', onWheel, { passive: true });
-    return () => {
-      dom.removeEventListener('pointerdown', onPointerDown);
-      dom.removeEventListener('pointermove', onPointerMove);
-      dom.removeEventListener('pointerup', onPointerUp);
-      dom.removeEventListener('wheel', onWheel);
-    };
-  }, [gl, editMode, pointerLook]);
-
   useFrame((state) => {
-    const c = controlsRef.current;
-    if (!c) return;
-
-    c.mouseButtons.LEFT = editMode && shiftPan.current ? MOUSE.PAN : MOUSE.ROTATE;
-
-    if (pointerLook) {
-      // Pointer-lock path: unchanged from kit.
-      const t = tmpTarget.current;
-      if (editMode) {
-        t.set(editorSpawn.x, editorSpawn.y, editorSpawn.z);
-      } else if (playerPosition) {
-        t.set(playerPosition.x, playerPosition.y + 1, playerPosition.z);
-      } else {
-        t.copy(c.target);
-      }
-      c.target.copy(t);
-      const sinP = Math.sin(pitch.current);
-      const r = dist.current;
-      state.camera.position.set(
-        t.x + r * sinP * Math.sin(yaw.current),
-        t.y + r * Math.cos(pitch.current),
-        t.z + r * sinP * Math.cos(yaw.current),
-      );
-      state.camera.lookAt(t);
-      if (editMode) { editorSpawn.x = t.x; editorSpawn.y = t.y; editorSpawn.z = t.z; }
-      return;
-    }
-
     if (editMode) {
-      editorSpawn.x = c.target.x;
-      editorSpawn.y = c.target.y;
-      editorSpawn.z = c.target.z;
+      // OrbitControls owns the camera; just mirror its focus for the Add-Model palette.
+      const c = controlsRef.current;
+      if (c) { editorSpawn.x = c.target.x; editorSpawn.y = c.target.y; editorSpawn.z = c.target.z; }
       return;
     }
-
     if (!playerPosition) return;
 
-    // Third-person spring camera: orbit target = player head; yaw always springs
-    // behind the player. Mouse drag temporarily overrides the spring.
-    const t = tmpTarget.current;
-    t.set(playerPosition.x, playerPosition.y + 1, playerPosition.z);
-    c.target.copy(t);
-
-    const { playerFacingAngle } = useTransformationStore.getState();
-    const targetYaw = playerFacingAngle + Math.PI;
-    if (!isDragging.current) {
-      // Always spring behind — shortest-arc lerp prevents 360° spin at ±π.
-      let delta = targetYaw - yaw.current;
-      while (delta > Math.PI) delta -= 2 * Math.PI;
-      while (delta < -Math.PI) delta += 2 * Math.PI;
-      yaw.current += delta * 0.1;
-    }
-
-    const sinP = Math.sin(pitch.current);
+    // Follow: orbit around the player's chest at the user's chosen yaw/pitch/distance.
+    const t = target.current;
+    t.set(playerPosition.x, playerPosition.y + 1.0, playerPosition.z);
+    const sp = Math.sin(pitch.current);
+    const cp = Math.cos(pitch.current);
     const r = dist.current;
     state.camera.position.set(
-      t.x + r * sinP * Math.sin(yaw.current),
-      t.y + r * Math.cos(pitch.current),
-      t.z + r * sinP * Math.cos(yaw.current),
+      t.x + r * sp * Math.sin(yaw.current),
+      t.y + r * cp,
+      t.z + r * sp * Math.cos(yaw.current),
     );
     state.camera.lookAt(t);
   });
@@ -167,14 +91,14 @@ export const FollowCamera = () => {
     <OrbitControls
       ref={controlsRef}
       makeDefault
-      // In play mode the camera is driven manually; OrbitControls only active in edit/pointer-lock.
-      enabled={editMode || pointerLook}
-      minPolarAngle={0.2}
-      maxPolarAngle={editMode ? Math.PI : Math.PI / 2.2}
-      minDistance={editMode ? 0.5 : 5}
-      maxDistance={editMode ? Infinity : 16}
+      // Only active in Edit Mode; in play mode the follow logic above drives the camera.
+      enabled={editMode}
       enablePan={editMode}
       enableRotate={!(editMode && terrainTool !== 'none') || terrainShiftHeld}
+      minDistance={0.5}
+      maxDistance={Infinity}
+      minPolarAngle={0.2}
+      maxPolarAngle={Math.PI}
       mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
       enableDamping
       dampingFactor={0.1}

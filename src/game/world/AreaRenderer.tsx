@@ -17,6 +17,7 @@ import { ZoneGate } from './ZoneGate';
 import { PoliNpcLayer } from '../poli/PoliNpcLayer';
 import { IncidentLayer } from '../poli/IncidentLayer';
 import { TrafficLayer } from '../poli/TrafficLayer';
+import { POLI_SANDBOX } from '../../data/poli/sandboxConfig';
 
 // Kit — renders one area's world: the ground stack (flat / flat-PBR / heightfield terrain via the
 // environment system), placed GLB set-pieces, PBR patch decals, and a travel gate to every connected
@@ -34,13 +35,15 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <FlatPbrGround areaId={areaId} />
       <PbrPatchLayer areaId={areaId} />
       <SceneSetPieceLayer areaId={areaId} />
-      <SampleEntities areaId={areaId} />
+      {/* Pre-authored "background" content — hidden in POLI sandbox mode (blank canvas).
+          Code kept; set POLI_SANDBOX=false in data/poli/sandboxConfig.ts to restore. */}
+      {!POLI_SANDBOX && <SampleEntities areaId={areaId} />}
       {/* POLI seam #1: additive NPC layer — schedule-driven, trust-gated dialogue */}
-      <PoliNpcLayer areaId={areaId} />
+      {!POLI_SANDBOX && <PoliNpcLayer areaId={areaId} />}
       {/* POLI seam #1b: incident layer — world incidents + rescue interaction */}
-      <IncidentLayer areaId={areaId} />
+      {!POLI_SANDBOX && <IncidentLayer areaId={areaId} />}
       {/* POLI seam #1c: traffic layer — NPC vehicles + traffic signals */}
-      <TrafficLayer areaId={areaId} />
+      {!POLI_SANDBOX && <TrafficLayer areaId={areaId} />}
       <EditableNpcLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />

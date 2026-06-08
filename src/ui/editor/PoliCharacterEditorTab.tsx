@@ -1,27 +1,66 @@
-import { useState } from 'react';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 import { useSceneEditStore } from '../../stores/sceneEditStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { RESIDENTS } from '../../data/characters/residents';
 import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
 import { Field, inp, lbl } from './editorShared';
+import { MODEL_ASSET_LIST } from '../../data/modelLibrary';
 import type { CharacterDefinition } from '../../types/character';
 
 // All POLI characters — player (poli) included since their model path can be overridden.
 const ALL_CHARS: CharacterDefinition[] = [...CORE_TEAM, ...RESIDENTS];
 
+// Auto-discovered models grouped by category for the picker dropdowns.
+const MODELS_BY_CATEGORY: Record<string, { path: string; label: string }[]> = (() => {
+  const g: Record<string, { path: string; label: string }[]> = {};
+  for (const a of MODEL_ASSET_LIST) (g[a.category] ??= []).push({ path: a.path, label: a.label });
+  return g;
+})();
+
+// Dropdown of every discovered GLB (+ "None → capsule") with a custom-path fallback field.
+// onChange writes the runtime path string straight into the override.
+const ModelPicker = ({ value, onChange }: { value: string; onChange: (v: string | undefined) => void }) => {
+  const known = MODEL_ASSET_LIST.some((a) => a.path === value);
+  return (
+    <div className="flex flex-col gap-1">
+      <select
+        className={inp}
+        value={known ? value : value ? '__custom__' : ''}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === '' ) onChange(undefined);          // capsule
+          else if (v !== '__custom__') onChange(v);     // picked a discovered model
+        }}
+      >
+        <option value="">— None (capsule) —</option>
+        {Object.entries(MODELS_BY_CATEGORY).map(([cat, items]) => (
+          <optgroup key={cat} label={cat}>
+            {items.map((m) => <option key={m.path} value={m.path}>{m.label}</option>)}
+          </optgroup>
+        ))}
+        {value && !known && <option value="__custom__">(custom path below)</option>}
+      </select>
+      <input
+        className={inp + ' text-[10px]'}
+        value={value}
+        placeholder="or a custom /models/... path"
+        onChange={(e) => onChange(e.target.value || undefined)}
+      />
+    </div>
+  );
+};
+
 export const PoliCharacterEditorTab = () => {
   const overrides = useEditorPoliCharacterStore((s) => s.overrides);
   const setOverride = useEditorPoliCharacterStore((s) => s.setOverride);
   const clearOverride = useEditorPoliCharacterStore((s) => s.clearOverride);
-  // List selection: clicking an NPC in the 3D view selects it through the kit's sceneEditStore
-  // (objKey areaId#npc#charId). We derive charId from that so the 3D selection and this data
-  // panel always agree; a manual list click sets a local fallback selection.
-  const [localSel, setLocalSel] = useState<string | null>(null);
+  // Selection priority: an NPC clicked in 3D (kit sceneEditStore, key areaId#npc#charId) wins;
+  // otherwise the POLI data-panel selection (set by the list, or by clicking the player in 3D).
+  const storeSel = useEditorPoliCharacterStore((s) => s.selectedId);
+  const setSelId = useEditorPoliCharacterStore((s) => s.selectPoli);
   const sceneKey = useSceneEditStore((s) => s.selectedKey);
   const npcCharId = sceneKey && sceneKey.split('#')[1] === 'npc' ? sceneKey.split('#')[2] : null;
-  const selId = npcCharId ?? localSel;
-  const setSelId = setLocalSel;
+  const selId = npcCharId ?? storeSel;
 
   const mergedChars = ALL_CHARS.map(getMergedPoliCharacter);
   const sel = selId ? mergedChars.find((c) => c.id === selId) ?? null : null;
@@ -80,21 +119,17 @@ export const PoliCharacterEditorTab = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Field label="Robot / NPC Model Path">
-                <input
-                  className={inp}
+              <Field label="Robot / NPC Model (none = capsule)">
+                <ModelPicker
                   value={sel.modelRobotPath ?? ''}
-                  placeholder="e.g. /models/characters/Poli+transformer+3d+model.glb"
-                  onChange={(e) => set({ modelRobotPath: e.target.value || undefined })}
+                  onChange={(v) => set({ modelRobotPath: v })}
                 />
               </Field>
 
-              <Field label="Vehicle Model Path">
-                <input
-                  className={inp}
+              <Field label="Vehicle Model (none = capsule)">
+                <ModelPicker
                   value={sel.modelVehiclePath ?? ''}
-                  placeholder="e.g. /models/characters/Poli car 3d model.glb"
-                  onChange={(e) => set({ modelVehiclePath: e.target.value || undefined })}
+                  onChange={(v) => set({ modelVehiclePath: v })}
                 />
               </Field>
 
