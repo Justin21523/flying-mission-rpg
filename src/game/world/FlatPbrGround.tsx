@@ -3,13 +3,17 @@ import { PlaneGeometry } from 'three';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { resolveAreaEnvironment } from '../environment/resolveAreaEnvironment';
 import { useGroundTextures } from './useGroundTextures';
+import { GROUND_SIZE } from './ZoneFloor';
 
 // Phase 98b — optional flat PBR ground: a large three.js plane with a meshStandardMaterial whose maps
 // are referenced by library key or path/URL. Rendered just above ZoneFloor (which keeps the collider)
 // when the area's Environment groundType is 'flatPbr'. A missing/typo URL fails soft — the tinted
 // plane still shows. Indoor areas are skipped. (Phase 98c: texture loading moved to useGroundTextures.)
+// Sized to GROUND_SIZE (matching the infinite base) so the textured ground covers the whole roamable map;
+// the geometry UVs are pre-scaled so the per-1000-units tile density set by `repeat` is preserved at any size.
+const UV_REF = 1000; // the size at which `repeat` was authored (legacy plane size)
 
-export const FlatPbrGround = ({ areaId, size = 1000 }: { areaId: string; size?: number }) => {
+export const FlatPbrGround = ({ areaId, size = GROUND_SIZE }: { areaId: string; size?: number }) => {
   // Subscribe so the ground re-resolves when overrides / default mode change.
   useEditorEnvironmentStore((s) => s.overrides);
   useEditorEnvironmentStore((s) => s.defaultMode);
@@ -17,10 +21,15 @@ export const FlatPbrGround = ({ areaId, size = 1000 }: { areaId: string; size?: 
   const g = env.pbrGround;
   const { albedo, normal, rough, ao } = useGroundTextures(g);
 
-  // Plane geometry with a uv1 set so aoMap works (three r152+ reads the uv1 attribute).
+  // Plane geometry with a uv1 set so aoMap works (three r152+ reads the uv1 attribute). UVs are scaled by
+  // size/UV_REF so the texture keeps the same world-space tile size as the legacy 1000-unit plane.
   const geom = useMemo(() => {
     const p = new PlaneGeometry(size, size, 1, 1);
-    p.setAttribute('uv1', p.getAttribute('uv').clone());
+    const uv = p.getAttribute('uv');
+    const s = size / UV_REF;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * s, uv.getY(i) * s);
+    uv.needsUpdate = true;
+    p.setAttribute('uv1', uv.clone());
     return p;
   }, [size]);
   useEffect(() => () => geom.dispose(), [geom]);
