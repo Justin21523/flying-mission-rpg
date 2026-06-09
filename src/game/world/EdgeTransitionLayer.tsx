@@ -33,11 +33,16 @@ export const EdgeTransitionLayer = ({ areaId }: { areaId: string }) => {
   const area = areas.find((a) => a.id === areaId);
   const size = getEffectiveAreaSize(areaId);
   const edges = area?.edges ?? {};
-  const firedRef = useRef(false);
+  // Start DISARMED so arriving in a new area (the player may still be reading a stale off-edge position from
+  // the previous area, or be spawned right at the new edge) doesn't instantly bounce back. Re-arms once the
+  // player is comfortably inside the bounds, then fires on the next edge crossing.
+  const firedRef = useRef(true);
 
   useFrame(() => {
     if (useTransitionStore.getState().covering) return;
-    const pos = usePlayerStore.getState().position;
+    const ps = usePlayerStore.getState();
+    if (ps.spawnRequest) return; // a teleport/area-switch spawn hasn't been applied yet — don't evaluate edges
+    const pos = ps.position;
     if (!pos) return;
     let edge: EdgeDir | null = null;
     if (pos.x > size && edges.east) edge = 'east';

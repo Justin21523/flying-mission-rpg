@@ -18,14 +18,20 @@ export const BoundaryMistLayer = ({ areaId }: { areaId: string }) => {
   if (editMode || isAreaIndoor(areaId)) return null;
 
   const size = getEffectiveAreaSize(areaId);
-  const H = 18;
+  const H = 26;
+  // Several concentric bands → a thick, VERY dense wall of mist at the edge (fully blocks the view beyond).
+  const bands = [size, size - 4, size - 8];
   return (
-    <mesh position={[0, H / 2 - 1.5, 0]} renderOrder={3} raycast={noRaycast}>
-      <cylinderGeometry args={[size, size, H, 48, 1, true]} />
-      <meshBasicMaterial color="#e6ebf2" transparent opacity={0.9} side={DoubleSide} depthWrite={false} fog={false} toneMapped={false}>
-        {/* alpha gradient: dense at the bottom (ground mist), fading to clear at the top */}
-        <GradientTexture attach="alphaMap" stops={[0, 0.45, 1]} colors={['#ffffff', '#9aa3ad', '#000000']} />
-      </meshBasicMaterial>
-    </mesh>
+    <group renderOrder={3}>
+      {bands.map((r, i) => (
+        <mesh key={i} position={[0, H / 2 - 2, 0]} raycast={noRaycast}>
+          <cylinderGeometry args={[r, r, H, 56, 1, true]} />
+          <meshBasicMaterial color="#eef2f7" transparent opacity={1} side={DoubleSide} depthWrite={false} fog={false} toneMapped={false}>
+            {/* alpha gradient: solid/opaque most of the way up (very dense), only the very top fades to clear */}
+            <GradientTexture attach="alphaMap" stops={[0, 0.8, 1]} colors={['#ffffff', '#ffffff', '#000000']} />
+          </meshBasicMaterial>
+        </mesh>
+      ))}
+    </group>
   );
 };
