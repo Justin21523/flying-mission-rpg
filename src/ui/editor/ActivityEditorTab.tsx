@@ -8,6 +8,8 @@ import {
 } from '../../types/activity';
 import { useEditorActivityStore } from '../../stores/editorActivityStore';
 import { useYokaiDirectorStore } from '../../stores/yokaiDirectorStore';
+import { useEditorYokaiStore } from '../../stores/editorYokaiStore';
+import { YOKAI_BEHAVIORS, YOKAI_BEHAVIOR_LABEL, type YokaiBehavior } from '../../types/yokai';
 import { useEditorEncounterStore } from '../../stores/editorEncounterStore';
 import { SEED_COMBATANTS } from '../../data/combatants';
 import { useActivityStore } from '../../stores/activityStore';
@@ -67,7 +69,9 @@ export const ActivityEditorTab = () => {
   const sel = activities.find((a) => a.def.id === selId) ?? null;
 
   return (
-    <div className="flex gap-3 text-xs">
+    <div className="space-y-3 text-xs">
+      <YokaiTypesPanel />
+      <div className="flex gap-3">
       <div className="w-48 shrink-0 space-y-2">
         <div>
           <div className={lbl}>+ New (mode)</div>
@@ -88,7 +92,51 @@ export const ActivityEditorTab = () => {
         <YokaiDirectorPanel />
       </div>
       <div className="min-w-0 flex-1">{sel ? <ActivityInspector ea={sel} /> : <p className="text-[11px] text-slate-500">Select or create a mini-game.</p>}</div>
+      </div>
     </div>
+  );
+};
+
+// 👹 Yokai types — editable AI behaviour + combat stats per type; hunts spawn from the enabled types.
+const YokaiTypesPanel = () => {
+  const types = useEditorYokaiStore((s) => s.types);
+  const st = useEditorYokaiStore.getState();
+  return (
+    <details className="rounded-lg border border-purple-700/40 bg-purple-950/20 p-2">
+      <summary className="cursor-pointer text-[11px] font-bold text-purple-100">👹 Yokai types ({types.length}) — AI behaviour + stats</summary>
+      <div className="mt-2 flex items-center gap-2">
+        <button onClick={() => st.addType()} className="rounded bg-purple-700/30 px-2 py-0.5 text-[10px] text-purple-100 hover:bg-purple-700/50">➕ add type</button>
+        <button onClick={() => st.reset()} className="rounded px-2 py-0.5 text-[10px] text-amber-300 hover:bg-slate-800">reset</button>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-3">
+        {types.map((t) => (
+          <div key={t.id} className="space-y-1 rounded border border-slate-700/60 bg-slate-900/40 p-1.5">
+            <div className="flex items-center gap-1.5">
+              <input type="checkbox" checked={t.enabled} onChange={(e) => st.updateType(t.id, { enabled: e.target.checked })} className="accent-purple-500" title="spawns in hunts" />
+              <input type="color" value={t.color} onChange={(e) => st.updateType(t.id, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" />
+              <input value={t.name} onChange={(e) => st.updateType(t.id, { name: e.target.value })} className={inp + ' flex-1'} />
+              <button onClick={() => st.removeType(t.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+            </div>
+            <Field label="behaviour">
+              <select value={t.behavior} onChange={(e) => st.updateType(t.id, { behavior: e.target.value as YokaiBehavior })} className={inp}>
+                {YOKAI_BEHAVIORS.map((b) => <option key={b} value={b}>{YOKAI_BEHAVIOR_LABEL[b]}</option>)}
+              </select>
+            </Field>
+            <Field label="model (empty = random yokai)"><ModelPicker value={t.modelAssetId || undefined} onChange={(v) => st.updateType(t.id, { modelAssetId: v ?? '' })} allowNone noneLabel="(random)" /></Field>
+            <div className="grid grid-cols-2 gap-1">
+              <label className="text-[9px] text-slate-400">hp<input type="number" className={inp} value={t.hp} onChange={(e) => st.updateType(t.id, { hp: parseFloat(e.target.value) || 1 })} /></label>
+              <label className="text-[9px] text-slate-400">speed<input type="number" step={0.2} className={inp} value={t.moveSpeed} onChange={(e) => st.updateType(t.id, { moveSpeed: parseFloat(e.target.value) || 0 })} /></label>
+              <label className="text-[9px] text-slate-400">aggro range<input type="number" className={inp} value={t.aggroRange} onChange={(e) => st.updateType(t.id, { aggroRange: parseFloat(e.target.value) || 0 })} /></label>
+              <label className="text-[9px] text-slate-400">attack range<input type="number" step={0.5} className={inp} value={t.attackRange} onChange={(e) => st.updateType(t.id, { attackRange: parseFloat(e.target.value) || 0 })} /></label>
+              <label className="text-[9px] text-slate-400">attack rate (s)<input type="number" step={0.1} className={inp} value={t.attackRate} onChange={(e) => st.updateType(t.id, { attackRate: parseFloat(e.target.value) || 0.1 })} /></label>
+              <label className="text-[9px] text-slate-400">attack dmg<input type="number" className={inp} value={t.attackDamage} onChange={(e) => st.updateType(t.id, { attackDamage: parseFloat(e.target.value) || 0 })} /></label>
+              <label className="text-[9px] text-slate-400">flee hp %<input type="number" step={0.05} min={0} max={1} className={inp} value={t.fleeHpPct} onChange={(e) => st.updateType(t.id, { fleeHpPct: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })} /></label>
+              <label className="flex items-end gap-1 text-[9px] text-slate-400"><input type="checkbox" checked={t.elite} onChange={(e) => st.updateType(t.id, { elite: e.target.checked })} className="accent-rose-500" />elite</label>
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
   );
 };
 

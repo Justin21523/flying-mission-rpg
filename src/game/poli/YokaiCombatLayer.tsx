@@ -9,7 +9,8 @@ import { useActivityStore } from '../../stores/activityStore';
 import { useYokaiCombatStore, liveYokai, type Yokai } from '../../stores/yokaiCombatStore';
 import { setSuperDamageSink } from '../combat/applySuperDamage';
 import { pullVelocity } from '../combat/pullField';
-import { MODEL_ASSET_LIST } from '../../data/modelLibrary';
+import { MODEL_ASSET_LIST, getModelAsset } from '../../data/modelLibrary';
+import { getEnabledYokaiTypes } from '../../stores/editorYokaiStore';
 import { getEffectiveAreaSize } from '../world/areaExtent';
 
 // POLI yokai-hunt runtime (Phase B) — play-mode only. While an `enemyRush` activity is running in THIS area,
@@ -20,7 +21,6 @@ import { getEffectiveAreaSize } from '../world/areaExtent';
 
 const YOKAI_MODELS = MODEL_ASSET_LIST.filter((a) => a.category === 'yokais');
 const YOKAI_HEIGHT = 1.7;
-const BASE_HP = 100;
 let uid = 0;
 
 export const YokaiCombatLayer = ({ areaId }: { areaId: string }) => {
@@ -60,27 +60,32 @@ export const YokaiCombatLayer = ({ areaId }: { areaId: string }) => {
   if (editMode || !huntHere) return null;
   // version read above keeps this list in sync with spawns/removals.
   void version;
-  return <>{liveYokai.map((y) => <YokaiEntity key={y.id} y={y} areaId={areaId} moveSpeed={activity?.rushConfig?.moveSpeed ?? 3} />)}</>;
+  return <>{liveYokai.map((y) => <YokaiEntity key={y.id} y={y} areaId={areaId} />)}</>;
 };
 
 function spawnYokai(activity: NonNullable<ReturnType<typeof useActivityStore.getState>['activity']>): void {
-  const rush = activity.rushConfig!;
   const pts = activity.arena.points;
-  const eliteOk = !!pts.eliteSpawn?.length;
-  const elite = eliteOk && Math.random() < (rush.eliteChance ?? 0.1);
-  const list = (elite ? pts.eliteSpawn : pts.rushSpawn) ?? pts.rushSpawn ?? pts.eliteSpawn ?? [[0, 0, 8]];
+  const types = getEnabledYokaiTypes();
+  if (types.length === 0) return;
+  const type = types[Math.floor(Math.random() * types.length)];
+  const list = (type.elite ? pts.eliteSpawn : pts.rushSpawn) ?? pts.rushSpawn ?? pts.eliteSpawn ?? [[0, 0, 8]];
   const p = list[Math.floor(Math.random() * list.length)];
-  const model = YOKAI_MODELS.length ? YOKAI_MODELS[Math.floor(Math.random() * YOKAI_MODELS.length)] : null;
-  const maxHp = Math.max(10, BASE_HP * (rush.enemyHpScale ?? 0.4) * (elite ? 2.5 : 1));
+  // Model: the type's chosen model, else a random yokai GLB.
+  let modelPath = '';
+  if (type.modelAssetId) { const a = getModelAsset(type.modelAssetId); if (a) modelPath = encodeURI(a.path); }
+  if (!modelPath && YOKAI_MODELS.length) modelPath = encodeURI(YOKAI_MODELS[Math.floor(Math.random() * YOKAI_MODELS.length)].path);
+  const maxHp = Math.max(10, type.hp);
   useYokaiCombatStore.getState().spawn({
-    id: `yk_${uid++}`, modelPath: model ? encodeURI(model.path) : '',
-    color: elite ? '#ef4444' : '#a855f7', elite, maxHp, hp: maxHp,
+    id: `yk_${uid++}`, modelPath, color: type.color, elite: type.elite, maxHp, hp: maxHp,
     x: p[0], y: p[1] ?? 0, z: p[2], vx: 0, vz: 0, clipSeed: Math.random(), dyingAt: 0,
+    behavior: type.behavior, moveSpeed: type.moveSpeed, aggroRange: type.aggroRange,
+    attackRange: type.attackRange, attackRate: type.attackRate, attackDamage: type.attackDamage,
+    fleeHpPct: type.fleeHpPct, nextAttackAt: 0, flankAng: Math.random() * Math.PI * 2,
   });
 }
 
-// One live yokai: roams toward the player with wander, plays a random clip, poofs (shrinks) on defeat.
-const YokaiEntity = ({ y, areaId, moveSpeed }: { y: Yokai; areaId: string; moveSpeed: number }) => {
+// One live yokai: AI-driven movement (per behaviour), plays a random clip, poofs (shrinks) on defeat.
+const YokaiEntity = ({ y, areaId }: { y: Yokai; areaId: string }) => {
   const groupRef = useRef<Group>(null);
   const st = useRef({ wanderT: 0, ang: 0 }); // wanderT 0 → first frame picks a random angle
 
@@ -100,19 +105,41 @@ const YokaiEntity = ({ y, areaId, moveSpeed }: { y: Yokai; areaId: string; moveS
 
     const pp = usePlayerStore.getState().position;
     if (pp) {
-      // Chase the player with a wandering jitter so the swarm "causes trouble" rather than beelines.
       st.current.wanderT -= dt;
       if (st.current.wanderT <= 0) { st.current.ang = Math.random() * Math.PI * 2; st.current.wanderT = 0.6 + Math.random() * 1.2; }
       const dx = pp.x - e.x, dz = pp.z - e.z;
       const dist = Math.hypot(dx, dz) || 1;
-      const chase = dist > 2 ? 1 : -0.3; // back off a touch when very close
-      const pv = pullVelocity(e.x, e.z); // black-hole suck (dominates direction when active)
-      const vx = (dx / dist) * chase + Math.cos(st.current.ang) * 0.4 + pv.vx;
-      const vz = (dz / dist) * chase + Math.sin(st.current.ang) * 0.4 + pv.vz;
-      const len = Math.hypot(vx, vz) || 1;
+      const ux = dx / dist, uz = dz / dist; // unit toward player
+
+      // ── Behaviour FSM → a goal direction (gx,gz) + speed multiplier. ──
+      let gx: number, gz: number, mult = 1;
+      const fleeing = e.fleeHpPct > 0 && e.hp < e.fleeHpPct * e.maxHp;
+      if (fleeing) {
+        gx = -ux; gz = -uz; mult = 1.4;            // run away
+      } else if (e.behavior === 'chaser') {
+        gx = ux; gz = uz;
+      } else if (e.behavior === 'ambusher') {
+        if (dist > e.aggroRange) { gx = Math.cos(st.current.ang); gz = Math.sin(st.current.ang); mult = 0.4; } // lurk
+        else { gx = ux; gz = uz; mult = 1.9; }     // dash in
+      } else if (e.behavior === 'kiter') {
+        if (dist < e.attackRange * 0.85) { gx = -ux; gz = -uz; }      // too close → back off
+        else if (dist > e.attackRange) { gx = ux; gz = uz; }          // too far → close in
+        else { gx = -uz; gz = ux; }                                   // in range → strafe
+      } else { // swarmer — head to a slowly-circling point around the player (surround / flank)
+        e.flankAng += dt * 0.6;
+        gx = (pp.x + Math.cos(e.flankAng) * 3.5) - e.x;
+        gz = (pp.z + Math.sin(e.flankAng) * 3.5) - e.z;
+        const gl = Math.hypot(gx, gz) || 1; gx /= gl; gz /= gl;
+      }
+
+      // Combine goal + a little wander + black-hole pull, then move + face travel.
+      const pv = pullVelocity(e.x, e.z);
+      let vx = gx + Math.cos(st.current.ang) * 0.15 + pv.vx;
+      let vz = gz + Math.sin(st.current.ang) * 0.15 + pv.vz;
+      const len = Math.hypot(vx, vz) || 1; vx /= len; vz /= len;
       const half = getEffectiveAreaSize(areaId);
-      e.x = Math.max(-half, Math.min(half, e.x + (vx / len) * moveSpeed * dt));
-      e.z = Math.max(-half, Math.min(half, e.z + (vz / len) * moveSpeed * dt));
+      e.x = Math.max(-half, Math.min(half, e.x + vx * e.moveSpeed * mult * dt));
+      e.z = Math.max(-half, Math.min(half, e.z + vz * e.moveSpeed * mult * dt));
       g.rotation.y = Math.atan2(vx, vz);
     }
     g.position.set(e.x, e.y, e.z);

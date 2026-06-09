@@ -25,6 +25,16 @@ export interface Yokai {
   vx: number; vz: number;   // wander velocity
   clipSeed: number;         // picks a random animation clip
   dyingAt: number;          // 0 = alive; else perf-time the defeat poof started
+  // AI (stamped from the YokaiType at spawn).
+  behavior: import('../types/yokai').YokaiBehavior;
+  moveSpeed: number;
+  aggroRange: number;
+  attackRange: number;
+  attackRate: number;
+  attackDamage: number;
+  fleeHpPct: number;
+  nextAttackAt: number;     // perf-time the next player attack is allowed (Phase J)
+  flankAng: number;         // swarmer surround angle offset
 }
 
 // Module-level mutable list (the render list is keyed by id; movement mutates entries in place).
