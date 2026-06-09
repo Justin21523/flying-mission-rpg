@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useSceneEditStore, buildOverridesFile, countEditsForArea, type GizmoMode } from '../stores/sceneEditStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { defaultCollisionForKind, defaultCollisionShapeForKind, type CollisionShape, type EditKind, type Vec3 } from '../game/edit/sceneEditMerge';
+import { NpcSelectionExtras } from './editor/NpcSelectionExtras';
 
 const COLLISION_KINDS = new Set(['setpiece', 'groundtile', 'decoration', 'scatter', 'regional', 'landmark', 'prop', 'building', 'structure']);
 
@@ -145,6 +146,9 @@ export const EditModeInspector = () => {
             <button onClick={() => { if (selectedKey) resetKey(selectedKey); }} className="flex-1 rounded border border-slate-700 bg-slate-800/50 px-2 py-1 text-[11px] hover:bg-slate-800">Reset</button>
             <button onClick={clearSelection} className="flex-1 rounded border border-slate-700 bg-slate-800/50 px-2 py-1 text-[11px] hover:bg-slate-800">Deselect</button>
           </div>
+
+          {/* POLI — clicking an NPC in-scene also exposes its AI movement + animation rules here. */}
+          {kind === 'npc' && <NpcSelectionExtras npcId={idx} />}
         </div>
       )}
 

@@ -23,13 +23,22 @@ export const AnimRuleList = ({ rules, clips, onChange }: { rules: AnimRule[]; cl
             <button onClick={() => onChange(rules.filter((x) => x.id !== r.id))} className="rounded px-1 text-[10px] text-rose-400 hover:bg-slate-800">🗑</button>
           </div>
           <div className="flex items-center gap-1">
-            <select value={r.trigger} onChange={(e) => upd(r.id, { trigger: e.target.value as AnimTrigger })} className={inp} title="trigger">
+            <select value={r.trigger} onChange={(e) => upd(r.id, { trigger: e.target.value as AnimTrigger })} className={inp} title="when this rule fires">
               {ANIM_TRIGGERS.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-            <select value={clips.includes(r.clip) ? r.clip : ''} onChange={(e) => upd(r.id, { clip: e.target.value })} className={inp} title="animation clip">
-              <option value="">{clips.length ? '(pick clip)' : '(no clips)'}</option>
-              {clips.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            {/* Track: a free-text field with the model's detected clips as datalist suggestions, so you can
+                pick a real clip OR type any track name even when none were auto-detected. */}
+            <input
+              value={r.clip}
+              onChange={(e) => upd(r.id, { clip: e.target.value })}
+              list={`clips_${r.id}`}
+              placeholder={clips.length ? 'pick / type track' : 'type track name'}
+              className={inp}
+              title="animation track (clip name in the model)"
+            />
+            <datalist id={`clips_${r.id}`}>
+              {clips.map((c) => <option key={c} value={c} />)}
+            </datalist>
           </div>
           <div className="grid grid-cols-4 gap-1">
             <label className="text-[9px] text-slate-400">spdMin<input type="number" step={0.5} value={r.speedMin ?? ''} onChange={(e) => upd(r.id, { speedMin: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className={inp} /></label>
