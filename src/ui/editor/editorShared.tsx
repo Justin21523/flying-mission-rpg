@@ -7,6 +7,7 @@ import { SEED_NPCS } from '../../data/npcs';
 import { useQuestStore } from '../../stores/questStore';
 import { useEditorQuestStore } from '../../stores/editorQuestStore';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
+import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { listDialogueTreeIds } from '../../game/dialogue/dialogueRegistry';
 import type { IdOption } from './idPickers';
 
@@ -29,11 +30,15 @@ export const csv = (a?: string[]) => (a ?? []).join(', ');
 export const parseCsv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
 
 // --- live id / option sources (for IdSelect / IdMultiPicker dropdowns) ---------------------------------
+// Subscribe to the editable world areas so dropdowns stay live — areas added/renamed in the 🗺 World tab
+// appear immediately (e.g. portal targets), not just the ones present at mount.
 export function useAreaIds(): string[] {
-  return useMemo(() => getAllAreas().map((a) => a.id), []);
+  useEditorWorldStore((s) => s.areas); // re-render when areas change
+  return getAllAreas().map((a) => a.id);
 }
 export function useAreaOptions(): IdOption[] {
-  return useMemo(() => getAllAreas().map((a) => ({ id: a.id, label: a.name })), []);
+  useEditorWorldStore((s) => s.areas); // re-render when areas change
+  return getAllAreas().map((a) => ({ id: a.id, label: a.name }));
 }
 
 export function useQuestIds(): string[] {

@@ -89,7 +89,9 @@ const PortalVisual = ({ portal, open }: { portal: PortalDef; open: boolean }) =>
 // Play-Mode portal: proximity auto-travel or [E] interact, with a re-arm guard so it fires once per approach.
 const ActivePortal = ({ portal, pos }: { portal: PortalDef; pos: [number, number, number] }) => {
   const inRange = useRef(false);
-  const armed = useRef(true);
+  // Start DISARMED so arriving in front of a portal (e.g. a paired return door) doesn't instantly re-trigger.
+  // Proximity portals arm once the player steps outside the radius, then fire on the next entry.
+  const armed = useRef(false);
   const promptRef = useRef<Group>(null);
   const r = portal.radius ?? 2.5;
 
@@ -101,22 +103,18 @@ const ActivePortal = ({ portal, pos }: { portal: PortalDef; pos: [number, number
     const open = isPortalOpen(portal);
     inRange.current = within && open;
     if (promptRef.current) promptRef.current.visible = portal.activation === 'interact' && within && open;
-    if (portal.activation === 'proximity') {
-      if (armed.current && within && open) { armed.current = false; travel(portal); }
-      else if (!armed.current && d > r + 1.2) { armed.current = true; }
-    } else if (d > r + 1.2) {
-      armed.current = true;
-    }
+    if (d > r + 1.2) armed.current = true; // armed once the player is clear of the portal
+    if (portal.activation === 'proximity' && armed.current && within && open) { armed.current = false; travel(portal); }
   });
 
-  // Interact ([E]) — travel when the player is in range of this open portal.
+  // Interact ([E]) — travel when the player is in range of an open portal (keypress is the gate; no loop risk).
   useEffect(() => {
     if (portal.activation !== 'interact') return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'KeyE' || e.repeat) return;
       const tag = (document.activeElement?.tagName ?? '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-      if (inRange.current && armed.current) { armed.current = false; travel(portal); }
+      if (inRange.current) travel(portal);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

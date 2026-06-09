@@ -3,6 +3,7 @@ import { PerformanceMonitor } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { useUiStore } from '../../stores/uiStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
+import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { DynamicAmbience } from '../world/DynamicAmbience';
 import { EditModeAmbience } from '../edit/EditModeAmbience';
@@ -34,6 +35,8 @@ export const Scene = () => {
   // Subscribe so the world reacts to environment edits.
   useEditorEnvironmentStore((s) => s.overrides);
   useEditorEnvironmentStore((s) => s.defaultMode);
+  // Indoor areas have no sky/weather — subscribe so toggling indoor in the 🗺 World tab applies live.
+  const indoor = useEditorWorldStore((s) => s.areas.find((a) => a.id === areaId)?.indoor === true);
 
   return (
     <>
@@ -45,10 +48,16 @@ export const Scene = () => {
         <Player />
       </Physics>
 
-      {!editMode && (
+      {/* Sky-driven ambient particles — outdoor only (indoor areas have no weather). */}
+      {!editMode && !indoor && (
         <>
           <WeatherParticles />
           <BiomeParticles />
+        </>
+      )}
+      {/* Player VFX — always on in play mode (indoor or outdoor). */}
+      {!editMode && (
+        <>
           <TransformSmoke />
           <FlightJet />
           <SkidMarks />

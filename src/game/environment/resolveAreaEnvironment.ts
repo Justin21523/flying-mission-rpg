@@ -1,8 +1,8 @@
 import type { BackgroundMode, EnvironmentOverride, GroundType, LockTime, PbrGroundConfig, PbrPatch, TerrainConfig } from '../../types/environmentOverride';
 import { DEFAULT_STABLE_OVERRIDE } from '../../types/environmentOverride';
 import { getEnvDefaultMode, getEnvironmentOverride } from '../../stores/editorEnvironmentStore';
+import { isAreaIndoor } from '../../stores/editorWorldStore';
 import { resolveAreaTheme } from './areaBiome';
-import { isIndoorBiome } from './environmentTheme';
 
 // Phase 98a — collapse the biome theme + global default mode + per-area override into one concrete
 // config that EnvironmentBackdrop and DynamicAmbience read. Indoor biomes are kept on the original
@@ -43,7 +43,9 @@ export interface ResolvedEnvironment {
 
 export function resolveAreaEnvironment(areaId: string): ResolvedEnvironment {
   const theme = resolveAreaTheme(areaId);
-  const indoor = isIndoorBiome(theme.biomeType);
+  // Indoor is the authoritative per-area flag (🗺 World tab). Default = outdoor, so all current areas are
+  // outdoor until explicitly marked indoor (the user adds interior areas themselves).
+  const indoor = isAreaIndoor(areaId);
   const override = getEnvironmentOverride(areaId);
 
   // Base layer: indoor → keep dynamic (unchanged); outdoor → global default mode.

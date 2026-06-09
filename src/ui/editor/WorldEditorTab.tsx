@@ -102,6 +102,15 @@ const AreaProps = ({ areaId }: { areaId: string }) => {
           <input type="number" min={10} step={5} value={area.size ?? 40} onChange={(e) => w.updateArea(areaId, { size: parseFloat(e.target.value) || 40 })} className={inp} />
         </Field>
       </div>
+      {/* Indoor / outdoor — indoor areas use fixed interior lighting and have no sky or weather. */}
+      <div className="flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
+        <span className={lbl}>Type</span>
+        <div className="flex gap-1">
+          <button onClick={() => w.updateArea(areaId, { indoor: false })} className={`rounded px-2 py-1 text-[11px] ${!area.indoor ? 'bg-sky-600/40 text-sky-100' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>☀ Outdoor</button>
+          <button onClick={() => w.updateArea(areaId, { indoor: true })} className={`rounded px-2 py-1 text-[11px] ${area.indoor ? 'bg-amber-600/40 text-amber-100' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>🏠 Indoor</button>
+        </div>
+        <span className="text-[10px] text-slate-500">{area.indoor ? 'fixed interior light · no sky/weather' : 'sky + day/night + weather'}</span>
+      </div>
       <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
         <div className="flex items-center justify-between">
           <span className={lbl}>Auto-size (grows to fit placed content)</span>
@@ -120,11 +129,14 @@ const AreaProps = ({ areaId }: { areaId: string }) => {
           <Field label="pickup ×"><input type="number" step={0.5} min={0} value={area.pickupDensity ?? 1} onChange={(e) => w.updateArea(areaId, { pickupDensity: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
           <Field label="danger (1–5)"><input type="number" step={1} min={1} max={5} value={area.dangerLevel ?? 1} onChange={(e) => w.updateArea(areaId, { dangerLevel: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
           <Field label="rec. level"><input type="number" step={1} min={1} value={area.recommendedLevel ?? 1} onChange={(e) => w.updateArea(areaId, { recommendedLevel: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
-          <Field label="weather lock">
-            <select value={area.weatherLock ?? 'any'} onChange={(e) => w.updateArea(areaId, { weatherLock: e.target.value })} className={inp}>
-              {['any', 'clear', 'rain', 'fog', 'storm'].map((x) => <option key={x} value={x}>{x}</option>)}
-            </select>
-          </Field>
+          {/* Weather only applies outdoors — indoor areas have no sky/weather. */}
+          {!area.indoor && (
+            <Field label="weather lock">
+              <select value={area.weatherLock ?? 'any'} onChange={(e) => w.updateArea(areaId, { weatherLock: e.target.value })} className={inp}>
+                {['any', 'clear', 'rain', 'fog', 'storm'].map((x) => <option key={x} value={x}>{x}</option>)}
+              </select>
+            </Field>
+          )}
         </div>
         <div className="mt-1 grid grid-cols-2 gap-2">
           <Field label="ambient light ×"><input type="number" step={0.1} min={0} max={3} value={area.ambientScale ?? 1} onChange={(e) => w.updateArea(areaId, { ambientScale: parseFloat(e.target.value) || 0 })} className={inp} /></Field>

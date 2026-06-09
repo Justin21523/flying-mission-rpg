@@ -171,3 +171,6 @@ export function getWorldDistricts(): District[] { return useEditorWorldStore.get
 export function getWorldAreas(): WorldArea[] { return useEditorWorldStore.getState().areas; }
 export function getWorldArea(id: string): WorldArea | undefined { return useEditorWorldStore.getState().areas.find((a) => a.id === id); }
 export function getAreaSize(id: string): number { return useEditorWorldStore.getState().areas.find((a) => a.id === id)?.size ?? 40; }
+// Authoritative indoor/outdoor for an area (explicit per-area flag; default outdoor). Drives lighting,
+// sky and weather. Areas are outdoor unless their `indoor` flag is explicitly true.
+export function isAreaIndoor(id: string): boolean { return useEditorWorldStore.getState().areas.find((a) => a.id === id)?.indoor === true; }

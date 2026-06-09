@@ -3,12 +3,11 @@ import { useFrame } from '@react-three/fiber';
 import type { AmbientLight, Color, DirectionalLight, Fog, HemisphereLight } from 'three';
 import { useWorldClockStore } from '../../stores/worldClockStore';
 import { usePlayerStore } from '../../stores/playerStore';
-import { isIndoorBiome } from '../environment/environmentTheme';
 import { resolveAreaTheme } from '../environment/areaBiome';
 import { applyBiomeTint, getIndoorAmbience, getInterpolatedAmbience } from './worldAmbience';
 import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
 import { resolveAreaEnvironment, resolvedBackgroundColor } from '../environment/resolveAreaEnvironment';
-import { getWorldArea } from '../../stores/editorWorldStore';
+import { getWorldArea, isAreaIndoor } from '../../stores/editorWorldStore';
 import { LOCK_TIME_MINUTE } from '../../types/environmentOverride';
 import { EnvironmentBackdrop } from './EnvironmentBackdrop';
 
@@ -32,7 +31,7 @@ export const DynamicAmbience = () => {
     const areaId = usePlayerStore.getState().currentAreaId;
     const theme = resolveAreaTheme(areaId);
     const env = resolveAreaEnvironment(areaId);
-    const indoor = isIndoorBiome(theme.biomeType);
+    const indoor = env.isIndoor; // authoritative per-area indoor flag (🗺 World tab)
 
     // Lighting source: indoor keeps fixed indoor ambience; otherwise a locked time-of-day pins the
     // look (never darkens with the clock/weather), else the live day/night + weather cycle runs.
@@ -77,8 +76,9 @@ export const DynamicAmbience = () => {
 
   // Seed initial values from the current clock + biome so the first frame isn't default-coloured.
   const clock = useWorldClockStore.getState();
-  const initTheme = resolveAreaTheme(usePlayerStore.getState().currentAreaId);
-  const init = isIndoorBiome(initTheme.biomeType)
+  const initAreaId = usePlayerStore.getState().currentAreaId;
+  const initTheme = resolveAreaTheme(initAreaId);
+  const init = isAreaIndoor(initAreaId)
     ? getIndoorAmbience(initTheme)
     : applyBiomeTint(getInterpolatedAmbience(clock.timeMinutes, clock.weather), initTheme);
 

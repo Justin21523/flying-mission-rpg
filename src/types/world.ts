@@ -69,6 +69,7 @@ export interface MapPoint {
 export interface WorldArea extends KitArea {
   districtId?: string;
   biome?: string;   // a BIOME_THEMES key; falls back to ambientTheme / inferred
+  indoor?: boolean; // explicit indoor/outdoor (authoritative). Indoor = fixed interior light, no sky/weather.
   size?: number;    // playable half-extent (minimum); default DEFAULT_AREA_SIZE
   autoExpand?: boolean; // grow the boundary to fit placed content (default true)
   sizeMargin?: number;  // extra room beyond the farthest object when auto-expanding (default 10)
