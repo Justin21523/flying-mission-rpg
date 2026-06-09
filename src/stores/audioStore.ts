@@ -26,6 +26,8 @@ interface AudioState extends PersistedSettings {
   setTextScale: (v: number) => void;
   toggleHighContrast: () => void;
   toggleReduceMotion: () => void;
+  importState: (data: Partial<PersistedSettings>) => void;
+  reset: () => void;
 }
 
 const STORAGE_KEY = 'r3f-rpg-builder-settings-v1';
@@ -108,4 +110,18 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     set({ reduceMotion });
     persist({ ...get(), reduceMotion });
   },
+  importState: (data) => {
+    const merged = { ...get(), ...data } as AudioState;
+    set({
+      particlesEnabled: merged.particlesEnabled,
+      particleDensity: DENSITIES.includes(merged.particleDensity) ? merged.particleDensity : 'medium',
+      sfxEnabled: merged.sfxEnabled,
+      sfxVolume: Math.min(1, Math.max(0, merged.sfxVolume)),
+      textScale: Math.min(1.5, Math.max(0.85, merged.textScale)),
+      highContrast: merged.highContrast,
+      reduceMotion: merged.reduceMotion,
+    });
+    persist(get());
+  },
+  reset: () => { set({ ...DEFAULTS }); persist(DEFAULTS); },
 }));

@@ -17,6 +17,14 @@ import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
 import { useJinResearchStore } from '../../stores/jinResearchStore';
 import { useLocaleStore } from '../../stores/localeStore';
+import { useProgressionStore } from '../../stores/progressionStore';
+import { useRelationshipStore } from '../../stores/relationshipStore';
+import { useAudioStore } from '../../stores/audioStore';
+import { MODEL_ASSET_LIST } from '../../data/modelLibrary';
+import { TEXTURE_SETS } from '../world/textureLibrary';
+import { getAllAreas } from '../../data/areas';
+import { BIOME_THEMES } from '../../data/environmentThemes';
+import { CORE_TEAM } from '../../data/characters/coreTeam';
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
 // serialize / deserialize / clear / summary hooks. The foundation for the unified project Export/Import.
@@ -191,6 +199,31 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     clear: () => useLocaleStore.getState().reset(),
     summary: () => `${Object.keys(useLocaleStore.getState().strings).length} strings · ${useLocaleStore.getState().locale}`,
   },
+  // Config + progress domains — individually JSON-controllable (surfaced in the 🧪 Debug tab).
+  {
+    id: 'progression',
+    label: 'Progression',
+    serialize: () => { const s = useProgressionStore.getState(); return { level: s.level, exp: s.exp }; },
+    deserialize: (data) => { if (isObj(data)) useProgressionStore.getState().importState(data as never); },
+    clear: () => useProgressionStore.getState().reset(),
+    summary: () => { const s = useProgressionStore.getState(); return `lv ${s.level} · ${s.exp} exp`; },
+  },
+  {
+    id: 'relationships',
+    label: 'Relationships',
+    serialize: () => ({ trust: { ...useRelationshipStore.getState().trust } }),
+    deserialize: (data) => { if (isObj(data)) useRelationshipStore.getState().importState(data as never); },
+    clear: () => useRelationshipStore.getState().reset(),
+    summary: () => `${Object.keys(useRelationshipStore.getState().trust).length} tracked`,
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    serialize: () => { const s = useAudioStore.getState(); return { particlesEnabled: s.particlesEnabled, particleDensity: s.particleDensity, sfxEnabled: s.sfxEnabled, sfxVolume: s.sfxVolume, textScale: s.textScale, highContrast: s.highContrast, reduceMotion: s.reduceMotion }; },
+    deserialize: (data) => { if (isObj(data)) useAudioStore.getState().importState(data as never); },
+    clear: () => useAudioStore.getState().reset(),
+    summary: () => { const s = useAudioStore.getState(); return `text ${Math.round(s.textScale * 100)}% · sfx ${s.sfxEnabled ? 'on' : 'off'}`; },
+  },
 ];
 
 // ── Unified project file ────────────────────────────────────────────────────
@@ -244,6 +277,52 @@ export function exportDomainFile(id: string): EditorDomainFile | null {
   const d = getDomain(id);
   if (!d) return null;
   return { kind: EDITOR_DOMAIN_KIND, domain: id, version: EDITOR_PROJECT_VERSION, exportedAt: new Date().toISOString(), data: d.serialize() };
+}
+
+// ── Example / template export (so an external tool knows the schema + valid ids) ─────────────────────
+// Curated id lists an external author may reference, per domain. Extra keys are ignored on import.
+function listModels(): string[] { return MODEL_ASSET_LIST.map((a) => a.id); }
+function listTextures(): string[] { return TEXTURE_SETS.map((s) => s.albedoKey ?? s.id).filter(Boolean) as string[]; }
+function listAreas(): string[] { return getAllAreas().map((a) => a.id); }
+function listBiomes(): string[] { return Object.keys(BIOME_THEMES); }
+function listChars(): string[] { return CORE_TEAM.map((c) => c.id); }
+function listTools(): string[] { return useEditorToolStore.getState().tools.map((t) => t.id); }
+function listIncidents(): string[] { return useEditorIncidentStore.getState().incidents.map((i) => i.id); }
+function listQuests(): string[] { return useEditorQuestStore.getState().quests.map((q) => q.id); }
+function listNpcs(): { id: string; name: string }[] { return useEditorNpcStore.getState().addedNpcs.map((n) => ({ id: n.id, name: n.displayName })); }
+function listDialogues(): string[] { return Object.keys(useEditorNpcStore.getState().dialogueTrees); }
+
+function domainReference(id: string): Record<string, unknown> {
+  switch (id) {
+    case 'editorWorld':
+    case 'editorLayout': return { models: listModels(), textures: listTextures(), areas: listAreas(), biomes: listBiomes() };
+    case 'editorIncident':
+    case 'editorRandomEvent': return { areas: listAreas(), incidents: listIncidents() };
+    case 'editorNpc': return { models: listModels(), areas: listAreas(), dialogues: listDialogues(), quests: listQuests() };
+    case 'editorQuest': return { areas: listAreas(), npcs: listNpcs() };
+    case 'editorPoliCharacter': return { characters: listChars(), models: listModels() };
+    case 'editorTool': return { tools: listTools(), incidents: listIncidents() };
+    case 'editorResearch': return { tools: listTools() };
+    case 'editorLandmark': return { areas: listAreas(), models: listModels() };
+    case 'editorTraffic': return { areas: listAreas() };
+    case 'editorTrigger': return { areas: listAreas(), quests: listQuests() };
+    case 'editorEnvironment': return { areas: listAreas(), textures: listTextures() };
+    default: return { areas: listAreas() };
+  }
+}
+
+export function exportDomainExample(id: string): (EditorDomainFile & { _readme: string; _reference: Record<string, unknown> }) | null {
+  const d = getDomain(id);
+  if (!d) return null;
+  return {
+    kind: EDITOR_DOMAIN_KIND,
+    domain: id,
+    version: EDITOR_PROJECT_VERSION,
+    exportedAt: new Date().toISOString(),
+    _readme: `Example for "${d.label}". Edit the "data" object and re-import it via the ⬆ button (or the Project tab). "_reference" lists valid ids you may use for this domain — it is ignored on import. You may also import just the bare "data" object.`,
+    _reference: domainReference(id),
+    data: d.serialize(),
+  };
 }
 
 export function importDomainFile(file: unknown, fallbackId?: string): { ok: boolean; domain?: string; error?: string } {

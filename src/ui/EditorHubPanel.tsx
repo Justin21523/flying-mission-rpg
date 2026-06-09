@@ -18,6 +18,8 @@ import { LicenseEditorTab } from './editor/LicenseEditorTab';
 import { ResearchEditorTab } from './editor/ResearchEditorTab';
 import { LocaleEditorTab } from './editor/LocaleEditorTab';
 import { SaveSlotsPanel } from './play/SaveSlotsPanel';
+import { DomainFileRow } from './editor/DomainFileRow';
+import { getDomain } from '../game/editor/editorContentRegistry';
 import { useSceneEditStore } from '../stores/sceneEditStore';
 import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore';
 
@@ -43,6 +45,53 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'locale', label: '🌐 Strings' },
   { id: 'save', label: '💾 Save' },
 ];
+
+// Which content domain(s) each tab can export/import as JSON (⬇ current · 📋 example · ⬆ replace). Tabs not
+// listed (project/save) manage their own IO. Multiple ids = that tab edits more than one domain.
+const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
+  debug: ['progression', 'relationships', 'settings'],
+  trigger: ['editorTrigger'],
+  encounter: ['editorEncounter'],
+  npc: ['editorNpc'],
+  quest: ['editorQuest'],
+  minigame: ['editorActivity'],
+  environment: ['editorEnvironment'],
+  poli: ['editorPoliCharacter'],
+  landmark: ['editorLandmark'],
+  incident: ['editorIncident', 'editorRandomEvent'],
+  traffic: ['editorTraffic'],
+  tools: ['editorTool'],
+  world: ['editorWorld', 'editorLayout'],
+  license: ['editorLicense'],
+  research: ['editorResearch'],
+  locale: ['editorLocale'],
+};
+
+// Collapsible JSON import/export strip shown atop a content tab (per-domain rows). Lets the user download
+// the current content / an annotated example, or upload a JSON to replace it (great for ChatGPT-authored data).
+const TabJsonStrip = ({ tab }: { tab: Tab }) => {
+  const [open, setOpen] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const ids = TAB_DOMAINS[tab];
+  if (!ids || ids.length === 0) return null;
+  const domains = ids.map(getDomain).filter((d): d is NonNullable<typeof d> => !!d);
+  if (domains.length === 0) return null;
+  return (
+    <div className="mb-3 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 text-left text-[11px] font-semibold text-sky-200">
+        <span>{open ? '▾' : '▸'}</span> 🧩 JSON import / export
+        <span className="ml-auto text-[10px] font-normal text-slate-500">⬇ current · 📋 example · ⬆ replace</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1">
+          {domains.map((d) => <DomainFileRow key={d.id} domain={d} onMsg={setMsg} />)}
+          <p className="text-[10px] leading-relaxed text-slate-500">📋 gives an example with a <code>_reference</code> list of valid ids (models/areas/tools…) so an external tool knows the schema. Upload a wrapped domain file or just the bare <code>data</code> object.</p>
+          {msg && <p className="rounded bg-slate-800/60 px-2 py-1 text-[10px] text-slate-300">{msg}</p>}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Kit — the tabbed Editor Hub (opens centred, free-move via the header, free-resize via the CSS handle).
 // Translucent so it doesn't block the scene. (The Assets palette is a separate left-centre panel.)
@@ -109,6 +158,7 @@ export const EditorHubPanel = () => {
       </div>
       <div className="relative min-w-0 flex-1 overflow-auto p-4 pr-10">
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
+        <TabJsonStrip tab={tab} />
         {tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'locale' ? <LocaleEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
       </div>
     </div>

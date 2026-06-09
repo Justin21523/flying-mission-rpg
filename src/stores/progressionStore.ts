@@ -8,6 +8,7 @@ interface ProgressionState {
   level: number;
   exp: number;
   addExp: (amount: number) => void;
+  importState: (data: { level?: number; exp?: number }) => void;
   reset: () => void;
 }
 
@@ -24,5 +25,6 @@ export const useProgressionStore = create<ProgressionState>((set, get) => ({
     }
     set({ level, exp });
   },
+  importState: (data) => set({ level: typeof data.level === 'number' ? Math.max(1, data.level) : get().level, exp: typeof data.exp === 'number' ? Math.max(0, data.exp) : get().exp }),
   reset: () => set({ level: 1, exp: 0 }),
 }));
