@@ -2,7 +2,7 @@ import { Suspense, useEffect, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
-import { useEditorPortalStore, getPortal } from '../../stores/editorPortalStore';
+import { useEditorPortalStore, getPortal, getPortals } from '../../stores/editorPortalStore';
 import type { PortalDef } from '../../types/portal';
 import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -37,8 +37,15 @@ function isPortalOpen(p: PortalDef): boolean {
   return !p.locked;
 }
 
-// Resolve where this portal drops the player: target map point → paired portal (front of it) → explicit
-// spawn → the target area's spawn point.
+// Arrive standing just OUTSIDE a portal's trigger radius, in front of it (so you don't instantly re-trigger).
+function inFrontOf(q: PortalDef): Vec3 {
+  const f = q.rotation ?? 0;
+  const offset = (q.radius ?? 2.5) + 1.5;
+  return { x: q.position[0] + Math.sin(f) * offset, y: q.position[1] + 1, z: q.position[2] + Math.cos(f) * offset };
+}
+
+// Resolve where this portal drops the player: explicit map point / paired portal / spawn → else the RECIPROCAL
+// door (a portal in the target area that leads back here) → else the target area's spawn point.
 function resolveDest(p: PortalDef): { areaId: string; spawn: Vec3 } {
   if (p.targetPointId) {
     const pt = getWorldArea(p.targetAreaId)?.points?.find((x) => x.id === p.targetPointId);
@@ -46,12 +53,12 @@ function resolveDest(p: PortalDef): { areaId: string; spawn: Vec3 } {
   }
   if (p.targetPortalId) {
     const tp = getPortal(p.targetPortalId);
-    if (tp) {
-      const f = tp.rotation ?? 0;
-      return { areaId: p.targetAreaId, spawn: { x: tp.position[0] + Math.sin(f) * 1.5, y: tp.position[1] + 1, z: tp.position[2] + Math.cos(f) * 1.5 } };
-    }
+    if (tp) return { areaId: p.targetAreaId, spawn: inFrontOf(tp) };
   }
   if (p.targetSpawn) return { areaId: p.targetAreaId, spawn: { x: p.targetSpawn[0], y: p.targetSpawn[1] + 1, z: p.targetSpawn[2] } };
+  // Auto-pair: land at the matching door on the other side (a portal there that points back to this area).
+  const reciprocal = getPortals().find((q) => q.areaId === p.targetAreaId && q.targetAreaId === p.areaId && q.id !== p.id);
+  if (reciprocal) return { areaId: p.targetAreaId, spawn: inFrontOf(reciprocal) };
   const sp = getWorldArea(p.targetAreaId)?.spawnPoint;
   return { areaId: p.targetAreaId, spawn: sp ? { x: sp.x, y: sp.y, z: sp.z } : { x: 0, y: 3, z: 0 } };
 }

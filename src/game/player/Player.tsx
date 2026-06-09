@@ -94,25 +94,28 @@ export const Player = () => {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
-  // Place the player on area change / spawn request. An EXPLICIT spawn (area travel / teleport / portal) ALWAYS
-  // wins — so arriving via an edge lands at the edge spawn, never at the saved authored override (which could
-  // sit right at the edge and bounce you straight back). With no pending spawn (fresh mount / reload), restore
-  // the saved Edit-Mode override for this area.
+  // Restore the saved Edit-Mode override (authored start / reload position) on area change — but ONLY when no
+  // travel spawn is pending. (Defined BEFORE the spawn effect so on travel it runs first, sees the pending
+  // spawn, and skips — the explicit spawn must win, never get overwritten by the override → no bounce-back.)
   useEffect(() => {
     const b = body.current;
-    if (!b) return;
-    if (spawnRequest) {
-      b.setTranslation(spawnRequest, true);
-      b.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      usePlayerStore.getState().clearSpawnRequest();
-      return;
-    }
+    if (!b || usePlayerStore.getState().spawnRequest) return;
     const ov = useSceneEditStore.getState().overrides[playerKey(currentAreaId)];
     if (ov?.position) {
       b.setTranslation({ x: ov.position[0], y: ov.position[1], z: ov.position[2] }, true);
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
-  }, [currentAreaId, spawnRequest]);
+  }, [currentAreaId]);
+
+  // Apply an explicit spawn (area travel / teleport / portal). Authoritative; clearing only re-fires THIS
+  // effect (then a no-op), never the override restore above.
+  useEffect(() => {
+    const b = body.current;
+    if (!spawnRequest || !b) return;
+    b.setTranslation(spawnRequest, true);
+    b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    usePlayerStore.getState().clearSpawnRequest();
+  }, [spawnRequest]);
 
   useFrame(() => {
     const b = body.current;
