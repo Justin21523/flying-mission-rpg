@@ -30,6 +30,16 @@ import { getAllAreas } from '../../data/areas';
 import { BIOME_THEMES } from '../../data/environmentThemes';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 
+// Editor-content stores whose changes should be tracked for global Undo/Redo (see editorUndoStore). Subscribing
+// to these covers every authoring edit — gizmo moves, tab fields, deletes — so Ctrl+Z always has something to do.
+export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
+  useSceneEditStore, useModelStudioStore, useEditorEnvironmentStore, useEditorTriggerStore, useEditorNpcStore,
+  useEditorQuestStore, useEditorEncounterStore, useEditorActivityStore, useEditorPoliCharacterStore,
+  useEditorLandmarkStore, useEditorIncidentStore, useEditorRandomEventStore, useEditorTrafficStore,
+  useEditorToolStore, useEditorWorldStore, useEditorLayoutStore, useEditorCollectibleStore, useEditorPortalStore,
+  useEditorBoostStore, useJinResearchStore,
+];
+
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
 // serialize / deserialize / clear / summary hooks. The foundation for the unified project Export/Import.
 // No source files are written — everything round-trips through the live stores + localStorage.

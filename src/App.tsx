@@ -39,6 +39,7 @@ import { ResourceHud } from './ui/ResourceHud';
 import { ScreenFade } from './ui/ScreenFade';
 import { useRescueOperationStore } from './stores/rescueOperationStore';
 import { useJinResearchStore } from './stores/jinResearchStore';
+import { initEditorUndo, editorUndo, editorRedo } from './stores/editorUndoStore';
 
 // Kit — top-level: the 3D <Canvas> with DOM overlays layered over it. F1 toggles Edit Mode; in Edit
 // Mode the camera free-pans, gizmos appear, and the Editor Hub + floating terrain palette are usable.
@@ -85,6 +86,9 @@ export const App = () => {
     return () => clearInterval(id);
   }, []);
 
+  // Start global editor Undo/Redo tracking (snapshots every authoring edit for Ctrl+Z / Ctrl+Shift+Z).
+  useEffect(() => { initEditorUndo(); }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (document.activeElement?.tagName ?? '').toLowerCase();
@@ -105,8 +109,8 @@ export const App = () => {
         if (e.code === 'Escape') { usePbrPatchEditStore.getState().select(null); return; }
       }
       if (e.repeat) return;
-      if ((e.code === 'KeyZ' && e.shiftKey && (e.ctrlKey || e.metaKey)) || (e.code === 'KeyY' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); useTerrainHistoryStore.getState().redo(); return; }
-      if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!useTerrainHistoryStore.getState().undo()) useSceneEditStore.getState().undo(); return; }
+      if ((e.code === 'KeyZ' && e.shiftKey && (e.ctrlKey || e.metaKey)) || (e.code === 'KeyY' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); if (!useTerrainHistoryStore.getState().redo()) editorRedo(); return; }
+      if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!useTerrainHistoryStore.getState().undo()) editorUndo(); return; }
       if (e.code === 'KeyD' && e.shiftKey) { e.preventDefault(); useSceneEditStore.getState().duplicateSelected(); return; }
       if (e.code === 'KeyW') useSceneEditStore.getState().setMode('translate');
       else if (e.code === 'KeyE') useSceneEditStore.getState().setMode('rotate');
