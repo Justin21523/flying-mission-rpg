@@ -51,10 +51,26 @@ export const EditModeInspector = () => {
   const rotation: Vec3 = override?.rotation ?? (o ? [o.rotation.x, o.rotation.y, o.rotation.z] : [0, 0, 0]);
   const scale: number = override?.scale ?? (o ? o.scale.x : 1);
 
+  const extraSelected = useSceneEditStore((s) => s.extraSelected);
+
   const patch = (next: { position?: Vec3; rotation?: Vec3; scale?: number }) => {
     if (!selectedKey) return;
     pushHistory();
     setOverride(selectedKey, { position, rotation, scale, ...next });
+    // Batch: apply the SAME change to every other selected object (position/rotation as a delta, scale as a
+    // ratio) so a numeric edit adjusts the whole selection together — matching the gizmo's batch drag.
+    if (extraSelected.length === 0) return;
+    const dp: Vec3 = next.position ? [next.position[0] - position[0], next.position[1] - position[1], next.position[2] - position[2]] : [0, 0, 0];
+    const dr: Vec3 = next.rotation ? [next.rotation[0] - rotation[0], next.rotation[1] - rotation[1], next.rotation[2] - rotation[2]] : [0, 0, 0];
+    const ratio = next.scale != null && scale !== 0 ? next.scale / scale : 1;
+    for (const ex of extraSelected) {
+      const o = ex.object;
+      setOverride(ex.key, {
+        position: [o.position.x + dp[0], o.position.y + dp[1], o.position.z + dp[2]],
+        rotation: [o.rotation.x + dr[0], o.rotation.y + dr[1], o.rotation.z + dr[2]],
+        scale: o.scale.x * ratio,
+      });
+    }
   };
 
   const saveToFile = useCallback(() => {
