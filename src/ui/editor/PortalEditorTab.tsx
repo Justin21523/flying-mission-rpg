@@ -19,12 +19,17 @@ export const PortalEditorTab = () => {
   const portals = all.filter((p) => p.areaId === areaId);
   const areaOptions = useAreaOptions();
 
-  // Named arrival destinations in a target area: its map points + its portals. "pt:<id>" / "po:<id>".
-  const arrivalOptions = (targetAreaId: string, selfId: string) => {
-    const pts = (worldAreas.find((a) => a.id === targetAreaId)?.points ?? []).map((pt) => ({ value: `pt:${pt.id}`, label: `${MAP_POINT_ICON[pt.type]} ${pt.name}` }));
-    const pos = all.filter((x) => x.areaId === targetAreaId && x.id !== selfId).map((x) => ({ value: `po:${x.id}`, label: `🚪 ${x.name}` }));
-    return [...pts, ...pos];
-  };
+  // Named arrival destinations across ALL areas (indoor + outdoor): every area's map points + portals,
+  // grouped by area. Value encodes area + kind + id: "pt:<areaId>:<pointId>" / "po:<areaId>:<portalId>".
+  // Picking one also sets the portal's target area, so any point anywhere is reachable in one choice.
+  const arrivalGroups = (selfId: string) => worldAreas.map((a) => ({
+    areaId: a.id,
+    areaName: a.name,
+    items: [
+      ...(a.points ?? []).map((pt) => ({ value: `pt:${a.id}:${pt.id}`, label: `${MAP_POINT_ICON[pt.type]} ${pt.name}` })),
+      ...all.filter((x) => x.areaId === a.id && x.id !== selfId).map((x) => ({ value: `po:${a.id}:${x.id}`, label: `🚪 ${x.name}` })),
+    ],
+  })).filter((g) => g.items.length > 0);
 
   const set = (id: string, patch: Partial<PortalDef>) => st.updatePortal(id, patch);
 
@@ -79,19 +84,24 @@ export const PortalEditorTab = () => {
                     {areaOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
                   </select>
                 </Field>
-                <Field label="arrive at (map point / portal)">
+                <Field label="arrive at (any area's point / portal)">
                   <select
-                    value={p.targetPointId ? `pt:${p.targetPointId}` : p.targetPortalId ? `po:${p.targetPortalId}` : ''}
+                    value={p.targetPointId ? `pt:${p.targetAreaId}:${p.targetPointId}` : p.targetPortalId ? `po:${p.targetAreaId}:${p.targetPortalId}` : ''}
                     onChange={(e) => {
                       const v = e.target.value;
-                      if (v.startsWith('pt:')) set(p.id, { targetPointId: v.slice(3), targetPortalId: undefined });
-                      else if (v.startsWith('po:')) set(p.id, { targetPortalId: v.slice(3), targetPointId: undefined });
+                      const [kind, areaId2, id2] = v.split(':');
+                      if (kind === 'pt') set(p.id, { targetAreaId: areaId2, targetPointId: id2, targetPortalId: undefined });
+                      else if (kind === 'po') set(p.id, { targetAreaId: areaId2, targetPortalId: id2, targetPointId: undefined });
                       else set(p.id, { targetPointId: undefined, targetPortalId: undefined });
                     }}
                     className={inp}
                   >
                     <option value="">(area spawn / custom below)</option>
-                    {arrivalOptions(p.targetAreaId, p.id).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {arrivalGroups(p.id).map((g) => (
+                      <optgroup key={g.areaId} label={g.areaName}>
+                        {g.items.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
                 </Field>
               </div>
@@ -110,7 +120,7 @@ export const PortalEditorTab = () => {
                   </div>
                 </Field>
               )}
-              <div className="mt-0.5 text-[9px] text-slate-500">“arrive at” lists the target area's 🗺 map points + 🚪 portals. No options? Add a map point in that area (🗺 World tab) or type a custom position.</div>
+              <div className="mt-0.5 text-[9px] text-slate-500">“arrive at” lists 🗺 map points + 🚪 portals from EVERY area (grouped) — picking one sets the destination area too. No options yet? Add map points in the 🗺 World tab, or type a custom position above.</div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
