@@ -1,8 +1,9 @@
 import { BackSide, MeshBasicMaterial } from 'three';
-import { Sky, GradientTexture, Clouds, Cloud } from '@react-three/drei';
+import { Sky, GradientTexture, Clouds, Cloud, Environment } from '@react-three/drei';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { resolveAreaEnvironment, sunPositionFrom } from '../environment/resolveAreaEnvironment';
+import { resolveHdriUrl } from './hdriLibrary';
 
 // Phase 98a — pure-visual backdrop for the current area: a stable drei <Sky> dome (or vertical
 // gradient / solid colour), plus a large ground-catch plane so the map edges never reveal void.
@@ -43,6 +44,12 @@ export const EnvironmentBackdrop = () => {
             <Cloud seed={6} segments={30} bounds={[90, 9, 90]} volume={15} smallestVolume={0.3} concentrate="outside" growth={4} opacity={0.66} fade={220} speed={0.03} color="#f4f7fb" position={[-150, 76, -40]} />
           </Clouds>
         </>
+      )}
+
+      {/* Photoreal HDRI panorama (CC0 .hdr/.exr dropped in public/hdri or src/assets/hdri) — sets the sky
+          background AND image-based lighting. Mounts after the background colour so it owns scene.background. */}
+      {env.backgroundMode === 'hdri' && resolveHdriUrl(env.hdriUrl) && (
+        <Environment files={resolveHdriUrl(env.hdriUrl)!} background />
       )}
 
       {env.backgroundMode === 'gradient' && (

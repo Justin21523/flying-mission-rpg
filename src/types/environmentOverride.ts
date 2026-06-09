@@ -5,7 +5,7 @@ import type { TimeOfDay } from './randomEvent';
 // field is optional so an override only changes what it sets; the rest falls back to the resolver's
 // stable default or the live day/night system. No source data is written.
 
-export type BackgroundMode = 'dynamic' | 'sky' | 'gradient' | 'solid';
+export type BackgroundMode = 'dynamic' | 'sky' | 'gradient' | 'solid' | 'hdri';
 
 // Lock the area's lighting to one time-of-day so it never darkens with the clock/weather.
 export type LockTime = TimeOfDay | 'none';
@@ -117,6 +117,7 @@ export interface EnvironmentOverride {
   solidColor?: string;        // backgroundMode === 'solid'
   gradientTop?: string;       // backgroundMode === 'gradient'
   gradientBottom?: string;
+  hdriUrl?: string;           // backgroundMode === 'hdri' — a CC0 .hdr/.exr panorama (photoreal sky + lighting)
 
   // Fog override (independent of background mode).
   fogEnabled?: boolean;

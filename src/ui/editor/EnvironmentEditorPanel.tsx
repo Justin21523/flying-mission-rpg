@@ -12,6 +12,7 @@ import { editorSpawn } from '../../stores/sceneEditStore';
 import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { ABILITY_TYPES } from '../../types/character';
+import { HDRI_LIST } from '../../game/world/hdriLibrary';
 import { TerrainToolsBar } from './TerrainToolsBar';
 
 // Phase 98a — Editor Hub "Environment" tab. Per-area sky / gradient / solid background, fog and a
@@ -20,6 +21,7 @@ import { TerrainToolsBar } from './TerrainToolsBar';
 
 const BG_MODES: { id: BackgroundMode; label: string }[] = [
   { id: 'sky', label: '☀ Sky dome' },
+  { id: 'hdri', label: '🌅 HDRI (photoreal)' },
   { id: 'gradient', label: '▤ Gradient' },
   { id: 'solid', label: '■ Solid' },
   { id: 'dynamic', label: '🕓 Dynamic day/night' },
@@ -516,6 +518,23 @@ export const EnvironmentEditorPanel = () => {
           <Slider label="Sun azimuth°" value={env.sunAzimuthDeg} min={0} max={360} step={1} onChange={(v) => patch({ sunAzimuthDeg: v })} />
           <Slider label="Turbidity" value={env.turbidity} min={0} max={20} step={0.5} onChange={(v) => patch({ turbidity: v })} />
           <Slider label="Rayleigh" value={env.rayleigh} min={0} max={4} step={0.1} onChange={(v) => patch({ rayleigh: v })} />
+        </div>
+      )}
+
+      {env.backgroundMode === 'hdri' && (
+        <div className="space-y-1 rounded-lg border border-slate-700 bg-slate-900/40 p-2">
+          <span className={lbl}>HDRI panorama (photoreal sky + lighting)</span>
+          {HDRI_LIST.length === 0 ? (
+            <p className="rounded bg-slate-900/60 px-2 py-1.5 text-[10px] leading-relaxed text-slate-500">
+              No HDRIs found. Drop a CC0 <code className="text-slate-400">.hdr</code> into{' '}
+              <code className="text-slate-400">public/hdri/</code> (e.g. from polyhaven.com → Skies) — it appears here automatically.
+            </p>
+          ) : (
+            <select value={env.hdriUrl ?? ''} onChange={(e) => patch({ hdriUrl: e.target.value || undefined })} className={`w-full ${inp}`}>
+              <option value="">(pick an HDRI)</option>
+              {HDRI_LIST.map((h) => <option key={h.id} value={h.id}>{h.label}</option>)}
+            </select>
+          )}
         </div>
       )}
 

@@ -22,6 +22,7 @@ export interface ResolvedEnvironment {
   solidColor: string;
   gradientTop: string;
   gradientBottom: string;
+  hdriUrl?: string;
   // fog
   fogEnabled: boolean;
   fogColor?: string;
@@ -67,6 +68,7 @@ export function resolveAreaEnvironment(areaId: string): ResolvedEnvironment {
     mieDirectionalG: m.mieDirectionalG ?? 0.8,
     solidColor: m.solidColor ?? theme.fogColor,
     gradientTop: m.gradientTop ?? '#7fb2e8',
+    hdriUrl: m.hdriUrl,
     gradientBottom: m.gradientBottom ?? theme.fogColor,
     fogEnabled: m.fogEnabled ?? true,
     fogColor: m.fogColor,
