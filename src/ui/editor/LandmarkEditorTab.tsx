@@ -1,5 +1,7 @@
 import { useEditorLandmarkStore } from '../../stores/editorLandmarkStore';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useSceneEditStore } from '../../stores/sceneEditStore';
+import { objKey } from '../../game/edit/sceneEditMerge';
 import { getKitArea } from '../../data/areas';
 import { Field, inp, lbl } from './editorShared';
 import { ModelPicker } from './ModelPicker';
@@ -12,6 +14,7 @@ export const LandmarkEditorTab = () => {
   const add = useEditorLandmarkStore((s) => s.addLandmark);
   const update = useEditorLandmarkStore((s) => s.updateLandmark);
   const remove = useEditorLandmarkStore((s) => s.removeLandmark);
+  const overrides = useSceneEditStore((s) => s.overrides); // live gizmo positions
   const here = landmarks.filter((l) => l.areaId === areaId);
   const areaName = getKitArea(areaId)?.name ?? areaId;
 
@@ -37,25 +40,31 @@ export const LandmarkEditorTab = () => {
           <Field label="Model (empty = stub pillar)">
             <ModelPicker value={l.modelAssetId ?? undefined} onChange={(v) => update(l.id, { modelAssetId: v ?? null })} noneLabel="(stub pillar)" />
           </Field>
-          <Field label="Position (x / y / z)">
+          <Field label="Position (x / y / z) — live with the gizmo">
             <div className="flex gap-1">
-              {([0, 1, 2] as const).map((a) => (
-                <input
-                  key={a}
-                  type="number"
-                  step={0.5}
-                  value={l.position[a]}
-                  className={inp + ' w-0 flex-1 text-center'}
-                  onChange={(e) => {
-                    const next = [...l.position] as [number, number, number];
-                    next[a] = parseFloat(e.target.value) || 0;
-                    update(l.id, { position: next });
-                  }}
-                />
-              ))}
+              {([0, 1, 2] as const).map((a) => {
+                // Show the merged position so dragging the gizmo updates these numbers live.
+                const livePos = (overrides[objKey(l.areaId, 'landmark', l.id)]?.position ?? l.position) as [number, number, number];
+                return (
+                  <input
+                    key={a}
+                    type="number"
+                    step={0.5}
+                    value={Math.round(livePos[a] * 100) / 100}
+                    className={inp + ' w-0 flex-1 text-center'}
+                    onChange={(e) => {
+                      const next = [...livePos] as [number, number, number];
+                      next[a] = parseFloat(e.target.value) || 0;
+                      update(l.id, { position: next });
+                      // Clear the gizmo override so the typed value is the truth.
+                      useSceneEditStore.getState().setOverride(objKey(l.areaId, 'landmark', l.id), { position: undefined });
+                    }}
+                  />
+                );
+              })}
             </div>
           </Field>
-          <div className="text-[10px] text-slate-500">Tip: in the 3D view you can also click the landmark and drag the gizmo.</div>
+          <div className="text-[10px] text-slate-500">Tip: click the landmark in 3D and drag the gizmo — these numbers follow.</div>
         </div>
       ))}
     </div>
