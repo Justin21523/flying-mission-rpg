@@ -83,13 +83,27 @@ export interface EditorNpc {
   movement?: NpcMovement;        // how the NPC moves in Play Mode (default 'static')
   patrolWaypoints?: Vec3[];      // closed loop for 'patrol' (last → first; no dead-end)
   schedulePositions?: Partial<Record<TimeOfDay, Vec3>>; // per-phase target for 'schedule'
+  paths?: NpcPath[];             // 'paths' mode: weighted set; a random one is walked each trip
+  guardLeash?: number;           // 'guard' mode: chase the player within this range, else return home
   moveSpeed?: number;            // world units / sec (default 1.6)
   wanderRadius?: number;         // roam radius for 'wander' (default 12)
   animations?: import('./character').AnimRule[]; // custom animation rules (same system as the player)
 }
 
-export type NpcMovement = 'static' | 'patrol' | 'schedule' | 'wander';
-export const NPC_MOVEMENT: NpcMovement[] = ['static', 'patrol', 'schedule', 'wander'];
+// One waypoint on a path — optional per-segment speed (units/s, toward this point) + wait (s) on arrival.
+export interface PathPoint { pos: Vec3; speed?: number; wait?: number }
+export type PathMode = 'loop' | 'pingpong' | 'once';
+export const PATH_MODES: PathMode[] = ['loop', 'pingpong', 'once'];
+export interface NpcPath {
+  id: string;
+  name: string;
+  weight: number;     // relative probability of being chosen for a trip
+  mode: PathMode;     // loop = cycle, pingpong = 來回, once = walk then re-roll a new path
+  points: PathPoint[];
+}
+
+export type NpcMovement = 'static' | 'patrol' | 'schedule' | 'wander' | 'paths' | 'guard';
+export const NPC_MOVEMENT: NpcMovement[] = ['static', 'patrol', 'schedule', 'wander', 'paths', 'guard'];
 
 let npcCodeSeq = 0;
 export function makeNpcCode(npcType: NpcType = 'student'): string {

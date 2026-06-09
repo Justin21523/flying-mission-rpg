@@ -8,7 +8,7 @@ import { AnimRuleList } from './AnimRuleList';
 import { AssetClipLoader } from './AssetClipLoader';
 import { inp, lbl } from './editorShared';
 
-const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day', wander: 'Wander (AI roam)' };
+const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day', wander: 'Wander (AI roam)', paths: 'Paths (weighted)', guard: 'Guard (chase + return)' };
 
 // POLI — animation-rule + AI-movement editing for an NPC selected via the in-scene gizmo (EditModeInspector).
 // Mirrors the 🧑 NPC tab's controls so you can author rules right where you clicked the NPC. Additive — looks

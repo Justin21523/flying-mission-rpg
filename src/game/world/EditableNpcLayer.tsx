@@ -5,7 +5,7 @@ import { RigidBody, CapsuleCollider, type RapierRigidBody } from '@react-three/r
 import { Vector3, AnimationMixer, LoopRepeat, type Group, type AnimationAction } from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
-import type { EditorNpc } from '../../types/editorNPC';
+import type { EditorNpc, NpcPath } from '../../types/editorNPC';
 import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useWorldClockStore } from '../../stores/worldClockStore';
@@ -38,6 +38,31 @@ const ARRIVE = 0.25;
 // Module temp vectors — no per-frame allocation.
 const _target = new Vector3();
 const _step = new Vector3();
+
+// Pick a path by weight (probability ∝ weight; falls back to uniform if all weights are 0).
+function pickWeightedPath(paths: NpcPath[]): NpcPath {
+  const total = paths.reduce((s, p) => s + Math.max(0, p.weight), 0);
+  if (total <= 0) return paths[Math.floor(Math.random() * paths.length)];
+  let r = Math.random() * total;
+  for (const p of paths) { r -= Math.max(0, p.weight); if (r <= 0) return p; }
+  return paths[paths.length - 1];
+}
+
+// Advance the path traversal index per mode. once → re-roll a fresh path by weight on completion.
+type PathState = { pathId: string | null; pIdx: number; pDir: number };
+function advancePath(s: PathState, path: NpcPath, all: NpcPath[]): void {
+  const n = path.points.length;
+  if (path.mode === 'pingpong') {
+    let next = s.pIdx + s.pDir;
+    if (next >= n) { next = n - 2; s.pDir = -1; } else if (next < 0) { next = 1; s.pDir = 1; }
+    s.pIdx = Math.max(0, Math.min(n - 1, next));
+  } else if (path.mode === 'loop') {
+    s.pIdx = (s.pIdx + 1) % n;
+  } else { // once
+    if (s.pIdx + 1 >= n) { const np = pickWeightedPath(all); s.pathId = np.id; s.pIdx = 0; s.pDir = 1; }
+    else s.pIdx += 1;
+  }
+}
 
 export const EditableNpcLayer = ({ areaId }: { areaId: string }) => {
   const npcs = useEditorNpcStore((s) => s.addedNpcs);
@@ -129,7 +154,7 @@ const MovingNpc = ({ npc, start, scale }: { npc: EditorNpc; start: Vec3; scale: 
   const alertRef = useRef<Group>(null);
   const posRef = useRef(new Vector3(start[0], start[1], start[2]));
   const motionRef = useRef<NpcMotion>({ moving: false, speed: 0 });
-  const st = useRef({ wp: 0, near: false, wander: null as Vector3 | null, wanderWait: 0 });
+  const st = useRef({ wp: 0, near: false, wander: null as Vector3 | null, wanderWait: 0, pathId: null as string | null, pIdx: 0, pDir: 1, pWait: 0 });
   const speed = npc.moveSpeed ?? 1.6;
   const label = npc.interactionLabel || `Talk to ${npc.displayName}`;
 
@@ -169,8 +194,34 @@ const MovingNpc = ({ npc, start, scale }: { npc: EditorNpc; start: Vec3; scale: 
     }
 
     // ── Normal movement target when not reacting. ──
+    let effSpeed = speed; // per-segment speed override (paths) / chase speed (guard)
     if (!reacting) {
-      if (npc.movement === 'patrol' && npc.patrolWaypoints && npc.patrolWaypoints.length > 1) {
+      if (npc.movement === 'paths' && (npc.paths?.length ?? 0) > 0) {
+        const paths = npc.paths!.filter((pp) => pp.points.length > 0);
+        if (paths.length === 0) { _target.set(start[0], p.y, start[2]); }
+        else {
+          let path = paths.find((pp) => pp.id === st.current.pathId);
+          if (!path) { path = pickWeightedPath(paths); st.current.pathId = path.id; st.current.pIdx = 0; st.current.pDir = 1; st.current.pWait = 0; }
+          if (st.current.pWait > 0) { st.current.pWait -= dt; _target.copy(p); }
+          else {
+            const idx = Math.min(st.current.pIdx, path.points.length - 1);
+            const pt = path.points[idx];
+            effSpeed = pt.speed && pt.speed > 0 ? pt.speed : speed;
+            _target.set(pt.pos[0], p.y, pt.pos[2]);
+            if (p.distanceTo(_target) < ARRIVE) {
+              st.current.pWait = pt.wait ?? 0;
+              advancePath(st.current, path, paths); // step index per mode (loop / pingpong / once→re-roll)
+            }
+          }
+        }
+      } else if (npc.movement === 'guard') {
+        // Chase the player within the leash range; otherwise return to the home/start position.
+        const pp = usePlayerStore.getState().position;
+        const leash = npc.guardLeash ?? 10;
+        const d = pp ? Math.hypot(pp.x - start[0], pp.z - start[2]) : Infinity;
+        if (pp && d < leash) { _target.set(pp.x, p.y, pp.z); effSpeed = speed * 1.3; }
+        else { _target.set(start[0], p.y, start[2]); }
+      } else if (npc.movement === 'patrol' && npc.patrolWaypoints && npc.patrolWaypoints.length > 1) {
         const wps = npc.patrolWaypoints;
         const i = st.current.wp % wps.length;
         _target.set(wps[i][0], p.y, wps[i][2]);
@@ -208,9 +259,9 @@ const MovingNpc = ({ npc, start, scale }: { npc: EditorNpc; start: Vec3; scale: 
     const dist = _step.length();
     const walking = dist > ARRIVE;
     motionRef.current.moving = walking;
-    motionRef.current.speed = walking ? speed : 0;
+    motionRef.current.speed = walking ? effSpeed : 0;
     if (dist > 1e-3) {
-      const move = Math.min(speed * dt, dist);
+      const move = Math.min(effSpeed * dt, dist);
       _step.multiplyScalar(move / dist);
       p.add(_step);
       g.rotation.y = Math.atan2(_step.x, _step.z);

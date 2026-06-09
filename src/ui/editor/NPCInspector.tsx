@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useState } from 'react';
-import type { EditorNpc, NpcType, NpcMovement } from '../../types/editorNPC';
-import { NPC_TYPES, NPC_TYPE_LABEL, NPC_TYPE_COLOR, NPC_MOVEMENT } from '../../types/editorNPC';
+import type { EditorNpc, NpcType, NpcMovement, NpcPath, PathMode } from '../../types/editorNPC';
+import { NPC_TYPES, NPC_TYPE_LABEL, NPC_TYPE_COLOR, NPC_MOVEMENT, PATH_MODES } from '../../types/editorNPC';
 import type { TimeOfDay } from '../../types/randomEvent';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
@@ -33,7 +33,7 @@ const Vec3Row = ({ label, value, step, onChange }: { label: string; value: [numb
   </div>
 );
 
-const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day', wander: 'Wander (AI roam)' };
+const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day', wander: 'Wander (AI roam)', paths: 'Paths (weighted)', guard: 'Guard (chase + return)' };
 const TIME_SLOTS: TimeOfDay[] = ['dawn', 'day', 'evening', 'night'];
 
 // Movement authoring: static / patrol loop (closed waypoints) / per-time-of-day positions. "at cam"
@@ -61,6 +61,14 @@ const MovementSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<Editor
           <input type="number" step={1} min={1} value={npc.wanderRadius ?? 12} onChange={(e) => set({ wanderRadius: parseFloat(e.target.value) || 1 })} className={inp} />
         </Field>
       )}
+
+      {mode === 'guard' && (
+        <Field label="guard leash (chase within this range, else return)">
+          <input type="number" step={1} min={1} value={npc.guardLeash ?? 10} onChange={(e) => set({ guardLeash: parseFloat(e.target.value) || 1 })} className={inp} />
+        </Field>
+      )}
+
+      {mode === 'paths' && <NpcPathsSection npc={npc} set={set} />}
 
       {mode === 'patrol' && (
         <div className="space-y-1">
@@ -132,6 +140,63 @@ const VendorSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<EditorNp
           <input type="number" min={0} value={s.price} onChange={(e) => update(i, { price: parseInt(e.target.value, 10) || 0 })} className={inp + ' w-20'} title="price (coins)" />
           <button onClick={() => set({ sells: sells.filter((_, j) => j !== i) })} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">✕</button>
         </div>
+      ))}
+    </div>
+  );
+};
+
+// Weighted multi-path editor. Each path = waypoints (per-point speed + wait) + loop/pingpong/once + weight.
+// On each trip the NPC picks a path by weight. "add ×3" drops three blank paths at once.
+const camPt = (): { pos: [number, number, number] } => ({ pos: [Math.round(editorSpawn.x * 100) / 100, 0, Math.round(editorSpawn.z * 100) / 100] });
+const newPath = (n: number): NpcPath => ({ id: `path_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`, name: `Path ${n}`, weight: 1, mode: 'loop', points: [camPt()] });
+
+const NpcPathsSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<EditorNpc>) => void }) => {
+  const paths = npc.paths ?? [];
+  const setPath = (i: number, patch: Partial<NpcPath>) => set({ paths: paths.map((p, j) => (j === i ? { ...p, ...patch } : p)) });
+  const addPaths = (n: number) => { const base = paths.length; set({ paths: [...paths, ...Array.from({ length: n }, (_, k) => newPath(base + k + 1))] }); };
+  return (
+    <div className="space-y-2 rounded-lg border border-sky-700/40 bg-sky-950/15 p-2">
+      <div className="flex items-center justify-between">
+        <span className={lbl}>Paths (each trip picks one by weight)</span>
+        <div className="flex gap-1">
+          <button onClick={() => addPaths(1)} className="rounded bg-sky-700/30 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700/50">➕ path</button>
+          <button onClick={() => addPaths(3)} className="rounded bg-sky-700/30 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700/50">➕×3</button>
+        </div>
+      </div>
+      {paths.length === 0 && <div className="text-[11px] text-slate-500">No paths — add one (then add points along it).</div>}
+      {paths.map((path, pi) => (
+        <details key={path.id} className="rounded border border-slate-700/60 bg-slate-900/40 p-1.5" open>
+          <summary className="flex cursor-pointer items-center gap-1.5">
+            <input value={path.name} onChange={(e) => setPath(pi, { name: e.target.value })} className={inp + ' flex-1'} />
+            <button onClick={() => set({ paths: paths.filter((_, j) => j !== pi) })} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+          </summary>
+          <div className="mt-1 grid grid-cols-2 gap-1.5">
+            <Field label="weight"><input type="number" step={0.5} min={0} value={path.weight} onChange={(e) => setPath(pi, { weight: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+            <Field label="mode">
+              <select value={path.mode} onChange={(e) => setPath(pi, { mode: e.target.value as PathMode })} className={inp}>
+                {PATH_MODES.map((m) => <option key={m} value={m}>{m === 'pingpong' ? 'ping-pong (來回)' : m}</option>)}
+              </select>
+            </Field>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className={lbl}>points</span>
+            <button onClick={() => setPath(pi, { points: [...path.points, camPt()] })} className="rounded px-1.5 text-[11px] text-sky-300 hover:bg-slate-800">➕ at cam</button>
+          </div>
+          {path.points.map((pt, ki) => {
+            const upd = (patch: Partial<typeof pt>) => setPath(pi, { points: path.points.map((q, j) => (j === ki ? { ...q, ...patch } : q)) });
+            return (
+              <div key={ki} className="mt-0.5 flex items-center gap-1">
+                <span className="w-4 text-[10px] text-slate-500">{ki + 1}</span>
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={0.5} value={pt.pos[a]} className={inp + ' w-0 flex-1'} onChange={(e) => { const np = [...pt.pos] as [number, number, number]; np[a] = parseFloat(e.target.value) || 0; upd({ pos: np }); }} />
+                ))}
+                <input type="number" step={0.2} value={pt.speed ?? ''} placeholder="spd" title="segment speed" className={inp + ' w-12'} onChange={(e) => upd({ speed: e.target.value === '' ? undefined : parseFloat(e.target.value) || 0 })} />
+                <input type="number" step={0.2} value={pt.wait ?? ''} placeholder="wait" title="wait (s)" className={inp + ' w-12'} onChange={(e) => upd({ wait: e.target.value === '' ? undefined : parseFloat(e.target.value) || 0 })} />
+                <button onClick={() => setPath(pi, { points: path.points.filter((_, j) => j !== ki) })} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">✕</button>
+              </div>
+            );
+          })}
+        </details>
       ))}
     </div>
   );
