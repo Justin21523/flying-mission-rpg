@@ -11,6 +11,8 @@ import { SampleEntities } from './SampleEntities';
 import { EditableNpcLayer } from './EditableNpcLayer';
 import { LandmarkLayer } from './LandmarkLayer';
 import { MapPointLayer } from './MapPointLayer';
+import { PortalLayer } from './PortalLayer';
+import { RoadEditLayer } from './RoadEditLayer';
 import { LayoutLayer } from './LayoutLayer';
 import { EdgeTransitionLayer } from './EdgeTransitionLayer';
 import { PickupLayer } from '../poli/PickupLayer';
@@ -93,6 +95,10 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <LandmarkLayer areaId={areaId} />
       {/* POLI seam #1f: named map points (POI / spawn / teleport) authored in the 🗺 World tab. */}
       <MapPointLayer areaId={areaId} />
+      {/* POLI seam #1h: portals/doors (🚪 Portals tab) — travel into buildings / indoor areas. */}
+      <PortalLayer areaId={areaId} />
+      {/* POLI seam #1i: Edit-Mode road route lines + draggable node gizmos (🚦 Traffic tab). */}
+      <RoadEditLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />
       <EncounterMarkerRenderer areaId={areaId} />

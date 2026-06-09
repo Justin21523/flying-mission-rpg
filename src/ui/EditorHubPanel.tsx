@@ -14,6 +14,7 @@ import { IncidentEditorTab } from './editor/IncidentEditorTab';
 import { TrafficEditorTab } from './editor/TrafficEditorTab';
 import { ToolEditorTab } from './editor/ToolEditorTab';
 import { WorldEditorTab } from './editor/WorldEditorTab';
+import { PortalEditorTab } from './editor/PortalEditorTab';
 import { LicenseEditorTab } from './editor/LicenseEditorTab';
 import { ResearchEditorTab } from './editor/ResearchEditorTab';
 import { SaveSlotsPanel } from './play/SaveSlotsPanel';
@@ -23,7 +24,7 @@ import { useSceneEditStore } from '../stores/sceneEditStore';
 import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
-type Tab = 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'license' | 'research' | 'save';
+type Tab = 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'save';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'debug', label: '🧪 Debug' },
   { id: 'trigger', label: '⚡ Triggers' },
@@ -39,6 +40,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'traffic', label: '🚦 Traffic' },
   { id: 'tools', label: '🛠 Tools' },
   { id: 'world', label: '🗺 World' },
+  { id: 'portal', label: '🚪 Portals' },
   { id: 'license', label: '🎖 License' },
   { id: 'research', label: '🔬 Research' },
   { id: 'save', label: '💾 Save' },
@@ -60,6 +62,7 @@ const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
   traffic: ['editorTraffic'],
   tools: ['editorTool'],
   world: ['editorWorld', 'editorLayout'],
+  portal: ['editorPortal'],
   license: ['editorLicense'],
   research: ['editorResearch'],
 };
@@ -156,7 +159,7 @@ export const EditorHubPanel = () => {
       <div className="relative min-w-0 flex-1 overflow-auto p-4 pr-10">
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
         <TabJsonStrip tab={tab} />
-        {tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
+        {tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
       </div>
     </div>
   );

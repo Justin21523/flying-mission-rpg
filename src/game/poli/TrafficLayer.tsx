@@ -10,13 +10,14 @@ import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { useEditorTrafficStore, getEditorRoadPath, type EditorRoad } from '../../stores/editorTrafficStore';
-import { getPathPosition, getPathHeading } from '../../types/traffic';
+import { getPathPosition, getPathHeading, computeRoadPath } from '../../types/traffic';
 import type { VehicleDefinition, TrafficSignalDef, TrafficPhase, Crosswalk } from '../../types/traffic';
 
 // Tiles a road-surface model along the path + roadside decor offset to the side. Sampled once (memoised).
 const RoadModels = ({ road }: { road: EditorRoad }) => {
+  // Build the path from the road's own waypoints so the memo re-samples live when a node is dragged.
   const items = useMemo(() => {
-    const path = getEditorRoadPath(road.id);
+    const path = computeRoadPath(road.id, road.areaId, road.waypoints);
     if (!path || path.totalLength === 0) return [];
     const out: { key: string; model: string; pos: [number, number, number]; rot: number; scale: number }[] = [];
     const sample = (model: string | undefined, spacing: number, scale: number, offset: number, tag: string) => {
@@ -34,7 +35,7 @@ const RoadModels = ({ road }: { road: EditorRoad }) => {
     sample(road.surfaceModelAssetId, road.surfaceSpacing ?? 6, road.surfaceScale ?? 4, 0, 's');
     sample(road.decorModelAssetId, road.decorSpacing ?? 12, 3, road.decorOffset ?? 4, 'd');
     return out;
-  }, [road.id, road.surfaceModelAssetId, road.surfaceSpacing, road.surfaceScale, road.decorModelAssetId, road.decorSpacing, road.decorOffset]);
+  }, [road.id, road.areaId, road.waypoints, road.surfaceModelAssetId, road.surfaceSpacing, road.surfaceScale, road.decorModelAssetId, road.decorSpacing, road.decorOffset]);
 
   if (items.length === 0) return null;
   return (

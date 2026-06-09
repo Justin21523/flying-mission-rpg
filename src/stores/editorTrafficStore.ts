@@ -25,6 +25,8 @@ interface EditorTrafficState {
   emergencyYield: boolean; // vehicles slow when an incident/rescue is active in the area
   vehicleIncidents: boolean;      // traffic can spontaneously trigger incidents to respond to
   vehicleIncidentEverySec: number; // average seconds between traffic-triggered incidents
+  nodeSel: { roadId: string; index: number } | null; // transient: road waypoint selected for gizmo edit
+  selectRoadNode: (roadId: string, index: number | null) => void;
   addVehicle: (areaId: string) => void;
   updateVehicle: (id: string, patch: Partial<VehicleDefinition>) => void;
   removeVehicle: (id: string) => void;
@@ -82,6 +84,8 @@ export const useEditorTrafficStore = create<EditorTrafficState>((set, get) => {
   const save = () => persist(get());
   return {
     ...load(),
+    nodeSel: null,
+    selectRoadNode: (roadId, index) => set({ nodeSel: index == null ? null : { roadId, index } }),
     addVehicle: (areaId) => {
       const road = get().roads.find((r) => r.areaId === areaId);
       const v: VehicleDefinition = { id: uid('vehicle'), name: 'New Vehicle', areaId, pathId: road?.id ?? '', speed: 3, initialProgress: 0, color: '#2255cc', bodySize: [1.4, 0.7, 2.4], sourceConfidence: 'GameAdaptation' };
@@ -102,9 +106,12 @@ export const useEditorTrafficStore = create<EditorTrafficState>((set, get) => {
     updateRoad: (id, patch) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, ...patch } : r)) }); save(); },
     updateRoadWaypoint: (id, index, pos) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, waypoints: r.waypoints.map((w, i) => (i === index ? pos : w)) } : r)) }); save(); },
     addRoadWaypoint: (id, pos) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, waypoints: [...r.waypoints, pos] } : r)) }); save(); },
-    removeRoadWaypoint: (id, index) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, waypoints: r.waypoints.filter((_, i) => i !== index) } : r)) }); save(); },
+    removeRoadWaypoint: (id, index) => {
+      const sel = get().nodeSel;
+      set({ roads: get().roads.map((r) => (r.id === id ? { ...r, waypoints: r.waypoints.filter((_, i) => i !== index) } : r)), nodeSel: sel && sel.roadId === id ? null : sel }); save();
+    },
     setRoadClosed: (id, closed) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, closed } : r)) }); save(); },
-    removeRoad: (id) => { set({ roads: get().roads.filter((r) => r.id !== id) }); save(); },
+    removeRoad: (id) => { const sel = get().nodeSel; set({ roads: get().roads.filter((r) => r.id !== id), nodeSel: sel && sel.roadId === id ? null : sel }); save(); },
     addCrosswalk: (areaId, position) => {
       const c: Crosswalk = { id: uid('xwalk'), areaId, position, length: 6, axis: 'x' };
       set({ crosswalks: [...get().crosswalks, c] }); save();

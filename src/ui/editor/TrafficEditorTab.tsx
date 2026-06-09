@@ -49,17 +49,21 @@ export const TrafficEditorTab = () => {
                 <button onClick={() => t.removeRoad(r.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
               </div>
             </div>
-            {r.waypoints.map((wp, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <span className="w-5 text-[10px] text-slate-500">{i + 1}</span>
-                {([0, 1, 2] as const).map((a) => (
-                  <input key={a} type="number" step={0.5} value={wp[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
-                    const next = [...wp] as [number, number, number]; next[a] = parseFloat(e.target.value) || 0; t.updateRoadWaypoint(r.id, i, next);
-                  }} />
-                ))}
-                <button onClick={() => t.removeRoadWaypoint(r.id, i)} className="rounded px-1 text-[10px] text-rose-400 hover:bg-slate-800">✕</button>
-              </div>
-            ))}
+            {r.waypoints.map((wp, i) => {
+              const sel = t.nodeSel?.roadId === r.id && t.nodeSel.index === i;
+              return (
+                <div key={i} className={`flex items-center gap-1 rounded ${sel ? 'bg-violet-700/25' : ''}`}>
+                  <button onClick={() => t.selectRoadNode(r.id, sel ? null : i)} title="Select this node — drag it with the gizmo in 3D" className={`w-5 text-[10px] ${sel ? 'text-violet-200' : 'text-slate-500 hover:text-sky-300'}`}>{sel ? '🎯' : i + 1}</button>
+                  {([0, 1, 2] as const).map((a) => (
+                    <input key={a} type="number" step={0.5} value={wp[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                      const next = [...wp] as [number, number, number]; next[a] = parseFloat(e.target.value) || 0; t.updateRoadWaypoint(r.id, i, next);
+                    }} />
+                  ))}
+                  <button onClick={() => t.removeRoadWaypoint(r.id, i)} className="rounded px-1 text-[10px] text-rose-400 hover:bg-slate-800">✕</button>
+                </div>
+              );
+            })}
+            <div className="text-[9px] text-slate-500">Tip: in Edit Mode each road shows a coloured route line + numbered nodes — click a node (or 🎯 here) and drag its gizmo.</div>
             <div className="grid grid-cols-2 gap-2 border-t border-slate-700/50 pt-1">
               <Field label="road surface model"><ModelPicker value={r.surfaceModelAssetId || undefined} onChange={(v) => t.updateRoad(r.id, { surfaceModelAssetId: v ?? '' })} allowNone noneLabel="(none)" /></Field>
               <Field label="surface spacing"><input type="number" step={1} min={1} value={r.surfaceSpacing ?? 6} onChange={(e) => t.updateRoad(r.id, { surfaceSpacing: parseFloat(e.target.value) || 6 })} className={inp} /></Field>

@@ -15,6 +15,7 @@ import { useEditorToolStore } from '../../stores/editorToolStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
+import { useEditorPortalStore } from '../../stores/editorPortalStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -161,6 +162,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorToolStore.getState().importState(data as never); },
     clear: () => useEditorToolStore.getState().reset(),
     summary: () => `${useEditorToolStore.getState().tools.length} tools`,
+  },
+  {
+    id: 'editorPortal',
+    label: 'Portals',
+    serialize: () => ({ portals: useEditorPortalStore.getState().portals }),
+    deserialize: (data) => { if (isObj(data)) useEditorPortalStore.getState().importState(data as never); },
+    clear: () => useEditorPortalStore.getState().reset(),
+    summary: () => `${useEditorPortalStore.getState().portals.length} portals`,
   },
   {
     id: 'editorCollectible',
@@ -319,6 +328,7 @@ function domainReference(id: string): Record<string, unknown> {
     case 'editorTrigger': return { areas: listAreas(), quests: listQuests() };
     case 'editorEnvironment': return { areas: listAreas(), textures: listTextures() };
     case 'editorCollectible': return { abilities: [...ABILITY_TYPES], shapes: [...COLLECTIBLE_SHAPES], resources: useEditorCollectibleStore.getState().resources.map((r) => r.id) };
+    case 'editorPortal': return { areas: listAreas(), models: listModels(), portals: useEditorPortalStore.getState().portals.map((p) => p.id) };
     default: return { areas: listAreas() };
   }
 }
