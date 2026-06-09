@@ -3,6 +3,7 @@ import { TransformControls } from '@react-three/drei';
 import type { Group } from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useWorldSelectStore } from '../../stores/worldSelectStore';
+import { pointerOnGizmo } from './gizmoState';
 
 // Kit — a gizmo-movable world placement whose moves write BACK into the owning data store (not a
 // sceneEditStore override). Renders the visual at `position` (the data value); clicking selects it
@@ -26,6 +27,7 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
 
   const handleSelect = (e: ThreeEvent<PointerEvent>) => {
     if (e.button !== undefined && e.button !== 0) return; // left button only
+    if (pointerOnGizmo()) return; // click is on a gizmo handle → operate the gizmo, don't reselect behind it
     e.stopPropagation();
     useWorldSelectStore.getState().select(objKey, onDelete ?? null);
   };

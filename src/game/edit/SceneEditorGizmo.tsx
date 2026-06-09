@@ -1,6 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { TransformControls } from '@react-three/drei';
+import type { TransformControls as TransformControlsImpl } from 'three-stdlib';
 import { useSceneEditStore } from '../../stores/sceneEditStore';
+import { gizmoState } from './gizmoState';
 import type { Vec3 } from './sceneEditMerge';
 
 // Phase 89 / Phase 101 — the single transform gizmo for Edit Mode. Attaches to the primary
@@ -63,5 +65,6 @@ export function SceneEditorGizmo() {
 
   if (!selectedObject || !selectedKey) return null;
 
-  return <TransformControls object={selectedObject} mode={mode} onMouseDown={onMouseDown} onObjectChange={onObjectChange} />;
+  // Register the controls so selection handlers can tell when the pointer is over a gizmo handle.
+  return <TransformControls ref={(c) => { gizmoState.controls = (c as unknown as TransformControlsImpl) ?? null; }} object={selectedObject} mode={mode} onMouseDown={onMouseDown} onObjectChange={onObjectChange} />;
 }

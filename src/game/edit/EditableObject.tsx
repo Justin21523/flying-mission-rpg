@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Color, Mesh, type Group, type Material } from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useMergedTransform, useSceneEditStore } from '../../stores/sceneEditStore';
+import { pointerOnGizmo } from './gizmoState';
 import type { BaseTransform } from './sceneEditMerge';
 
 // Phase 89 — wraps a placement's visual in a selectable group positioned at the merged
@@ -30,6 +31,9 @@ export function EditableObject({ objKey, base, assetId, children }: EditableObje
   const handleSelect = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       if (e.button !== undefined && e.button !== 0) return; // left button only
+      // If the pointer is over (or dragging) a gizmo handle, this click belongs to the gizmo — never let it
+      // re-select an object sitting behind the handle (the click must operate the gizmo on the current object).
+      if (pointerOnGizmo()) return;
       e.stopPropagation();
       if (!groupRef.current) return;
       const e2 = e.nativeEvent;
