@@ -10,12 +10,12 @@ import { usePlayerStore } from '../../stores/playerStore';
 // no re-renders). The group is placed at the player origin and yaw-aligned to the facing direction, so beam /
 // bolt / dash extend along local +Z while nova / meteor are radial.
 
-const SPARK = 90;
+const SPARK = 150;
 const RINGS = 4;
 const BOLTS = 5;
 const METEORS = 8;
 const DASH = 12;
-const LIFE = 1.3; // overall effect window (s); each kind finishes within this
+const LIFE = 1.4; // overall effect window (s); each kind finishes within this
 
 function makeSoftTexture(): CanvasTexture {
   const s = 64;
@@ -126,9 +126,9 @@ export const SuperAbilityFx = () => {
     const sm = sparkRef.current?.material as PointsMaterial | undefined;
     if (sm) sm.opacity = Math.max(0, 1 - t / 0.9);
 
-    // Central glow flash (every kind) — quick pop at the origin.
+    // Central glow flash (every kind) — a big bright pop at the origin.
     if (glowRef.current) {
-      if (t <= 0.45) { const k = t / 0.45; const sc = 0.5 + k * 2.6; glowRef.current.scale.setScalar(sc); setOpacity(glowRef.current, (1 - k) * 0.85); }
+      if (t <= 0.5) { const k = t / 0.5; const sc = 0.7 + k * 4.2; glowRef.current.scale.setScalar(sc); setOpacity(glowRef.current, (1 - k) * 0.95); }
       else setOpacity(glowRef.current, 0);
     }
 
@@ -143,7 +143,7 @@ export const SuperAbilityFx = () => {
       const k = rt / 0.8;
       const radius = 0.4 + k * st.radius;
       r.scale.set(radius, radius, radius);
-      setOpacity(r, (1 - k) * 0.8);
+      setOpacity(r, (1 - k) * 0.95);
     });
 
     // ORB — homing-style glow that streaks forward then bursts.
@@ -258,7 +258,7 @@ export const SuperAbilityFx = () => {
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[sparkInit, 3]} count={SPARK} />
         </bufferGeometry>
-        <pointsMaterial map={tex} color="#ffffff" size={0.9} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} sizeAttenuation />
+        <pointsMaterial map={tex} color="#ffffff" size={1.4} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} sizeAttenuation />
       </points>
       <mesh ref={glowRef} position={[0, 1, 0]}>
         <sphereGeometry args={[1, 16, 12]} />
@@ -266,7 +266,7 @@ export const SuperAbilityFx = () => {
       </mesh>
       {/* beam: a unit-length forward bar scaled to range on Z */}
       <mesh ref={beamRef} position={[0, 1, 0]}>
-        <boxGeometry args={[0.7, 0.7, 1]} />
+        <boxGeometry args={[1.1, 1.1, 1]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
       </mesh>
       <mesh ref={orbRef} position={[0, 1, 0]}>
@@ -297,7 +297,7 @@ export const SuperAbilityFx = () => {
       ))}
       {Array.from({ length: BOLTS }).map((_, i) => (
         <mesh key={`b${i}`} ref={(el) => { boltRefs.current[i] = el; }} position={[0, 1, 0]}>
-          <boxGeometry args={[0.18, 0.18, 1.4]} />
+          <boxGeometry args={[0.3, 0.3, 2]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
         </mesh>
       ))}

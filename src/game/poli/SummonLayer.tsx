@@ -1,7 +1,7 @@
-import { Suspense, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import { AdditiveBlending, Box3, Color, Vector3, MeshStandardMaterial, type Group, type Mesh } from 'three';
+import { AdditiveBlending, Box3, Color, Vector3, type Group, type Material, type Mesh } from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -37,16 +37,26 @@ export const SummonLayer = () => {
   const form = useTransformStore((s) => s.form);
   const base = CORE_TEAM.find((c) => c.id === charId);
   const merged = base ? getMergedPoliCharacter(base) : undefined;
-  const clonePath = (form === 'vehicle' ? merged?.modelVehiclePath : merged?.modelRobotPath) || '';
+  // Full look of the player so the 替身 clone is a real copy (same model, size, facing) tinted to the
+  // character's OWN colour.
+  const char: CloneLook = {
+    path: (form === 'vehicle' ? merged?.modelVehiclePath : merged?.modelRobotPath) || '',
+    color: merged?.color || '#a855f7',
+    height: form === 'vehicle' ? (merged?.vehicleHeight ?? 1.4) : (merged?.robotHeight ?? 1.9),
+    yOff: merged?.modelYOffset ?? 0,
+    yawRad: ((merged?.modelYawDeg ?? -90) * Math.PI) / 180,
+  };
 
   useFrame(() => useSummonStore.getState().sweep());
 
   if (editMode) return null;
   void version;
-  return <>{liveSummons.map((s) => <SummonEntity key={s.id} s={s} clonePath={clonePath} />)}</>;
+  return <>{liveSummons.map((s) => <SummonEntity key={s.id} s={s} char={char} />)}</>;
 };
 
-const SummonEntity = ({ s, clonePath }: { s: Summon; clonePath: string }) => {
+interface CloneLook { path: string; color: string; height: number; yOff: number; yawRad: number }
+
+const SummonEntity = ({ s, char }: { s: Summon; char: CloneLook }) => {
   const groupRef = useRef<Group>(null);
   useFrame((_, dtRaw) => {
     const g = groupRef.current;
@@ -83,31 +93,48 @@ const SummonEntity = ({ s, clonePath }: { s: Summon; clonePath: string }) => {
 
   return (
     <group ref={groupRef} position={[s.x, s.y, s.z]}>
-      {s.kind === 'clone' && clonePath
-        ? <Suspense fallback={<SentryVisual color={s.color} />}><CloneVisual path={clonePath} color={s.color} /></Suspense>
+      {s.kind === 'clone' && char.path
+        ? <Suspense fallback={<SentryVisual color={char.color} />}><CloneVisual look={char} /></Suspense>
         : <SentryVisual color={s.color} />}
     </group>
   );
 };
 
-// Tinted, translucent copy of the player's model (the 替身).
-const CloneVisual = ({ path, color }: { path: string; color: string }) => {
-  const { scene } = useGLTF(path);
-  const { clone, scale, offset } = useMemo(() => {
+// A real 替身: an actual copy of the player's model (keeps its own textures/materials so it truly looks like
+// the character), made slightly translucent with a glow in the CHARACTER's own colour. Normalized + faced like
+// the player. Materials are cloned per-mesh so the live player isn't affected; disposed on unmount.
+const CloneVisual = ({ look }: { look: CloneLook }) => {
+  const { scene } = useGLTF(look.path);
+  const { clone, scale, offset, mats } = useMemo(() => {
     const c = SkeletonUtils.clone(scene);
     const box = new Box3().setFromObject(c);
     const size = new Vector3(); const center = new Vector3();
     box.getSize(size); box.getCenter(center);
     const nativeH = Number.isFinite(size.y) && size.y > 1e-4 ? size.y : 1;
-    const sc = 1.8 / nativeH;
+    const sc = look.height / nativeH;
     const ox = Number.isFinite(center.x) ? -center.x * sc : 0;
-    const oy = Number.isFinite(box.min.y) ? -box.min.y * sc : 0;
+    const oy = (Number.isFinite(box.min.y) ? -box.min.y * sc : 0) + look.yOff;
     const oz = Number.isFinite(center.z) ? -center.z * sc : 0;
-    const mat = new MeshStandardMaterial({ color: new Color(color), emissive: new Color(color), emissiveIntensity: 0.7, transparent: true, opacity: 0.6, depthWrite: false });
-    c.traverse((o) => { const m = o as Mesh; if (m.isMesh) m.material = mat; });
-    return { clone: c, scale: sc, offset: [ox, oy, oz] as [number, number, number] };
-  }, [scene, color]);
-  return <primitive object={clone} scale={scale} position={offset} />;
+    const glow = new Color(look.color);
+    const cloned: Material[] = [];
+    c.traverse((o) => {
+      const m = o as Mesh;
+      if (!m.isMesh) return;
+      const list = Array.isArray(m.material) ? m.material : [m.material];
+      const next = list.map((src) => {
+        const cm = (src as Material).clone();
+        const std = cm as unknown as { transparent: boolean; opacity: number; depthWrite: boolean; emissive?: Color; emissiveIntensity?: number };
+        std.transparent = true; std.opacity = 0.85; std.depthWrite = false;
+        if (std.emissive) { std.emissive.copy(glow); std.emissiveIntensity = 0.45; } // character-colour aura
+        cloned.push(cm);
+        return cm;
+      });
+      m.material = (Array.isArray(m.material) ? next : next[0]) as typeof m.material;
+    });
+    return { clone: c, scale: sc, offset: [ox, oy, oz] as [number, number, number], mats: cloned };
+  }, [scene, look.height, look.yOff, look.color]);
+  useEffect(() => () => { mats.forEach((m) => m.dispose()); }, [mats]);
+  return <group rotation={[0, look.yawRad, 0]}><primitive object={clone} scale={scale} position={offset} /></group>;
 };
 
 // Glowing sentry drone — a core orb, an equatorial ring, and a halo.

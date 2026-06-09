@@ -22,7 +22,11 @@ import { getEffectiveAreaSize } from '../world/areaExtent';
 // in Edit Mode. Sibling layer in AreaRenderer — no kit-core changes.
 
 const YOKAI_MODELS = MODEL_ASSET_LIST.filter((a) => a.category === 'yokais');
-const YOKAI_HEIGHT = 1.7;
+const YOKAI_HEIGHT = 2.4;       // bigger, more imposing yokai
+const SPAWN_RING_MIN = 16;      // spawn around the player (so a big map keeps fresh yokai nearby)
+const SPAWN_RING_MAX = 30;
+const RENDER_DIST = 48;         // hide yokai beyond this (avoid drawing too many)
+const DESPAWN_DIST = 64;        // recycle yokai that wander past this from the player
 let uid = 0;
 
 export const YokaiCombatLayer = ({ areaId }: { areaId: string }) => {
@@ -50,12 +54,15 @@ export const YokaiCombatLayer = ({ areaId }: { areaId: string }) => {
     if (!huntHere || !activity?.rushConfig) return;
     const dt = Math.min(dtRaw, 0.05);
     const rush = activity.rushConfig;
-    useYokaiCombatStore.getState().removeDead();
+    const store = useYokaiCombatStore.getState();
+    store.removeDead();
+    const pp = usePlayerStore.getState().position;
+    if (pp) store.cullFar(pp.x, pp.z, DESPAWN_DIST); // recycle far-off yokai → keep spawning fresh ones nearby
     const alive = liveYokai.reduce((n, y) => n + (y.dyingAt ? 0 : 1), 0);
     spawnTimer.current += dt;
     if (spawnTimer.current >= Math.max(0.2, rush.spawnIntervalSeconds) && alive < rush.maxActiveEnemies) {
       spawnTimer.current = 0;
-      spawnYokai(activity);
+      spawnYokai(activity, areaId);
     }
   });
 
@@ -65,13 +72,23 @@ export const YokaiCombatLayer = ({ areaId }: { areaId: string }) => {
   return <>{liveYokai.map((y) => <YokaiEntity key={y.id} y={y} areaId={areaId} />)}</>;
 };
 
-function spawnYokai(activity: NonNullable<ReturnType<typeof useActivityStore.getState>['activity']>): void {
+function spawnYokai(activity: NonNullable<ReturnType<typeof useActivityStore.getState>['activity']>, areaId: string): void {
   const pts = activity.arena.points;
   const types = getEnabledYokaiTypes();
   if (types.length === 0) return;
   const type = types[Math.floor(Math.random() * types.length)];
-  const list = (type.elite ? pts.eliteSpawn : pts.rushSpawn) ?? pts.rushSpawn ?? pts.eliteSpawn ?? [[0, 0, 8]];
-  const p = list[Math.floor(Math.random() * list.length)];
+  // Spawn in a ring around the player (so a large map keeps fresh yokai near you); fall back to arena spawns.
+  let p: [number, number, number];
+  const pp = usePlayerStore.getState().position;
+  if (pp) {
+    const ang = Math.random() * Math.PI * 2;
+    const r = SPAWN_RING_MIN + Math.random() * (SPAWN_RING_MAX - SPAWN_RING_MIN);
+    const half = getEffectiveAreaSize(areaId);
+    p = [Math.max(-half, Math.min(half, pp.x + Math.cos(ang) * r)), 0, Math.max(-half, Math.min(half, pp.z + Math.sin(ang) * r))];
+  } else {
+    const list = (type.elite ? pts.eliteSpawn : pts.rushSpawn) ?? pts.rushSpawn ?? pts.eliteSpawn ?? [[0, 0, 8]];
+    p = list[Math.floor(Math.random() * list.length)] as [number, number, number];
+  }
   // Model: the type's chosen model, else a random yokai GLB.
   let modelPath = '';
   if (type.modelAssetId) { const a = getModelAsset(type.modelAssetId); if (a) modelPath = encodeURI(a.path); }
@@ -110,11 +127,18 @@ const YokaiEntity = ({ y, areaId }: { y: Yokai; areaId: string }) => {
 
     if (e.dyingAt) { // defeat poof — shrink out
       const k = Math.max(0, 1 - (performance.now() / 1000 - e.dyingAt) / 0.4);
-      g.scale.setScalar(k);
+      g.visible = true; g.scale.setScalar(k);
       return;
     }
 
     const pp = usePlayerStore.getState().position;
+    // Render cull: hide + skip work when far from the player (lots of yokai → only the nearby ones draw).
+    if (pp && (pp.x - e.x) ** 2 + (pp.z - e.z) ** 2 > RENDER_DIST * RENDER_DIST) {
+      if (g.visible) g.visible = false;
+      g.position.set(e.x, e.y, e.z);
+      return;
+    }
+    if (!g.visible) g.visible = true;
     if (pp) {
       st.current.wanderT -= dt;
       if (st.current.wanderT <= 0) { st.current.ang = Math.random() * Math.PI * 2; st.current.wanderT = 0.6 + Math.random() * 1.2; }

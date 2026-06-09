@@ -56,6 +56,7 @@ interface YokaiCombatState {
   stop: () => void;
   spawn: (y: Yokai) => void;
   removeDead: () => void;     // sweep finished poofs (called by the layer)
+  cullFar: (px: number, pz: number, dist: number) => void;
   damage: (req: DamageRequest) => void;
 }
 
@@ -93,6 +94,18 @@ export const useYokaiCombatStore = create<YokaiCombatState>((set, get) => ({
     let changed = false;
     for (let i = liveYokai.length - 1; i >= 0; i--) {
       if (liveYokai[i].dyingAt && t - liveYokai[i].dyingAt > 0.4) { liveYokai.splice(i, 1); changed = true; }
+    }
+    if (changed) set({ version: get().version + 1 });
+  },
+  // Recycle yokai that wandered too far from the player (silent — no defeat/score), so on a big map the swarm
+  // stays near and fresh ones keep spawning around the player.
+  cullFar: (px, pz, dist) => {
+    const d2 = dist * dist;
+    let changed = false;
+    for (let i = liveYokai.length - 1; i >= 0; i--) {
+      const y = liveYokai[i];
+      if (y.dyingAt) continue;
+      if ((y.x - px) ** 2 + (y.z - pz) ** 2 > d2) { liveYokai.splice(i, 1); changed = true; }
     }
     if (changed) set({ version: get().version + 1 });
   },
