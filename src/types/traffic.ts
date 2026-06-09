@@ -21,6 +21,8 @@ export interface TrafficSignalDef {
   greenSeconds: number;
   yellowSeconds: number;
   redSeconds: number;
+  modelAssetId?: string; // GLB model rendered instead of the pole/housing when set
+  modelScale?: number;   // normalise target for the model, default ~4
 }
 
 export type CrosswalkAxis = 'x' | 'z';
@@ -34,7 +36,11 @@ export interface Crosswalk {
   length: number;                     // span across the road (world units)
   axis: CrosswalkAxis;                // direction the pedestrian walks
   linkedSignalId?: string;            // pedestrian crosses while this signal is red
+  pedModelAssetId?: string;           // GLB for the walker (else a capsule)
+  pedSpeed?: number;                  // walk speed (default 1.2)
 }
+
+export type VehicleKind = 'car' | 'truck' | 'bus' | 'emergency' | 'drone';
 
 export interface VehicleDefinition {
   id: string;
@@ -45,7 +51,11 @@ export interface VehicleDefinition {
   speed: number;            // world-units per second
   initialProgress: number;  // 0–1 starting offset
   color: string;
-  bodySize: [number, number, number]; // [width, height, length]
+  bodySize: [number, number, number]; // [width, height, length] (used when no model)
+  modelAssetId?: string;    // GLB model — rendered instead of the box when set (size-normalised)
+  modelScale?: number;      // normalise target (largest dim) for the model, default ~2.4
+  kind?: VehicleKind;       // car/truck/bus/emergency/drone (flavour + future behaviour)
+  yields?: boolean;         // slows for the player during emergencies (default true)
   sourceConfidence: SourceConfidence;
 }
 

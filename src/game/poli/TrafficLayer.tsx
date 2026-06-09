@@ -12,6 +12,7 @@ import { EditableObject } from '../edit/EditableObject';
 import { useEditorTrafficStore, getEditorRoadPath } from '../../stores/editorTrafficStore';
 import { getPathPosition, getPathHeading } from '../../types/traffic';
 import type { VehicleDefinition, TrafficSignalDef, TrafficPhase, Crosswalk } from '../../types/traffic';
+import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
 
 // Signal light layout: red top, yellow middle, green bottom.
 const SIGNAL_LIGHTS: { y: number; color: string; phase: TrafficPhase }[] = [
@@ -53,23 +54,29 @@ const VehicleMesh = ({ def }: VehicleMeshProps) => {
 
   return (
     <group ref={groupRef}>
-      {/* Vehicle body */}
-      <mesh position={[0, def.bodySize[1] / 2, 0]} castShadow>
-        <boxGeometry args={def.bodySize} />
-        <meshStandardMaterial color={def.color} roughness={0.45} metalness={0.3} />
-      </mesh>
-      {/* Windshield tint */}
-      <mesh position={[0, def.bodySize[1] * 0.75, def.bodySize[2] * 0.28]}>
-        <boxGeometry args={[def.bodySize[0] * 0.8, def.bodySize[1] * 0.45, 0.05]} />
-        <meshStandardMaterial color="#88ccff" transparent opacity={0.6} roughness={0.1} />
-      </mesh>
-      {/* Wheels */}
-      {wheelOffsets.map((off, i) => (
-        <mesh key={i} position={off} rotation-x={Math.PI / 2} castShadow>
-          <cylinderGeometry args={[0.28, 0.28, 0.22, 10]} />
-          <meshStandardMaterial color="#222" roughness={0.9} />
-        </mesh>
-      ))}
+      {def.modelAssetId ? (
+        <NormalizedGlbModel assetId={def.modelAssetId} target={def.modelScale ?? 2.4} />
+      ) : (
+        <>
+          {/* Vehicle body */}
+          <mesh position={[0, def.bodySize[1] / 2, 0]} castShadow>
+            <boxGeometry args={def.bodySize} />
+            <meshStandardMaterial color={def.color} roughness={0.45} metalness={0.3} />
+          </mesh>
+          {/* Windshield tint */}
+          <mesh position={[0, def.bodySize[1] * 0.75, def.bodySize[2] * 0.28]}>
+            <boxGeometry args={[def.bodySize[0] * 0.8, def.bodySize[1] * 0.45, 0.05]} />
+            <meshStandardMaterial color="#88ccff" transparent opacity={0.6} roughness={0.1} />
+          </mesh>
+          {/* Wheels */}
+          {wheelOffsets.map((off, i) => (
+            <mesh key={i} position={off} rotation-x={Math.PI / 2} castShadow>
+              <cylinderGeometry args={[0.28, 0.28, 0.22, 10]} />
+              <meshStandardMaterial color="#222" roughness={0.9} />
+            </mesh>
+          ))}
+        </>
+      )}
       {/* Floating name label */}
       <Text
         position={[0, def.bodySize[1] + 0.75, 0]}
@@ -98,16 +105,22 @@ const TrafficSignalVisual = ({ def }: TrafficSignalMeshProps) => {
 
   return (
     <>
-      {/* Pole */}
-      <mesh position={[0, 1.5, 0]} castShadow>
-        <cylinderGeometry args={[0.07, 0.07, 3.0, 8]} />
-        <meshStandardMaterial color="#555555" roughness={0.8} />
-      </mesh>
-      {/* Housing box */}
-      <mesh position={[0, 3.3, 0.15]}>
-        <boxGeometry args={[0.38, 1.1, 0.28]} />
-        <meshStandardMaterial color="#1a1a1a" roughness={0.7} />
-      </mesh>
+      {def.modelAssetId ? (
+        <NormalizedGlbModel assetId={def.modelAssetId} target={def.modelScale ?? 4} />
+      ) : (
+        <>
+          {/* Pole */}
+          <mesh position={[0, 1.5, 0]} castShadow>
+            <cylinderGeometry args={[0.07, 0.07, 3.0, 8]} />
+            <meshStandardMaterial color="#555555" roughness={0.8} />
+          </mesh>
+          {/* Housing box */}
+          <mesh position={[0, 3.3, 0.15]}>
+            <boxGeometry args={[0.38, 1.1, 0.28]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={0.7} />
+          </mesh>
+        </>
+      )}
       {/* Three signal lights */}
       {SIGNAL_LIGHTS.map(({ y, color, phase: lightPhase }) => (
         <mesh key={lightPhase} position={[0, y, 0.28]}>
@@ -184,7 +197,7 @@ const Pedestrian = ({ def }: { def: Crosswalk }) => {
     const cross = def.linkedSignalId ? useTrafficStore.getState().getSignalPhase(def.linkedSignalId) === 'red' : true;
     if (cross) {
       const half = Math.max(0.5, def.length / 2);
-      tRef.current += (dirRef.current * 1.2 * dt) / half;
+      tRef.current += (dirRef.current * (def.pedSpeed ?? 1.2) * dt) / half;
       if (tRef.current > 1) { tRef.current = 1; dirRef.current = -1; }
       else if (tRef.current < -1) { tRef.current = -1; dirRef.current = 1; }
     }
@@ -197,10 +210,14 @@ const Pedestrian = ({ def }: { def: Crosswalk }) => {
   return (
     <RigidBody ref={body} type="kinematicPosition" colliders={false} position={def.position}>
       <CapsuleCollider args={[0.35, 0.3]} position={[0, 0.65, 0]} />
-      <mesh position={[0, 0.65, 0]} castShadow>
-        <capsuleGeometry args={[0.28, 0.6, 4, 8]} />
-        <meshStandardMaterial color="#f59e0b" roughness={0.6} />
-      </mesh>
+      {def.pedModelAssetId ? (
+        <NormalizedGlbModel assetId={def.pedModelAssetId} target={1.6} />
+      ) : (
+        <mesh position={[0, 0.65, 0]} castShadow>
+          <capsuleGeometry args={[0.28, 0.6, 4, 8]} />
+          <meshStandardMaterial color="#f59e0b" roughness={0.6} />
+        </mesh>
+      )}
     </RigidBody>
   );
 };

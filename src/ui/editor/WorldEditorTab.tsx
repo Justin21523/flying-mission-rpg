@@ -3,6 +3,7 @@ import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
 import { getKitArea } from '../../data/areas';
+import { getEffectiveAreaSize } from '../../game/world/areaExtent';
 import { BIOME_THEMES } from '../../data/environmentThemes';
 import { TEXTURE_SETS } from '../../game/world/textureLibrary';
 import { defaultNormalizeFor } from '../../game/world/normalizeDefault';
@@ -96,9 +97,35 @@ const AreaProps = ({ areaId }: { areaId: string }) => {
             {BIOME_KEYS.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
         </Field>
-        <Field label="map size (half-extent)">
+        <Field label="map size (min half-extent)">
           <input type="number" min={10} step={5} value={area.size ?? 40} onChange={(e) => w.updateArea(areaId, { size: parseFloat(e.target.value) || 40 })} className={inp} />
         </Field>
+      </div>
+      <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+        <div className="flex items-center justify-between">
+          <span className={lbl}>Auto-size (grows to fit placed content)</span>
+          <label className="flex items-center gap-1 text-[11px] text-slate-300"><input type="checkbox" checked={area.autoExpand !== false} onChange={(e) => w.updateArea(areaId, { autoExpand: e.target.checked })} className="accent-emerald-500" />auto</label>
+        </div>
+        <div className="mt-1 grid grid-cols-2 gap-2">
+          <Field label="size margin"><input type="number" min={0} step={1} value={area.sizeMargin ?? 10} onChange={(e) => w.updateArea(areaId, { sizeMargin: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+          <Field label="effective size (live)"><input value={Math.round(getEffectiveAreaSize(areaId))} disabled className={inp + ' opacity-60'} /></Field>
+        </div>
+      </div>
+      <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+        <div className={lbl}>Gameplay tuning</div>
+        <div className="mt-1 grid grid-cols-3 gap-2">
+          <Field label="incident chance"><input type="number" step={0.1} min={0} max={2} value={area.incidentChance ?? 1} onChange={(e) => w.updateArea(areaId, { incidentChance: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+          <Field label="traffic density"><input type="number" step={1} min={0} max={10} value={area.trafficDensity ?? 0} onChange={(e) => w.updateArea(areaId, { trafficDensity: parseInt(e.target.value, 10) || 0 })} className={inp} /></Field>
+          <Field label="pickup ×"><input type="number" step={0.5} min={0} value={area.pickupDensity ?? 1} onChange={(e) => w.updateArea(areaId, { pickupDensity: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+          <Field label="danger (1–5)"><input type="number" step={1} min={1} max={5} value={area.dangerLevel ?? 1} onChange={(e) => w.updateArea(areaId, { dangerLevel: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
+          <Field label="rec. level"><input type="number" step={1} min={1} value={area.recommendedLevel ?? 1} onChange={(e) => w.updateArea(areaId, { recommendedLevel: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
+          <Field label="weather lock">
+            <select value={area.weatherLock ?? 'any'} onChange={(e) => w.updateArea(areaId, { weatherLock: e.target.value })} className={inp}>
+              {['any', 'clear', 'rain', 'fog', 'storm'].map((x) => <option key={x} value={x}>{x}</option>)}
+            </select>
+          </Field>
+        </div>
+        <Field label="notes"><input value={area.notes ?? ''} onChange={(e) => w.updateArea(areaId, { notes: e.target.value })} className={inp} placeholder="design notes" /></Field>
       </div>
       <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
         <div className={lbl}>Edge neighbours (walk off an edge to travel)</div>

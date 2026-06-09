@@ -2,6 +2,7 @@ import { useEditorTrafficStore } from '../../stores/editorTrafficStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
 import { Field, inp, lbl } from './editorShared';
+import { ModelPicker } from './ModelPicker';
 
 const camPos = (): [number, number, number] => [Math.round(editorSpawn.x * 100) / 100, 0.5, Math.round(editorSpawn.z * 100) / 100];
 
@@ -71,7 +72,14 @@ export const TrafficEditorTab = () => {
               </Field>
               <Field label="speed"><input type="number" step={0.5} value={v.speed} onChange={(e) => t.updateVehicle(v.id, { speed: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
               <Field label="start offset (0–1)"><input type="number" step={0.05} min={0} max={1} value={v.initialProgress} onChange={(e) => t.updateVehicle(v.id, { initialProgress: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="kind">
+                <select value={v.kind ?? 'car'} onChange={(e) => t.updateVehicle(v.id, { kind: e.target.value as typeof v.kind })} className={inp}>
+                  {['car', 'truck', 'bus', 'emergency', 'drone'].map((k) => <option key={k} value={k}>{k}</option>)}
+                </select>
+              </Field>
+              <Field label="model scale"><input type="number" step={0.5} value={v.modelScale ?? 2.4} onChange={(e) => t.updateVehicle(v.id, { modelScale: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
             </div>
+            <Field label="model (empty = box)"><ModelPicker value={v.modelAssetId || undefined} onChange={(val) => t.updateVehicle(v.id, { modelAssetId: val ?? '' })} allowNone noneLabel="(box)" /></Field>
           </div>
         ))}
       </section>
@@ -107,6 +115,7 @@ export const TrafficEditorTab = () => {
               <Field label="yellow s"><input type="number" value={s.yellowSeconds} onChange={(e) => t.updateSignal(s.id, { yellowSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
               <Field label="red s"><input type="number" value={s.redSeconds} onChange={(e) => t.updateSignal(s.id, { redSeconds: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
             </div>
+            <Field label="model (empty = pole)"><ModelPicker value={s.modelAssetId || undefined} onChange={(val) => t.updateSignal(s.id, { modelAssetId: val ?? '' })} allowNone noneLabel="(pole)" /></Field>
           </div>
         ))}
       </section>
@@ -143,7 +152,9 @@ export const TrafficEditorTab = () => {
                   <option value="">(always)</option>{signals.map((s) => <option key={s.id} value={s.id}>{s.id}</option>)}
                 </select>
               </Field>
+              <Field label="ped speed"><input type="number" step={0.2} value={c.pedSpeed ?? 1.2} onChange={(e) => t.updateCrosswalk(c.id, { pedSpeed: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
             </div>
+            <Field label="pedestrian model (empty = capsule)"><ModelPicker value={c.pedModelAssetId || undefined} onChange={(val) => t.updateCrosswalk(c.id, { pedModelAssetId: val ?? '' })} allowNone noneLabel="(capsule)" /></Field>
           </div>
         ))}
       </section>
