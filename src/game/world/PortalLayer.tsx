@@ -10,6 +10,7 @@ import { useInventoryStore } from '../../stores/inventoryStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { getWorldArea } from '../../stores/editorWorldStore';
 import { useMergedTransform, useIsDeleted, useSceneEditStore } from '../../stores/sceneEditStore';
+import { arrivalNearBoundary } from './boundaryArrival';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { SceneGlbModel } from './SceneGlbModel';
@@ -73,8 +74,9 @@ function resolveDest(p: PortalDef): { areaId: string; spawn: Vec3 } {
   const inTarget = getPortals().filter((q) => q.areaId === p.targetAreaId && q.id !== p.id);
   const door = inTarget.find((q) => q.targetAreaId === p.areaId) ?? inTarget[0];
   if (door) return { areaId: p.targetAreaId, spawn: inFrontOf(door) };
-  const sp = getWorldArea(p.targetAreaId)?.spawnPoint;
-  return { areaId: p.targetAreaId, spawn: sp ? { x: sp.x, y: sp.y, z: sp.z } : { x: 0, y: 3, z: 0 } };
+  // No paired door at all → arrive in the OPEN near a boundary edge, not the centre (where set-pieces block /
+  // hide you). Prefer the target edge that links back to this area (you walk in from there); else south.
+  return { areaId: p.targetAreaId, spawn: arrivalNearBoundary(p.targetAreaId, p.areaId) };
 }
 
 function travel(p: PortalDef): void {

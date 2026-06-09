@@ -8,6 +8,7 @@ import { MAP_POINT_COLOR, MAP_POINT_ICON } from '../../types/world';
 import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
+import { arrivalNearBoundary, spawnNearBoundary } from './boundaryArrival';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { markEditHelper } from '../edit/markEditHelper';
@@ -113,7 +114,8 @@ const TeleportPoint = ({ pt, pos }: { pt: MapPoint; pos: [number, number, number
   );
 };
 
-// Resolve a teleport's destination position (and area, when cross-area). Falls back to the area's spawn point.
+// Resolve a teleport's destination position (and area, when cross-area). With no explicit target point we
+// land at an OPEN boundary edge of the destination area (never the centre, where set-pieces can block/hide).
 function resolveTeleportTarget(pt: MapPoint): { areaId?: string; pos: { x: number; y: number; z: number } } | null {
   const cur = usePlayerStore.getState().currentAreaId;
   const targetAreaId = pt.targetAreaId && pt.targetAreaId !== cur ? pt.targetAreaId : undefined;
@@ -125,8 +127,8 @@ function resolveTeleportTarget(pt: MapPoint): { areaId?: string; pos: { x: numbe
     if (tp) pos = { x: tp.position[0], y: tp.position[1] + 1, z: tp.position[2] };
   }
   if (!pos) {
-    const sp = area?.spawnPoint;
-    pos = sp ? { x: sp.x, y: sp.y, z: sp.z } : { x: 0, y: 3, z: 0 };
+    // Cross-area → arrive near the edge that links back to where we came from; same-area → south boundary.
+    pos = targetAreaId ? arrivalNearBoundary(lookupArea, cur) : spawnNearBoundary(lookupArea, 'south');
   }
   return { areaId: targetAreaId, pos };
 }

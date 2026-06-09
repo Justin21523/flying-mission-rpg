@@ -23,7 +23,9 @@ export const EnvironmentBackdrop = () => {
 
   return (
     <>
-      {env.backgroundMode === 'sky' && (
+      {/* Edit Mode: no sky dome / HDRI / gradient backdrop at all — a flat clear background (owned by
+          EditModeAmbience) keeps the whole scene visible while editing. The sky never obscures the view. */}
+      {!editMode && env.backgroundMode === 'sky' && (
         <>
           <Sky
             distance={450000}
@@ -50,11 +52,11 @@ export const EnvironmentBackdrop = () => {
 
       {/* Photoreal HDRI panorama (CC0 .hdr/.exr dropped in public/hdri or src/assets/hdri) — sets the sky
           background AND image-based lighting. Mounts after the background colour so it owns scene.background. */}
-      {env.backgroundMode === 'hdri' && resolveHdriUrl(env.hdriUrl) && (
+      {!editMode && env.backgroundMode === 'hdri' && resolveHdriUrl(env.hdriUrl) && (
         <Environment files={resolveHdriUrl(env.hdriUrl)!} background />
       )}
 
-      {env.backgroundMode === 'gradient' && (
+      {!editMode && env.backgroundMode === 'gradient' && (
         <mesh scale={[1, 1, 1]} renderOrder={-1}>
           <sphereGeometry args={[490, 32, 16]} />
           <meshBasicMaterial side={BackSide} depthWrite={false} toneMapped={false}>

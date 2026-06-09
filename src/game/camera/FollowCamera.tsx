@@ -20,11 +20,20 @@ import { editorSpawn } from '../../stores/sceneEditStore';
 // gizmo works exactly as in the rest of the kit. We only mirror the orbit target into
 // editorSpawn so the Add-Model palette drops new objects at the camera focus.
 
-const LOOK_SENSITIVITY = 0.0025;
+const LOOK_SENSITIVITY = 0.0032;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+// Pitch range: PITCH_MIN ≈ near-horizon (look across the world), PITCH_MAX ≈ near top-down.
+const PITCH_MIN = 0.12;
+const PITCH_MAX = 1.5;
+// Rotation/zoom smoothing rate — higher = snappier, lower = floatier (frame-rate independent via delta).
+const CAM_SMOOTH = 14;
 // Play-mode wheel-zoom range — very close right up to far-out (big maps).
 const CAM_MIN_DIST = 1.2;
 const CAM_MAX_DIST = 600;
+// Canonical orbit reset, re-applied on every area travel / portal / teleport so you ALWAYS arrive facing the
+// same direction (the camera angle never varies just because you moved to another place).
+const DEFAULT_YAW = Math.PI;   // behind the player
+const DEFAULT_PITCH = 0.9;     // 0 = horizon, ~1.5 = top-down-ish
 
 export const FollowCamera = () => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -36,12 +45,25 @@ export const FollowCamera = () => {
   const terrainShiftHeld = useTerrainBrushStore((s) => s.shiftHeld);
   const gl = useThree((s) => s.gl);
 
-  // Play-mode orbit state (refs → no re-render, no per-frame allocation).
-  const yaw = useRef(Math.PI);   // start behind the player (looking down +Z toward them)
-  const pitch = useRef(0.9);     // 0 = horizon, ~1.4 = top-down-ish
+  // Play-mode orbit state (refs → no re-render, no per-frame allocation). The *Target refs are what the
+  // mouse drives; the plain refs ease toward them each frame so rotation/zoom feel smooth, not jumpy.
+  const yaw = useRef(DEFAULT_YAW);   // start behind the player (looking down +Z toward them)
+  const pitch = useRef(DEFAULT_PITCH);
   const dist = useRef(9);
+  const yawTarget = useRef(DEFAULT_YAW);
+  const pitchTarget = useRef(DEFAULT_PITCH);
+  const distTarget = useRef(9);
   const dragging = useRef(false);
   const target = useRef(new Vector3());
+
+  // Re-center the orbit angle on every travel/spawn (travelGuardUntil is bumped by travelToArea + requestSpawn,
+  // so this covers edge crossings, portals AND teleports) → the facing direction is identical on every arrival.
+  const travelTick = usePlayerStore((s) => s.travelGuardUntil);
+  useEffect(() => {
+    if (useUiStore.getState().editMode) return;
+    yaw.current = DEFAULT_YAW; yawTarget.current = DEFAULT_YAW;
+    pitch.current = DEFAULT_PITCH; pitchTarget.current = DEFAULT_PITCH;
+  }, [travelTick]);
 
   // Mouse-drag to orbit + wheel to zoom — play mode only.
   useEffect(() => {
@@ -50,13 +72,14 @@ export const FollowCamera = () => {
     const onUp = () => { dragging.current = false; };
     const onMove = (e: PointerEvent) => {
       if (!dragging.current || useUiStore.getState().editMode) return;
-      yaw.current -= e.movementX * LOOK_SENSITIVITY;
-      pitch.current = clamp(pitch.current + e.movementY * LOOK_SENSITIVITY, 0.25, 1.45);
+      // Direct "look toward the cursor" mapping: drag right → camera looks right, drag up → camera looks up.
+      yawTarget.current -= e.movementX * LOOK_SENSITIVITY;
+      pitchTarget.current = clamp(pitchTarget.current + e.movementY * LOOK_SENSITIVITY, PITCH_MIN, PITCH_MAX);
     };
     const onWheel = (e: WheelEvent) => {
       if (useUiStore.getState().editMode) return;
       // Distance-proportional zoom step → smooth control across a very wide range (close-up to far-out).
-      dist.current = clamp(dist.current * (1 + e.deltaY * 0.0012), CAM_MIN_DIST, CAM_MAX_DIST);
+      distTarget.current = clamp(distTarget.current * (1 + e.deltaY * 0.0012), CAM_MIN_DIST, CAM_MAX_DIST);
     };
     dom.addEventListener('pointerdown', onDown);
     window.addEventListener('pointerup', onUp);
@@ -70,7 +93,7 @@ export const FollowCamera = () => {
     };
   }, [gl]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (editMode) {
       // OrbitControls owns the camera; just mirror its focus for the Add-Model palette.
       const c = controlsRef.current;
@@ -79,6 +102,12 @@ export const FollowCamera = () => {
     }
     const playerPosition = usePlayerStore.getState().position;
     if (!playerPosition) return;
+
+    // Ease the live yaw/pitch/distance toward their drag targets (frame-rate independent) → smooth orbit/zoom.
+    const a = 1 - Math.exp(-CAM_SMOOTH * delta);
+    yaw.current += (yawTarget.current - yaw.current) * a;
+    pitch.current += (pitchTarget.current - pitch.current) * a;
+    dist.current += (distTarget.current - dist.current) * a;
 
     // Follow: orbit around the player's chest at the user's chosen yaw/pitch/distance.
     const t = target.current;

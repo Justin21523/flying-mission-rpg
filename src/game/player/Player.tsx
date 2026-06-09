@@ -114,6 +114,7 @@ export const Player = () => {
     if (!spawnRequest || !b) return;
     b.setTranslation(spawnRequest, true);
     b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    headingRef.current = 0; // arrive facing the canonical direction (consistent on every travel/teleport)
     usePlayerStore.getState().clearSpawnRequest();
   }, [spawnRequest]);
 
