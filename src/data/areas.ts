@@ -37,9 +37,15 @@ export const SEED_AREAS: KitArea[] = [
 function normalizeAreas(list: KitArea[]): KitArea[] {
   const byId = new Map(list.map((a) => [a.id, a]));
   const conns = new Map<string, Set<string>>();
-  for (const a of list) conns.set(a.id, new Set(a.connectedAreaIds ?? []));
+  // Seed each area's connections from explicit connectedAreaIds AND from its edge neighbours (WorldArea).
   for (const a of list) {
-    for (const target of a.connectedAreaIds ?? []) {
+    const set = new Set<string>(a.connectedAreaIds ?? []);
+    const edges = (a as { edges?: Record<string, string | undefined> }).edges;
+    if (edges) for (const n of Object.values(edges)) if (n) set.add(n);
+    conns.set(a.id, set);
+  }
+  for (const a of list) {
+    for (const target of conns.get(a.id) ?? []) {
       if (byId.has(target)) conns.get(target)!.add(a.id); // add the reverse edge
     }
   }

@@ -6,10 +6,9 @@ import { getKitArea } from '../../data/areas';
 import { BIOME_THEMES } from '../../data/environmentThemes';
 import { TEXTURE_SETS } from '../../game/world/textureLibrary';
 import { defaultNormalizeFor } from '../../game/world/normalizeDefault';
-import { DISTRICT_CATEGORIES, DISTRICT_CATEGORY_LABEL } from '../../types/world';
+import { DISTRICT_CATEGORIES, DISTRICT_CATEGORY_LABEL, EDGE_DIRS } from '../../types/world';
 import type { DistrictCategory } from '../../types/world';
 import { Field, inp, lbl } from './editorShared';
-import { IdMultiPicker } from './idPickers';
 import { ModelPicker } from './ModelPicker';
 import { useState } from 'react';
 
@@ -25,7 +24,13 @@ export const WorldEditorTab = () => {
   const selectedArea = w.areas.find((a) => a.id === w.selectedAreaId) ?? null;
 
   return (
-    <div className="flex h-full gap-3 text-xs">
+    <div className="flex h-full flex-col gap-2 text-xs">
+      {/* Global travel mode */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
+        <label className="flex items-center gap-1 text-[11px] text-slate-300"><input type="checkbox" checked={w.useEdgeWalk} onChange={(e) => w.setEdgeWalk(e.target.checked)} className="accent-emerald-500" />🚶 Edge-walk travel (no portals)</label>
+        <label className="flex items-center gap-1 text-[11px] text-slate-300"><input type="checkbox" checked={w.fadeEnabled} onChange={(e) => w.setFadeEnabled(e.target.checked)} className="accent-sky-500" />🌫 Fade transition</label>
+      </div>
+      <div className="flex min-h-0 flex-1 gap-3">
       {/* Districts + areas column */}
       <div className="w-52 shrink-0 space-y-3 overflow-y-auto">
         <div>
@@ -71,6 +76,7 @@ export const WorldEditorTab = () => {
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 };
@@ -90,10 +96,24 @@ const AreaProps = ({ areaId }: { areaId: string }) => {
             {BIOME_KEYS.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
         </Field>
+        <Field label="map size (half-extent)">
+          <input type="number" min={10} step={5} value={area.size ?? 40} onChange={(e) => w.updateArea(areaId, { size: parseFloat(e.target.value) || 40 })} className={inp} />
+        </Field>
       </div>
-      <Field label="connected areas (travel gates)">
-        <IdMultiPicker ids={area.connectedAreaIds ?? []} onChange={(v) => w.updateArea(areaId, { connectedAreaIds: v })} options={areaOptions} addLabel="+ connect area…" />
-      </Field>
+      <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+        <div className={lbl}>Edge neighbours (walk off an edge to travel)</div>
+        <div className="mt-1 grid grid-cols-2 gap-2">
+          {EDGE_DIRS.map((dir) => (
+            <Field key={dir} label={dir}>
+              <select value={area.edges?.[dir] ?? ''} onChange={(e) => w.setAreaEdge(areaId, dir, e.target.value || undefined)} className={inp}>
+                <option value="">(walled)</option>
+                {areaOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </Field>
+          ))}
+        </div>
+        <p className="mt-1 text-[10px] text-slate-500">N=−z · S=+z · E=+x · W=−x · 對向會自動互連</p>
+      </div>
     </div>
   );
 };

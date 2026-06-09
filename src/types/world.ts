@@ -35,8 +35,20 @@ export interface District {
   areaIds: string[];
 }
 
-// A WorldArea is a KitArea with its owning district + an explicit biome (a BIOME_THEMES key).
+// Map edges — walking off an edge that has a neighbour transitions there (no portal). Convention:
+// north = -z, south = +z, east = +x, west = -x. The reciprocal edge is the OPPOSITE one.
+export type EdgeDir = 'north' | 'south' | 'east' | 'west';
+export const EDGE_DIRS: EdgeDir[] = ['north', 'south', 'east', 'west'];
+export const OPPOSITE_EDGE: Record<EdgeDir, EdgeDir> = { north: 'south', south: 'north', east: 'west', west: 'east' };
+export interface AreaEdges { north?: string; south?: string; east?: string; west?: string }
+
+// A WorldArea is a KitArea with its owning district + an explicit biome, plus an editable playable size
+// (square half-extent) and per-edge neighbour links for walk-between-areas travel.
 export interface WorldArea extends KitArea {
   districtId?: string;
-  biome?: string; // a BIOME_THEMES key; falls back to ambientTheme / inferred
+  biome?: string;   // a BIOME_THEMES key; falls back to ambientTheme / inferred
+  size?: number;    // playable half-extent (edges sit at ±size); default DEFAULT_AREA_SIZE
+  edges?: AreaEdges; // neighbour area id per edge (drives edge-walk transitions + connectedAreaIds)
 }
+
+export const DEFAULT_AREA_SIZE = 40;

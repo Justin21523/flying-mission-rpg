@@ -34,6 +34,7 @@ import { RescueHud } from './ui/RescueHud';
 import { ToolBeltHud } from './ui/ToolBeltHud';
 import { LicenseBadge } from './ui/LicenseBadge';
 import { ResearchStationHud } from './ui/ResearchStationHud';
+import { ScreenFade } from './ui/ScreenFade';
 import { useRescueOperationStore } from './stores/rescueOperationStore';
 
 // Kit — top-level: the 3D <Canvas> with DOM overlays layered over it. F1 toggles Edit Mode; in Edit
@@ -133,6 +134,7 @@ export const App = () => {
       {editMode && <EditModeInspector />}
       {editMode && <TerrainBrushHud />}
       {editMode && editorHubOpen && <EditorHubPanel />}
+      <ScreenFade />
       <PlayerPosDebug />
       {/* DPR capped lower (high-DPI screens were fill-bound); a PerformanceMonitor in Scene adapts it. */}
       <CanvasErrorBoundary>

@@ -11,6 +11,8 @@ import { SampleEntities } from './SampleEntities';
 import { EditableNpcLayer } from './EditableNpcLayer';
 import { LandmarkLayer } from './LandmarkLayer';
 import { LayoutLayer } from './LayoutLayer';
+import { EdgeTransitionLayer } from './EdgeTransitionLayer';
+import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { EditableTriggerRenderer } from '../editor/EditableTriggerRenderer';
 import { QuestMarkerRenderer } from '../editor/QuestMarkerRenderer';
 import { EncounterMarkerRenderer } from '../editor/EncounterMarkerRenderer';
@@ -57,6 +59,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
   const env = resolveAreaEnvironment(areaId);
   const theme = resolveAreaTheme(areaId);
   const area = getKitArea(areaId);
+  // POLI — when edge-walk is on, portals are replaced by walk-off-edge transitions (EdgeTransitionLayer).
+  const useEdgeWalk = useEditorWorldStore((s) => s.useEdgeWalk);
 
   return (
     <>
@@ -85,14 +89,17 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <EncounterMarkerRenderer areaId={areaId} />
       <ActivityArenaRenderer areaId={areaId} />
 
-      {(area?.connectedAreaIds ?? []).map((targetId) => (
-        <GatePlacement
-          key={targetId}
-          areaId={areaId}
-          targetId={targetId}
-          label={getKitArea(targetId)?.name ?? targetId}
-        />
-      ))}
+      {/* POLI: edge-walk transitions (no portals) when enabled; else the kit's travel-gate portals. */}
+      {useEdgeWalk
+        ? <EdgeTransitionLayer areaId={areaId} />
+        : (area?.connectedAreaIds ?? []).map((targetId) => (
+            <GatePlacement
+              key={targetId}
+              areaId={areaId}
+              targetId={targetId}
+              label={getKitArea(targetId)?.name ?? targetId}
+            />
+          ))}
     </>
   );
 };
