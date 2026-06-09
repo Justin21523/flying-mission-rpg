@@ -94,24 +94,25 @@ export const Player = () => {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
-  // Teleport on spawn request (area travel).
+  // Place the player on area change / spawn request. An EXPLICIT spawn (area travel / teleport / portal) ALWAYS
+  // wins — so arriving via an edge lands at the edge spawn, never at the saved authored override (which could
+  // sit right at the edge and bounce you straight back). With no pending spawn (fresh mount / reload), restore
+  // the saved Edit-Mode override for this area.
   useEffect(() => {
-    if (spawnRequest && body.current) {
-      body.current.setTranslation(spawnRequest, true);
-      body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    const b = body.current;
+    if (!b) return;
+    if (spawnRequest) {
+      b.setTranslation(spawnRequest, true);
+      b.setLinvel({ x: 0, y: 0, z: 0 }, true);
       usePlayerStore.getState().clearSpawnRequest();
+      return;
     }
-  }, [spawnRequest]);
-
-  // On mount / area change, apply the saved Edit-Mode position override for this area (persisted in
-  // the kit sceneEditStore) so the player spawns where it was placed and it survives reload.
-  useEffect(() => {
     const ov = useSceneEditStore.getState().overrides[playerKey(currentAreaId)];
-    if (ov?.position && body.current) {
-      body.current.setTranslation({ x: ov.position[0], y: ov.position[1], z: ov.position[2] }, true);
-      body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    if (ov?.position) {
+      b.setTranslation({ x: ov.position[0], y: ov.position[1], z: ov.position[2] }, true);
+      b.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
-  }, [currentAreaId]);
+  }, [currentAreaId, spawnRequest]);
 
   useFrame(() => {
     const b = body.current;

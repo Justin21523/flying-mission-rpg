@@ -8,6 +8,7 @@ import { useWorldSelectStore } from './stores/worldSelectStore';
 import { usePbrPatchEditStore } from './stores/pbrPatchEditStore';
 import { useEditorEnvironmentStore } from './stores/editorEnvironmentStore';
 import { usePlayerStore } from './stores/playerStore';
+import { useEditorWorldStore } from './stores/editorWorldStore';
 import { Scene } from './game/core/Scene';
 import { CanvasErrorBoundary } from './ui/CanvasErrorBoundary';
 import { usePoll } from './ui/usePoll';
@@ -89,6 +90,15 @@ export const App = () => {
 
   // Start global editor Undo/Redo tracking (snapshots every authoring edit for Ctrl+Z / Ctrl+Shift+Z).
   useEffect(() => { initEditorUndo(); }, []);
+
+  // Begin the game inside an interior: on load, if any area is marked indoor (the 🏠 start space), spawn there.
+  useEffect(() => {
+    const indoor = useEditorWorldStore.getState().areas.find((a) => a.indoor === true);
+    if (indoor) {
+      const sp = indoor.spawnPoint ?? { x: 0, y: 3, z: 0 };
+      usePlayerStore.getState().travelToArea(indoor.id, sp);
+    }
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
