@@ -70,10 +70,12 @@ export interface EditorNpc {
   patrolWaypoints?: Vec3[];      // closed loop for 'patrol' (last → first; no dead-end)
   schedulePositions?: Partial<Record<TimeOfDay, Vec3>>; // per-phase target for 'schedule'
   moveSpeed?: number;            // world units / sec (default 1.6)
+  wanderRadius?: number;         // roam radius for 'wander' (default 12)
+  animations?: import('./character').AnimRule[]; // custom animation rules (same system as the player)
 }
 
-export type NpcMovement = 'static' | 'patrol' | 'schedule';
-export const NPC_MOVEMENT: NpcMovement[] = ['static', 'patrol', 'schedule'];
+export type NpcMovement = 'static' | 'patrol' | 'schedule' | 'wander';
+export const NPC_MOVEMENT: NpcMovement[] = ['static', 'patrol', 'schedule', 'wander'];
 
 let npcCodeSeq = 0;
 export function makeNpcCode(npcType: NpcType = 'student'): string {

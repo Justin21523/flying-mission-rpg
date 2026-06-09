@@ -10,6 +10,7 @@ import { useAnimClipStore } from '../../stores/animClipStore';
 import { playerMotion } from './playerMotion';
 import { playerKeysDown } from './playerInput';
 import { HelicopterRotor } from './HelicopterRotor';
+import { ruleMatches, pickLoopRule } from '../anim/animRunner';
 import type { AnimRule } from '../../types/character';
 
 // The player is one of the main characters (cycle with C), each with two forms (toggle with T). Both form
@@ -34,25 +35,7 @@ const Capsule = () => (
   </mesh>
 );
 
-// Evaluate whether a rule's trigger matches the current live state.
-function ruleMatches(r: AnimRule, s: { speed: number; moving: boolean; sprinting: boolean; flying: boolean; form: PoliForm; ability: boolean }): boolean {
-  if (r.speedMin != null && s.speed < r.speedMin) return false;
-  if (r.speedMax != null && s.speed > r.speedMax) return false;
-  switch (r.trigger) {
-    case 'always': return true;
-    case 'idle': return !s.moving && !s.flying;
-    case 'moving': return s.moving;
-    case 'sprinting': return s.sprinting;
-    case 'flying': return s.flying;
-    case 'vehicle': return s.form === 'vehicle';
-    case 'robot': return s.form === 'robot';
-    case 'ability': return s.ability;
-    case 'key': return !!r.key && playerKeysDown.has(r.key);
-    default: return false;
-  }
-}
-
-const ModelView = ({ path, height, yOffset, visible, rules, active, form }: {
+const ModelView =({ path, height, yOffset, visible, rules, active, form }: {
   path: string; height: number; yOffset: number; visible: boolean; rules: AnimRule[]; active: boolean; form: PoliForm;
 }) => {
   const { scene, animations } = useGLTF(path);
@@ -102,6 +85,7 @@ const ModelView = ({ path, height, yOffset, visible, rules, active, form }: {
       flying: tf.flying,
       form,
       ability: tnow < S.abilityUntil,
+      keyDown: (c: string) => playerKeysDown.has(c),
     };
 
     // One-shot (once / key) rules: fire on rising edge, play through once.
@@ -122,14 +106,7 @@ const ModelView = ({ path, height, yOffset, visible, rules, active, form }: {
     if (tnow < S.oneShotUntil) return; // let the one-shot finish
 
     // Highest-priority looping rule that matches + has a clip in this model.
-    let best: AnimRule | null = null;
-    let bestP = -Infinity;
-    for (const r of rules) {
-      if (r.once || !actions.has(r.clip)) continue;
-      if (!ruleMatches(r, state)) continue;
-      const p = r.priority ?? 0;
-      if (p > bestP) { bestP = p; best = r; }
-    }
+    const best = pickLoopRule(rules, state, (c) => actions.has(c));
     const clip = best?.clip ?? firstClip;
     if (!clip || !actions.has(clip)) return;
     const next = actions.get(clip)!;

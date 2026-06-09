@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useGLTF } from '@react-three/drei';
 import type { EditorNpc, NpcType, NpcMovement } from '../../types/editorNPC';
 import { NPC_TYPES, NPC_TYPE_LABEL, NPC_TYPE_COLOR, NPC_MOVEMENT } from '../../types/editorNPC';
 import type { TimeOfDay } from '../../types/randomEvent';
@@ -7,11 +8,14 @@ import { useDialogueStore } from '../../stores/dialogueStore';
 import { useUiStore } from '../../stores/uiStore';
 import { listDialogueTreeIds, getDialogueTree } from '../../game/dialogue/dialogueRegistry';
 import { editorSpawn } from '../../stores/sceneEditStore';
+import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
+import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { validateNpcLive } from '../../game/editor/validateNpc';
 import { Field, inp, lbl, csv, parseCsv, useQuestOptions } from './editorShared';
 import { IdMultiPicker } from './idPickers';
 import { ModelPicker } from './ModelPicker';
 import { AnimationPicker } from './AnimationPicker';
+import { AnimRuleList } from './AnimRuleList';
 import { DialogueTreeEditor } from './DialogueTreeEditor';
 import { DialoguePreviewPanel } from './DialoguePreviewPanel';
 
@@ -26,7 +30,7 @@ const Vec3Row = ({ label, value, step, onChange }: { label: string; value: [numb
   </div>
 );
 
-const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day' };
+const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day', wander: 'Wander (AI roam)' };
 const TIME_SLOTS: TimeOfDay[] = ['dawn', 'day', 'evening', 'night'];
 
 // Movement authoring: static / patrol loop (closed waypoints) / per-time-of-day positions. "at cam"
@@ -48,6 +52,12 @@ const MovementSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<Editor
           <input type="number" step={0.1} min={0.1} value={npc.moveSpeed ?? 1.6} onChange={(e) => set({ moveSpeed: parseFloat(e.target.value) || 0.1 })} className={inp} />
         </Field>
       </div>
+
+      {mode === 'wander' && (
+        <Field label="wanderRadius (roam range from start)">
+          <input type="number" step={1} min={1} value={npc.wanderRadius ?? 12} onChange={(e) => set({ wanderRadius: parseFloat(e.target.value) || 1 })} className={inp} />
+        </Field>
+      )}
 
       {mode === 'patrol' && (
         <div className="space-y-1">
@@ -95,6 +105,29 @@ const MovementSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<Editor
         </div>
       )}
     </div>
+  );
+};
+
+// Loads the NPC model GLB (outside the canvas) to record its clip names into animClipStore, so the rule
+// editor's clip dropdown is populated. Keyed by the resolved asset path (matches RuledNpcModel).
+const NpcClipLoader = ({ path }: { path: string }) => {
+  const { animations } = useGLTF(encodeURI(path));
+  useEffect(() => { useAnimClipStore.getState().setClips(path, (animations ?? []).map((c) => c.name)); }, [path, animations]);
+  return null;
+};
+
+// Per-NPC custom animation rules (same engine as the player). Resolves the NPC's model → loads its clips →
+// reuses the shared AnimRuleList. NPC state only exposes idle/moving/always/key triggers (no forms/flight).
+const NpcAnimationsSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<EditorNpc>) => void }) => {
+  useAnimClipStore((s) => s.clipsByPath); // re-render when clips finish loading
+  const path = npc.modelAssetId ? resolveModelAsset(npc.modelAssetId)?.path : undefined;
+  const clips = getClipsForPaths([path]);
+  if (!npc.modelAssetId) return <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2 text-[11px] text-slate-500">Assign a 3D model above to author animation rules.</div>;
+  return (
+    <>
+      {path && <Suspense fallback={null}><NpcClipLoader path={path} /></Suspense>}
+      <AnimRuleList rules={npc.animations ?? []} clips={clips} onChange={(next) => set({ animations: next })} />
+    </>
   );
 };
 
@@ -192,6 +225,7 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
           </div>
 
           <MovementSection npc={npc} set={set} />
+          <NpcAnimationsSection npc={npc} set={set} />
         </>
       )}
 
