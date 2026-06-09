@@ -7,12 +7,15 @@ export interface PlayerState {
   currentAreaId: string;
   spawnRequest: Vec | null;
   distanceTraveled: number;
+  travelGuardUntil: number; // ms timestamp: ignore edge/teleport triggers until then (anti bounce-back)
   setPosition: (pos: Vec) => void;
   setCurrentAreaId: (id: string) => void;
   requestSpawn: (pos: Vec) => void;
   clearSpawnRequest: () => void;
   travelToArea: (areaId: string, spawnPoint: Vec) => void;
 }
+
+const TRAVEL_GUARD_MS = 1500; // grace period after any area travel / spawn before edges can fire again
 
 // NOTE: the player's edited spawn position is NOT stored here. It lives in the kit sceneEditStore
 // under objKey(areaId, 'npc', 'poli') (set by the Edit-Mode gizmo, auto-persisted) and is applied
@@ -22,6 +25,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentAreaId: 'rescue_hq',
   spawnRequest: null,
   distanceTraveled: 0,
+  travelGuardUntil: 0,
   setPosition: (pos) => {
     const prev = get().position;
     const delta = prev
@@ -30,7 +34,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ position: pos, distanceTraveled: get().distanceTraveled + delta });
   },
   setCurrentAreaId: (id) => set({ currentAreaId: id }),
-  requestSpawn: (pos) => set({ spawnRequest: pos }),
+  requestSpawn: (pos) => set({ spawnRequest: pos, travelGuardUntil: Date.now() + TRAVEL_GUARD_MS }),
   clearSpawnRequest: () => set({ spawnRequest: null }),
-  travelToArea: (areaId, spawnPoint) => set({ currentAreaId: areaId, spawnRequest: spawnPoint }),
+  travelToArea: (areaId, spawnPoint) => set({ currentAreaId: areaId, spawnRequest: spawnPoint, travelGuardUntil: Date.now() + TRAVEL_GUARD_MS }),
 }));

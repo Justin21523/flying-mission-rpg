@@ -13,7 +13,7 @@ import { OPPOSITE_EDGE, type EdgeDir } from '../../types/world';
 // invisible boundary walls; only connected edges do anything special (the transition). Map size + edge links
 // are editable in the 🗺 World tab.
 
-const MARGIN = 3; // how far inside the arrival edge the player lands
+const MARGIN = 16; // how far inside the arrival edge the player lands (well clear of the reciprocal edge)
 
 // Arrival position just inside `edge` of an area of half-extent `size`. north=-z, south=+z, east=+x, west=-x.
 function spawnAtEdge(edge: EdgeDir, size: number): { x: number; y: number; z: number } {
@@ -41,7 +41,9 @@ export const EdgeTransitionLayer = ({ areaId }: { areaId: string }) => {
   useFrame(() => {
     if (useTransitionStore.getState().covering) return;
     const ps = usePlayerStore.getState();
-    if (ps.spawnRequest) return; // a teleport/area-switch spawn hasn't been applied yet — don't evaluate edges
+    // Don't evaluate edges while a spawn is pending OR during the post-travel grace period — this stops the
+    // "arrive → instantly bounce back" loop (the spawn lands you near the reciprocal edge).
+    if (ps.spawnRequest || Date.now() < ps.travelGuardUntil) return;
     const pos = ps.position;
     if (!pos) return;
     let edge: EdgeDir | null = null;

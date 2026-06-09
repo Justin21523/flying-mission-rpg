@@ -83,9 +83,9 @@ const TeleportPoint = ({ pt, pos }: { pt: MapPoint; pos: [number, number, number
   const promptRef = useRef<Group>(null);
   const r = pt.radius ?? 2;
   useFrame(() => {
-    const pp = usePlayerStore.getState().position;
-    if (!pp) return;
-    const within = Math.hypot(pp.x - pos[0], pp.z - pos[2]) < r;
+    const ps = usePlayerStore.getState();
+    if (!ps.position) return;
+    const within = Math.hypot(ps.position.x - pos[0], ps.position.z - pos[2]) < r && Date.now() >= ps.travelGuardUntil;
     inRange.current = within;
     if (promptRef.current) promptRef.current.visible = within;
   });

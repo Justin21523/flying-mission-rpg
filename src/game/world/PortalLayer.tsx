@@ -105,15 +105,17 @@ const ActivePortal = ({ portal, pos }: { portal: PortalDef; pos: [number, number
   const r = portal.radius ?? 2.5;
 
   useFrame(() => {
-    const pp = usePlayerStore.getState().position;
+    const ps = usePlayerStore.getState();
+    const pp = ps.position;
     if (!pp) return;
     const d = Math.hypot(pp.x - pos[0], pp.z - pos[2]);
     const within = d < r;
     const open = isPortalOpen(portal);
-    inRange.current = within && open;
-    if (promptRef.current) promptRef.current.visible = portal.activation === 'interact' && within && open;
+    const guarded = Date.now() < ps.travelGuardUntil; // just teleported → don't fire / prompt yet
+    inRange.current = within && open && !guarded;
+    if (promptRef.current) promptRef.current.visible = portal.activation === 'interact' && within && open && !guarded;
     if (d > r + 1.2) armed.current = true; // armed once the player is clear of the portal
-    if (portal.activation === 'proximity' && armed.current && within && open) { armed.current = false; travel(portal); }
+    if (portal.activation === 'proximity' && armed.current && within && open && !guarded) { armed.current = false; travel(portal); }
   });
 
   // Interact ([E]) — travel when the player is in range of an open portal (keypress is the gate; no loop risk).

@@ -19,8 +19,10 @@ export const BoundaryMistLayer = ({ areaId }: { areaId: string }) => {
 
   const size = getEffectiveAreaSize(areaId);
   const H = 26;
-  // Several concentric bands → a thick, VERY dense wall of mist at the edge (fully blocks the view beyond).
-  const bands = [size, size - 4, size - 8];
+  // Concentric shells whose INNER shell sits exactly at the boundary (size) and the rest extend OUTWARD — so
+  // the dense fog begins right where you switch maps (you're in the fog at the moment of transition, never
+  // walking through fog while still inside). Thick outward to fully hide the void beyond.
+  const bands = [size, size + 3, size + 6, size + 9, size + 12];
   return (
     <group renderOrder={3}>
       {bands.map((r, i) => (
