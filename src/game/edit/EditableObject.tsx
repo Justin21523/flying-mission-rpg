@@ -32,10 +32,15 @@ export function EditableObject({ objKey, base, assetId, children }: EditableObje
       if (e.button !== undefined && e.button !== 0) return; // left button only
       e.stopPropagation();
       if (!groupRef.current) return;
-      // Shift- or Ctrl/Cmd-click adds/removes from the batch selection; plain click replaces it.
       const e2 = e.nativeEvent;
-      if (e2.shiftKey || e2.ctrlKey || e2.metaKey) toggleSelect(objKey, groupRef.current, assetId ?? null);
-      else select(objKey, groupRef.current, assetId ?? null);
+      // Shift- or Ctrl/Cmd-click adds/removes from the batch selection.
+      if (e2.shiftKey || e2.ctrlKey || e2.metaKey) { toggleSelect(objKey, groupRef.current, assetId ?? null); return; }
+      // Plain click on an object that's ALREADY part of a multi-selection keeps the whole batch, so the gizmo
+      // moves/edits them together (re-selecting just this one would break the group). Otherwise select it.
+      const s = useSceneEditStore.getState();
+      const inBatch = s.extraSelected.length > 0 && (s.selectedKey === objKey || s.extraSelected.some((ex) => ex.key === objKey));
+      if (inBatch) return;
+      select(objKey, groupRef.current, assetId ?? null);
     },
     [objKey, select, toggleSelect, assetId],
   );
