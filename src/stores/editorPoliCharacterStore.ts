@@ -33,6 +33,7 @@ export interface CharacterOverride {
   superDurationSec?: number;
   superFlies?: boolean;
   afterimageColor?: string;
+  supers?: import('../types/character').SuperMove[];
   animations?: import('../types/character').AnimRule[];
   vehicleHeight?: number;
   robotHeight?: number;
@@ -127,6 +128,7 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.superDurationSec !== undefined && { superDurationSec: ov.superDurationSec }),
     ...(ov.superFlies !== undefined && { superFlies: ov.superFlies }),
     ...(ov.afterimageColor !== undefined && { afterimageColor: ov.afterimageColor }),
+    ...(ov.supers !== undefined && { supers: ov.supers }),
     ...(ov.animations !== undefined && { animations: ov.animations }),
     ...(ov.vehicleHeight !== undefined && { vehicleHeight: ov.vehicleHeight }),
     ...(ov.robotHeight !== undefined && { robotHeight: ov.robotHeight }),

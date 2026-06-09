@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { playSfx } from '../game/audio/sfx';
 import { CORE_TEAM } from '../data/characters/coreTeam';
 import { applyAbility } from '../game/player/abilityEffects';
-import type { AbilityType } from '../types/character';
+import { applySuperDamage } from '../game/combat/applySuperDamage';
+import type { AbilityType, SuperKind, SuperMove } from '../types/character';
 
 // DEBUG: when true, the Q ability has NO cooldown — any ability can be used at any time (testing). Set to
 // false to restore normal per-ability cooldowns.
@@ -37,12 +38,29 @@ interface TransformState {
   abilityColor: string;   // colour of the most-recent ability VFX
   abilityType: AbilityType; // type of the most-recent ability (drives AbilityFx shape)
   abilityCooldownUntil: number; // perf.now()/1000 until which Q is on cooldown
+  // Super moves (keys 1/2/3) — one pulse id + a payload the SuperAbilityFx reads to draw the right effect.
+  superFxPulseId: number;
+  superFx: SuperFxPayload | null;
   toggleForm: () => void;     // T — flip vehicle⇄robot
   cycleCharacter: () => void; // C — next character in the roster (keeps the current form)
   setFlying: (b: boolean) => void;
   toggleFlight: () => void;   // F (caller checks canFly)
   triggerAbility: (ability: AbilityInput) => boolean; // Q — returns false if on cooldown
+  // Fire a super move from the player at `origin` facing `headingRad`. Returns false if on cooldown.
+  triggerSuperMove: (move: SuperMove, origin: { x: number; y: number; z: number }, headingRad: number) => boolean;
 }
+
+// What SuperAbilityFx reads to draw + place the effect (and what was used to damage yokai this pulse).
+export interface SuperFxPayload {
+  kind: SuperKind;
+  color: string;
+  x: number; y: number; z: number;  // player origin
+  dirX: number; dirZ: number;       // forward unit direction
+  radius: number; range: number; duration: number; count: number;
+}
+
+// Per-super cooldown timers (module-level → no re-renders).
+const superCdUntil: Record<string, number> = {};
 
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
 
@@ -63,6 +81,8 @@ export const useTransformStore = create<TransformState>((set, get) => {
     abilityColor: '#3b82f6',
     abilityType: 'scan_pulse',
     abilityCooldownUntil: 0,
+    superFxPulseId: 0,
+    superFx: null,
     toggleForm: () => pulse({ form: get().form === 'vehicle' ? 'robot' : 'vehicle' }),
     cycleCharacter: () => {
       const i = POLI_ROSTER.indexOf(get().charId);
@@ -82,6 +102,25 @@ export const useTransformStore = create<TransformState>((set, get) => {
         abilityCooldownUntil: DEBUG_UNLIMITED_ABILITY ? 0 : now() + (ability.cooldownSec ?? 5),
       });
       applyAbility({ type, radius: ability.radius ?? 8, duration: ability.duration ?? 3, strength: ability.strength ?? 1.8 });
+      return true;
+    },
+    triggerSuperMove: (move, origin, headingRad) => {
+      if (!DEBUG_UNLIMITED_ABILITY && now() < (superCdUntil[move.id] ?? 0)) return false; // cooling down
+      superCdUntil[move.id] = DEBUG_UNLIMITED_ABILITY ? 0 : now() + (move.cooldownSec || 4);
+      const dirX = Math.sin(headingRad), dirZ = Math.cos(headingRad);
+      const payload: SuperFxPayload = {
+        kind: move.kind, color: move.color,
+        x: origin.x, y: origin.y, z: origin.z, dirX, dirZ,
+        radius: move.radius ?? 8, range: move.range ?? 14,
+        duration: move.duration ?? 0.8, count: move.count ?? 4,
+      };
+      playSfx('ability');
+      set({ superFx: payload, superFxPulseId: get().superFxPulseId + 1 });
+      // Apply damage to live yokai (no-op when no hunt is running / no sink registered).
+      applySuperDamage({
+        kind: payload.kind, x: payload.x, y: payload.y, z: payload.z, dirX, dirZ,
+        damage: move.damage, radius: payload.radius, range: payload.range,
+      });
       return true;
     },
   };

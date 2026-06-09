@@ -95,6 +95,16 @@ export const Player = () => {
         }
         return;
       }
+      // Super moves 1/2/3 — per-character offensive supers for the yokai hunt.
+      if ((e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') && !e.repeat) {
+        if (!useUiStore.getState().editMode) {
+          const idx = e.code === 'Digit1' ? 0 : e.code === 'Digit2' ? 1 : 2;
+          const move = activeMergedChar()?.supers?.[idx];
+          const pos = usePlayerStore.getState().position;
+          if (move && pos) useTransformStore.getState().triggerSuperMove(move, pos, headingRef.current);
+        }
+        return;
+      }
       if (e.code === 'KeyR' && !e.repeat) { // super-boost (when the meter is full)
         if (!useUiStore.getState().editMode) useBoostStore.getState().activateSuper();
         return;

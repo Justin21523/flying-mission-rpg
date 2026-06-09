@@ -7,8 +7,8 @@ import { Field, inp, lbl, Check } from './editorShared';
 import { useEditorBoostStore } from '../../stores/editorBoostStore';
 import { ModelPicker as AssetIdPicker } from './ModelPicker';
 import { MODEL_ASSET_LIST } from '../../data/modelLibrary';
-import type { CharacterDefinition } from '../../types/character';
-import { ABILITY_TYPES } from '../../types/character';
+import type { CharacterDefinition, SuperMove, SuperKind } from '../../types/character';
+import { ABILITY_TYPES, SUPER_KINDS, SUPER_KIND_LABEL } from '../../types/character';
 import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
 import { AnimRuleList } from './AnimRuleList';
 import { Suspense, useEffect } from 'react';
@@ -277,6 +277,8 @@ export const PoliCharacterEditorTab = () => {
                 </div>
               </div>
 
+              <SuperMovesEditor sel={sel} set={set} />
+
               <AnimationRules sel={sel} set={set} />
 
               <Field label="Display Name (English)">
@@ -372,6 +374,54 @@ const ClipLoader = ({ path }: { path: string }) => {
   const { animations } = useGLTF(path);
   useEffect(() => { useAnimClipStore.getState().setClips(path, (animations ?? []).map((c) => c.name)); }, [path, animations]);
   return null;
+};
+
+// Per-character super moves (keys 1/2/3) — the offensive yokai-hunt supers. Edit kind/name/colour/damage/
+// radius·range/cooldown; up to 3 slots. Persists via set({ supers }).
+const SuperMovesEditor = ({ sel, set }: { sel: CharacterDefinition; set: (patch: Partial<CharacterDefinition>) => void }) => {
+  const supers = sel.supers ?? [];
+  const update = (i: number, patch: Partial<SuperMove>) => {
+    const next = supers.map((s, j) => (j === i ? { ...s, ...patch } : s));
+    set({ supers: next });
+  };
+  const addSlot = () => {
+    if (supers.length >= 3) return;
+    const id = `${sel.id}_s${Date.now().toString(36)}`;
+    set({ supers: [...supers, { id, name: `Super ${supers.length + 1}`, kind: 'nova', color: sel.color, damage: 40, radius: 8, range: 14, cooldownSec: 4, duration: 0.8, count: 4 }] });
+  };
+  const removeSlot = (i: number) => set({ supers: supers.filter((_, j) => j !== i) });
+
+  return (
+    <div className="mt-1 rounded-lg border border-fuchsia-700/40 bg-fuchsia-950/20 p-2">
+      <div className="flex items-center justify-between">
+        <div className={lbl}>⚡ Super Moves (keys 1 / 2 / 3)</div>
+        {supers.length < 3 && <button onClick={addSlot} className="rounded bg-fuchsia-700/30 px-2 py-0.5 text-[10px] text-fuchsia-100 hover:bg-fuchsia-700/50">➕ add</button>}
+      </div>
+      {supers.length === 0 && <div className="mt-1 text-[10px] text-slate-500">No supers yet — add up to 3 (fired with keys 1/2/3).</div>}
+      {supers.map((s, i) => (
+        <div key={s.id} className="mt-1.5 rounded border border-slate-700/60 bg-slate-900/40 p-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-fuchsia-200">{i + 1}</span>
+            <input value={s.name} onChange={(e) => update(i, { name: e.target.value })} className={inp + ' flex-1'} placeholder="super name" />
+            <input type="color" value={s.color} onChange={(e) => update(i, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" />
+            <button onClick={() => removeSlot(i)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+          </div>
+          <div className="mt-1 grid grid-cols-2 gap-1.5">
+            <Field label="kind">
+              <select value={s.kind} onChange={(e) => update(i, { kind: e.target.value as SuperKind })} className={inp}>
+                {SUPER_KINDS.map((k) => <option key={k} value={k}>{SUPER_KIND_LABEL[k]}</option>)}
+              </select>
+            </Field>
+            <Field label="damage"><input type="number" step={5} className={inp} value={s.damage} onChange={(e) => update(i, { damage: parseFloat(e.target.value) || 0 })} /></Field>
+            <Field label="radius (AoE)"><input type="number" step={1} className={inp} value={s.radius ?? 8} onChange={(e) => update(i, { radius: parseFloat(e.target.value) || 0 })} /></Field>
+            <Field label="range (forward)"><input type="number" step={1} className={inp} value={s.range ?? 14} onChange={(e) => update(i, { range: parseFloat(e.target.value) || 0 })} /></Field>
+            <Field label="cooldown (s)"><input type="number" step={0.5} className={inp} value={s.cooldownSec} onChange={(e) => update(i, { cooldownSec: parseFloat(e.target.value) || 0 })} /></Field>
+            <Field label="count / duration"><input type="number" step={1} className={inp} value={s.count ?? 4} onChange={(e) => update(i, { count: parseInt(e.target.value, 10) || 1 })} /></Field>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 // Per-character animation rules — load the char's model clips on demand, then reuse the shared AnimRuleList.

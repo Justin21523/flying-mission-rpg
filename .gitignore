@@ -19,5 +19,6 @@ src/assets/**/*.hdr
 public/models/**
 public/textures/**
 public/materials/**
+public/hdri/**
 !**/README.md
 !**/.gitkeep
