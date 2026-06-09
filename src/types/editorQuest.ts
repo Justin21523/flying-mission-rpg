@@ -16,12 +16,16 @@ export type EditorObjectiveType =
   | 'reachLocation'
   | 'useTravelGate'
   | 'defeatEnemy'
+  | 'defeatYokai'
+  | 'reachLevel'
+  | 'earnCoins'
   | 'completeActivity'
   | 'custom';
 
 export const EDITOR_OBJECTIVE_TYPES: EditorObjectiveType[] = [
   'talkToNPC', 'collectItem', 'visitArea', 'inspectObject', 'unlockDoor',
-  'triggerEvent', 'reachLocation', 'useTravelGate', 'defeatEnemy', 'completeActivity', 'custom',
+  'triggerEvent', 'reachLocation', 'useTravelGate', 'defeatEnemy', 'defeatYokai',
+  'reachLevel', 'earnCoins', 'completeActivity', 'custom',
 ];
 
 export interface EditorObjective {
@@ -67,6 +71,8 @@ export interface EditorQuest {
   setsWorldFlags: string[];
   repeatable?: boolean;
   daily?: boolean;
+  nextQuestId?: string;     // branching: auto-start this quest when this one completes
+  autoStartFlag?: string;   // auto-start this quest when this world flag is set
   tags: string[];
   isEnabled?: boolean;
 }

@@ -65,6 +65,8 @@ export const QuestInspector = ({ eq }: { eq: EditorQuest }) => {
         <Field label="description"><input value={eq.description} onChange={(e) => set({ description: e.target.value })} className={`col-span-2 ${inp}`} /></Field>
         <Field label="startingNPCId (giver)"><IdSelect value={eq.startingNPCId} onChange={(v) => set({ startingNPCId: v })} options={npcOptions} placeholder="(no giver — board)" /></Field>
         <Field label="prerequisiteQuestIds"><IdMultiPicker ids={eq.prerequisiteQuestIds} onChange={(v) => set({ prerequisiteQuestIds: v })} options={questOptions} addLabel="+ add prerequisite…" /></Field>
+        <Field label="next quest (chains on complete)"><IdSelect value={eq.nextQuestId} onChange={(v) => set({ nextQuestId: v })} options={questOptions} placeholder="(none)" /></Field>
+        <Field label="auto-start when flag set"><input value={eq.autoStartFlag ?? ''} onChange={(e) => set({ autoStartFlag: e.target.value || undefined })} className={inp} placeholder="(world flag id)" /></Field>
         <label className="col-span-2 flex items-center gap-3 text-xs text-slate-400">
           <span className="flex items-center gap-1"><input type="checkbox" checked={!!eq.repeatable} onChange={(e) => set({ repeatable: e.target.checked })} className="accent-sky-500" />repeatable</span>
           <span className="flex items-center gap-1"><input type="checkbox" checked={!!eq.daily} onChange={(e) => set({ daily: e.target.checked })} className="accent-sky-500" />daily</span>

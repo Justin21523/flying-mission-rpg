@@ -4,6 +4,11 @@ import { useInventoryStore } from '../../stores/inventoryStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { useDoorStore } from '../../stores/doorStore';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useProgressionStore } from '../../stores/progressionStore';
+import { useWalletStore } from '../../stores/walletStore';
+import { useYokaiCombatStore } from '../../stores/yokaiCombatStore';
+import { useEditorQuestStore } from '../../stores/editorQuestStore';
+import { syncEditorQuests } from '../editor/editorQuestToQuest';
 
 // Kit — generic auto-tracker for quests (replaces the yokai-specific YokaiQuestCondition system). Scans
 // InProgress quests' objective `track` hints against live store signals and flips isCompleted when met.
@@ -36,11 +41,21 @@ export function runQuestTracking(): void {
           case 'triggerEvent':
           case 'useTravelGate': done = !!targetId && (flags.hasFlag(`trigger_fired_${targetId}`) || flags.hasFlag(targetId)); break;
           case 'defeatEnemy': done = !!targetId && flags.hasFlag(`defeated_${targetId}`); break;
+          case 'defeatYokai': done = useYokaiCombatStore.getState().totalDefeated >= (count ?? 1); break;
+          case 'reachLevel': done = useProgressionStore.getState().level >= (count ?? 1); break;
+          case 'earnCoins': done = useWalletStore.getState().coins >= (count ?? 1); break;
           case 'completeActivity': done = !!targetId && flags.hasFlag(`activity_completed_${targetId}`); break;
           default: break;
         }
         if (done) qs.updateObjective(q.id, o.id, true);
       }
+    }
+    // Auto-start: editor quests whose autoStartFlag is now set begin automatically (once).
+    for (const eq of useEditorQuestStore.getState().quests) {
+      if (eq.isEnabled === false || !eq.autoStartFlag || !flags.hasFlag(eq.autoStartFlag)) continue;
+      if (!qs.getQuestById(eq.id)) syncEditorQuests();
+      const cur = qs.getQuestById(eq.id);
+      if (cur && cur.status === 'NotStarted') qs.startQuest(eq.id);
     }
   } finally {
     running = false;
@@ -58,6 +73,9 @@ export const QuestTrackerController = () => {
       useInventoryStore.subscribe(runQuestTracking),
       useFlagStore.subscribe(runQuestTracking),
       useDoorStore.subscribe(runQuestTracking),
+      useProgressionStore.subscribe(runQuestTracking), // reachLevel
+      useWalletStore.subscribe(runQuestTracking),      // earnCoins
+      useYokaiCombatStore.subscribe(runQuestTracking), // defeatYokai
       useQuestStore.subscribe(runQuestTracking), // catches quest start (objectives may already be met)
       usePlayerStore.subscribe((s) => {
         if (s.currentAreaId !== lastArea) {

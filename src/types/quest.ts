@@ -16,6 +16,7 @@ export interface QuestObjective {
 export interface QuestReward {
   items?: { itemId: string; quantity?: number }[];
   exp?: number;      // player experience
+  coins?: number;    // wallet coins granted on completion (POLI handler)
   flags?: string[];  // world flags set on completion
 }
 

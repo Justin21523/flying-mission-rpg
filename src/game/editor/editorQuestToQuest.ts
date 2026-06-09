@@ -22,6 +22,9 @@ export function objectiveToTrack(o: EditorObjective): { type: string; targetId?:
     case 'useTravelGate': return { type: 'useTravelGate', targetId: t ?? o.relatedTriggerId };
     case 'unlockDoor': return { type: 'unlockDoor', targetId: t };
     case 'defeatEnemy': return { type: 'defeatEnemy', targetId: t };
+    case 'defeatYokai': return { type: 'defeatYokai', count };
+    case 'reachLevel': return { type: 'reachLevel', count };
+    case 'earnCoins': return { type: 'earnCoins', count };
     case 'completeActivity': return { type: 'completeActivity', targetId: t };
     default: return { type: 'custom', targetId: t };
   }
@@ -41,6 +44,9 @@ export function describeObjective(o: EditorObjective): string {
     case 'useTravelGate': return `Use the gate ${t || ''}`.trim();
     case 'unlockDoor': return `Open ${t || 'the door'}`;
     case 'defeatEnemy': return `Defeat ${t || 'the enemy'}`;
+    case 'defeatYokai': return `Defeat ${n} yokai`;
+    case 'reachLevel': return `Reach level ${n}`;
+    case 'earnCoins': return `Earn ${n} coins`;
     case 'completeActivity': return `Complete ${t || 'the mini-game'}`;
     default: return o.description?.trim() || 'Objective';
   }
@@ -50,6 +56,7 @@ function buildReward(eq: EditorQuest): QuestReward {
   const items: { itemId: string; quantity?: number }[] = [];
   const flags: string[] = [];
   let exp = 0;
+  let coins = 0;
   for (const r of eq.rewards) {
     const amount = r.amount ?? 1;
     switch (r.type) {
@@ -58,13 +65,13 @@ function buildReward(eq: EditorQuest): QuestReward {
       case 'worldFlag': if (r.targetId) flags.push(r.targetId); break;
       case 'unlockArea': if (r.targetId) flags.push(`area_unlocked_${r.targetId}`); break;
       case 'unlockQuest': if (r.targetId) flags.push(`quest_unlocked_${r.targetId}`); break;
-      case 'currency': flags.push(`currency_granted_${amount}`); break;
+      case 'currency': coins += amount; break; // real coins (granted by the POLI reward handler)
     }
   }
   for (const a of eq.unlocksAreaIds) flags.push(`area_unlocked_${a}`);
   for (const q of eq.unlocksQuestIds) flags.push(`quest_unlocked_${q}`);
   for (const f of eq.setsWorldFlags) flags.push(f);
-  return { items: items.length ? items : undefined, exp: exp || undefined, flags: flags.length ? flags : undefined };
+  return { items: items.length ? items : undefined, exp: exp || undefined, coins: coins || undefined, flags: flags.length ? flags : undefined };
 }
 
 export function editorQuestToQuest(eq: EditorQuest): Quest {

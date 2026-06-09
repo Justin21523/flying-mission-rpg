@@ -18,7 +18,8 @@ import { AnimationPicker } from './AnimationPicker';
 const TARGET_KIND: Record<EditorObjectiveType, 'npc' | 'item' | 'area' | 'door' | 'trigger' | 'combatant' | 'activity' | 'none'> = {
   talkToNPC: 'npc', collectItem: 'item', visitArea: 'area', reachLocation: 'area',
   inspectObject: 'trigger', triggerEvent: 'trigger', useTravelGate: 'trigger',
-  unlockDoor: 'door', defeatEnemy: 'combatant', completeActivity: 'activity', custom: 'none',
+  unlockDoor: 'door', defeatEnemy: 'combatant', completeActivity: 'activity',
+  defeatYokai: 'none', reachLevel: 'none', earnCoins: 'none', custom: 'none',
 };
 
 // Kit — edit one quest objective: type, target (dropdown by type), count, optional, marker. (Trigger

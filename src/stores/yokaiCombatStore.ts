@@ -51,7 +51,8 @@ const now = () => (typeof performance !== 'undefined' ? performance.now() : Date
 interface YokaiCombatState {
   version: number;     // bumped on spawn / removal → layer re-renders the mesh list
   hunting: boolean;
-  kills: number;
+  kills: number;       // defeats in the CURRENT hunt (reset on start)
+  totalDefeated: number; // lifetime defeats (for quest objectives; never reset)
   start: () => void;
   stop: () => void;
   spawn: (y: Yokai) => void;
@@ -74,8 +75,9 @@ function defeat(y: Yokai): void {
   const rush = a?.rushConfig;
   as.addScore(y.elite ? (rush?.scoreElite ?? 30) : (rush?.scoreNormal ?? 10));
   const obj = a?.objectives.find((o) => o.objectiveType === 'defeatEnemies');
-  const kills = useYokaiCombatStore.getState().kills + 1;
-  useYokaiCombatStore.setState({ kills });
+  const s = useYokaiCombatStore.getState();
+  const kills = s.kills + 1;
+  useYokaiCombatStore.setState({ kills, totalDefeated: s.totalDefeated + 1 });
   if (obj) {
     as.setObjective(obj.id, kills);
     if (kills >= obj.targetValue) as.finish('win');
@@ -86,6 +88,7 @@ export const useYokaiCombatStore = create<YokaiCombatState>((set, get) => ({
   version: 0,
   hunting: false,
   kills: 0,
+  totalDefeated: 0,
   start: () => { liveYokai.length = 0; killQueue.length = 0; set({ hunting: true, kills: 0, version: get().version + 1 }); },
   stop: () => { liveYokai.length = 0; killQueue.length = 0; set({ hunting: false, version: get().version + 1 }); },
   spawn: (y) => { liveYokai.push(y); set({ version: get().version + 1 }); },
