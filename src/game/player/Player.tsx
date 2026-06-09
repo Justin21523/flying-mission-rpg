@@ -102,9 +102,11 @@ export const Player = () => {
       if (/^Digit[1-6]$/.test(e.code) && !e.repeat) {
         if (!useUiStore.getState().editMode) {
           const idx = parseInt(e.code.slice(5), 10) - 1;
-          const move = activeMergedChar()?.supers?.[idx];
+          const c = activeMergedChar();
+          const move = c?.supers?.[idx];
           const pos = usePlayerStore.getState().position;
-          if (move && pos) useTransformStore.getState().triggerSuperMove(move, pos, headingRef.current);
+          // Super FX (and the clone/sentry it spawns) always use the CHARACTER's own colour — exactly matching.
+          if (c && move && pos) useTransformStore.getState().triggerSuperMove({ ...move, color: c.color }, pos, headingRef.current);
         }
         return;
       }
