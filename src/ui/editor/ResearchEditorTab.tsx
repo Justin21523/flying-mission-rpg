@@ -51,6 +51,7 @@ export const ResearchEditorTab = () => {
               </select>
             </Field>
             <Field label="tier"><input type="number" min={1} max={5} value={p.tier ?? 1} onChange={(e) => st.updateProject(p.id, { tier: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
+            <Field label="duration (s, 0 = instant)"><input type="number" min={0} step={1} value={p.durationSec ?? 0} onChange={(e) => st.updateProject(p.id, { durationSec: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
             <Field label="unlocks ability">
               <select value={p.unlocksAbilityType ?? ''} onChange={(e) => st.updateProject(p.id, { unlocksAbilityType: e.target.value || undefined })} className={inp}>
                 <option value="">(none)</option>{ABILITY_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}

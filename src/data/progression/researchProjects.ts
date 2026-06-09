@@ -14,6 +14,7 @@ export interface ResearchProject {
   // Extra tuning (editable via dropdowns in the 🔬 Research tab).
   category?: ResearchCategory;
   tier?: number;                 // 1–5 research tier
+  durationSec?: number;          // research time once funded (0 / undefined = instant)
   unlocksAbilityType?: string;   // grant a built-in ability (AbilityType) on completion
   unlocksAreaId?: string;        // reveal/flag an area on completion
   repeatable?: boolean;

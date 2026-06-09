@@ -38,6 +38,7 @@ import { BoostMeterHud } from './ui/BoostMeterHud';
 import { ResourceHud } from './ui/ResourceHud';
 import { ScreenFade } from './ui/ScreenFade';
 import { useRescueOperationStore } from './stores/rescueOperationStore';
+import { useJinResearchStore } from './stores/jinResearchStore';
 
 // Kit — top-level: the 3D <Canvas> with DOM overlays layered over it. F1 toggles Edit Mode; in Edit
 // Mode the camera free-pans, gizmos appear, and the Editor Hub + floating terrain palette are usable.
@@ -76,6 +77,12 @@ export const App = () => {
   // Register any editor-authored quests (from localStorage) into the runtime quest store on startup.
   useEffect(() => {
     syncEditorQuests();
+  }, []);
+
+  // Drive timed research completion even when the Research Station panel is closed.
+  useEffect(() => {
+    const id = setInterval(() => useJinResearchStore.getState().tickResearch(), 500);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
