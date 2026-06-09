@@ -16,6 +16,7 @@ import { useMergedTransform } from '../../stores/sceneEditStore';
 import { useAnimClipStore } from '../../stores/animClipStore';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { pickLoopRule } from '../anim/animRunner';
+import { useDistanceCull } from '../perf/useDistanceCull';
 import { getEffectiveAreaSize } from './areaExtent';
 import { objKey } from '../edit/sceneEditMerge';
 import type { Vec3 } from '../edit/sceneEditMerge';
@@ -79,7 +80,8 @@ const RuledNpcModel = ({ assetId, rules, motionRef }: { assetId: string; rules: 
       st.current.action = next;
     }
   });
-  return <group position={asset.position} rotation={asset.rotation} scale={asset.scale}><primitive object={clone} /></group>;
+  const cullRef = useDistanceCull<Group>(); // hide when far from the player (Play Mode perf)
+  return <group ref={cullRef} position={asset.position} rotation={asset.rotation} scale={asset.scale}><primitive object={clone} /></group>;
 };
 
 const NpcVisual = ({ npc, motionRef }: { npc: EditorNpc; motionRef?: MutableRefObject<NpcMotion> }) => {

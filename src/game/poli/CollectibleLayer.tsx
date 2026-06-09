@@ -2,6 +2,8 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useUiStore } from '../../stores/uiStore';
+import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
 import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
 import { useResourceStore } from '../../stores/resourceStore';
 import { getWorldArea } from '../../stores/editorWorldStore';
@@ -37,15 +39,23 @@ const Collectible = ({ pos, type }: { pos: [number, number, number]; type: Colle
   useFrame((state) => {
     const g = ref.current;
     if (!g || taken.current) return;
+    const pp = usePlayerStore.getState().position;
+    if (!pp) return;
+    const dx = pp.x - pos[0];
+    const dz = pp.z - pos[2];
+    const d2 = dx * dx + dz * dz;
+    // Distance cull: hide + skip work when far from the player (Play Mode perf). Always shown while editing.
+    const gs = useGraphicsSettingsStore.getState();
+    if (gs.cullEnabled && !useUiStore.getState().editMode) {
+      const lim = gs.cullRadius + 10;
+      if (d2 > lim * lim) { if (g.visible) g.visible = false; return; }
+      if (!g.visible) g.visible = true;
+    } else if (!g.visible) g.visible = true;
     if (spin) {
       g.rotation.y += 0.03;
       g.position.y = pos[1] + 0.7 + Math.sin(state.clock.elapsedTime * 2 + pos[0]) * 0.15;
     }
-    const pp = usePlayerStore.getState().position;
-    if (!pp) return;
-    const dx = pp.x - g.position.x;
-    const dz = pp.z - g.position.z;
-    if (dx * dx + dz * dz < COLLECT_R * COLLECT_R) {
+    if (d2 < COLLECT_R * COLLECT_R) {
       taken.current = true;
       g.visible = false;
       useResourceStore.getState().add(type.resourceId, type.value);

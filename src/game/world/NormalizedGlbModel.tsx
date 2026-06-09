@@ -1,10 +1,11 @@
 import React, { Suspense, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier';
-import { Box3, Vector3 } from 'three';
+import { Box3, Vector3, type Group } from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { defaultNormalizeFor } from './normalizeDefault';
+import { useDistanceCull } from '../perf/useDistanceCull';
 import type { CollisionShape, Vec3 } from '../edit/sceneEditMerge';
 
 // POLI — a size-NORMALISED GLB renderer for world/layout placements. Models in the library are authored at
@@ -43,9 +44,10 @@ const GlbInner = ({ assetId, target, collision, position, rotation, scale }: Pro
     return { object: cloned, normScale: s, offset: off };
   }, [scene, target]);
 
+  const cullRef = useDistanceCull<Group>(); // hide when far from the player (Play Mode perf)
   // The normalised visual at local origin (feet on the ground).
   const visual = (
-    <group scale={normScale} position={offset}>
+    <group ref={cullRef} scale={normScale} position={offset}>
       <primitive object={object} />
     </group>
   );

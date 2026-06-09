@@ -10,6 +10,8 @@ interface PersistedGraphics {
   quality: QualityLevel;   // user-selected ceiling
   auto: boolean;           // allow runtime auto-adapt below the ceiling
   showPerfHud: boolean;    // on-screen FPS / draw-call meter
+  cullEnabled: boolean;    // distance-cull far objects in Play Mode (perf on big maps)
+  cullRadius: number;      // render distance (world units) from the player; beyond it objects hide
 }
 
 interface GraphicsState extends PersistedGraphics {
@@ -17,6 +19,8 @@ interface GraphicsState extends PersistedGraphics {
   setQuality: (q: QualityLevel) => void;
   setAuto: (on: boolean) => void;
   togglePerfHud: () => void;
+  setCullEnabled: (on: boolean) => void;
+  setCullRadius: (r: number) => void;
   setAutoLevel: (q: QualityLevel | null) => void;
   /** The level actually in effect = min(user ceiling, auto override). */
   effectiveQuality: () => QualityLevel;
@@ -26,10 +30,17 @@ interface GraphicsState extends PersistedGraphics {
 
 const STORAGE_KEY = 'lost-yokai-graphics-v1';
 
+// Render distance: balanced for a town — far enough that nothing visibly pops in, near enough to cut load.
+export const CULL_RADIUS_MIN = 30;
+export const CULL_RADIUS_MAX = 200;
+const DEFAULT_CULL_RADIUS = 75;
+
 const DEFAULTS: PersistedGraphics = {
   quality: DEFAULT_QUALITY,
   auto: DEFAULT_AUTO_ADAPT,
   showPerfHud: false,
+  cullEnabled: true,
+  cullRadius: DEFAULT_CULL_RADIUS,
 };
 
 const rank = (q: QualityLevel): number => QUALITY_LEVELS.indexOf(q);
@@ -44,6 +55,8 @@ function load(): PersistedGraphics {
       quality: QUALITY_LEVELS.includes(p.quality as QualityLevel) ? (p.quality as QualityLevel) : DEFAULTS.quality,
       auto: typeof p.auto === 'boolean' ? p.auto : DEFAULTS.auto,
       showPerfHud: typeof p.showPerfHud === 'boolean' ? p.showPerfHud : DEFAULTS.showPerfHud,
+      cullEnabled: typeof p.cullEnabled === 'boolean' ? p.cullEnabled : DEFAULTS.cullEnabled,
+      cullRadius: typeof p.cullRadius === 'number' ? p.cullRadius : DEFAULTS.cullRadius,
     };
   } catch {
     return DEFAULTS;
@@ -51,7 +64,7 @@ function load(): PersistedGraphics {
 }
 
 function persist(state: GraphicsState): void {
-  const data: PersistedGraphics = { quality: state.quality, auto: state.auto, showPerfHud: state.showPerfHud };
+  const data: PersistedGraphics = { quality: state.quality, auto: state.auto, showPerfHud: state.showPerfHud, cullEnabled: state.cullEnabled, cullRadius: state.cullRadius };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
 }
 
@@ -62,6 +75,8 @@ export const useGraphicsSettingsStore = create<GraphicsState>((set, get) => ({
   setQuality: (q) => set({ quality: q, autoLevel: null }),
   setAuto: (on) => set({ auto: on, autoLevel: on ? get().autoLevel : null }),
   togglePerfHud: () => set((s) => ({ showPerfHud: !s.showPerfHud })),
+  setCullEnabled: (on) => set({ cullEnabled: on }),
+  setCullRadius: (r) => set({ cullRadius: Math.max(CULL_RADIUS_MIN, Math.min(CULL_RADIUS_MAX, r)) }),
   setAutoLevel: (q) => set({ autoLevel: q }),
 
   effectiveQuality: () => {

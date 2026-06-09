@@ -1,9 +1,10 @@
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { AnimationMixer, type AnimationClip } from 'three';
+import { AnimationMixer, type AnimationClip, type Group } from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { resolveModelAsset, useModelStudioStore } from '../../stores/modelStudioStore';
+import { useDistanceCull } from '../perf/useDistanceCull';
 
 // Kit — like SceneGlbModel (resolve asset, clone via SkeletonUtils, Suspense + error-boundary fallback)
 // but also *plays* an animation clip. The static model is rendered UNCONDITIONALLY — animation is attached
@@ -41,8 +42,9 @@ const AnimatedInner = ({ assetId, animation }: { assetId: string; animation?: st
 
   useFrame((_, dt) => mixerRef.current?.update(dt));
 
+  const cullRef = useDistanceCull<Group>(); // hide when far from the player (Play Mode perf)
   return (
-    <group position={asset.position} rotation={asset.rotation} scale={asset.scale}>
+    <group ref={cullRef} position={asset.position} rotation={asset.rotation} scale={asset.scale}>
       <primitive object={cloned} />
     </group>
   );

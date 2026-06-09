@@ -1,7 +1,9 @@
 import React, { Suspense, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
+import type { Group } from 'three';
 import { resolveModelAsset, useModelStudioStore } from '../../stores/modelStudioStore';
+import { useDistanceCull } from '../perf/useDistanceCull';
 
 // Phase 85 — generic static GLB renderer for scene objects (decor / props /
 // buildings / landmarks / markers / ground). Resolves the asset through the Model
@@ -20,8 +22,9 @@ const GlbInner = ({ assetId }: { assetId: string }) => {
   const asset = resolveModelAsset(assetId)!;
   const { scene } = useGLTF(encodeURI(asset.path));
   const cloned = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  const cullRef = useDistanceCull<Group>(); // hide when far from the player (Play Mode perf)
   return (
-    <group position={asset.position} rotation={asset.rotation} scale={asset.scale}>
+    <group ref={cullRef} position={asset.position} rotation={asset.rotation} scale={asset.scale}>
       <primitive object={cloned} />
     </group>
   );
