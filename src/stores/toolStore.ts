@@ -19,10 +19,13 @@ interface ToolState {
   isUnlocked: (id: ToolId) => boolean;
   isEquipped: (id: ToolId) => boolean;
   checkLevelUnlocks: (level: number, jinTrust: number) => void;
-  getActiveBonus: (incidentId: string) => ActiveBonus;
+  getActiveBonus: (incidentId: string, stageType?: 'action' | 'waypoints') => ActiveBonus;
 }
 
 const MAX_EQUIPPED = 3;
+// stageAffinity mismatch keeps a reduced share of the bonus; a synergy pair amplifies a tool's contribution.
+const AFFINITY_MISMATCH_MULT = 0.4;
+const SYNERGY_MULT = 1.5;
 
 export const useToolStore = create<ToolState>((set, get) => ({
   unlockedTools: [],
@@ -68,14 +71,19 @@ export const useToolStore = create<ToolState>((set, get) => ({
     }
   },
 
-  getActiveBonus: (incidentId) => {
+  getActiveBonus: (incidentId, stageType) => {
     const bonus: ActiveBonus = { actionBonus: 0, timeBonus: 0, radiusBonus: 0 };
     const { equippedTools } = get();
     for (const id of equippedTools) {
       const def = getEditorTool(id);
       if (!def?.incidentBonus || def.incidentBonus.incidentId !== incidentId) continue;
       // Upgrade level scales the bonus: ×(1 + level × upgradeBonusPerLevel).
-      const mult = 1 + getToolUpgrade(id) * (def.upgradeBonusPerLevel ?? 0);
+      let mult = 1 + getToolUpgrade(id) * (def.upgradeBonusPerLevel ?? 0);
+      // stageAffinity: full bonus when 'any' or matching the current stage; reduced share on a mismatch.
+      const affinity = def.stageAffinity ?? 'any';
+      if (stageType && affinity !== 'any' && affinity !== stageType) mult *= AFFINITY_MISMATCH_MULT;
+      // synergy: amplified when this tool and one of its synergy partners are both equipped.
+      if ((def.synergyToolIds ?? []).some((p) => equippedTools.includes(p as ToolId))) mult *= SYNERGY_MULT;
       bonus.actionBonus += (def.incidentBonus.actionBonus ?? 0) * mult;
       bonus.timeBonus += (def.incidentBonus.timeBonus ?? 0) * mult;
       bonus.radiusBonus += (def.incidentBonus.radiusBonus ?? 0) * mult;

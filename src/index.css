@@ -57,3 +57,9 @@ body {
 .poli-hc .backdrop-blur-md,
 .poli-hc .backdrop-blur-sm { background-color: rgba(2, 6, 23, 0.96) !important; }
 .poli-hc button { outline: 1px solid rgba(255, 255, 255, 0.25); }
+
+/* POLI — one-shot flash when a rescue tool is actively used (RescueHud ToolFxFlash). */
+@keyframes rescueToolFlash {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}

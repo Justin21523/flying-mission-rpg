@@ -1,5 +1,59 @@
 import { useRescueOperationStore } from '../stores/rescueOperationStore';
 import { getEditorIncident } from '../stores/editorIncidentStore';
+import { useToolStore } from '../stores/toolStore';
+import { getEditorTool } from '../stores/editorToolStore';
+import { usePoll } from './usePoll';
+
+const nowSec = () => performance.now() / 1000;
+
+// Equipped tools during an action stage: hotkey 1/2/3, cooldown overlay, vfxColor tint, click to use.
+function RescueToolBar() {
+  usePoll(120);
+  const equipped = useToolStore.getState().equippedTools;
+  if (equipped.length === 0) return null;
+  const { toolCooldownUntil, toolActiveUntil } = useRescueOperationStore.getState();
+  const t = nowSec();
+  return (
+    <div className="mt-3 flex justify-center gap-2" style={{ pointerEvents: 'auto' }}>
+      {equipped.map((id, i) => {
+        const def = getEditorTool(id);
+        if (!def) return null;
+        const cd = Math.max(0, (toolCooldownUntil[id] ?? 0) - t);
+        const onCd = cd > 0.05;
+        const active = (toolActiveUntil[id] ?? 0) > t;
+        const color = def.vfxColor ?? '#38bdf8';
+        return (
+          <button
+            key={id}
+            onClick={() => useRescueOperationStore.getState().useTool(id)}
+            disabled={onCd}
+            title={`${def.name} — press ${i + 1}`}
+            className="relative flex h-12 w-12 flex-col items-center justify-center rounded-xl border-2 text-white transition-all disabled:cursor-not-allowed"
+            style={{ borderColor: color, background: active ? `${color}55` : 'rgba(0,0,0,0.5)', boxShadow: active ? `0 0 12px ${color}` : 'none', cursor: onCd ? 'not-allowed' : 'pointer' }}
+          >
+            <span className="text-xl leading-none">{def.icon}</span>
+            <span className="absolute -left-1 -top-1 rounded bg-slate-900/90 px-1 text-[9px] font-bold">{i + 1}</span>
+            {onCd && <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/65 text-[12px] font-bold">{cd.toFixed(1)}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Brief radial flash in the tool's vfxColor each time a tool is used. Keyed by the fx id so each use remounts
+// the element and replays a one-shot CSS fade (no state/timer needed — avoids setState-in-effect).
+function ToolFxFlash() {
+  const fx = useRescueOperationStore((s) => s.lastToolFx);
+  if (!fx) return null;
+  return (
+    <div
+      key={fx.id}
+      className="pointer-events-none absolute inset-0 rounded-2xl"
+      style={{ boxShadow: `inset 0 0 50px ${fx.color}`, animation: 'rescueToolFlash 0.34s ease-out forwards' }}
+    />
+  );
+}
 
 // Circular SVG progress ring — radius 44, stroke-width 8 → circumference ≈ 276.
 const RING_RADIUS = 44;
@@ -53,9 +107,10 @@ export const RescueHud = () => {
     return (
       <div className="fixed inset-0 flex items-end justify-center pointer-events-none" style={{ zIndex: 200 }}>
         <div
-          className="mb-20 rounded-2xl px-8 py-6 text-center shadow-2xl"
+          className="relative mb-20 rounded-2xl px-8 py-6 text-center shadow-2xl"
           style={{ background: 'rgba(30,20,5,0.92)', border: '2px solid #f97316', minWidth: 320, pointerEvents: 'none' }}
         >
+          <ToolFxFlash />
           <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#f97316' }}>
             🚒 RESCUE IN PROGRESS{def.stages.length > 1 ? ` · STAGE ${stageIndex + 1}/${def.stages.length}` : ''}
           </div>
@@ -69,6 +124,7 @@ export const RescueHud = () => {
                 ⏱ {Math.ceil(timeLeft)}s
               </div>
               <div className="mt-2 text-base text-white opacity-80">Press [E] to act!</div>
+              <RescueToolBar />
             </>
           )}
 

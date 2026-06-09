@@ -5,16 +5,25 @@ import { useProgressionStore } from './progressionStore';
 import { useRelationshipStore } from './relationshipStore';
 import { useFlagStore } from './flagStore';
 import { useToolStore } from './toolStore';
+import { getEditorTool } from './editorToolStore';
 import { useRescueLicenseStore } from './rescueLicenseStore';
 import { useJinResearchStore } from './jinResearchStore';
 import { playSfx } from '../game/audio/sfx';
 import type { RescuePipelineStep } from '../types/incident';
+import type { ToolId } from '../types/tool';
 
 interface ToolBonus {
   actionBonus: number;
   timeBonus: number;
   radiusBonus: number;
 }
+
+// Active tool-use: pressing an equipped tool during an action stage gives a burst (+ sustained drip while the
+// tool stays "active" for its useDurationSec), gated by its cooldownSec; vfxColor drives a HUD flash.
+const TOOL_BURST = 0.15;        // instant action progress on use
+const TOOL_DRIP_PER_SEC = 0.06; // sustained progress while the tool is active
+
+const nowSec = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
 
 interface RescueOperationState {
   isActive: boolean;
@@ -26,10 +35,14 @@ interface RescueOperationState {
   timeLeft: number;
   retryCount: number;
   toolBonus: ToolBonus;
+  toolCooldownUntil: Record<string, number>; // toolId → cooldown-expiry (sec)
+  toolActiveUntil: Record<string, number>;   // toolId → sustained-use expiry (sec)
+  lastToolFx: { color: string; id: number } | null; // bumps on each use → HUD flash
 
   startRescue: (incidentId: string) => void;
   tick: (dt: number) => void;
   pressAction: () => void;
+  useTool: (toolId: ToolId) => void;
   markWaypoint: (idx: number) => void;
   confirmSuccess: () => void;
   dismissDebrief: () => void;
@@ -55,6 +68,8 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     if (s.stageIndex < lastIndex) {
       const nextIdx = s.stageIndex + 1;
       const stage = getStage(s.incidentId, nextIdx);
+      // Recompute the active bonus for the NEW stage's type so stageAffinity tracks the current stage.
+      const toolBonus = useToolStore.getState().getActiveBonus(s.incidentId, stage?.type);
       set({
         stageIndex: nextIdx,
         step: 'on_scene',
@@ -62,7 +77,9 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
         waypointsFound: stage?.type === 'waypoints'
           ? new Array(stage.waypointPositions?.length ?? 0).fill(false)
           : [],
-        timeLeft: (stage?.timeLimitSeconds ?? 0) + s.toolBonus.timeBonus,
+        timeLeft: (stage?.timeLimitSeconds ?? 0) + toolBonus.timeBonus,
+        toolBonus,
+        toolActiveUntil: {},
       });
       playSfx('questComplete'); // intermediate stage cleared
     } else {
@@ -81,11 +98,14 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
   timeLeft: 0,
   retryCount: 0,
   toolBonus: ZERO_BONUS,
+  toolCooldownUntil: {},
+  toolActiveUntil: {},
+  lastToolFx: null,
 
   startRescue: (incidentId) => {
     const stage = getStage(incidentId, 0);
     if (!stage) return;
-    const toolBonus = useToolStore.getState().getActiveBonus(incidentId);
+    const toolBonus = useToolStore.getState().getActiveBonus(incidentId, stage.type);
     set({
       isActive: true,
       incidentId,
@@ -98,6 +118,8 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
       timeLeft: (stage.timeLimitSeconds ?? 0) + toolBonus.timeBonus,
       retryCount: 0,
       toolBonus,
+      toolCooldownUntil: {},
+      toolActiveUntil: {},
     });
   },
 
@@ -107,7 +129,17 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     const stage = getStage(s.incidentId, s.stageIndex);
     if (!stage || stage.type !== 'action') return;
     const timeLeft = Math.max(0, s.timeLeft - dt);
-    set({ timeLeft });
+    // Sustained tool-use: any equipped tool still within its active window drips action progress.
+    const t = nowSec();
+    let active = 0;
+    for (const id of useToolStore.getState().equippedTools) if ((s.toolActiveUntil[id] ?? 0) > t) active++;
+    if (active > 0) {
+      const next = Math.min(1, s.actionProgress + TOOL_DRIP_PER_SEC * active * dt);
+      set({ timeLeft, actionProgress: next });
+      if (next >= 1) { completeStage(); return; }
+    } else {
+      set({ timeLeft });
+    }
     if (timeLeft <= 0) { set({ step: 'retry' }); playSfx('rescueFail'); }
   },
 
@@ -120,6 +152,30 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     const next = Math.min(1, s.actionProgress + 1 / count + s.toolBonus.actionBonus);
     set({ actionProgress: next });
     if (next >= 1) completeStage();
+  },
+
+  useTool: (toolId) => {
+    const s = get();
+    if (!s.isActive || s.step !== 'on_scene' || !s.incidentId) return;
+    if (!useToolStore.getState().equippedTools.includes(toolId)) return;
+    const t = nowSec();
+    if ((s.toolCooldownUntil[toolId] ?? 0) > t) return; // still cooling down
+    const def = getEditorTool(toolId);
+    const stage = getStage(s.incidentId, s.stageIndex);
+    // Burst applies on action stages; cooldown/active-window + VFX flash apply regardless of stage.
+    const cooldown = def?.cooldownSec ?? 0;
+    const duration = def?.useDurationSec ?? 0;
+    set({
+      toolCooldownUntil: { ...s.toolCooldownUntil, [toolId]: t + cooldown },
+      toolActiveUntil: { ...s.toolActiveUntil, [toolId]: t + duration },
+      lastToolFx: { color: def?.vfxColor ?? '#38bdf8', id: (s.lastToolFx?.id ?? 0) + 1 },
+    });
+    playSfx('ability');
+    if (stage?.type === 'action') {
+      const next = Math.min(1, get().actionProgress + TOOL_BURST + s.toolBonus.actionBonus);
+      set({ actionProgress: next });
+      if (next >= 1) completeStage();
+    }
   },
 
   markWaypoint: (idx) => {
@@ -169,6 +225,8 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
       waypointsFound: [],
       timeLeft: 0,
       retryCount: 0,
+      toolCooldownUntil: {},
+      toolActiveUntil: {},
     });
   },
 
@@ -199,6 +257,9 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
       timeLeft: 0,
       retryCount: 0,
       toolBonus: ZERO_BONUS,
+      toolCooldownUntil: {},
+      toolActiveUntil: {},
+      lastToolFx: null,
     }),
 
   getWaypointRadius: () => {

@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { useToolStore } from '../stores/toolStore';
 import { useRescueOperationStore } from '../stores/rescueOperationStore';
 import { getEditorTool } from '../stores/editorToolStore';
-import type { ToolId } from '../types/tool';
+import type { ToolCategory, ToolId } from '../types/tool';
 
 // Shows 3 equipped tool slots in the top-right corner (below WorldClockHUD).
 // Clicking a filled slot unequips; clicking an empty slot opens the tool picker.
 
 const MAX_SLOTS = 3;
+// Category colour coding (surfaced in the loadout so the tool's category is meaningful at a glance).
+const CATEGORY_COLOR: Record<ToolCategory, string> = {
+  water: '#38bdf8', rescue: '#f97316', signal: '#a855f7', medical: '#ef4444', utility: '#94a3b8',
+};
+const catColor = (c?: ToolCategory) => CATEGORY_COLOR[c ?? 'utility'];
 
 function ToolSlot({ slotIndex }: { slotIndex: number }) {
   const equipped = useToolStore((s) => s.equippedTools);
@@ -37,8 +42,8 @@ function ToolSlot({ slotIndex }: { slotIndex: number }) {
   return (
     <button
       onClick={() => unequipTool(toolId!)}
-      title={`${def.name}\n${def.description}\nClick to unequip`}
-      className="flex h-14 w-14 flex-col items-center justify-center rounded-xl border-2 transition-all"
+      title={`${def.name} · ${def.category ?? 'utility'}\n${def.description}\nClick to unequip`}
+      className="relative flex h-14 w-14 flex-col items-center justify-center rounded-xl border-2 transition-all"
       style={{
         borderColor: isRelevant ? '#f97316' : 'rgba(255,255,255,0.2)',
         background: isRelevant ? 'rgba(249,115,22,0.25)' : 'rgba(0,0,0,0.45)',
@@ -50,6 +55,8 @@ function ToolSlot({ slotIndex }: { slotIndex: number }) {
       <span className="mt-0.5 max-w-[52px] truncate text-center text-[9px] font-semibold text-white leading-tight">
         {def.name}
       </span>
+      {/* category colour bar */}
+      <span className="absolute inset-x-1 bottom-0.5 h-1 rounded-full" style={{ background: catColor(def.category) }} title={def.category ?? 'utility'} />
     </button>
   );
 }
@@ -83,7 +90,10 @@ function ToolPicker({ onClose }: { onClose: () => void }) {
           >
             <span className="text-base">{def.icon}</span>
             <div>
-              <div className="font-semibold text-white">{def.name}</div>
+              <div className="flex items-center gap-1 font-semibold text-white">
+                <span className="h-2 w-2 rounded-full" style={{ background: catColor(def.category) }} title={def.category ?? 'utility'} />
+                {def.name}
+              </div>
               <div className="text-slate-400 text-[10px] leading-tight truncate max-w-[150px]">{def.description}</div>
             </div>
             {isEquipped && <span className="ml-auto text-green-400 text-[10px]">✓</span>}

@@ -6,6 +6,7 @@ import type { Mesh } from 'three';
 import { useFlagStore } from '../../stores/flagStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useRescueOperationStore } from '../../stores/rescueOperationStore';
+import { useToolStore } from '../../stores/toolStore';
 import { useIncidentStore } from '../../stores/incidentStore';
 import { getEditorIncident, getEditorIncidents } from '../../stores/editorIncidentStore';
 import type { IncidentDefinition } from '../../types/incident';
@@ -35,8 +36,17 @@ const INCIDENT_COLORS: Record<string, string> = {
 function useIncidentInteraction(areaId: string) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.code !== 'KeyE' || e.repeat) return;
+      const isToolKey = e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3';
+      if ((e.code !== 'KeyE' && !isToolKey) || e.repeat) return;
       const rescue = useRescueOperationStore.getState();
+
+      // Active tool-use during a rescue: number keys 1/2/3 → the equipped tool in that slot.
+      if (isToolKey && rescue.isActive && rescue.step === 'on_scene') {
+        const slot = e.code === 'Digit1' ? 0 : e.code === 'Digit2' ? 1 : 2;
+        const toolId = useToolStore.getState().equippedTools[slot];
+        if (toolId) rescue.useTool(toolId);
+        return;
+      }
 
       if (rescue.isActive && rescue.step === 'on_scene' && rescue.incidentId) {
         const def = getEditorIncident(rescue.incidentId);
