@@ -4,6 +4,8 @@ import { CORE_TEAM } from '../data/characters/coreTeam';
 import { applyAbility } from '../game/player/abilityEffects';
 import { applySuperDamage, type DamageRequest } from '../game/combat/applySuperDamage';
 import { triggerDash } from '../game/combat/dashImpulse';
+import { addPull } from '../game/combat/pullField';
+import { usePlayerStore } from './playerStore';
 import type { AbilityType, SuperKind, SuperMove } from '../types/character';
 
 // DEBUG: when true, the Q ability has NO cooldown — any ability can be used at any time (testing). Set to
@@ -85,6 +87,29 @@ function dispatchSuperDamage(move: SuperMove, p: SuperFxPayload): void {
       applySuperDamage(reqFrom(p, move));
       window.setTimeout(() => applySuperDamage(reqFrom(p, move)), 450); // return pass
       break;
+    case 'bomb': {
+      // Lob ahead, explode after a fuse.
+      const cx = p.x + p.dirX * p.range * 0.5, cz = p.z + p.dirZ * p.range * 0.5;
+      window.setTimeout(() => applySuperDamage(reqFrom(p, move, cx, cz)), 700);
+      break;
+    }
+    case 'spin': {
+      // Whirlwind: several ticks over the duration, each centred on the LIVE player position (follows you).
+      const ticks = 5, dur = Math.max(0.4, p.duration);
+      for (let i = 0; i < ticks; i++) window.setTimeout(() => {
+        const pos = usePlayerStore.getState().position;
+        if (pos) applySuperDamage(reqFrom(p, move, pos.x, pos.z));
+      }, (i / ticks) * dur * 1000);
+      break;
+    }
+    case 'blackhole': {
+      // Vortex ahead: pull yokai in + tick damage over the duration.
+      const cx = p.x + p.dirX * p.range * 0.5, cz = p.z + p.dirZ * p.range * 0.5;
+      addPull(cx, cz, 6, p.duration);
+      const ticks = 5, dur = Math.max(0.4, p.duration);
+      for (let i = 0; i < ticks; i++) window.setTimeout(() => applySuperDamage(reqFrom(p, move, cx, cz)), (i / ticks) * dur * 1000);
+      break;
+    }
     default:
       applySuperDamage(reqFrom(p, move));
       break;

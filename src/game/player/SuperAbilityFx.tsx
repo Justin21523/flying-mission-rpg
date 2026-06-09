@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, CanvasTexture, Color, type BufferAttribute, type Group, type Mesh, type Points, type PointsMaterial, type MeshBasicMaterial } from 'three';
 import { useTransformStore } from '../../stores/transformStore';
+import { usePlayerStore } from '../../stores/playerStore';
 
 // POLI yokai-hunt — VFX for the six super-move KINDS (keys 1/2/3). Watches transformStore.superFxPulseId and
 // reads the superFx payload (kind/color/origin/direction/radius/range/...). One reusable set of meshes + a
@@ -39,6 +40,9 @@ export const SuperAbilityFx = () => {
   const beamRef = useRef<Mesh>(null);
   const orbRef = useRef<Mesh>(null);
   const boomerangRef = useRef<Mesh>(null);
+  const bombRef = useRef<Mesh>(null);
+  const spinRef = useRef<Mesh>(null);
+  const bhRef = useRef<Mesh>(null);
   const ringRefs = useRef<(Mesh | null)[]>([]);
   const boltRefs = useRef<(Mesh | null)[]>([]);
   const meteorRefs = useRef<(Mesh | null)[]>([]);
@@ -82,7 +86,7 @@ export const SuperAbilityFx = () => {
       sAttr.needsUpdate = true;
       // Tint all the materials once.
       const sm = sparkRef.current?.material as PointsMaterial | undefined; if (sm) sm.color.copy(tint);
-      [glowRef.current, beamRef.current, orbRef.current, boomerangRef.current].forEach((me) => { const mt = me?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
+      [glowRef.current, beamRef.current, orbRef.current, boomerangRef.current, bombRef.current, spinRef.current, bhRef.current].forEach((me) => { const mt = me?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
       ringRefs.current.forEach((r) => { const mt = r?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
       boltRefs.current.forEach((r) => { const mt = r?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
       meteorRefs.current.forEach((r) => { const mt = r?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
@@ -100,6 +104,7 @@ export const SuperAbilityFx = () => {
       // Fully idle: hide everything.
       const sm = sparkRef.current?.material as PointsMaterial | undefined; if (sm && sm.opacity !== 0) sm.opacity = 0;
       setOpacity(glowRef.current, 0); setOpacity(beamRef.current, 0); setOpacity(orbRef.current, 0);
+      setOpacity(boomerangRef.current, 0); setOpacity(bombRef.current, 0); setOpacity(spinRef.current, 0); setOpacity(bhRef.current, 0);
       ringRefs.current.forEach((r) => setOpacity(r, 0));
       boltRefs.current.forEach((r) => setOpacity(r, 0));
       meteorRefs.current.forEach((r) => setOpacity(r, 0));
@@ -184,6 +189,43 @@ export const SuperAbilityFx = () => {
       }
     }
 
+    // BOMB — lob forward, then a big explosion flash after the fuse.
+    if (bombRef.current) {
+      if (kind !== 'bomb') setOpacity(bombRef.current, 0);
+      else {
+        const fwd = st.range * 0.5;
+        if (t <= 0.7) { const k = t / 0.7; bombRef.current.position.set(0, 1 + Math.sin(k * Math.PI) * 3, k * fwd); bombRef.current.scale.setScalar(0.4); setOpacity(bombRef.current, 0.95); }
+        else if (t <= 1.15) { const k = (t - 0.7) / 0.45; bombRef.current.position.set(0, 1, fwd); bombRef.current.scale.setScalar(0.5 + k * 4); setOpacity(bombRef.current, (1 - k) * 0.9); }
+        else setOpacity(bombRef.current, 0);
+      }
+    }
+
+    // SPIN — a whirlwind ring around the player, following them for the duration.
+    if (spinRef.current) {
+      if (kind !== 'spin') setOpacity(spinRef.current, 0);
+      else {
+        const dur = Math.max(0.4, st.duration);
+        if (t <= dur) { spinRef.current.rotation.z += dt * 18; spinRef.current.scale.setScalar(st.radius * 0.5); setOpacity(spinRef.current, 0.7); }
+        else setOpacity(spinRef.current, 0);
+      }
+    }
+
+    // BLACK HOLE — a swirling vortex orb at the forward point for the duration.
+    if (bhRef.current) {
+      if (kind !== 'blackhole') setOpacity(bhRef.current, 0);
+      else {
+        const dur = Math.max(0.4, st.duration);
+        if (t <= dur) { const k = t / dur; bhRef.current.position.set(0, 1.2, st.range * 0.5); bhRef.current.rotation.y += dt * 8; bhRef.current.scale.setScalar(1 + Math.sin(t * 12) * 0.2); setOpacity(bhRef.current, (1 - k) * 0.85); }
+        else setOpacity(bhRef.current, 0);
+      }
+    }
+
+    // SPIN follows the live player position (the group is otherwise anchored at the cast origin).
+    if (kind === 'spin' && groupRef.current) {
+      const pp = usePlayerStore.getState().position;
+      if (pp) groupRef.current.position.set(pp.x, pp.y, pp.z);
+    }
+
     // METEOR — strikes raining down on random nearby points (auto-target flavour).
     meteorRefs.current.forEach((r, i) => {
       if (!r) return;
@@ -233,6 +275,18 @@ export const SuperAbilityFx = () => {
       </mesh>
       <mesh ref={boomerangRef} position={[0, 1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.55, 0.16, 8, 20]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
+      </mesh>
+      <mesh ref={bombRef} position={[0, 1, 0]}>
+        <sphereGeometry args={[0.5, 14, 12]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
+      </mesh>
+      <mesh ref={spinRef} position={[0, 0.4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[1, 0.12, 8, 32]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
+      </mesh>
+      <mesh ref={bhRef} position={[0, 1.2, 0]}>
+        <torusKnotGeometry args={[0.5, 0.18, 64, 8]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
       </mesh>
       {Array.from({ length: RINGS }).map((_, i) => (

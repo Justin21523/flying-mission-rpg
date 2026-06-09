@@ -8,6 +8,7 @@ import { usePlayerStore } from '../../stores/playerStore';
 import { useActivityStore } from '../../stores/activityStore';
 import { useYokaiCombatStore, liveYokai, type Yokai } from '../../stores/yokaiCombatStore';
 import { setSuperDamageSink } from '../combat/applySuperDamage';
+import { pullVelocity } from '../combat/pullField';
 import { MODEL_ASSET_LIST } from '../../data/modelLibrary';
 import { getEffectiveAreaSize } from '../world/areaExtent';
 
@@ -105,8 +106,9 @@ const YokaiEntity = ({ y, areaId, moveSpeed }: { y: Yokai; areaId: string; moveS
       const dx = pp.x - e.x, dz = pp.z - e.z;
       const dist = Math.hypot(dx, dz) || 1;
       const chase = dist > 2 ? 1 : -0.3; // back off a touch when very close
-      const vx = (dx / dist) * chase + Math.cos(st.current.ang) * 0.4;
-      const vz = (dz / dist) * chase + Math.sin(st.current.ang) * 0.4;
+      const pv = pullVelocity(e.x, e.z); // black-hole suck (dominates direction when active)
+      const vx = (dx / dist) * chase + Math.cos(st.current.ang) * 0.4 + pv.vx;
+      const vz = (dz / dist) * chase + Math.sin(st.current.ang) * 0.4 + pv.vz;
       const len = Math.hypot(vx, vz) || 1;
       const half = getEffectiveAreaSize(areaId);
       e.x = Math.max(-half, Math.min(half, e.x + (vx / len) * moveSpeed * dt));
