@@ -14,6 +14,7 @@ import { MapPointLayer } from './MapPointLayer';
 import { PortalLayer } from './PortalLayer';
 import { RoadEditLayer } from './RoadEditLayer';
 import { IncidentMarkerEditLayer } from './IncidentMarkerEditLayer';
+import { BoundaryMistLayer } from './BoundaryMistLayer';
 import { LayoutLayer } from './LayoutLayer';
 import { EdgeTransitionLayer } from './EdgeTransitionLayer';
 import { PickupLayer } from '../poli/PickupLayer';
@@ -110,6 +111,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <RoadEditLayer areaId={areaId} />
       {/* POLI seam #1j: Edit-Mode incident spawn-marker gizmos (🚨 Incidents tab). */}
       <IncidentMarkerEditLayer areaId={areaId} />
+      {/* POLI seam #1k: soft mist at the map boundary (obscures the void past the farthest object). */}
+      <BoundaryMistLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />
       <EncounterMarkerRenderer areaId={areaId} />

@@ -12,10 +12,12 @@ import { objKey } from '../edit/sceneEditMerge';
 // EVERY placed thing (layout pieces, kit set-pieces, NPCs, landmarks, map points, portals, incident markers),
 // using each object's live gizmo position (override ⊕ base). Never below the area's manual `size`;
 // `autoExpand: false` keeps the manual size. Cheap (a few array scans).
+// Smallest boundary when an area has little/no content, so an empty area isn't a claustrophobic box.
+const MIN_EXTENT = 12;
+
 export function getEffectiveAreaSize(areaId: string): number {
   const area = getWorldArea(areaId);
-  const minSize = area?.size ?? 40;
-  if (area?.autoExpand === false) return minSize;
+  if (area?.autoExpand === false) return area?.size ?? 40; // manual fixed size
   const margin = area?.sizeMargin ?? 10;
   const overrides = useSceneEditStore.getState().overrides;
 
@@ -39,5 +41,6 @@ export function getEffectiveAreaSize(areaId: string): number {
   useEditorPortalStore.getState().portals.forEach((p) => { if (p.areaId === areaId) bumpKeyed('landmark', p.id, p.position[0], p.position[2]); });
   useEditorIncidentStore.getState().incidents.forEach((i) => { if (i.spawnAreaId === areaId) bump(i.markerPosition[0], i.markerPosition[2]); });
 
-  return Math.max(minSize, far + margin);
+  // Boundary = farthest placed object + a margin ("a bit past the edge object") — content-driven, not fixed.
+  return Math.max(MIN_EXTENT, far + margin);
 }
