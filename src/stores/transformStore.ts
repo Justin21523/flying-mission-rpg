@@ -5,6 +5,7 @@ import { applyAbility } from '../game/player/abilityEffects';
 import { applySuperDamage, type DamageRequest } from '../game/combat/applySuperDamage';
 import { triggerDash } from '../game/combat/dashImpulse';
 import { addPull } from '../game/combat/pullField';
+import { spawnSummon } from './summonStore';
 import { usePlayerStore } from './playerStore';
 import type { AbilityType, SuperKind, SuperMove } from '../types/character';
 
@@ -110,6 +111,11 @@ function dispatchSuperDamage(move: SuperMove, p: SuperFxPayload): void {
       for (let i = 0; i < ticks; i++) window.setTimeout(() => applySuperDamage(reqFrom(p, move, cx, cz)), (i / ticks) * dur * 1000);
       break;
     }
+    case 'clone':
+    case 'sentry':
+      // Persistent auto-attacker (替身 / drone) — handled by SummonLayer; duration drives its lifetime.
+      spawnSummon(p.kind, p.x, p.y, p.z, move.color, move.damage, p.radius, move.duration ?? 6);
+      break;
     default:
       applySuperDamage(reqFrom(p, move));
       break;
