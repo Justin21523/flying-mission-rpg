@@ -22,6 +22,7 @@ export const IncidentMarkerEditLayer = ({ areaId }: { areaId: string }) => {
           position={i.markerPosition}
           color="#ef4444"
           onMove={(pos) => useEditorIncidentStore.getState().updateIncident(i.id, { markerPosition: pos })}
+          onDelete={() => useEditorIncidentStore.getState().removeIncident(i.id)}
         >
           <mesh position={[0, 0.6, 0]} castShadow>
             <coneGeometry args={[0.5, 1.2, 8]} />

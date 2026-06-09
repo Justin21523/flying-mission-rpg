@@ -111,7 +111,13 @@ export const App = () => {
       if (e.code === 'KeyW') useSceneEditStore.getState().setMode('translate');
       else if (e.code === 'KeyE') useSceneEditStore.getState().setMode('rotate');
       else if (e.code === 'KeyR') useSceneEditStore.getState().setMode('scale');
-      else if (e.code === 'Delete' || e.code === 'Backspace') useSceneEditStore.getState().deleteSelected();
+      else if (e.code === 'Delete' || e.code === 'Backspace') {
+        // A DataBackedPlacement (crosswalk / incident / marker) selection deletes via its own store; otherwise
+        // delete the kit-selected placement (set-piece / NPC / landmark / map point / portal).
+        const ws = useWorldSelectStore.getState();
+        if (ws.selectedKey && ws.onDelete) { ws.onDelete(); ws.select(null); }
+        else useSceneEditStore.getState().deleteSelected();
+      }
       else if (e.code === 'Escape') { useSceneEditStore.getState().clearSelection(); useWorldSelectStore.getState().select(null); }
     };
     window.addEventListener('keydown', onKey);
@@ -149,7 +155,19 @@ export const App = () => {
       <PlayerPosDebug />
       {/* DPR capped lower (high-DPI screens were fill-bound); a PerformanceMonitor in Scene adapts it. */}
       <CanvasErrorBoundary>
-        <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 5, 10], fov: 50, near: 0.1, far: 1500 }}>
+        <Canvas
+          shadows
+          dpr={[1, 1.5]}
+          camera={{ position: [0, 5, 10], fov: 50, near: 0.1, far: 1500 }}
+          // Clicking empty space deselects both selection systems so a gizmo never gets "stuck" and the next
+          // object click always lands (Edit Mode only).
+          onPointerMissed={() => {
+            if (!useUiStore.getState().editMode) return;
+            useSceneEditStore.getState().clearSelection();
+            useWorldSelectStore.getState().select(null);
+            usePbrPatchEditStore.getState().select(null);
+          }}
+        >
           <Scene />
         </Canvas>
       </CanvasErrorBoundary>

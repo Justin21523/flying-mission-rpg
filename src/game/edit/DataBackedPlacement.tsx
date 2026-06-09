@@ -14,18 +14,19 @@ interface DataBackedPlacementProps {
   objKey: string;
   position: [number, number, number];
   onMove: (pos: [number, number, number]) => void;
+  onDelete?: () => void; // when set, the Delete key / inspector removes this placement from its data store
   color?: string;
   children: ReactNode;
 }
 
-export function DataBackedPlacement({ objKey, position, onMove, color = '#a855f7', children }: DataBackedPlacementProps) {
+export function DataBackedPlacement({ objKey, position, onMove, onDelete, color = '#a855f7', children }: DataBackedPlacementProps) {
   const selectedKey = useWorldSelectStore((s) => s.selectedKey);
   const [obj, setObj] = useState<Group | null>(null);
   const selected = selectedKey === objKey;
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    useWorldSelectStore.getState().select(objKey);
+    useWorldSelectStore.getState().select(objKey, onDelete ?? null);
   };
 
   return (

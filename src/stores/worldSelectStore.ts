@@ -9,10 +9,15 @@ import { useSceneEditStore } from './sceneEditStore';
 // ever active — the two selection systems are mutually exclusive (fixes "gizmo won't switch objects").
 interface WorldSelectState {
   selectedKey: string | null;
-  select: (key: string | null) => void;
+  onDelete: (() => void) | null; // how to remove the selected placement (Delete key / inspector)
+  select: (key: string | null, onDelete?: (() => void) | null) => void;
 }
 
 export const useWorldSelectStore = create<WorldSelectState>((set) => ({
   selectedKey: null,
-  select: (key) => { if (key) useSceneEditStore.getState().clearSelection(); set({ selectedKey: key }); },
+  onDelete: null,
+  select: (key, onDelete = null) => {
+    if (key) useSceneEditStore.getState().clearSelection();
+    set({ selectedKey: key, onDelete: key ? onDelete : null });
+  },
 }));

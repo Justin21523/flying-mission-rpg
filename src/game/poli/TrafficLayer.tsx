@@ -228,6 +228,7 @@ const CrosswalkEntity = ({ def }: { def: Crosswalk }) => {
         position={def.position}
         color="#f8fafc"
         onMove={(pos) => useEditorTrafficStore.getState().updateCrosswalk(def.id, { position: pos })}
+        onDelete={() => useEditorTrafficStore.getState().removeCrosswalk(def.id)}
       >
         {stripeMeshes}
       </DataBackedPlacement>
