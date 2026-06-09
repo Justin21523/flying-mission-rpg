@@ -1,8 +1,10 @@
 import { useEditorPortalStore } from '../../stores/editorPortalStore';
+import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { usePlayerStore } from '../../stores/playerStore';
-import { useSceneEditStore } from '../../stores/sceneEditStore';
+import { editorSpawn, useSceneEditStore } from '../../stores/sceneEditStore';
 import { objKey } from '../../game/edit/sceneEditMerge';
 import { PORTAL_ACTIVATIONS, type PortalActivation, type PortalDef } from '../../types/portal';
+import { MAP_POINT_ICON } from '../../types/world';
 import { Field, inp, lbl, Check, useAreaOptions } from './editorShared';
 import { ModelPicker } from './ModelPicker';
 
@@ -11,10 +13,18 @@ import { ModelPicker } from './ModelPicker';
 export const PortalEditorTab = () => {
   const areaId = usePlayerStore((s) => s.currentAreaId);
   const all = useEditorPortalStore((s) => s.portals);
+  const worldAreas = useEditorWorldStore((s) => s.areas);
   const overrides = useSceneEditStore((s) => s.overrides); // live gizmo positions
   const st = useEditorPortalStore.getState();
   const portals = all.filter((p) => p.areaId === areaId);
   const areaOptions = useAreaOptions();
+
+  // Named arrival destinations in a target area: its map points + its portals. "pt:<id>" / "po:<id>".
+  const arrivalOptions = (targetAreaId: string, selfId: string) => {
+    const pts = (worldAreas.find((a) => a.id === targetAreaId)?.points ?? []).map((pt) => ({ value: `pt:${pt.id}`, label: `${MAP_POINT_ICON[pt.type]} ${pt.name}` }));
+    const pos = all.filter((x) => x.areaId === targetAreaId && x.id !== selfId).map((x) => ({ value: `po:${x.id}`, label: `🚪 ${x.name}` }));
+    return [...pts, ...pos];
+  };
 
   const set = (id: string, patch: Partial<PortalDef>) => st.updatePortal(id, patch);
 
@@ -28,7 +38,6 @@ export const PortalEditorTab = () => {
 
       {portals.map((p) => {
         const livePos = (overrides[objKey(areaId, 'landmark', p.id)]?.position ?? p.position) as [number, number, number];
-        const targetPortals = all.filter((x) => x.areaId === p.targetAreaId && x.id !== p.id);
         return (
           <div key={p.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
             <div className="flex items-center gap-1.5">
@@ -66,19 +75,28 @@ export const PortalEditorTab = () => {
               <div className={lbl}>Destination</div>
               <div className="mt-1 grid grid-cols-2 gap-2">
                 <Field label="target area">
-                  <select value={p.targetAreaId} onChange={(e) => set(p.id, { targetAreaId: e.target.value, targetPortalId: undefined })} className={inp}>
+                  <select value={p.targetAreaId} onChange={(e) => set(p.id, { targetAreaId: e.target.value, targetPointId: undefined, targetPortalId: undefined })} className={inp}>
                     {areaOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
                   </select>
                 </Field>
-                <Field label="arrive at portal">
-                  <select value={p.targetPortalId ?? ''} onChange={(e) => set(p.id, { targetPortalId: e.target.value || undefined })} className={inp}>
-                    <option value="">(area spawn / custom)</option>
-                    {targetPortals.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                <Field label="arrive at (map point / portal)">
+                  <select
+                    value={p.targetPointId ? `pt:${p.targetPointId}` : p.targetPortalId ? `po:${p.targetPortalId}` : ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v.startsWith('pt:')) set(p.id, { targetPointId: v.slice(3), targetPortalId: undefined });
+                      else if (v.startsWith('po:')) set(p.id, { targetPortalId: v.slice(3), targetPointId: undefined });
+                      else set(p.id, { targetPointId: undefined, targetPortalId: undefined });
+                    }}
+                    className={inp}
+                  >
+                    <option value="">(area spawn / custom below)</option>
+                    {arrivalOptions(p.targetAreaId, p.id).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </Field>
               </div>
-              {!p.targetPortalId && (
-                <Field label="custom arrival spawn (x / y / z) — blank uses area spawn">
+              {!p.targetPointId && !p.targetPortalId && (
+                <Field label="custom arrival position (x / y / z) — blank uses area spawn">
                   <div className="flex gap-1">
                     {([0, 1, 2] as const).map((a) => (
                       <input key={a} type="number" step={0.5} value={p.targetSpawn?.[a] ?? ''} className={inp + ' w-0 flex-1'} onChange={(e) => {
@@ -88,9 +106,11 @@ export const PortalEditorTab = () => {
                         set(p.id, { targetSpawn: next });
                       }} />
                     ))}
+                    <button onClick={() => set(p.id, { targetSpawn: [Math.round(editorSpawn.x * 100) / 100, 0, Math.round(editorSpawn.z * 100) / 100] })} title="Use the Edit-Mode camera focus" className="rounded bg-slate-800 px-1.5 text-[10px] text-sky-300 hover:bg-slate-700">📍 cam</button>
                   </div>
                 </Field>
               )}
+              <div className="mt-0.5 text-[9px] text-slate-500">“arrive at” lists the target area's 🗺 map points + 🚪 portals. No options? Add a map point in that area (🗺 World tab) or type a custom position.</div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">

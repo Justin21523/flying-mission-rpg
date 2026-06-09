@@ -17,8 +17,9 @@ export interface PortalDef {
   activation: PortalActivation;         // 'proximity' (walk in) | 'interact' (press E)
   radius?: number;                      // trigger / prompt radius (default 2.5)
   targetAreaId: string;                 // destination area (may be indoor)
+  targetPointId?: string;               // arrive at this MAP POINT (named location) in the target area
   targetPortalId?: string;              // arrive at this portal in the target area (its position + facing)
-  targetSpawn?: [number, number, number]; // explicit arrival position (used when no targetPortalId)
+  targetSpawn?: [number, number, number]; // explicit arrival position (used when no point/portal)
   spawnFacing?: number;                 // arrival facing (radians) when using targetSpawn
   twoWay?: boolean;                     // flavour: this portal also serves as a return entrance
   locked?: boolean;                     // hard-locked (never opens unless a requirement is met)

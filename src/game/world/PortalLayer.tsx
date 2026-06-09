@@ -33,8 +33,13 @@ function isPortalOpen(p: PortalDef): boolean {
   return !p.locked;
 }
 
-// Resolve where this portal drops the player: paired target portal (front of it) → explicit spawn → area spawn.
+// Resolve where this portal drops the player: target map point → paired portal (front of it) → explicit
+// spawn → the target area's spawn point.
 function resolveDest(p: PortalDef): { areaId: string; spawn: Vec3 } {
+  if (p.targetPointId) {
+    const pt = getWorldArea(p.targetAreaId)?.points?.find((x) => x.id === p.targetPointId);
+    if (pt) return { areaId: p.targetAreaId, spawn: { x: pt.position[0], y: pt.position[1] + 1, z: pt.position[2] } };
+  }
   if (p.targetPortalId) {
     const tp = getPortal(p.targetPortalId);
     if (tp) {
