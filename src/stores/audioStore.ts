@@ -10,6 +10,10 @@ interface PersistedSettings {
   particleDensity: ParticleDensity;
   sfxEnabled: boolean;   // POLI WebAudio synth placeholders (transform/ability/rescue/…)
   sfxVolume: number;     // 0..1
+  // Accessibility
+  textScale: number;     // 0.85..1.5 — scales all rem-based UI text
+  highContrast: boolean; // stronger text/panel contrast
+  reduceMotion: boolean; // cut particle density / motion
 }
 
 interface AudioState extends PersistedSettings {
@@ -19,11 +23,14 @@ interface AudioState extends PersistedSettings {
   setParticleDensity: (density: ParticleDensity) => void;
   toggleSfx: () => void;
   setSfxVolume: (v: number) => void;
+  setTextScale: (v: number) => void;
+  toggleHighContrast: () => void;
+  toggleReduceMotion: () => void;
 }
 
 const STORAGE_KEY = 'r3f-rpg-builder-settings-v1';
 const DENSITIES: ParticleDensity[] = ['low', 'medium', 'high'];
-const DEFAULTS: PersistedSettings = { particlesEnabled: true, particleDensity: 'medium', sfxEnabled: true, sfxVolume: 0.4 };
+const DEFAULTS: PersistedSettings = { particlesEnabled: true, particleDensity: 'medium', sfxEnabled: true, sfxVolume: 0.4, textScale: 1, highContrast: false, reduceMotion: false };
 
 function load(): PersistedSettings {
   try {
@@ -37,6 +44,9 @@ function load(): PersistedSettings {
         : DEFAULTS.particleDensity,
       sfxEnabled: typeof p.sfxEnabled === 'boolean' ? p.sfxEnabled : DEFAULTS.sfxEnabled,
       sfxVolume: typeof p.sfxVolume === 'number' ? Math.min(1, Math.max(0, p.sfxVolume)) : DEFAULTS.sfxVolume,
+      textScale: typeof p.textScale === 'number' ? Math.min(1.5, Math.max(0.85, p.textScale)) : DEFAULTS.textScale,
+      highContrast: typeof p.highContrast === 'boolean' ? p.highContrast : DEFAULTS.highContrast,
+      reduceMotion: typeof p.reduceMotion === 'boolean' ? p.reduceMotion : DEFAULTS.reduceMotion,
     };
   } catch {
     return DEFAULTS;
@@ -50,6 +60,9 @@ function persist(s: PersistedSettings): void {
       particleDensity: s.particleDensity,
       sfxEnabled: s.sfxEnabled,
       sfxVolume: s.sfxVolume,
+      textScale: s.textScale,
+      highContrast: s.highContrast,
+      reduceMotion: s.reduceMotion,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
   } catch {
@@ -79,5 +92,20 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     const v = Math.min(1, Math.max(0, sfxVolume));
     set({ sfxVolume: v });
     persist({ ...get(), sfxVolume: v });
+  },
+  setTextScale: (v) => {
+    const t = Math.min(1.5, Math.max(0.85, v));
+    set({ textScale: t });
+    persist({ ...get(), textScale: t });
+  },
+  toggleHighContrast: () => {
+    const highContrast = !get().highContrast;
+    set({ highContrast });
+    persist({ ...get(), highContrast });
+  },
+  toggleReduceMotion: () => {
+    const reduceMotion = !get().reduceMotion;
+    set({ reduceMotion });
+    persist({ ...get(), reduceMotion });
   },
 }));

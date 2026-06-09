@@ -134,6 +134,8 @@ export const WeatherParticles = () => {
   const weather = useWorldClockStore((s) => s.weather);
   const timeOfDay = useWorldClockStore((s) => s.timeOfDay);
 
+  const reduceMotion = useAudioStore((s) => s.reduceMotion);
+
   if (!particlesEnabled) return null;
   const isStorm = weather === 'storm';
   const showRain = weather === 'rain' || isStorm;
@@ -141,8 +143,9 @@ export const WeatherParticles = () => {
   if (!showRain && !showNight) return null;
 
   const counts = DENSITY[density];
-  // Storm is heavier rain than a normal shower.
-  const rainCount = isStorm ? Math.round(counts.rain * 1.6) : counts.rain;
+  // Storm is heavier rain than a normal shower; reduce-motion cuts particle counts down.
+  const motionScale = reduceMotion ? 0.35 : 1;
+  const rainCount = Math.round((isStorm ? counts.rain * 1.6 : counts.rain) * motionScale);
 
   return (
     <FollowGroup>

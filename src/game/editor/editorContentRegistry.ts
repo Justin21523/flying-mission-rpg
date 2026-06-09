@@ -16,6 +16,7 @@ import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
 import { useJinResearchStore } from '../../stores/jinResearchStore';
+import { useLocaleStore } from '../../stores/localeStore';
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
 // serialize / deserialize / clear / summary hooks. The foundation for the unified project Export/Import.
@@ -181,6 +182,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useJinResearchStore.getState().importState(data as never); },
     clear: () => useJinResearchStore.getState().reset(),
     summary: () => `${useJinResearchStore.getState().projects.length} projects`,
+  },
+  {
+    id: 'editorLocale',
+    label: 'Strings',
+    serialize: () => { const s = useLocaleStore.getState(); return { locale: s.locale, strings: s.strings }; },
+    deserialize: (data) => { if (isObj(data)) useLocaleStore.getState().importState(data as never); },
+    clear: () => useLocaleStore.getState().reset(),
+    summary: () => `${Object.keys(useLocaleStore.getState().strings).length} strings · ${useLocaleStore.getState().locale}`,
   },
 ];
 

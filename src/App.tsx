@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useUiStore } from './stores/uiStore';
+import { useAudioStore } from './stores/audioStore';
 import { useTerrainHistoryStore } from './stores/terrainHistoryStore';
 import { useSceneEditStore } from './stores/sceneEditStore';
 import { useWorldSelectStore } from './stores/worldSelectStore';
@@ -60,6 +61,14 @@ export const App = () => {
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
+  const textScale = useAudioStore((s) => s.textScale);
+  const highContrast = useAudioStore((s) => s.highContrast);
+
+  // Accessibility: scale all rem-based UI text + toggle a high-contrast class on the root element.
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${Math.round(textScale * 100)}%`;
+    document.documentElement.classList.toggle('poli-hc', highContrast);
+  }, [textScale, highContrast]);
 
   // Register any editor-authored quests (from localStorage) into the runtime quest store on startup.
   useEffect(() => {

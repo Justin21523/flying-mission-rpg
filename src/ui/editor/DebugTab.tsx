@@ -59,7 +59,27 @@ const WorldSection = () => {
           </label>
         )}
       </div>
+      <AccessibilityControls />
     </section>
+  );
+};
+
+// ── Accessibility (text size / contrast / motion) ───────────────────────────
+const AccessibilityControls = () => {
+  const textScale = useAudioStore((s) => s.textScale);
+  const highContrast = useAudioStore((s) => s.highContrast);
+  const reduceMotion = useAudioStore((s) => s.reduceMotion);
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-800/60 pt-2">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300">Accessibility</span>
+      <label className="flex items-center gap-1 text-[11px] text-slate-300">
+        🔠 text {Math.round(textScale * 100)}%
+        <input type="range" min={0.85} max={1.5} step={0.05} value={textScale}
+          onChange={(e) => useAudioStore.getState().setTextScale(parseFloat(e.target.value))} className="w-20" />
+      </label>
+      <Btn tone={highContrast ? 'emerald' : 'slate'} onClick={() => useAudioStore.getState().toggleHighContrast()}>◐ Contrast {highContrast ? 'on' : 'off'}</Btn>
+      <Btn tone={reduceMotion ? 'emerald' : 'slate'} onClick={() => useAudioStore.getState().toggleReduceMotion()}>🍃 Reduce motion {reduceMotion ? 'on' : 'off'}</Btn>
+    </div>
   );
 };
 
