@@ -240,8 +240,8 @@ export function createDefaultActivity(zoneId: string, type: ActivityType): Edito
     ea.raceConfig = { lapCount: 1, allowItems: type === 'itemRace', zoneRadius: 1.2, baseSpeed: 6, boostMult: 1.6, slowMult: 0.6 };
   } else if (type === 'enemyRush') {
     ea.rushConfig = {
-      durationSeconds: 60, maxActiveEnemies: 8, spawnIntervalSeconds: 2, combatantIds: [], eliteCombatantIds: [],
-      eliteChance: 0.1, scoreNormal: 10, scoreElite: 30, comboStep: 2, enemyHpScale: 0.4, moveSpeed: 3,
+      durationSeconds: 60, maxActiveEnemies: 12, spawnIntervalSeconds: 1.2, combatantIds: [], eliteCombatantIds: [],
+      eliteChance: 0.15, scoreNormal: 10, scoreElite: 30, comboStep: 2, enemyHpScale: 0.4, moveSpeed: 3,
     };
   } else if (type === 'defenseZone') {
     ea.defenseConfig = {

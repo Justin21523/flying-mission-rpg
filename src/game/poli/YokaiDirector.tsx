@@ -32,9 +32,12 @@ export const YokaiDirector = () => {
       nextAt.current = t + Math.max(8, cfg.intervalSec);
       if (Math.random() > cfg.chance) return;
       const area = usePlayerStore.getState().currentAreaId;
-      const cands = allActivities().filter((a) => a.def.activityType === 'enemyRush' && a.def.zoneId === area);
-      if (cands.length === 0) return;
-      const pick = cands[Math.floor(Math.random() * cands.length)];
+      const rush = allActivities().filter((a) => a.def.activityType === 'enemyRush');
+      // Prefer a hunt authored for this area; else use any enemyRush (it spawns in the current area anyway).
+      const cands = rush.filter((a) => a.def.zoneId === area);
+      const pool = cands.length ? cands : rush;
+      if (pool.length === 0) return;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
       if (useActivityStore.getState().startActivity(pick.def.id)) {
         useActivityStore.getState().begin(); // jump straight to the running swarm
       }

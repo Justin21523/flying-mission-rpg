@@ -1,5 +1,6 @@
 import { useProgressionStore } from '../../stores/progressionStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
+import { useWalletStore } from '../../stores/walletStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { PanelCard, closePanel } from './playShared';
 
@@ -13,6 +14,7 @@ export const StatsPanel = () => {
   const exp = useProgressionStore((s) => s.exp);
   const distance = usePlayerStore((s) => s.distanceTraveled);
   const itemCount = useInventoryStore((s) => Object.values(s.items).reduce((a, b) => a + b, 0));
+  const coins = useWalletStore((s) => s.coins);
   const needed = level * 100;
   const pct = Math.min(100, Math.round((exp / needed) * 100));
   return (
@@ -23,6 +25,7 @@ export const StatsPanel = () => {
           <div className="mb-1 flex justify-between text-slate-400"><span>EXP</span><span className="font-mono text-slate-100">{exp} / {needed}</span></div>
           <div className="h-1.5 overflow-hidden rounded bg-slate-800"><div className="h-full bg-cyan-400" style={{ width: `${pct}%` }} /></div>
         </div>
+        <Row k="🪙 Coins" v={`${coins}`} />
         <Row k="Distance travelled" v={`${distance.toFixed(0)} m`} />
         <Row k="Items held" v={`${itemCount}`} />
       </div>

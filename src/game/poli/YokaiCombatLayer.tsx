@@ -29,8 +29,9 @@ export const YokaiCombatLayer = ({ areaId }: { areaId: string }) => {
   const activity = useActivityStore((s) => s.activity);
   const version = useYokaiCombatStore((s) => s.version); // re-render the mesh list on spawn/removal
 
-  const huntHere = isActive && phase === 'running'
-    && activity?.def.activityType === 'enemyRush' && activity.def.zoneId === areaId;
+  // AreaRenderer only mounts for the CURRENT area, so a running enemyRush hunt always belongs here — no need to
+  // match zoneId (lets a seed/authored hunt run wherever the player is).
+  const huntHere = isActive && phase === 'running' && activity?.def.activityType === 'enemyRush';
 
   // Start/stop the hunt session + register the super-damage sink for its lifetime.
   useEffect(() => {
