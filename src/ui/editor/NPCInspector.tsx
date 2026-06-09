@@ -7,6 +7,7 @@ import { useDialogueStore } from '../../stores/dialogueStore';
 import { useUiStore } from '../../stores/uiStore';
 import { getDialogueTree } from '../../game/dialogue/dialogueRegistry';
 import { editorSpawn } from '../../stores/sceneEditStore';
+import { getEffectiveAreaSize } from '../../game/world/areaExtent';
 import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { validateNpcLive } from '../../game/editor/validateNpc';
@@ -197,8 +198,38 @@ const NpcPathsSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<Editor
               </div>
             );
           })}
+          <PathMapOverlay npc={npc} path={path} onChange={(pts) => setPath(pi, { points: pts })} />
         </details>
       ))}
+    </div>
+  );
+};
+
+// Top-down overlay to click-place / remove path points quickly. Maps world (x,z) ∈ [-half,half] ↔ pixels.
+const PathMapOverlay = ({ npc, path, onChange }: { npc: EditorNpc; path: NpcPath; onChange: (pts: NpcPath['points']) => void }) => {
+  const half = Math.max(8, getEffectiveAreaSize(npc.areaId));
+  const S = 150;
+  const toPx = (w: number) => ((w + half) / (2 * half)) * S;
+  const toWorld = (px: number) => (px / S) * 2 * half - half;
+  const add = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(toWorld(e.clientX - r.left) * 10) / 10;
+    const z = Math.round(toWorld(e.clientY - r.top) * 10) / 10;
+    onChange([...path.points, { pos: [x, 0, z] }]);
+  };
+  return (
+    <div className="mt-1">
+      <div className={lbl}>map (click to add · click a dot to remove)</div>
+      <div onClick={add} className="relative mt-0.5 cursor-crosshair rounded border border-slate-600 bg-slate-950" style={{ width: S, height: S }}>
+        {/* NPC home marker */}
+        <div className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-300" style={{ left: toPx(npc.position[0]), top: toPx(npc.position[2]) }} />
+        {path.points.map((pt, i) => (
+          <div key={i} onClick={(e) => { e.stopPropagation(); onChange(path.points.filter((_, j) => j !== i)); }}
+            title={`#${i + 1} — click to remove`}
+            className="absolute flex h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cyan-400 text-[8px] font-bold text-slate-900"
+            style={{ left: toPx(pt.pos[0]), top: toPx(pt.pos[2]) }}>{i + 1}</div>
+        ))}
+      </div>
     </div>
   );
 };

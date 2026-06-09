@@ -29,6 +29,7 @@ import { PoliNpcLayer } from '../poli/PoliNpcLayer';
 import { IncidentLayer } from '../poli/IncidentLayer';
 import { TrafficLayer } from '../poli/TrafficLayer';
 import { YokaiCombatLayer } from '../poli/YokaiCombatLayer';
+import { NpcPathGizmoLayer } from './NpcPathGizmoLayer';
 import { POLI_SANDBOX } from '../../data/poli/sandboxConfig';
 import { useUiStore } from '../../stores/uiStore';
 import { useMergedTransform } from '../../stores/sceneEditStore';
@@ -105,6 +106,7 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {/* POLI seam #1g: primitive collectibles → resource economy (🌤 Environment tab → Collectibles). */}
       <CollectibleLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
+      <NpcPathGizmoLayer areaId={areaId} />
       <LandmarkLayer areaId={areaId} />
       {/* POLI seam #1f: named map points (POI / spawn / teleport) authored in the 🗺 World tab. */}
       <MapPointLayer areaId={areaId} />
