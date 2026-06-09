@@ -28,6 +28,7 @@ import { ZoneGate } from './ZoneGate';
 import { PoliNpcLayer } from '../poli/PoliNpcLayer';
 import { IncidentLayer } from '../poli/IncidentLayer';
 import { TrafficLayer } from '../poli/TrafficLayer';
+import { YokaiCombatLayer } from '../poli/YokaiCombatLayer';
 import { POLI_SANDBOX } from '../../data/poli/sandboxConfig';
 import { useUiStore } from '../../stores/uiStore';
 import { useMergedTransform } from '../../stores/sceneEditStore';
@@ -92,6 +93,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {/* POLI seam #1b: incident layer — shows only incidents SPAWNED by the IncidentDirector
           (random), so it's safe to render even in sandbox mode. */}
       <IncidentLayer areaId={areaId} />
+      {/* POLI yokai-hunt: live yokai while an enemyRush activity runs in this area (play-mode runtime). */}
+      <YokaiCombatLayer areaId={areaId} />
       {/* POLI seam #1c: traffic layer — editable NPC vehicles + traffic signals (always rendered;
           edit them in the 🚦 Traffic tab). */}
       <TrafficLayer areaId={areaId} />
