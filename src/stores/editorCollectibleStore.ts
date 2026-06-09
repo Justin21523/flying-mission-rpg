@@ -27,9 +27,9 @@ const DEFAULTS: CollectibleConfig = {
     { id: 'spark', name: 'Spark', color: '#38bdf8', threshold: 60, abilityType: 'scan_pulse', auto: false, key: 'KeyZ', abilityRadius: 14, abilityDuration: 3 },
   ],
   types: [
-    { id: 'leaf', name: 'Green Cube', shape: 'box', color: '#4ade80', size: 0.35, value: 10, resourceId: 'energy', count: 10, spin: true, emissive: 0.5 },
-    { id: 'orb', name: 'Energy Orb', shape: 'icosa', color: '#86efac', size: 0.4, value: 20, resourceId: 'energy', count: 5, spin: true, emissive: 0.8 },
-    { id: 'crystal', name: 'Spark Crystal', shape: 'octa', color: '#7dd3fc', size: 0.4, value: 15, resourceId: 'spark', count: 8, spin: true, emissive: 0.9 },
+    { id: 'leaf', name: 'Green Cube', shape: 'box', color: '#4ade80', size: 0.35, value: 10, resourceId: 'energy', count: 10, airCount: 40, airMinHeight: 3, airMaxHeight: 24, spin: true, emissive: 0.5 },
+    { id: 'orb', name: 'Energy Orb', shape: 'icosa', color: '#86efac', size: 0.4, value: 20, resourceId: 'energy', count: 5, airCount: 25, airMinHeight: 4, airMaxHeight: 26, spin: true, emissive: 0.8 },
+    { id: 'crystal', name: 'Spark Crystal', shape: 'octa', color: '#7dd3fc', size: 0.4, value: 15, resourceId: 'spark', count: 8, airCount: 30, airMinHeight: 3, airMaxHeight: 22, spin: true, emissive: 0.9 },
   ],
 };
 
