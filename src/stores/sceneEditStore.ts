@@ -281,7 +281,7 @@ export const useSceneEditStore = create<SceneEditState>((set, get) => ({
         id,
         areaId,
         assetId: t.assetId,
-        position: [t.object.position.x + 2, t.object.position.y, t.object.position.z + 2],
+        position: [t.object.position.x, t.object.position.y, t.object.position.z], // exact same position
         rotation: [t.object.rotation.x, t.object.rotation.y, t.object.rotation.z],
         scale: [t.object.scale.x, t.object.scale.y, t.object.scale.z], // exact per-axis scale
 

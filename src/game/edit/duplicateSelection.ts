@@ -10,7 +10,7 @@ import { objKey, type Vec3 } from './sceneEditMerge';
 // EditableObjects) are cloned here into their own stores via add+update, offset a couple of units. Each clone
 // also copies the source's gizmo override (rotation + per-axis scale) so the copy is EXACTLY the same, and the
 // whole copied batch ends up selected together (primary + extras) so you can move/edit it as one group.
-const OFF = 2;
+const OFF = 0; // copies land exactly on the original (no offset)
 
 // Copy the source's gizmo override (offset position + same rotation + same per-axis scale) onto the new key,
 // so the duplicate matches the original exactly.
