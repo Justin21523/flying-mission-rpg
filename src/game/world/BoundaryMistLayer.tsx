@@ -3,7 +3,7 @@ import { GradientTexture } from '@react-three/drei';
 import { useUiStore } from '../../stores/uiStore';
 import { useEditorWorldStore, isAreaIndoor } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
-import { getEffectiveAreaSize } from './areaExtent';
+import { getContentExtent } from './areaExtent';
 
 // POLI — soft mist ONLY at the map's outer boundary (the farthest-object edge), to obscure the void beyond so
 // you "can't quite see" past the content. A ground-hugging cylindrical fog band at the boundary radius: dense
@@ -17,12 +17,12 @@ export const BoundaryMistLayer = ({ areaId }: { areaId: string }) => {
   useEditorLayoutStore((s) => s.presets[areaId]);
   if (editMode || isAreaIndoor(areaId)) return null;
 
-  const size = getEffectiveAreaSize(areaId);
-  const H = 26;
-  // Concentric shells whose INNER shell sits exactly at the boundary (size) and the rest extend OUTWARD — so
-  // the dense fog begins right where you switch maps (you're in the fog at the moment of transition, never
-  // walking through fog while still inside). Thick outward to fully hide the void beyond.
-  const bands = [size, size + 3, size + 6, size + 9, size + 12];
+  // Hug the farthest placed object: the inner shell sits just past the content edge (not at the far boundary),
+  // so the mist wraps right around the outermost objects. Small floor so an empty area isn't a tiny ring.
+  const inner = Math.max(10, getContentExtent(areaId) + 2);
+  const H = 200; // very tall wall of mist so it fully hides the void in every view, even looking up.
+  // Concentric shells extending OUTWARD from the content edge — dense, thick, fully opaque to the top.
+  const bands = [inner, inner + 3, inner + 6, inner + 9, inner + 12];
   return (
     <group renderOrder={3}>
       {bands.map((r, i) => (

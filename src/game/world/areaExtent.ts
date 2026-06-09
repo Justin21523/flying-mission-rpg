@@ -15,10 +15,10 @@ import { objKey } from '../edit/sceneEditMerge';
 // Smallest boundary when an area has little/no content, so an empty area isn't a claustrophobic box.
 const MIN_EXTENT = 12;
 
-export function getEffectiveAreaSize(areaId: string): number {
+// The raw farthest-placed-object distance (max |x|,|z| over ALL placed content), using live gizmo positions.
+// 0 when the area is empty. This is the content "edge" the mist hugs and the boundary sits a margin beyond.
+export function getContentExtent(areaId: string): number {
   const area = getWorldArea(areaId);
-  if (area?.autoExpand === false) return area?.size ?? 40; // manual fixed size
-  const margin = area?.sizeMargin ?? 14; // boundary (+ edge mist) sits close to the farthest object, small buffer
   const overrides = useSceneEditStore.getState().overrides;
 
   let far = 0;
@@ -41,6 +41,13 @@ export function getEffectiveAreaSize(areaId: string): number {
   useEditorPortalStore.getState().portals.forEach((p) => { if (p.areaId === areaId) bumpKeyed('landmark', p.id, p.position[0], p.position[2]); });
   useEditorIncidentStore.getState().incidents.forEach((i) => { if (i.spawnAreaId === areaId) bump(i.markerPosition[0], i.markerPosition[2]); });
 
+  return far;
+}
+
+export function getEffectiveAreaSize(areaId: string): number {
+  const area = getWorldArea(areaId);
+  if (area?.autoExpand === false) return area?.size ?? 40; // manual fixed size
+  const margin = area?.sizeMargin ?? 14; // boundary sits close to the farthest object, small buffer
   // Boundary = farthest placed object + a margin ("a bit past the edge object") — content-driven, not fixed.
-  return Math.max(MIN_EXTENT, far + margin);
+  return Math.max(MIN_EXTENT, getContentExtent(areaId) + margin);
 }
