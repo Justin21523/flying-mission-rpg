@@ -13,6 +13,7 @@ export interface ModelAsset {
   position: Vec3;
   rotation: Vec3;                // radians
   clips: Record<string, number>; // animation name → clip index (empty by default)
+  animations?: import('../types/character').AnimRule[]; // Model-Studio trigger→clip rules (optional)
   category: string;
 }
 

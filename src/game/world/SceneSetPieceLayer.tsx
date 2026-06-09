@@ -10,6 +10,8 @@ import { objKey, type BaseTransform } from '../edit/sceneEditMerge';
 import type { AddedPiece } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { CollidableGlb } from '../edit/CollidableGlb';
+import { AnimatedGlbModel } from './AnimatedGlbModel';
+import { resolveModelAsset } from '../../stores/modelStudioStore';
 
 // Phase 86 — renders the authored GLB set-pieces for the current area (visual only).
 // Phase 89/90 — each placement reads its merged transform (authored ⊕ baked ⊕ live edit)
@@ -26,6 +28,10 @@ const SetPiece = ({ objKey: key, assetId, base }: { objKey: string; assetId: str
   if (hidden) return null;
   if (editMode) {
     return <EditableObject objKey={key} base={base} assetId={assetId}><SceneGlbModel assetId={assetId} /></EditableObject>;
+  }
+  // Animated set-piece (Model-Studio anim rules) → play them in-world (visual only). Else: collidable GLB.
+  if (resolveModelAsset(assetId)?.animations?.length) {
+    return <group position={m.position} rotation={m.rotation} scale={m.scale}><AnimatedGlbModel assetId={assetId} /></group>;
   }
   // Normal play: collidable GLB (solid if collision is on for this piece).
   return <CollidableGlb assetId={assetId} position={m.position} rotation={m.rotation} scale={m.scale} shape={collision ? shapePref : 'none'} />;

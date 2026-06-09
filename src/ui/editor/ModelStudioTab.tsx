@@ -6,6 +6,7 @@ import { SkeletonUtils } from 'three-stdlib';
 import { MODEL_ASSET_LIST, type ModelAsset } from '../../data/modelLibrary';
 import { useModelStudioStore, resolveModelAsset, type Vec3 } from '../../stores/modelStudioStore';
 import { Field, inp, lbl } from './editorShared';
+import { AnimRuleList } from './AnimRuleList';
 
 // 🎬 Model Studio — a dedicated page to tune any discovered model: size / position / rotation via a 3D gizmo
 // (+ numeric), and preview its animation clips. Saves to modelStudioStore (localStorage), which the in-world
@@ -91,12 +92,20 @@ export const ModelStudioTab = () => {
                 <Field key={`r${axis}`} label={`rot ${axis}°`}><input type="number" step={5} className={inp} value={Math.round((rot[i] / RAD) * 10) / 10} onChange={(e) => setRot(i, parseFloat(e.target.value) || 0)} /></Field>
               ))}
             </div>
-            <div className="text-[10px] text-slate-500">Drag the gizmo or edit numbers — saved automatically (localStorage), applied to every placement of this model. Yokai size/animation: 👹 Yokai panel (🎮 tab); characters: 🤖 POLI tab.</div>
+            <ModelAnimSection assetId={selId} path={asset.path} />
+            <div className="text-[10px] text-slate-500">Drag the gizmo or edit numbers — saved automatically (localStorage), applied to every placement of this model. Animation rules (trigger → clip/track, custom name, timing) drive in-world set-pieces. Yokai: 👹 Yokai panel; characters: 🤖 POLI tab.</div>
           </>
         ) : <p className="text-[11px] text-slate-500">No models found in src/assets/models or public/models.</p>}
       </div>
     </div>
   );
+};
+
+// Animation-rules editor for the selected model — author trigger→clip rules (drive in-world set-pieces).
+const ModelAnimSection = ({ assetId, path }: { assetId: string; path: string }) => {
+  const ov = useModelStudioStore((s) => s.overrides[assetId]);
+  const clips = useClipNames(path);
+  return <AnimRuleList rules={ov?.animations ?? []} clips={clips} onChange={(next) => useModelStudioStore.getState().setAnimations(assetId, next)} />;
 };
 
 // Clip dropdown — populated from the model's animation names (reported by PreviewStage via onClips on load).
