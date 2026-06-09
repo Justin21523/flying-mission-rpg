@@ -47,7 +47,8 @@ export function getContentExtent(areaId: string): number {
 export function getEffectiveAreaSize(areaId: string): number {
   const area = getWorldArea(areaId);
   if (area?.autoExpand === false) return area?.size ?? 40; // manual fixed size
-  const margin = area?.sizeMargin ?? 14; // boundary sits close to the farthest object, small buffer
-  // Boundary = farthest placed object + a margin ("a bit past the edge object") — content-driven, not fixed.
+  const margin = area?.sizeMargin ?? 5; // boundary walls hug the content so the mist sits just inside them
+  // Boundary = farthest placed object + a small margin — so the boundary wall is right past the edge object and
+  // the dense mist ring (at content + 1) ends up just BEFORE the wall, forming a big wall of mist in front of it.
   return Math.max(MIN_EXTENT, getContentExtent(areaId) + margin);
 }
