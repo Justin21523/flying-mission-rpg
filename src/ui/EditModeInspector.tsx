@@ -3,6 +3,7 @@ import { useSceneEditStore, buildOverridesFile, countEditsForArea, type GizmoMod
 import { usePlayerStore } from '../stores/playerStore';
 import { defaultCollisionForKind, defaultCollisionShapeForKind, type CollisionShape, type EditKind, type Vec3 } from '../game/edit/sceneEditMerge';
 import { NpcSelectionExtras } from './editor/NpcSelectionExtras';
+import { duplicateAllSelected } from '../game/edit/duplicateSelection';
 
 const COLLISION_KINDS = new Set(['setpiece', 'groundtile', 'decoration', 'scatter', 'regional', 'landmark', 'prop', 'building', 'structure']);
 
@@ -32,7 +33,6 @@ export const EditModeInspector = () => {
   const resetKey = useSceneEditStore((s) => s.resetKey);
   const resetAll = useSceneEditStore((s) => s.resetAll);
   const clearSelection = useSceneEditStore((s) => s.clearSelection);
-  const duplicateSelected = useSceneEditStore((s) => s.duplicateSelected);
   const deleteSelected = useSceneEditStore((s) => s.deleteSelected);
   const extraCount = useSceneEditStore((s) => s.extraSelected.length);
   const pushHistory = useSceneEditStore((s) => s.pushHistory);
@@ -40,8 +40,6 @@ export const EditModeInspector = () => {
   const canUndo = useSceneEditStore((s) => s.history.length > 0);
   const inspectorScale = useSceneEditStore((s) => s.inspectorScale);
   const setInspectorScale = useSceneEditStore((s) => s.setInspectorScale);
-  const selectedAssetId = useSceneEditStore((s) => s.selectedAssetId);
-  const extraHasAsset = useSceneEditStore((s) => s.extraSelected.some((e) => !!e.assetId));
   const areaId = usePlayerStore((s) => s.currentAreaId);
   const areaCount = useSceneEditStore((s) => countEditsForArea(areaId, s));
   const [collapsed, setCollapsed] = useState(false);
@@ -84,7 +82,7 @@ export const EditModeInspector = () => {
   }, []);
 
   const [, kind, idx] = selectedKey ? selectedKey.split('#') : ['', '', ''];
-  const canDuplicate = !!selectedAssetId || extraHasAsset;
+  const canDuplicate = !!selectedKey; // any selection can be duplicated (set-pieces + POLI store objects)
   const posRange = 60;
 
   return (
@@ -155,7 +153,7 @@ export const EditModeInspector = () => {
           </div>
 
           <div className="flex gap-1.5">
-            <button onClick={duplicateSelected} disabled={!canDuplicate} className="flex-1 rounded border border-emerald-700/50 bg-emerald-700/15 px-2 py-1 text-[11px] text-emerald-200 hover:bg-emerald-700/25 disabled:opacity-40">⧉ Dup</button>
+            <button onClick={duplicateAllSelected} disabled={!canDuplicate} className="flex-1 rounded border border-emerald-700/50 bg-emerald-700/15 px-2 py-1 text-[11px] text-emerald-200 hover:bg-emerald-700/25 disabled:opacity-40">⧉ Dup</button>
             <button onClick={deleteSelected} className="flex-1 rounded border border-red-700/50 bg-red-700/15 px-2 py-1 text-[11px] text-red-200 hover:bg-red-700/25">🗑 Del{extraCount > 0 ? ` (${extraCount + 1})` : ''}</button>
           </div>
           <div className="flex gap-1.5">
