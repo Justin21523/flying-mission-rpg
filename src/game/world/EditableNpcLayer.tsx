@@ -19,7 +19,7 @@ import { pickLoopRule } from '../anim/animRunner';
 import { useDistanceCull } from '../perf/useDistanceCull';
 import { markEditHelper } from '../edit/markEditHelper';
 import { getEffectiveAreaSize } from './areaExtent';
-import { objKey } from '../edit/sceneEditMerge';
+import { objKey, asScaleNum } from '../edit/sceneEditMerge';
 import type { Vec3 } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { AnimatedGlbModel } from './AnimatedGlbModel';
@@ -114,15 +114,16 @@ const EditorNpcEntity = ({ npc }: { npc: EditorNpc }) => {
     return <EditableObject objKey={key} base={base}>{<NpcVisual npc={npc} />}</EditableObject>;
   }
   // Play Mode: all NPCs go through the driven path so they can move (patrol/schedule) AND react to
-  // nearby incidents. Static NPCs simply hold their start position until something happens.
-  return <MovingNpc npc={npc} start={m.position} />;
+  // nearby incidents. Static NPCs simply hold their start position until something happens. Pass the MERGED
+  // scale (gizmo override ⊕ npc.scale) so Play-Mode size matches what Edit Mode shows.
+  return <MovingNpc npc={npc} start={m.position} scale={asScaleNum(m.scale)} />;
 };
 
 // Driven NPC — patrol/schedule/static movement + nearby-incident reaction + distance interaction.
 // Physics: a kinematic-position Rapier body with a capsule collider follows the NPC each frame, so the
 // player collides with NPCs (can't walk through them) while they keep walking. The visual group rotates
 // to face travel; the body stays radially symmetric (capsule), so only its translation is driven.
-const MovingNpc = ({ npc, start }: { npc: EditorNpc; start: Vec3 }) => {
+const MovingNpc = ({ npc, start, scale }: { npc: EditorNpc; start: Vec3; scale: number }) => {
   const bodyRef = useRef<RapierRigidBody>(null);
   const visualRef = useRef<Group>(null);
   const alertRef = useRef<Group>(null);
@@ -130,7 +131,6 @@ const MovingNpc = ({ npc, start }: { npc: EditorNpc; start: Vec3 }) => {
   const motionRef = useRef<NpcMotion>({ moving: false, speed: 0 });
   const st = useRef({ wp: 0, near: false, wander: null as Vector3 | null, wanderWait: 0 });
   const speed = npc.moveSpeed ?? 1.6;
-  const scale = npc.scale ?? 1;
   const label = npc.interactionLabel || `Talk to ${npc.displayName}`;
 
   useFrame((_, dtRaw) => {

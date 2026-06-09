@@ -10,8 +10,11 @@ import { editorSpawn } from '../../stores/sceneEditStore';
 import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { validateNpcLive } from '../../game/editor/validateNpc';
-import { Field, inp, lbl, csv, parseCsv, useQuestOptions } from './editorShared';
-import { IdMultiPicker } from './idPickers';
+import { Field, inp, lbl, csv, parseCsv, useQuestOptions, useItemOptions } from './editorShared';
+import { IdMultiPicker, IdSelect } from './idPickers';
+import { NPC_TYPE_DEFAULT_ROLE } from '../../types/editorNPC';
+import { useEditorActivityStore } from '../../stores/editorActivityStore';
+import { SEED_ACTIVITIES } from '../../data/activities';
 import { ModelPicker } from './ModelPicker';
 import { AnimationPicker } from './AnimationPicker';
 import { AnimRuleList } from './AnimRuleList';
@@ -108,6 +111,32 @@ const MovementSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<Editor
   );
 };
 
+// Vendor shop list — items this NPC sells (item dropdown + coin price). A non-empty list makes interacting
+// open the shop (Phase M). Reuses the item options (seed + authored).
+const VendorSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<EditorNpc>) => void }) => {
+  const items = useItemOptions();
+  const sells = npc.sells ?? [];
+  const update = (i: number, patch: Partial<{ itemId: string; price: number }>) => set({ sells: sells.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
+  return (
+    <div className="space-y-1.5 rounded-lg border border-emerald-700/40 bg-emerald-950/15 p-2">
+      <div className="flex items-center justify-between">
+        <span className={lbl}>🛒 Vendor — items for sale (coins)</span>
+        <button onClick={() => set({ sells: [...sells, { itemId: items[0]?.id ?? '', price: 10 }] })} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ add</button>
+      </div>
+      {sells.length === 0 && <div className="text-[11px] text-slate-500">No items — add some to make this NPC a shop (opens on interact).</div>}
+      {sells.map((s, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <select value={s.itemId} onChange={(e) => update(i, { itemId: e.target.value })} className={inp + ' flex-1'}>
+            {items.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+          <input type="number" min={0} value={s.price} onChange={(e) => update(i, { price: parseInt(e.target.value, 10) || 0 })} className={inp + ' w-20'} title="price (coins)" />
+          <button onClick={() => set({ sells: sells.filter((_, j) => j !== i) })} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">✕</button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // Per-NPC custom animation rules (same engine as the player). Loads the model's real clip names via drei's
 // useGLTF (AssetClipLoader — DRACO aware, like the player) into animClipStore, so the track dropdown lists the
 // model's actual clips, then reuses the shared AnimRuleList.
@@ -138,6 +167,11 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
   const set = (patch: Partial<EditorNpc>) => updateNpc(npc.id, patch);
   const valid = validateNpcLive(npc);
   const questOptions = useQuestOptions();
+  const activities = useEditorActivityStore((s) => s.activities);
+  const activityOptions = useMemo(() => [
+    ...activities.map((a) => ({ id: a.def.id, label: a.def.title })),
+    ...SEED_ACTIVITIES.map((a) => ({ id: a.def.id, label: `${a.def.title} (seed)` })),
+  ], [activities]);
   const treeIsEditor = !!(npc.dialogueTreeId && dialogueTrees[npc.dialogueTreeId]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const treeIds = useMemo(() => listDialogueTreeIds(), [dialogueTrees]);
@@ -172,6 +206,9 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
 
       {tab === 'fields' && (
         <>
+          {/* Suggestions for the free-typable role / label inputs. */}
+          <datalist id="npc-role-suggestions">{Object.values(NPC_TYPE_DEFAULT_ROLE).map((r) => <option key={r} value={r} />)}</datalist>
+          <datalist id="npc-label-suggestions">{['Talk', 'Trade', 'Ask', 'Help', 'Inspect', 'Greet'].map((r) => <option key={r} value={r} />)}</datalist>
           <div className="grid grid-cols-2 gap-2">
             <Field label="code"><input value={npc.code ?? ''} onChange={(e) => set({ code: e.target.value })} className={inp} /></Field>
             <Field label="displayName"><input value={npc.displayName} onChange={(e) => set({ displayName: e.target.value })} className={inp} /></Field>
@@ -180,9 +217,9 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
                 {NPC_TYPES.map((t) => <option key={t} value={t}>{NPC_TYPE_LABEL[t]}</option>)}
               </select>
             </Field>
-            <Field label="role (blank = type default)"><input value={npc.role} onChange={(e) => set({ role: e.target.value })} className={inp} /></Field>
+            <Field label="role (blank = type default)"><input list="npc-role-suggestions" value={npc.role} onChange={(e) => set({ role: e.target.value })} className={inp} /></Field>
             <Field label="zoneId (area)"><input value={npc.areaId} disabled className={`${inp} opacity-60`} /></Field>
-            <Field label="interactionLabel"><input value={npc.interactionLabel} onChange={(e) => set({ interactionLabel: e.target.value })} className={inp} /></Field>
+            <Field label="interactionLabel"><input list="npc-label-suggestions" value={npc.interactionLabel} onChange={(e) => set({ interactionLabel: e.target.value })} className={inp} /></Field>
             <Field label="color"><input type="color" value={npc.color} onChange={(e) => set({ color: e.target.value })} className="h-7 w-full rounded bg-slate-800" /></Field>
             <Field label="model (3D character — empty = stub)"><ModelPicker value={npc.modelAssetId ?? undefined} onChange={(v) => set({ modelAssetId: v ?? null })} noneLabel="(capsule stub)" /></Field>
             <Field label="animation"><AnimationPicker modelAssetId={npc.modelAssetId ?? undefined} value={npc.animation} onChange={(v) => set({ animation: v })} /></Field>
@@ -213,10 +250,11 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <Field label="shopId"><input value={npc.shopId ?? ''} onChange={(e) => set({ shopId: e.target.value || null })} className={inp} /></Field>
+            <Field label="hosts activity / hunt (on interact)"><IdSelect value={npc.hostsActivityId ?? undefined} onChange={(v) => set({ hostsActivityId: v ?? null })} options={activityOptions} placeholder="(none)" /></Field>
             <Field label="tags (,)"><input value={csv(npc.tags)} onChange={(e) => set({ tags: parseCsv(e.target.value) })} className={inp} /></Field>
           </div>
 
+          <VendorSection npc={npc} set={set} />
           <MovementSection npc={npc} set={set} />
           <NpcAnimationsSection npc={npc} set={set} />
         </>

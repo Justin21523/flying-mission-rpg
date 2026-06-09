@@ -9,34 +9,46 @@ export type NpcType =
   | 'teacher'
   | 'student'
   | 'shopkeeper'
+  | 'vendor'
   | 'trainer'
   | 'questGiver'
   | 'guard'
+  | 'officer'
+  | 'medic'
+  | 'engineer'
+  | 'chef'
+  | 'performer'
+  | 'child'
+  | 'elder'
   | 'traveler'
   | 'mysterious'
   | 'activityHost';
 
 export const NPC_TYPES: NpcType[] = [
-  'guide', 'researcher', 'teacher', 'student', 'shopkeeper', 'trainer',
-  'questGiver', 'guard', 'traveler', 'mysterious', 'activityHost',
+  'guide', 'researcher', 'teacher', 'student', 'shopkeeper', 'vendor', 'trainer',
+  'questGiver', 'guard', 'officer', 'medic', 'engineer', 'chef', 'performer',
+  'child', 'elder', 'traveler', 'mysterious', 'activityHost',
 ];
 
 export const NPC_TYPE_LABEL: Record<NpcType, string> = {
   guide: 'Guide', researcher: 'Researcher', teacher: 'Teacher', student: 'Student',
-  shopkeeper: 'Shopkeeper', trainer: 'Trainer', questGiver: 'Quest Giver', guard: 'Guard',
-  traveler: 'Traveler', mysterious: 'Mysterious', activityHost: 'Activity Host',
+  shopkeeper: 'Shopkeeper', vendor: 'Vendor', trainer: 'Trainer', questGiver: 'Quest Giver', guard: 'Guard',
+  officer: 'Officer', medic: 'Medic', engineer: 'Engineer', chef: 'Chef', performer: 'Performer',
+  child: 'Child', elder: 'Elder', traveler: 'Traveler', mysterious: 'Mysterious', activityHost: 'Activity Host',
 };
 
 export const NPC_TYPE_COLOR: Record<NpcType, string> = {
   guide: '#38bdf8', researcher: '#a78bfa', teacher: '#f59e0b', student: '#fbbf24',
-  shopkeeper: '#34d399', trainer: '#ef4444', questGiver: '#facc15', guard: '#94a3b8',
-  traveler: '#fb923c', mysterious: '#6366f1', activityHost: '#22d3ee',
+  shopkeeper: '#34d399', vendor: '#2dd4bf', trainer: '#ef4444', questGiver: '#facc15', guard: '#94a3b8',
+  officer: '#60a5fa', medic: '#f472b6', engineer: '#fb923c', chef: '#f87171', performer: '#e879f9',
+  child: '#fcd34d', elder: '#cbd5e1', traveler: '#fb923c', mysterious: '#6366f1', activityHost: '#22d3ee',
 };
 
 export const NPC_TYPE_DEFAULT_ROLE: Record<NpcType, string> = {
   guide: 'Guide', researcher: 'Researcher', teacher: 'Teacher', student: 'Student',
-  shopkeeper: 'Shopkeeper', trainer: 'Trainer', questGiver: 'Quest Giver', guard: 'Guard',
-  traveler: 'Traveler', mysterious: 'Mysterious Figure', activityHost: 'Activity Host',
+  shopkeeper: 'Shopkeeper', vendor: 'Vendor', trainer: 'Trainer', questGiver: 'Quest Giver', guard: 'Guard',
+  officer: 'Patrol Officer', medic: 'Medic', engineer: 'Engineer', chef: 'Chef', performer: 'Street Performer',
+  child: 'Townsfolk Child', elder: 'Town Elder', traveler: 'Traveler', mysterious: 'Mysterious Figure', activityHost: 'Activity Host',
 };
 
 // An NPC created in Editor Mode. Fully data-driven: placed/moved like any editable object, resolved into
@@ -60,6 +72,8 @@ export interface EditorNpc {
   scheduleProfileId?: string | null;
   behaviorProfileId?: string | null;
   shopId?: string | null;
+  sells?: { itemId: string; price: number }[];   // vendor: items for sale (coins) → opens a shop on interact
+  hostsActivityId?: string | null;               // host: starts this mini-game / hunt on interact
   modelAssetId: string | null;   // when set, a GLB replaces the capsule stub
   animation?: string;            // named animation clip for the GLB
   interactionLabel: string;      // proximity prompt, e.g. 'Talk to Mina'
