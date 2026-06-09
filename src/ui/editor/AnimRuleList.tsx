@@ -26,19 +26,13 @@ export const AnimRuleList = ({ rules, clips, onChange }: { rules: AnimRule[]; cl
             <select value={r.trigger} onChange={(e) => upd(r.id, { trigger: e.target.value as AnimTrigger })} className={inp} title="when this rule fires">
               {ANIM_TRIGGERS.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-            {/* Track: a free-text field with the model's detected clips as datalist suggestions, so you can
-                pick a real clip OR type any track name even when none were auto-detected. */}
-            <input
-              value={r.clip}
-              onChange={(e) => upd(r.id, { clip: e.target.value })}
-              list={`clips_${r.id}`}
-              placeholder={clips.length ? 'pick / type track' : 'type track name'}
-              className={inp}
-              title="animation track (clip name in the model)"
-            />
-            <datalist id={`clips_${r.id}`}>
-              {clips.map((c) => <option key={c} value={c} />)}
-            </datalist>
+            {/* Track: a dropdown of the model's detected animation clips. If the saved clip is no longer in the
+                list (e.g. model swapped) it is kept as an option so the value is not silently lost. */}
+            <select value={r.clip} onChange={(e) => upd(r.id, { clip: e.target.value })} className={inp} title="animation track (clip in the model)">
+              <option value="">{clips.length ? '(pick track)' : '(no clips detected)'}</option>
+              {clips.map((c) => <option key={c} value={c}>{c}</option>)}
+              {r.clip && !clips.includes(r.clip) && <option value={r.clip}>{r.clip} (saved)</option>}
+            </select>
           </div>
           <div className="grid grid-cols-4 gap-1">
             <label className="text-[9px] text-slate-400">spdMin<input type="number" step={0.5} value={r.speedMin ?? ''} onChange={(e) => upd(r.id, { speedMin: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className={inp} /></label>
