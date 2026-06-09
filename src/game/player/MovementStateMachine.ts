@@ -55,7 +55,8 @@ export function applyMovement(
   if (moving) headingRef.current = Math.atan2(_dir.x, _dir.z);
 
   const sprint = keys['ShiftLeft'] && moving ? SPRINT_MULT : 1;
-  const speed = SPEED * sprint;
+  // speedMult = speed_boost ability; superMult = super-boost mode (both default 1).
+  const speed = SPEED * sprint * playerMotion.speedMult * playerMotion.superMult;
 
   if (flying) {
     // Shift+WASD = horizontal sprint (no descend); Shift ALONE (no move key) = descend; Space = ascend.

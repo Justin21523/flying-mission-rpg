@@ -17,6 +17,7 @@ import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
 import { useJinResearchStore } from '../../stores/jinResearchStore';
 import { useLocaleStore } from '../../stores/localeStore';
+import { useEditorBoostStore, getBoostConfig } from '../../stores/editorBoostStore';
 import { useProgressionStore } from '../../stores/progressionStore';
 import { useRelationshipStore } from '../../stores/relationshipStore';
 import { useAudioStore } from '../../stores/audioStore';
@@ -190,6 +191,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useJinResearchStore.getState().importState(data as never); },
     clear: () => useJinResearchStore.getState().reset(),
     summary: () => `${useJinResearchStore.getState().projects.length} projects`,
+  },
+  {
+    id: 'editorBoost',
+    label: 'Boost',
+    serialize: () => getBoostConfig(),
+    deserialize: (data) => { if (isObj(data)) useEditorBoostStore.getState().importState(data as never); },
+    clear: () => useEditorBoostStore.getState().reset(),
+    summary: () => { const c = getBoostConfig(); return `meter ${c.meterMax} · ${c.pickupCount} pickups/area`; },
   },
   {
     id: 'editorLocale',

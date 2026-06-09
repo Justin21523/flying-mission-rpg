@@ -6,4 +6,6 @@ export const playerMotion = {
   moving: false,  // true while flying AND a movement key is held (drives the rotor spin)
   skidding: false, // true while the vehicle is braking/coasting fast (drives skid marks)
   speed: 0,        // current horizontal speed (m/s)
+  speedMult: 1,    // transient multiplier from the speed_boost ability (abilityEffects sets/resets it)
+  superMult: 1,    // multiplier from super-boost mode (Part C); 1 when inactive
 };

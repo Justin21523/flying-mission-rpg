@@ -6,6 +6,7 @@ import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
 import { Field, inp, lbl } from './editorShared';
 import { MODEL_ASSET_LIST } from '../../data/modelLibrary';
 import type { CharacterDefinition } from '../../types/character';
+import { ABILITY_TYPES } from '../../types/character';
 
 // All POLI characters — player (poli) included since their model path can be overridden.
 const ALL_CHARS: CharacterDefinition[] = [...CORE_TEAM, ...RESIDENTS];
@@ -239,6 +240,17 @@ export const PoliCharacterEditorTab = () => {
                   />
                 </div>
               </Field>
+              <Field label="Ability Type (Q effect)">
+                <select className={inp} value={sel.abilityType ?? 'speed_boost'} onChange={(e) => set({ abilityType: e.target.value as typeof sel.abilityType })}>
+                  {ABILITY_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </Field>
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Ability radius"><input type="number" step={1} className={inp} value={sel.abilityRadius ?? 8} onChange={(e) => set({ abilityRadius: parseFloat(e.target.value) || 0 })} /></Field>
+                <Field label="Ability duration (s)"><input type="number" step={0.5} className={inp} value={sel.abilityDuration ?? 3} onChange={(e) => set({ abilityDuration: parseFloat(e.target.value) || 0 })} /></Field>
+                <Field label="Ability strength"><input type="number" step={0.5} className={inp} value={sel.abilityStrength ?? 1} onChange={(e) => set({ abilityStrength: parseFloat(e.target.value) || 0 })} /></Field>
+                <Field label="Cooldown (s)"><input type="number" step={0.5} className={inp} value={sel.abilityCooldownSec ?? 5} onChange={(e) => set({ abilityCooldownSec: parseFloat(e.target.value) || 0 })} /></Field>
+              </div>
 
               <Field label="Display Name (English)">
                 <input

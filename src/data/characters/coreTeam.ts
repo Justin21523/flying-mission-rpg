@@ -33,7 +33,9 @@ export const CORE_TEAM: CharacterDefinition[] = [
     modelRobotPath: '/models/characters/Roy+transformer+3d+model.glb',
     modelVehiclePath: '/models/characters/Roy car 3d model.glb',
     abilityName: 'Water Spray',
-    abilityColor: '#ef4444',
+    abilityColor: '#38bdf8',
+    abilityType: 'water_spray',
+    abilityRadius: 8, abilityDuration: 3, abilityStrength: 6, abilityCooldownSec: 5,
   },
   {
     id: 'helly',
@@ -53,6 +55,8 @@ export const CORE_TEAM: CharacterDefinition[] = [
     rotorScale: 1,
     abilityName: 'Wind Gust',
     abilityColor: '#22c55e',
+    abilityType: 'wind_gust',
+    abilityRadius: 10, abilityDuration: 3, abilityStrength: 8, abilityCooldownSec: 5,
   },
   {
     id: 'amber',
@@ -68,6 +72,8 @@ export const CORE_TEAM: CharacterDefinition[] = [
     modelVehiclePath: '/models/characters/Amber car 3d model.glb',
     abilityName: 'Healing Aura',
     abilityColor: '#ec4899',
+    abilityType: 'heal_aura',
+    abilityRadius: 9, abilityDuration: 4, abilityStrength: 30, abilityCooldownSec: 7,
   },
   {
     id: 'spoki',

@@ -4,16 +4,20 @@ import { AdditiveBlending, CanvasTexture, Color, type BufferAttribute, type Grou
 import { usePlayerStore } from '../../stores/playerStore';
 import { useTransformStore } from '../../stores/transformStore';
 
-// Special-ability VFX (Q): on each ability use, a burst of the character's colour smoke PLUS a few
-// expanding water-ripple rings on the ground, both tinted by transformStore.abilityColor. Idle =
-// invisible. Kit particle pattern (one geometry buffer mutated in useFrame; no per-frame allocations).
+// Special-ability VFX (Q): on each use, a big burst of the character's colour fog/smoke + a bright glow
+// flash + several expanding water-ripple rings on the ground + an outward sparkle burst — all tinted by
+// transformStore.abilityColor. Idle = invisible. Kit particle pattern (preallocated buffers mutated in
+// useFrame; no per-frame allocations / no re-renders).
 
-const SMOKE = 90;
-const DURATION = 1.1;   // smoke lifetime (s)
-const RINGS = 3;
-const RING_LIFE = 0.9;  // per-ring expand/fade (s)
-const RING_STAGGER = 0.18;
-const RING_MAX = 4.2;   // max ring radius (world units)
+const SMOKE = 150;
+const DURATION = 1.2;    // smoke lifetime (s)
+const SPARK = 90;
+const SPARK_LIFE = 0.9;
+const RINGS = 5;
+const RING_LIFE = 1.0;   // per-ring expand/fade (s)
+const RING_STAGGER = 0.13;
+const RING_MAX = 7.5;    // max ring radius (world units)
+const GLOW_LIFE = 0.5;
 
 function makeSoftTexture(): CanvasTexture {
   const s = 64;
@@ -34,10 +38,13 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 export const AbilityFx = () => {
   const groupRef = useRef<Group>(null);
   const smokeRef = useRef<Points>(null);
+  const sparkRef = useRef<Points>(null);
+  const glowRef = useRef<Mesh>(null);
   const ringRefs = useRef<(Mesh | null)[]>([]);
   const tex = useMemo(() => makeSoftTexture(), []);
   const smokeInit = useMemo(() => new Float32Array(SMOKE * 3), []);
-  const m = useRef({ vel: new Float32Array(SMOKE * 3), age: Infinity, lastPulse: 0 });
+  const sparkInit = useMemo(() => new Float32Array(SPARK * 3), []);
+  const m = useRef({ smokeVel: new Float32Array(SMOKE * 3), sparkVel: new Float32Array(SPARK * 3), age: Infinity, lastPulse: 0 });
   const tint = useMemo(() => new Color('#ffffff'), []);
 
   useFrame((_, dtRaw) => {
@@ -45,30 +52,30 @@ export const AbilityFx = () => {
     const dt = Math.min(dtRaw, 0.05);
     const store = useTransformStore.getState();
 
-    const attr = smokeRef.current?.geometry.attributes.position as BufferAttribute | undefined;
-    const arr = attr?.array as Float32Array | undefined;
+    const sAttr = smokeRef.current?.geometry.attributes.position as BufferAttribute | undefined;
+    const sArr = sAttr?.array as Float32Array | undefined;
+    const pAttr = sparkRef.current?.geometry.attributes.position as BufferAttribute | undefined;
+    const pArr = pAttr?.array as Float32Array | undefined;
 
-    // New ability use → spawn coloured smoke + reset rings.
-    if (store.abilityPulseId !== st.lastPulse && arr) {
+    // New ability use → spawn fog + sparks + flash, reset rings.
+    if (store.abilityPulseId !== st.lastPulse && sArr && pArr) {
       st.lastPulse = store.abilityPulseId;
       tint.set(store.abilityColor || '#ffffff');
       for (let i = 0; i < SMOKE; i++) {
-        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.6), sp = rnd(1.6, 3.6);
-        arr[i * 3] = Math.cos(a) * r;
-        arr[i * 3 + 1] = rnd(0.0, 1.8);
-        arr[i * 3 + 2] = Math.sin(a) * r;
-        st.vel[i * 3] = Math.cos(a) * sp;
-        st.vel[i * 3 + 1] = rnd(0.6, 2.2);
-        st.vel[i * 3 + 2] = Math.sin(a) * sp;
+        const a = rnd(0, Math.PI * 2), r = rnd(0, 0.8), sp = rnd(1.8, 4.2);
+        sArr[i * 3] = Math.cos(a) * r; sArr[i * 3 + 1] = rnd(0, 2.0); sArr[i * 3 + 2] = Math.sin(a) * r;
+        st.smokeVel[i * 3] = Math.cos(a) * sp; st.smokeVel[i * 3 + 1] = rnd(0.8, 2.6); st.smokeVel[i * 3 + 2] = Math.sin(a) * sp;
+      }
+      for (let i = 0; i < SPARK; i++) {
+        const a = rnd(0, Math.PI * 2), sp = rnd(4, 9);
+        pArr[i * 3] = 0; pArr[i * 3 + 1] = rnd(0.3, 1.2); pArr[i * 3 + 2] = 0;
+        st.sparkVel[i * 3] = Math.cos(a) * sp; st.sparkVel[i * 3 + 1] = rnd(2.5, 6); st.sparkVel[i * 3 + 2] = Math.sin(a) * sp;
       }
       st.age = 0;
-      // Tint smoke + rings to the ability colour.
-      const sm = smokeRef.current?.material as PointsMaterial | undefined;
-      if (sm) sm.color.copy(tint);
-      ringRefs.current.forEach((r) => {
-        const mat = r?.material as MeshBasicMaterial | undefined;
-        if (mat) mat.color.copy(tint);
-      });
+      const sm = smokeRef.current?.material as PointsMaterial | undefined; if (sm) sm.color.copy(tint);
+      const pm = sparkRef.current?.material as PointsMaterial | undefined; if (pm) pm.color.copy(tint);
+      const gm = glowRef.current?.material as MeshBasicMaterial | undefined; if (gm) gm.color.copy(tint);
+      ringRefs.current.forEach((r) => { const mat = r?.material as MeshBasicMaterial | undefined; if (mat) mat.color.copy(tint); });
     }
 
     const g = groupRef.current;
@@ -77,26 +84,55 @@ export const AbilityFx = () => {
 
     const t = st.age;
     const smokeMat = smokeRef.current?.material as PointsMaterial | undefined;
+    const sparkMat = sparkRef.current?.material as PointsMaterial | undefined;
+    const glowMat = glowRef.current?.material as MeshBasicMaterial | undefined;
 
     if (t > DURATION + RING_LIFE) {
       if (smokeMat && smokeMat.opacity !== 0) smokeMat.opacity = 0;
+      if (sparkMat && sparkMat.opacity !== 0) sparkMat.opacity = 0;
+      if (glowMat && glowMat.opacity !== 0) glowMat.opacity = 0;
       ringRefs.current.forEach((r) => { const mt = r?.material as MeshBasicMaterial | undefined; if (mt && mt.opacity !== 0) mt.opacity = 0; });
       return;
     }
     st.age += dt;
 
-    // Smoke
-    if (arr && attr && t <= DURATION) {
-      for (let i = 0; i < SMOKE * 3; i++) { arr[i] += st.vel[i] * dt; st.vel[i] *= 0.9; }
-      attr.needsUpdate = true;
+    // Fog/smoke
+    if (sArr && sAttr && t <= DURATION) {
+      for (let i = 0; i < SMOKE * 3; i++) { sArr[i] += st.smokeVel[i] * dt; st.smokeVel[i] *= 0.9; }
+      sAttr.needsUpdate = true;
     }
     if (smokeMat) {
       const fade = t < 0.16 ? t / 0.16 : Math.max(0, 1 - (t - 0.16) / (DURATION - 0.16));
-      smokeMat.opacity = fade * 0.85;
-      smokeMat.size = 1.4 + t * 2.6;
+      smokeMat.opacity = fade * 0.9;
+      smokeMat.size = 1.8 + t * 3.2;
     }
 
-    // Expanding ground rings (staggered).
+    // Sparkles (outward + gravity)
+    if (pArr && pAttr && t <= SPARK_LIFE) {
+      for (let i = 0; i < SPARK; i++) {
+        st.sparkVel[i * 3 + 1] -= 9 * dt; // gravity
+        pArr[i * 3] += st.sparkVel[i * 3] * dt;
+        pArr[i * 3 + 1] = Math.max(0.05, pArr[i * 3 + 1] + st.sparkVel[i * 3 + 1] * dt);
+        pArr[i * 3 + 2] += st.sparkVel[i * 3 + 2] * dt;
+      }
+      pAttr.needsUpdate = true;
+    }
+    if (sparkMat) {
+      sparkMat.opacity = Math.max(0, 1 - t / SPARK_LIFE);
+      sparkMat.size = 0.9;
+    }
+
+    // Central glow flash
+    if (glowRef.current && glowMat) {
+      if (t <= GLOW_LIFE) {
+        const k = t / GLOW_LIFE;
+        const sc = 0.6 + k * 3.2;
+        glowRef.current.scale.set(sc, sc, sc);
+        glowMat.opacity = (1 - k) * 0.8;
+      } else if (glowMat.opacity !== 0) glowMat.opacity = 0;
+    }
+
+    // Expanding ground water rings (staggered)
     ringRefs.current.forEach((r, i) => {
       if (!r) return;
       const rt = t - i * RING_STAGGER;
@@ -115,15 +151,20 @@ export const AbilityFx = () => {
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[smokeInit, 3]} count={SMOKE} />
         </bufferGeometry>
-        <pointsMaterial map={tex} color="#ffffff" size={1.4} transparent opacity={0} depthWrite={false} sizeAttenuation />
+        <pointsMaterial map={tex} color="#ffffff" size={1.8} transparent opacity={0} depthWrite={false} sizeAttenuation />
       </points>
+      <points ref={sparkRef}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[sparkInit, 3]} count={SPARK} />
+        </bufferGeometry>
+        <pointsMaterial map={tex} color="#ffffff" size={0.9} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} sizeAttenuation />
+      </points>
+      <mesh ref={glowRef} position={[0, 1, 0]}>
+        <sphereGeometry args={[1, 16, 12]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
+      </mesh>
       {Array.from({ length: RINGS }).map((_, i) => (
-        <mesh
-          key={i}
-          ref={(el) => { ringRefs.current[i] = el; }}
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, 0.05, 0]}
-        >
+        <mesh key={i} ref={(el) => { ringRefs.current[i] = el; }} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
           <ringGeometry args={[0.82, 1.0, 48]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
         </mesh>

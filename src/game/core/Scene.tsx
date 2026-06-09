@@ -16,6 +16,7 @@ import { TransformSmoke } from '../player/TransformSmoke';
 import { FlightJet } from '../player/FlightJet';
 import { SkidMarks } from '../player/SkidMarks';
 import { AbilityFx } from '../player/AbilityFx';
+import { AfterimageLayer } from '../player/AfterimageLayer';
 
 // Kit — the 3D scene: ambience (day/night or flat-bright edit lighting + sky backdrop), the current
 // area (ground + set-pieces + travel gates via AreaRenderer), weather/biome particles, the player, and
@@ -52,6 +53,7 @@ export const Scene = () => {
           <FlightJet />
           <SkidMarks />
           <AbilityFx />
+          <AfterimageLayer />
         </>
       )}
 

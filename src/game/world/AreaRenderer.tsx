@@ -12,6 +12,7 @@ import { EditableNpcLayer } from './EditableNpcLayer';
 import { LandmarkLayer } from './LandmarkLayer';
 import { LayoutLayer } from './LayoutLayer';
 import { EdgeTransitionLayer } from './EdgeTransitionLayer';
+import { PickupLayer } from '../poli/PickupLayer';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { EditableTriggerRenderer } from '../editor/EditableTriggerRenderer';
 import { QuestMarkerRenderer } from '../editor/QuestMarkerRenderer';
@@ -82,6 +83,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <TrafficLayer areaId={areaId} />
       {/* POLI seam #1d: layout layer — the active layout preset's placed models (🗺 World tab). */}
       <LayoutLayer areaId={areaId} />
+      {/* POLI seam #1e: ground pickups that fill the boost meter (⭐ Boost tab). */}
+      <PickupLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
       <LandmarkLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />

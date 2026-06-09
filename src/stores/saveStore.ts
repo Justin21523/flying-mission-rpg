@@ -11,6 +11,7 @@ import { useRelationshipStore } from './relationshipStore';
 import { useToolStore } from './toolStore';
 import { useRescueLicenseStore } from './rescueLicenseStore';
 import { useJinResearchStore } from './jinResearchStore';
+import { useBoostStore } from './boostStore';
 import type { ToolId } from '../types/tool';
 import type { Quest } from '../types/quest';
 
@@ -32,6 +33,7 @@ export interface SaveData {
   // POLI progression (rescues completed + research points/completed) — player progress, per-slot.
   license?: { rescuesCompleted: number };
   research?: { researchPoints: number; completed: string[] };
+  boost?: { meter: number; collected: number };
 }
 export interface SaveSlot { name: string; savedAt: string; data: SaveData }
 
@@ -81,6 +83,7 @@ export function snapshotGame(): SaveData {
     tools: { unlocked: [...tools.unlockedTools], equipped: [...tools.equippedTools] },
     license: { rescuesCompleted: useRescueLicenseStore.getState().rescuesCompleted },
     research: { researchPoints: useJinResearchStore.getState().researchPoints, completed: [...useJinResearchStore.getState().completed] },
+    boost: { meter: useBoostStore.getState().meter, collected: useBoostStore.getState().collected },
   };
 }
 
@@ -101,6 +104,7 @@ export function restoreGame(d: SaveData): void {
   if (d.tools) useToolStore.setState({ unlockedTools: d.tools.unlocked as ToolId[], equippedTools: d.tools.equipped as ToolId[] });
   if (d.license) useRescueLicenseStore.getState().setRescues(d.license.rescuesCompleted);
   if (d.research) useJinResearchStore.setState({ researchPoints: d.research.researchPoints, completed: [...d.research.completed] });
+  if (d.boost) useBoostStore.getState().importState(d.boost);
   // Restore location last: set area + request a spawn so the Player teleports there.
   usePlayerStore.getState().setCurrentAreaId(d.player.currentAreaId);
   if (d.player.position) usePlayerStore.getState().requestSpawn(d.player.position);

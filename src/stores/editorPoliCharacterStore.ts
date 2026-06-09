@@ -24,6 +24,11 @@ export interface CharacterOverride {
   rotorScale?: number;
   abilityName?: string;
   abilityColor?: string;
+  abilityType?: import('../types/character').AbilityType;
+  abilityRadius?: number;
+  abilityDuration?: number;
+  abilityStrength?: number;
+  abilityCooldownSec?: number;
   vehicleHeight?: number;
   robotHeight?: number;
   modelYOffset?: number;
@@ -107,6 +112,11 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.rotorScale !== undefined && { rotorScale: ov.rotorScale }),
     ...(ov.abilityName !== undefined && { abilityName: ov.abilityName }),
     ...(ov.abilityColor !== undefined && { abilityColor: ov.abilityColor }),
+    ...(ov.abilityType !== undefined && { abilityType: ov.abilityType }),
+    ...(ov.abilityRadius !== undefined && { abilityRadius: ov.abilityRadius }),
+    ...(ov.abilityDuration !== undefined && { abilityDuration: ov.abilityDuration }),
+    ...(ov.abilityStrength !== undefined && { abilityStrength: ov.abilityStrength }),
+    ...(ov.abilityCooldownSec !== undefined && { abilityCooldownSec: ov.abilityCooldownSec }),
     ...(ov.vehicleHeight !== undefined && { vehicleHeight: ov.vehicleHeight }),
     ...(ov.robotHeight !== undefined && { robotHeight: ov.robotHeight }),
     ...(ov.modelYOffset !== undefined && { modelYOffset: ov.modelYOffset }),

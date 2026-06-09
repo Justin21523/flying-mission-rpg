@@ -14,6 +14,7 @@ import { EditableObject } from '../edit/EditableObject';
 import { applyMovement } from './MovementStateMachine';
 import { PlayerMesh } from './PlayerMesh';
 import { playerMotion } from './playerMotion';
+import { useBoostStore } from '../../stores/boostStore';
 
 // Merged (base ⊕ Edit-Mode override) data for the currently-active main character.
 function activeMergedChar() {
@@ -65,11 +66,22 @@ export const Player = () => {
         if (!useUiStore.getState().editMode && activeMergedChar()?.canFly) useTransformStore.getState().toggleFlight();
         return;
       }
-      if (e.code === 'KeyQ' && !e.repeat) { // special ability — colour smoke + ripple
+      if (e.code === 'KeyQ' && !e.repeat) { // special ability — per-character built-in ability + FX
         if (!useUiStore.getState().editMode) {
           const c = activeMergedChar();
-          if (c) useTransformStore.getState().triggerAbility(c.abilityColor || c.color);
+          if (c) useTransformStore.getState().triggerAbility({
+            color: c.abilityColor || c.color,
+            type: c.abilityType,
+            radius: c.abilityRadius,
+            duration: c.abilityDuration,
+            strength: c.abilityStrength,
+            cooldownSec: c.abilityCooldownSec,
+          });
         }
+        return;
+      }
+      if (e.code === 'KeyR' && !e.repeat) { // super-boost (when the meter is full)
+        if (!useUiStore.getState().editMode) useBoostStore.getState().activateSuper();
         return;
       }
       keys.current[e.code] = true;
@@ -135,6 +147,9 @@ export const Player = () => {
       return;
     }
     wasEdit.current = false;
+
+    // Advance super-boost mode (speed/flight drain + end).
+    useBoostStore.getState().tick(0);
 
     const tag = (document.activeElement?.tagName ?? '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
