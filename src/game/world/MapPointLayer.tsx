@@ -23,9 +23,13 @@ export const MapPointLayer = ({ areaId }: { areaId: string }) => {
   return <>{here.map((p) => <MapPointEntity key={p.id} areaId={areaId} pt={p} />)}</>;
 };
 
+// Decorative bits (flat ring + floating label) are excluded from raycasting so they never occlude the
+// Edit-Mode gizmo handles; the solid octahedron + EditableObject's grab box remain clickable for selection.
+const NO_RAYCAST = () => null;
+
 const Marker = ({ color }: { color: string }) => (
   <group>
-    <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={NO_RAYCAST}>
       <ringGeometry args={[0.7, 1.0, 24]} />
       <meshBasicMaterial color={color} transparent opacity={0.5} />
     </mesh>
@@ -43,7 +47,7 @@ const MapPointVisual = ({ pt }: { pt: MapPoint }) => {
       {pt.modelAssetId
         ? <Suspense fallback={<Marker color={color} />}><SceneGlbModel assetId={pt.modelAssetId} /></Suspense>
         : <Marker color={color} />}
-      <Text position={[0, 2.0, 0]} fontSize={0.4} color="#e2e8f0" anchorX="center" anchorY="middle" outlineWidth={0.035} outlineColor="#000" renderOrder={1}>
+      <Text raycast={NO_RAYCAST} position={[0, 2.0, 0]} fontSize={0.4} color="#e2e8f0" anchorX="center" anchorY="middle" outlineWidth={0.035} outlineColor="#000" renderOrder={1}>
         {`${MAP_POINT_ICON[pt.type]} ${pt.name}`}
       </Text>
     </>

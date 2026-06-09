@@ -22,6 +22,9 @@ import { playSfx } from '../audio/sfx';
 
 type Vec3 = { x: number; y: number; z: number };
 
+// Decorative bits (label / glow plane) are excluded from raycasting so they never occlude the gizmo handles.
+const NO_RAYCAST = () => null;
+
 // Is the portal currently passable? Item/flag requirements gate it when present; otherwise `locked` decides.
 function isPortalOpen(p: PortalDef): boolean {
   const gated = !!p.requiresItemId || !!p.requiresFlag;
@@ -78,13 +81,13 @@ const PortalVisual = ({ portal, open }: { portal: PortalDef; open: boolean }) =>
               <boxGeometry args={[2.6, 0.4, 0.35]} />
               <meshStandardMaterial color={color} emissive={color} emissiveIntensity={open ? 0.5 : 0.1} />
             </mesh>
-            <mesh position={[0, 1.4, 0]}>
+            <mesh position={[0, 1.4, 0]} raycast={NO_RAYCAST}>
               <planeGeometry args={[1.8, 2.6]} />
               <meshBasicMaterial color={color} transparent opacity={open ? 0.32 : 0.12} side={2} />
             </mesh>
           </group>
         )}
-      <Text position={[0, 3.4, 0]} fontSize={0.4} color={open ? '#fed7aa' : '#9ca3af'} anchorX="center" anchorY="middle" outlineWidth={0.03} outlineColor="#000" renderOrder={1}>
+      <Text raycast={NO_RAYCAST} position={[0, 3.4, 0]} fontSize={0.4} color={open ? '#fed7aa' : '#9ca3af'} anchorX="center" anchorY="middle" outlineWidth={0.03} outlineColor="#000" renderOrder={1}>
         {`${open ? (portal.interior ? '🚪 ' : '➜ ') : '🔒 '}${portal.name}`}
       </Text>
     </>
