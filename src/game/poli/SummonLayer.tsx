@@ -1,8 +1,8 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import { AdditiveBlending, Box3, Color, Vector3, type Group, type Material, type Mesh } from 'three';
-import { SkeletonUtils } from 'three-stdlib';
+import { AdditiveBlending, AnimationMixer, LoopRepeat, type AnimationAction, type Group } from 'three';
+import { buildPlayerClone, pickHappyClip, setCloneOpacity } from '../player/cloneUtils';
 import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useTransformStore } from '../../stores/transformStore';
@@ -100,41 +100,32 @@ const SummonEntity = ({ s, char }: { s: Summon; char: CloneLook }) => {
   );
 };
 
-// A real 替身: an actual copy of the player's model (keeps its own textures/materials so it truly looks like
-// the character), made slightly translucent with a glow in the CHARACTER's own colour. Normalized + faced like
-// the player. Materials are cloned per-mesh so the live player isn't affected; disposed on unmount.
+// A real 替身: an exact, SOLID, animated copy of the player's model (same textures/colours, opacity 1) that
+// loops a happy/idle clip so it looks alive. A character-colour ground ring marks it as the clone without
+// altering the model. Materials are cloned per-mesh (the live player isn't affected); disposed on unmount.
 const CloneVisual = ({ look }: { look: CloneLook }) => {
-  const { scene } = useGLTF(look.path);
-  const { clone, scale, offset, mats } = useMemo(() => {
-    const c = SkeletonUtils.clone(scene);
-    const box = new Box3().setFromObject(c);
-    const size = new Vector3(); const center = new Vector3();
-    box.getSize(size); box.getCenter(center);
-    const nativeH = Number.isFinite(size.y) && size.y > 1e-4 ? size.y : 1;
-    const sc = look.height / nativeH;
-    const ox = Number.isFinite(center.x) ? -center.x * sc : 0;
-    const oy = (Number.isFinite(box.min.y) ? -box.min.y * sc : 0) + look.yOff;
-    const oz = Number.isFinite(center.z) ? -center.z * sc : 0;
-    const glow = new Color(look.color);
-    const cloned: Material[] = [];
-    c.traverse((o) => {
-      const m = o as Mesh;
-      if (!m.isMesh) return;
-      const list = Array.isArray(m.material) ? m.material : [m.material];
-      const next = list.map((src) => {
-        const cm = (src as Material).clone();
-        const std = cm as unknown as { transparent: boolean; opacity: number; depthWrite: boolean; emissive?: Color; emissiveIntensity?: number };
-        std.transparent = true; std.opacity = 0.85; std.depthWrite = false;
-        if (std.emissive) { std.emissive.copy(glow); std.emissiveIntensity = 0.45; } // character-colour aura
-        cloned.push(cm);
-        return cm;
-      });
-      m.material = (Array.isArray(m.material) ? next : next[0]) as typeof m.material;
-    });
-    return { clone: c, scale: sc, offset: [ox, oy, oz] as [number, number, number], mats: cloned };
-  }, [scene, look.height, look.yOff, look.color]);
-  useEffect(() => () => { mats.forEach((m) => m.dispose()); }, [mats]);
-  return <group rotation={[0, look.yawRad, 0]}><primitive object={clone} scale={scale} position={offset} /></group>;
+  const { scene, animations } = useGLTF(look.path);
+  const { clone, scale, offset, materials } = useMemo(() => buildPlayerClone(scene, look.height, look.yOff), [scene, look.height, look.yOff]);
+  const mixer = useMemo(() => new AnimationMixer(clone), [clone]);
+  useEffect(() => {
+    setCloneOpacity(materials, 1); // solid — a true twin, no ghosting
+    const clips = animations ?? [];
+    const name = pickHappyClip(animations, undefined);
+    const clip = clips.find((c) => c.name === name) ?? clips[0];
+    let act: AnimationAction | undefined;
+    if (clip) { act = mixer.clipAction(clip); act.setLoop(LoopRepeat, Infinity); act.play(); }
+    return () => { act?.stop(); mixer.stopAllAction(); materials.forEach((m) => m.dispose()); };
+  }, [mixer, animations, materials]);
+  useFrame((_, dt) => mixer.update(Math.min(dt, 0.05)));
+  return (
+    <group rotation={[0, look.yawRad, 0]}>
+      <primitive object={clone} scale={scale} position={offset} />
+      <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <ringGeometry args={[0.55, 0.8, 28]} />
+        <meshBasicMaterial color={look.color} transparent opacity={0.6} side={2} depthWrite={false} />
+      </mesh>
+    </group>
+  );
 };
 
 // Glowing sentry drone — a core orb, an equatorial ring, and a halo.

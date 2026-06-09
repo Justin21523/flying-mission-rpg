@@ -1,49 +1,52 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text, useGLTF } from '@react-three/drei';
-import { Box3, Vector3, MeshStandardMaterial, type Group, type Mesh } from 'three';
-import { SkeletonUtils } from 'three-stdlib';
+import { AnimationMixer, LoopRepeat, Vector3, type AnimationAction, type Group, type Material } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useTransformStore } from '../../stores/transformStore';
 import { useEditorPoliCharacterStore, getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { drainKills, type KillEvent } from '../../stores/yokaiCombatStore';
 import { playSfx } from '../../game/audio/sfx';
+import { buildPlayerClone, pickHappyClip, setCloneOpacity } from './cloneUtils';
+import type { AnimRule } from '../../types/character';
 
-// POLI yokai-hunt (Phase C) — on each yokai defeat (drained from the kill queue): a bright clone of the player
-// pops above their head and floats up while fading + spinning (the "分身"), and rising "+N XP" (green) / "+N"
-// (gold) popups with a little icon dot fade upward. Pooled, no per-frame allocation. Mounted in Scene (play).
+// POLI yokai-hunt — on each yokai defeat: FOUR identical, animated player clones (真‧分身) burst toward the
+// four screen diagonals (up-left / up-right / down-left / down-right), play a happy animation, and fade out;
+// plus rising "+N XP" (green) / "+N" coin (gold) popups. Pooled, no per-frame allocation. Mounted in Scene.
 
-const CLONES = 6;
+const CLONES = 12;        // pool = 3 bursts × 4
+const PER_KILL = 4;
 const POPUPS = 8;
-const CLONE_LIFE = 1.1;
+const CLONE_LIFE = 1.3;
 const POPUP_LIFE = 1.2;
+const SPREAD = 3.2;       // how far the clones fly out along their diagonal
 const _kills: KillEvent[] = [];
+// Sign pairs for the 4 screen diagonals (right, up): UL, UR, DL, DR.
+const DIAG: [number, number][] = [[-1, 1], [1, 1], [-1, -1], [1, -1]];
 
-interface CloneSlot { active: boolean; t: number; x: number; y: number; z: number }
-interface PopupSlot { active: boolean; t: number; x: number; y: number; z: number; coin: boolean }
+interface CloneSlot { active: boolean; t: number; x: number; y: number; z: number; dx: number; dy: number; dz: number; spin: number }
+interface PopupSlot { active: boolean; t: number; x: number; y: number; z: number }
 
-// A normalized, independent clone of one model (shared bright material for fading).
-const CloneModel = ({ index, path, height, yOff, yawRad, setGroup, setMat }: {
-  index: number; path: string; height: number; yOff: number; yawRad: number;
-  setGroup: (i: number, g: Group | null) => void; setMat: (i: number, m: MeshStandardMaterial | null) => void;
+// One pooled clone: a real-material copy of the player that loops a happy clip; exposes its group + materials
+// so the parent can position + fade it.
+const CloneModel = ({ index, path, height, yOff, yawRad, animRules, setGroup, setMats }: {
+  index: number; path: string; height: number; yOff: number; yawRad: number; animRules?: AnimRule[];
+  setGroup: (i: number, g: Group | null) => void; setMats: (i: number, m: Material[]) => void;
 }) => {
-  const { scene } = useGLTF(path);
-  const { clone, scale, offset, mat } = useMemo(() => {
-    const c = SkeletonUtils.clone(scene);
-    const box = new Box3().setFromObject(c);
-    const size = new Vector3(); const center = new Vector3();
-    box.getSize(size); box.getCenter(center);
-    const nativeH = Number.isFinite(size.y) && size.y > 1e-4 ? size.y : 1;
-    const s = height / nativeH;
-    const ox = Number.isFinite(center.x) ? -center.x * s : 0;
-    const oy = (Number.isFinite(box.min.y) ? -box.min.y * s : 0) + yOff;
-    const oz = Number.isFinite(center.z) ? -center.z * s : 0;
-    const m = new MeshStandardMaterial({ color: '#ffffff', emissive: '#fde68a', emissiveIntensity: 0.6, transparent: true, opacity: 0, depthWrite: false });
-    c.traverse((o) => { const mesh = o as Mesh; if (mesh.isMesh) mesh.material = m; });
-    return { clone: c, scale: s, offset: [ox, oy, oz] as [number, number, number], mat: m };
-  }, [scene, height, yOff]);
-  useEffect(() => { setMat(index, mat); return () => { mat.dispose(); setMat(index, null); }; }, [mat, index, setMat]);
+  const { scene, animations } = useGLTF(path);
+  const { clone, scale, offset, materials } = useMemo(() => buildPlayerClone(scene, height, yOff), [scene, height, yOff]);
+  const mixer = useMemo(() => new AnimationMixer(clone), [clone]);
+  useEffect(() => {
+    setMats(index, materials);
+    const clips = animations ?? [];
+    const clipName = pickHappyClip(animations, animRules);
+    const clip = clips.find((c) => c.name === clipName) ?? clips[0];
+    let act: AnimationAction | undefined;
+    if (clip) { act = mixer.clipAction(clip); act.setLoop(LoopRepeat, Infinity); act.play(); }
+    return () => { act?.stop(); mixer.stopAllAction(); materials.forEach((m) => m.dispose()); };
+  }, [mixer, animations, animRules, materials, index, setMats]);
+  useFrame((_, dt) => mixer.update(Math.min(dt, 0.05)));
   return (
     <group ref={(el) => setGroup(index, el)} visible={false}>
       <group rotation={[0, yawRad, 0]}><primitive object={clone} scale={scale} position={offset} /></group>
@@ -55,71 +58,82 @@ export const KillFxLayer = () => {
   const { camera } = useThree();
   const charId = useTransformStore((s) => s.charId);
   const form = useTransformStore((s) => s.form);
-  const override = useEditorPoliCharacterStore((s) => s.overrides[charId]);
+  useEditorPoliCharacterStore((s) => s.overrides[charId]); // re-render on character edits
   const base = CORE_TEAM.find((c) => c.id === charId);
-  const path = (form === 'vehicle' ? (override?.modelVehiclePath || base?.modelVehiclePath) : (override?.modelRobotPath || base?.modelRobotPath)) || '';
   const merged = base ? getMergedPoliCharacter(base) : undefined;
+  const path = (form === 'vehicle' ? merged?.modelVehiclePath : merged?.modelRobotPath) || '';
   const height = form === 'vehicle' ? (merged?.vehicleHeight ?? 1.4) : (merged?.robotHeight ?? 1.9);
   const yOff = merged?.modelYOffset ?? 0;
   const yawRad = ((merged?.modelYawDeg ?? -90) * Math.PI) / 180;
+  const animRules = merged?.animations;
 
-  const cloneGroups = useRef<(Group | null)[]>(Array.from({ length: CLONES }, () => null));
-  const cloneMats = useRef<(MeshStandardMaterial | null)[]>(Array.from({ length: CLONES }, () => null));
-  const cloneSlots = useRef<CloneSlot[]>(Array.from({ length: CLONES }, () => ({ active: false, t: 0, x: 0, y: 0, z: 0 })));
-  const cloneHead = useRef(0);
-  const setCloneGroup = useCallback((i: number, el: Group | null) => { cloneGroups.current[i] = el; }, []);
-  const setCloneMat = useCallback((i: number, m: MeshStandardMaterial | null) => { cloneMats.current[i] = m; }, []);
+  const groups = useRef<(Group | null)[]>(Array.from({ length: CLONES }, () => null));
+  const mats = useRef<Material[][]>(Array.from({ length: CLONES }, () => []));
+  const slots = useRef<CloneSlot[]>(Array.from({ length: CLONES }, () => ({ active: false, t: 0, x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, spin: 0 })));
+  const head = useRef(0);
+  const setGroup = useCallback((i: number, el: Group | null) => { groups.current[i] = el; }, []);
+  const setMats = useCallback((i: number, m: Material[]) => { mats.current[i] = m; }, []);
 
   const popupGroups = useRef<(Group | null)[]>(Array.from({ length: POPUPS }, () => null));
   const popupTexts = useRef<(({ text: string; sync: () => void }) | null)[]>(Array.from({ length: POPUPS }, () => null));
-  const popupSlots = useRef<PopupSlot[]>(Array.from({ length: POPUPS }, () => ({ active: false, t: 0, x: 0, y: 0, z: 0, coin: false })));
+  const popupSlots = useRef<PopupSlot[]>(Array.from({ length: POPUPS }, () => ({ active: false, t: 0, x: 0, y: 0, z: 0 })));
   const popupHead = useRef(0);
+  const _cr = useMemo(() => new Vector3(), []);
+  const _cu = useMemo(() => new Vector3(), []);
+  const _cf = useMemo(() => new Vector3(), []);
 
-  const activatePopup = (x: number, y: number, z: number, coin: boolean, label: string) => {
+  const activatePopup = (x: number, y: number, z: number, label: string) => {
     const i = popupHead.current % POPUPS; popupHead.current++;
     const s = popupSlots.current[i];
-    s.active = true; s.t = 0; s.x = x; s.y = y; s.z = z; s.coin = coin;
+    s.active = true; s.t = 0; s.x = x; s.y = y; s.z = z;
     const txt = popupTexts.current[i];
     if (txt) { txt.text = label; txt.sync(); }
   };
 
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
-    // Drain new defeats → spawn a clone above the player + two rising popups + sfx.
     const n = drainKills(_kills);
     if (n > 0) {
       const pp = usePlayerStore.getState().position;
+      // Camera right/up so the 4 clones fly to the screen corners regardless of camera angle.
+      camera.matrixWorld.extractBasis(_cr, _cu, _cf);
+      _cr.normalize(); _cu.normalize();
       for (let k = 0; k < n; k++) {
         const ev = _kills[k];
         playSfx('rescueSuccess');
-        if (pp) {
-          const ci = cloneHead.current % CLONES; cloneHead.current++;
-          const cs = cloneSlots.current[ci];
-          cs.active = true; cs.t = 0; cs.x = pp.x; cs.y = pp.y + 1.8; cs.z = pp.z;
-          activatePopup(pp.x - 0.5, pp.y + 2.0, pp.z, false, `+${ev.exp} XP`);
-          activatePopup(pp.x + 0.6, pp.y + 1.6, pp.z, true, `+${ev.coin}`);
+        if (!pp) continue;
+        for (let d = 0; d < PER_KILL; d++) {
+          const [sx, sy] = DIAG[d];
+          const i = head.current % CLONES; head.current++;
+          const s = slots.current[i];
+          s.active = true; s.t = 0; s.x = pp.x; s.y = pp.y + 1.0; s.z = pp.z; s.spin = 0;
+          s.dx = _cr.x * sx + _cu.x * sy;
+          s.dy = _cr.y * sx + _cu.y * sy + 0.4; // bias upward so they rise as they spread
+          s.dz = _cr.z * sx + _cu.z * sy;
         }
+        activatePopup(pp.x - 0.5, pp.y + 2.0, pp.z, `+${ev.exp} XP`);
+        activatePopup(pp.x + 0.6, pp.y + 1.6, pp.z, `+${ev.coin}`);
       }
     }
 
-    // Clones: float up, spin, fade out.
+    // Clones: fly out along the diagonal, happy hop + spin, fade out (real materials).
     for (let i = 0; i < CLONES; i++) {
-      const g = cloneGroups.current[i]; const s = cloneSlots.current[i]; const mat = cloneMats.current[i];
+      const g = groups.current[i]; const s = slots.current[i];
       if (!g) continue;
       if (!s.active) { if (g.visible) g.visible = false; continue; }
       s.t += dt;
-      if (s.t >= CLONE_LIFE) { s.active = false; g.visible = false; continue; }
+      if (s.t >= CLONE_LIFE) { s.active = false; g.visible = false; if (mats.current[i].length) setCloneOpacity(mats.current[i], 1); continue; }
       const k = s.t / CLONE_LIFE;
       g.visible = true;
-      g.position.set(s.x, s.y + k * 2.2, s.z);
-      g.rotation.y += dt * 4;
-      const sc = 0.6 + k * 0.2;
+      const hop = Math.sin(k * Math.PI) * 0.5; // happy little arc
+      g.position.set(s.x + s.dx * SPREAD * k, s.y + s.dy * SPREAD * k + hop, s.z + s.dz * SPREAD * k);
+      s.spin += dt * 6; g.rotation.y = s.spin;
+      const sc = 0.7 + Math.sin(k * Math.PI) * 0.25; // bounce scale
       g.scale.setScalar(sc);
-      if (mat) mat.opacity = (1 - k) * 0.9;
+      if (mats.current[i].length) setCloneOpacity(mats.current[i], Math.max(0, 1 - k));
     }
 
-    // Popups: rise + fade (face the camera). Fade via fillOpacity won't animate cheaply → shrink + rise reads
-    // as a fade; visible toggles off at the end.
+    // Popups: rise + shrink-out (reads as a fade), billboard the camera.
     for (let i = 0; i < POPUPS; i++) {
       const g = popupGroups.current[i]; const s = popupSlots.current[i];
       if (!g) continue;
@@ -129,16 +143,15 @@ export const KillFxLayer = () => {
       const k = s.t / POPUP_LIFE;
       g.visible = true;
       g.position.set(s.x, s.y + k * 1.6, s.z);
-      g.quaternion.copy(camera.quaternion); // billboard
-      const sc = k > 0.7 ? Math.max(0, 1 - (k - 0.7) / 0.3) : 1; // shrink out at the end
-      g.scale.setScalar(sc);
+      g.quaternion.copy(camera.quaternion);
+      g.scale.setScalar(k > 0.7 ? Math.max(0, 1 - (k - 0.7) / 0.3) : 1);
     }
   });
 
   return (
     <>
       {path && Array.from({ length: CLONES }, (_, i) => (
-        <CloneModel key={`${path}-${i}`} index={i} path={path} height={height} yOff={yOff} yawRad={yawRad} setGroup={setCloneGroup} setMat={setCloneMat} />
+        <CloneModel key={`${path}-${i}`} index={i} path={path} height={height} yOff={yOff} yawRad={yawRad} animRules={animRules} setGroup={setGroup} setMats={setMats} />
       ))}
       {Array.from({ length: POPUPS }, (_, i) => {
         const coin = i % 2 === 1;
