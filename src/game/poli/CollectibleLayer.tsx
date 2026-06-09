@@ -8,7 +8,7 @@ import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
 import { useResourceStore } from '../../stores/resourceStore';
 import { getWorldArea } from '../../stores/editorWorldStore';
 import type { CollectibleShape, CollectibleType } from '../../types/collectible';
-import { computeCollectiblePositions } from './collectibleScatter';
+import { computeCollectiblePositions, computeCollectibleAirPositions } from './collectibleScatter';
 
 // POLI seam #1g — primitive (three.js built-in geometry) collectibles. Each collectible TYPE is scattered in
 // the area (count × the area's pickupDensity) and, on proximity, adds its value to a RESOURCE (resourceStore).
@@ -55,7 +55,11 @@ const Collectible = ({ pos, type }: { pos: [number, number, number]; type: Colle
       g.rotation.y += 0.03;
       g.position.y = pos[1] + 0.7 + Math.sin(state.clock.elapsedTime * 2 + pos[0]) * 0.15;
     }
-    if (d2 < COLLECT_R * COLLECT_R) {
+    // Collection: full 3D distance so airborne collectibles require reaching their HEIGHT (fly/jump up to them),
+    // while ground ones (player feet ≈ their height) still collect normally.
+    const dy = (pp.y + 1) - (pos[1] + 0.7);
+    const dist2 = d2 + dy * dy;
+    if (dist2 < COLLECT_R * COLLECT_R) {
       taken.current = true;
       g.visible = false;
       useResourceStore.getState().add(type.resourceId, type.value);
@@ -73,9 +77,17 @@ const Collectible = ({ pos, type }: { pos: [number, number, number]; type: Colle
 
 const TypeScatter = ({ areaId, type, density }: { areaId: string; type: CollectibleType; density: number }) => {
   const count = Math.max(0, Math.round(type.count * density));
-  const positions = useMemo(() => computeCollectiblePositions(areaId, type.id, count), [areaId, type.id, count]);
-  if (count <= 0) return null;
-  return <>{positions.map((p, i) => <Collectible key={`${type.id}-${i}`} pos={p} type={type} />)}</>;
+  const airCount = Math.max(0, Math.round((type.airCount ?? 0) * density));
+  const minH = type.airMinHeight ?? 3, maxH = type.airMaxHeight ?? 22;
+  const ground = useMemo(() => computeCollectiblePositions(areaId, type.id, count), [areaId, type.id, count]);
+  const air = useMemo(() => computeCollectibleAirPositions(areaId, type.id, airCount, minH, maxH), [areaId, type.id, airCount, minH, maxH]);
+  if (count <= 0 && airCount <= 0) return null;
+  return (
+    <>
+      {ground.map((p, i) => <Collectible key={`${type.id}-${i}`} pos={p} type={type} />)}
+      {air.map((p, i) => <Collectible key={`${type.id}-air-${i}`} pos={p} type={type} />)}
+    </>
+  );
 };
 
 export const CollectibleLayer = ({ areaId }: { areaId: string }) => {

@@ -15,7 +15,10 @@ export interface CollectibleType {
   size: number;        // base half-size / radius of the primitive
   value: number;       // amount added to the resource when collected
   resourceId: string;  // which resource this fills
-  count: number;       // how many scattered per area (× the area's pickupDensity)
+  count: number;       // how many scattered on the GROUND per area (× the area's pickupDensity)
+  airCount?: number;   // how many scattered in the AIR per area (× pickupDensity); default 0
+  airMinHeight?: number; // lowest air-scatter height (default 3)
+  airMaxHeight?: number; // highest air-scatter height (default 22)
   spin?: boolean;      // spin + bob (default true)
   emissive?: number;   // emissive intensity (default 0.6)
 }

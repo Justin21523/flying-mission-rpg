@@ -81,7 +81,8 @@ export const AfterimageLayer = () => {
     const s = useBoostStore.getState();
     const cfg = getBoostConfig();
     if (s.superActive) {
-      const col = (base ? getMergedPoliCharacter(base).afterimageColor : undefined) ?? '#38bdf8';
+      // The afterimage colour matches the CHARACTER'S colour (not a separate afterimage colour).
+      const col = (base ? getMergedPoliCharacter(base).color : undefined) ?? '#38bdf8';
       tint.current.set(col);
       if (tnow - lastSpawn.current >= cfg.afterimageIntervalSec) {
         lastSpawn.current = tnow;

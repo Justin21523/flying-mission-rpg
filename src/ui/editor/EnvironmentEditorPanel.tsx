@@ -425,13 +425,16 @@ const CollectiblesSection = () => {
               </label>
               <label className="text-[9px] text-slate-400">value<input type="number" step={1} value={t.value} onChange={(e) => st.updateType(t.id, { value: parseFloat(e.target.value) || 0 })} className={inp} /></label>
               <label className="text-[9px] text-slate-400">size<input type="number" step={0.05} min={0.05} value={t.size} onChange={(e) => st.updateType(t.id, { size: parseFloat(e.target.value) || 0.05 })} className={inp} /></label>
-              <label className="text-[9px] text-slate-400">count<input type="number" step={1} min={0} value={t.count} onChange={(e) => st.updateType(t.id, { count: parseInt(e.target.value, 10) || 0 })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">ground<input type="number" step={1} min={0} value={t.count} onChange={(e) => st.updateType(t.id, { count: parseInt(e.target.value, 10) || 0 })} className={inp} /></label>
               <label className="flex items-end gap-1 text-[9px] text-slate-400"><input type="checkbox" checked={t.spin !== false} onChange={(e) => st.updateType(t.id, { spin: e.target.checked })} className="accent-fuchsia-500" />spin</label>
+              <label className="text-[9px] text-slate-400">air count<input type="number" step={1} min={0} value={t.airCount ?? 0} onChange={(e) => st.updateType(t.id, { airCount: parseInt(e.target.value, 10) || 0 })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">air min h<input type="number" step={1} min={0} value={t.airMinHeight ?? 3} onChange={(e) => st.updateType(t.id, { airMinHeight: parseFloat(e.target.value) || 0 })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">air max h<input type="number" step={1} min={0} value={t.airMaxHeight ?? 22} onChange={(e) => st.updateType(t.id, { airMaxHeight: parseFloat(e.target.value) || 0 })} className={inp} /></label>
             </div>
           </div>
         ))}
       </div>
-      <p className="mt-1 text-[10px] leading-relaxed text-slate-500">Collectibles scatter in every area (count × the area's pickup×). Collecting fills the chosen resource; at its threshold the ability fires (auto) or arms for its key. Shown on the Resource HUD (bottom-left).</p>
+      <p className="mt-1 text-[10px] leading-relaxed text-slate-500">Collectibles scatter in every area — on the GROUND (ground×) and in the AIR (air count, between air min/max height), both × the area's pickup×. Collecting fills the chosen resource; at its threshold the ability fires (auto) or arms for its key. Shown on the Resource HUD (bottom-left).</p>
     </details>
   );
 };
