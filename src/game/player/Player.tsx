@@ -18,6 +18,7 @@ import { playerMotion } from './playerMotion';
 import { playerKeysDown } from './playerInput';
 import { useBoostStore } from '../../stores/boostStore';
 import { dashImpulse } from '../combat/dashImpulse';
+import { playerHit } from '../combat/playerHitBus';
 
 // Merged (base ⊕ Edit-Mode override) data for the currently-active main character.
 function activeMergedChar() {
@@ -63,6 +64,7 @@ export const Player = () => {
   const jumpsLeft = useRef(MAX_JUMPS);
   const spacePrev = useRef(false);
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
+  const stun = useRef({ until: 0, kx: 0, kz: 0 }); // yokai-hit knockback window
 
   const pKey = playerKey(currentAreaId);
 
@@ -246,6 +248,23 @@ export const Player = () => {
             if (nv.y < STEP_CLIMB_V) b.setLinvel({ x: nv.x, y: STEP_CLIMB_V, z: nv.z }, true);
           }
         }
+      }
+    }
+
+    // Yokai hit → brief knockback (light, recoverable). Applied AFTER movement so it overrides input for the
+    // short window, then control returns. No damage beyond the shove (+ the timer nibble done by the yokai).
+    if (playerHit.pending) {
+      playerHit.pending = false;
+      stun.current.until = performance.now() / 1000 + 0.35;
+      stun.current.kx = playerHit.dirX * playerHit.strength;
+      stun.current.kz = playerHit.dirZ * playerHit.strength;
+    }
+    if (!flying) {
+      const tnow = performance.now() / 1000;
+      if (tnow < stun.current.until) {
+        const k = (stun.current.until - tnow) / 0.35;
+        const lv = b.linvel();
+        b.setLinvel({ x: stun.current.kx * k, y: lv.y, z: stun.current.kz * k }, true);
       }
     }
 

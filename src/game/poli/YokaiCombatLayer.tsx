@@ -9,8 +9,10 @@ import { useActivityStore } from '../../stores/activityStore';
 import { useYokaiCombatStore, liveYokai, type Yokai } from '../../stores/yokaiCombatStore';
 import { setSuperDamageSink } from '../combat/applySuperDamage';
 import { pullVelocity } from '../combat/pullField';
+import { triggerPlayerHit } from '../combat/playerHitBus';
 import { MODEL_ASSET_LIST, getModelAsset } from '../../data/modelLibrary';
 import { getEnabledYokaiTypes } from '../../stores/editorYokaiStore';
+import { useWalletStore } from '../../stores/walletStore';
 import { getEffectiveAreaSize } from '../world/areaExtent';
 
 // POLI yokai-hunt runtime (Phase B) — play-mode only. While an `enemyRush` activity is running in THIS area,
@@ -84,6 +86,15 @@ function spawnYokai(activity: NonNullable<ReturnType<typeof useActivityStore.get
   });
 }
 
+// A yokai lands a light, recoverable hit: knock the player back, nibble the hunt timer, and sometimes scatter
+// a coin. Never harms beyond that (no death) — child-friendly.
+function attackPlayer(dirX: number, dirZ: number, attackDamage: number): void {
+  triggerPlayerHit(dirX, dirZ, 6 + attackDamage * 0.3);
+  const nibble = attackDamage * 0.08; // seconds off the clock
+  useActivityStore.setState((s) => ({ timeLeft: Math.max(0, s.timeLeft - nibble) }));
+  if (Math.random() < 0.2) useWalletStore.setState((s) => ({ coins: Math.max(0, s.coins - 1) }));
+}
+
 // One live yokai: AI-driven movement (per behaviour), plays a random clip, poofs (shrinks) on defeat.
 const YokaiEntity = ({ y, areaId }: { y: Yokai; areaId: string }) => {
   const groupRef = useRef<Group>(null);
@@ -141,6 +152,13 @@ const YokaiEntity = ({ y, areaId }: { y: Yokai; areaId: string }) => {
       e.x = Math.max(-half, Math.min(half, e.x + vx * e.moveSpeed * mult * dt));
       e.z = Math.max(-half, Math.min(half, e.z + vz * e.moveSpeed * mult * dt));
       g.rotation.y = Math.atan2(vx, vz);
+
+      // Attack: within attack range + off cooldown → light, recoverable hit on the player.
+      const tnow = performance.now() / 1000;
+      if (!fleeing && dist < e.attackRange + 0.6 && tnow >= e.nextAttackAt) {
+        e.nextAttackAt = tnow + Math.max(0.3, e.attackRate);
+        attackPlayer(ux, uz, e.attackDamage);
+      }
     }
     g.position.set(e.x, e.y, e.z);
     g.scale.setScalar(1);
