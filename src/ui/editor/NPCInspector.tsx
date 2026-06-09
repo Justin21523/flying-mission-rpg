@@ -1,5 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useMemo, useState } from 'react';
 import type { EditorNpc, NpcType, NpcMovement } from '../../types/editorNPC';
 import { NPC_TYPES, NPC_TYPE_LABEL, NPC_TYPE_COLOR, NPC_MOVEMENT } from '../../types/editorNPC';
 import type { TimeOfDay } from '../../types/randomEvent';
@@ -8,8 +7,7 @@ import { useDialogueStore } from '../../stores/dialogueStore';
 import { useUiStore } from '../../stores/uiStore';
 import { listDialogueTreeIds, getDialogueTree } from '../../game/dialogue/dialogueRegistry';
 import { editorSpawn } from '../../stores/sceneEditStore';
-import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
-import { resolveModelAsset } from '../../stores/modelStudioStore';
+import { useModelAnimations } from '../../game/world/useModelAnimations';
 import { validateNpcLive } from '../../game/editor/validateNpc';
 import { Field, inp, lbl, csv, parseCsv, useQuestOptions } from './editorShared';
 import { IdMultiPicker } from './idPickers';
@@ -108,27 +106,13 @@ const MovementSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<Editor
   );
 };
 
-// Loads the NPC model GLB (outside the canvas) to record its clip names into animClipStore, so the rule
-// editor's clip dropdown is populated. Keyed by the resolved asset path (matches RuledNpcModel).
-const NpcClipLoader = ({ path }: { path: string }) => {
-  const { animations } = useGLTF(encodeURI(path));
-  useEffect(() => { useAnimClipStore.getState().setClips(path, (animations ?? []).map((c) => c.name)); }, [path, animations]);
-  return null;
-};
-
-// Per-NPC custom animation rules (same engine as the player). Resolves the NPC's model → loads its clips →
-// reuses the shared AnimRuleList. NPC state only exposes idle/moving/always/key triggers (no forms/flight).
+// Per-NPC custom animation rules (same engine as the player). Reads the model's real clip names via the kit's
+// useModelAnimations loader (so the track dropdown is populated) and reuses the shared AnimRuleList. NPC state
+// only exposes idle/moving/always/key triggers (no forms/flight).
 const NpcAnimationsSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<EditorNpc>) => void }) => {
-  useAnimClipStore((s) => s.clipsByPath); // re-render when clips finish loading
-  const path = npc.modelAssetId ? resolveModelAsset(npc.modelAssetId)?.path : undefined;
-  const clips = getClipsForPaths([path]);
+  const clips = useModelAnimations(npc.modelAssetId ?? undefined);
   if (!npc.modelAssetId) return <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2 text-[11px] text-slate-500">Assign a 3D model above to author animation rules.</div>;
-  return (
-    <>
-      {path && <Suspense fallback={null}><NpcClipLoader path={path} /></Suspense>}
-      <AnimRuleList rules={npc.animations ?? []} clips={clips} onChange={(next) => set({ animations: next })} />
-    </>
-  );
+  return <AnimRuleList rules={npc.animations ?? []} clips={clips} onChange={(next) => set({ animations: next })} />;
 };
 
 // Kit — full inspector for one Editor NPC: identity + archetype + transform + model + dialogue binding +

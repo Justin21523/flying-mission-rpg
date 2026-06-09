@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { BROOMS_TOWN_DISTRICTS, BROOMS_TOWN_WORLD_AREAS } from '../data/world/broomsTownWorld';
-import type { District, DistrictCategory, WorldArea, EdgeDir } from '../types/world';
+import type { District, DistrictCategory, WorldArea, EdgeDir, MapPoint, MapPointType } from '../types/world';
 import { OPPOSITE_EDGE } from '../types/world';
+import { editorSpawn, useSceneEditStore } from './sceneEditStore';
+import { objKey } from '../game/edit/sceneEditMerge';
 
 // Editable districts + areas (🗺 World tab). Seeded from broomsTownWorld; becomes the authoritative area
 // list once seeded (getAllAreas in data/areas.ts reads it). Auto-persisted. Mirrors the other editor stores.
@@ -24,6 +26,10 @@ interface EditorWorldState {
   setAreaEdge: (id: string, edge: EdgeDir, neighbour: string | undefined) => void;
   removeArea: (id: string) => void;
   selectArea: (id: string | null) => void;
+  // map points (named POI / spawn / teleport markers inside an area)
+  addPoint: (areaId: string, type?: MapPointType) => string;
+  updatePoint: (areaId: string, pointId: string, patch: Partial<MapPoint>) => void;
+  removePoint: (areaId: string, pointId: string) => void;
   // global
   setEdgeWalk: (on: boolean) => void;
   setFadeEnabled: (on: boolean) => void;
@@ -126,6 +132,24 @@ export const useEditorWorldStore = create<EditorWorldState>((set, get) => {
       save();
     },
     selectArea: (id) => set({ selectedAreaId: id }),
+
+    addPoint: (areaId, type = 'poi') => {
+      const id = uid('point');
+      const pos: [number, number, number] = [Math.round(editorSpawn.x * 100) / 100, 0, Math.round(editorSpawn.z * 100) / 100];
+      const point: MapPoint = { id, name: 'New Point', type, position: pos, radius: 2 };
+      set({ areas: get().areas.map((a) => (a.id === areaId ? { ...a, points: [...(a.points ?? []), point] } : a)) });
+      save();
+      useSceneEditStore.getState().requestSelect(objKey(areaId, 'landmark', id)); // gizmo appears on the new marker
+      return id;
+    },
+    updatePoint: (areaId, pointId, patch) => {
+      set({ areas: get().areas.map((a) => (a.id === areaId ? { ...a, points: (a.points ?? []).map((p) => (p.id === pointId ? { ...p, ...patch } : p)) } : a)) });
+      save();
+    },
+    removePoint: (areaId, pointId) => {
+      set({ areas: get().areas.map((a) => (a.id === areaId ? { ...a, points: (a.points ?? []).filter((p) => p.id !== pointId) } : a)) });
+      save();
+    },
 
     setEdgeWalk: (on) => { set({ useEdgeWalk: on }); save(); },
     setFadeEnabled: (on) => { set({ fadeEnabled: on }); save(); },

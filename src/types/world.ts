@@ -42,6 +42,28 @@ export const EDGE_DIRS: EdgeDir[] = ['north', 'south', 'east', 'west'];
 export const OPPOSITE_EDGE: Record<EdgeDir, EdgeDir> = { north: 'south', south: 'north', east: 'west', west: 'east' };
 export interface AreaEdges { north?: string; south?: string; east?: string; west?: string }
 
+// Named points of interest / markers placed inside an area. Gizmo-editable in Edit Mode, plotted on the
+// radar + map. spawn = player start; teleport = warp the player to `targetAreaId`/`targetPointId` on reach.
+export type MapPointType = 'poi' | 'spawn' | 'teleport' | 'objective' | 'vendor' | 'danger';
+export const MAP_POINT_TYPES: MapPointType[] = ['poi', 'spawn', 'teleport', 'objective', 'vendor', 'danger'];
+export const MAP_POINT_ICON: Record<MapPointType, string> = {
+  poi: '📍', spawn: '🏁', teleport: '🌀', objective: '⭐', vendor: '🛒', danger: '⚠️',
+};
+export const MAP_POINT_COLOR: Record<MapPointType, string> = {
+  poi: '#38bdf8', spawn: '#22c55e', teleport: '#a855f7', objective: '#fbbf24', vendor: '#f97316', danger: '#ef4444',
+};
+export interface MapPoint {
+  id: string;
+  name: string;
+  type: MapPointType;
+  position: [number, number, number];
+  modelAssetId?: string;   // optional GLB shown at the point (else a coloured marker stub)
+  color?: string;          // override the type colour
+  radius?: number;         // trigger radius for spawn/teleport (default 2)
+  targetAreaId?: string;   // teleport destination area
+  targetPointId?: string;  // teleport destination point in that area (else its spawn / origin)
+}
+
 // A WorldArea is a KitArea with its owning district + an explicit biome, plus an editable playable size
 // (square half-extent) and per-edge neighbour links for walk-between-areas travel.
 export interface WorldArea extends KitArea {
@@ -59,6 +81,9 @@ export interface WorldArea extends KitArea {
   recommendedLevel?: number;
   weatherLock?: string;     // 'any' | 'clear' | 'rain' | 'fog' | 'storm'
   notes?: string;
+  points?: MapPoint[];      // named POI / spawn / teleport markers (editable in the 🗺 World tab)
+  ambientScale?: number;    // ambient-light intensity multiplier for this area (default 1)
+  musicTag?: string;        // free music/mood tag (placeholder for the Phase 9 audio layer)
 }
 
 export const DEFAULT_AREA_SIZE = 40;
