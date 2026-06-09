@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { getBoostConfig } from './editorBoostStore';
 import { playerMotion } from '../game/player/playerMotion';
-import { useTransformStore } from './transformStore';
+import { useTransformStore, DEBUG_UNLIMITED_ABILITY } from './transformStore';
 import { getMergedPoliCharacter } from './editorPoliCharacterStore';
 import { CORE_TEAM } from '../data/characters/coreTeam';
 import { playSfx } from '../game/audio/sfx';
@@ -62,7 +62,8 @@ export const useBoostStore = create<BoostState>((set, get) => ({
 
   activateSuper: () => {
     const cfg = getBoostConfig();
-    if (get().superActive || get().meter < cfg.meterMax) return false;
+    // DEBUG_UNLIMITED_ABILITY: skip the "meter must be full" gate so super can always be triggered for testing.
+    if (get().superActive || (!DEBUG_UNLIMITED_ABILITY && get().meter < cfg.meterMax)) return false;
     const sp = activeSuperParams();
     playerMotion.superMult = sp.speed;
     if (sp.flies) useTransformStore.getState().setFlying(true);

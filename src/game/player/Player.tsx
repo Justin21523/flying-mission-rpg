@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { RigidBody, CapsuleCollider, type RapierRigidBody } from '@react-three/rapier';
+import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Group } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -32,6 +32,14 @@ const INITIAL_POS: [number, number, number] = [0, 2, 0];
 // Seconds the player mesh stays hidden after a transform, while the smoke is dense (then revealed).
 const TRANSFORM_COVER = 0.35;
 
+// Jump + step-climb tuning.
+const JUMP_V = 8;          // upward velocity per jump (higher than before, per request)
+const MAX_JUMPS = 2;       // double jump (ground jump + one air jump)
+const STEP_MAX_HEIGHT = 1.5;  // obstacles up to this height are climbable; taller ones block
+const STEP_PROBE_DIST = 0.8;  // how far ahead to probe for an obstacle
+const STEP_CLIMB_V = 4.5;     // upward assist velocity applied while mounting a low obstacle
+const GROUND_PROBE = 0.28;    // downward ray length for the grounded check
+
 // The player's Edit-Mode handle reuses the kit core like every other object: an EditableObject keyed
 // area#npc#poli. Selecting it gives the shared centred gizmo + W/E/R + inspector and writes the
 // transform override (auto-saved). The body/mesh mirror that override so edits apply in Play Mode.
@@ -49,6 +57,11 @@ export const Player = () => {
   const lastFlying = useRef(false); // tracks gravityScale transitions
   const wasEdit = useRef(false);    // detects the play→edit transition (to adopt the live position)
   const { camera } = useThree();
+  const { world, rapier } = useRapier();
+  // Jump/step state (refs → no re-render). jumpsLeft refills on landing; spacePrev gives a rising-edge press.
+  const jumpsLeft = useRef(MAX_JUMPS);
+  const spacePrev = useRef(false);
+  const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
 
   const pKey = playerKey(currentAreaId);
 
@@ -177,6 +190,44 @@ export const Player = () => {
     }
 
     applyMovement(b, keys.current, camera, headingRef, flying, useTransformStore.getState().form);
+
+    // ── Double jump + auto step-climb (skipped while flying — Space/Shift drive altitude there). ──
+    if (!flying) {
+      let ray = rayRef.current;
+      if (!ray) { ray = new rapier.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 }); rayRef.current = ray; }
+      const lv = b.linvel();
+
+      // Grounded? a short downward probe from just above the feet (excluding our own body). Refill jumps on land.
+      ray.origin.x = p.x; ray.origin.y = p.y + 0.1; ray.origin.z = p.z;
+      ray.dir.x = 0; ray.dir.y = -1; ray.dir.z = 0;
+      const grounded = !!world.castRay(ray, GROUND_PROBE, true, undefined, undefined, undefined, b) && Math.abs(lv.y) < 2;
+      if (grounded) jumpsLeft.current = MAX_JUMPS;
+
+      // Jump on Space rising-edge while a jump remains → double jump (one on the ground + one in the air).
+      const space = !!keys.current['Space'];
+      if (space && !spacePrev.current && jumpsLeft.current > 0) {
+        b.setLinvel({ x: lv.x, y: JUMP_V, z: lv.z }, true);
+        jumpsLeft.current -= 1;
+      }
+      spacePrev.current = space;
+
+      // Auto step-climb: when walking into an obstacle, probe low (at the feet) and high (at the max step
+      // height) along the movement direction. Low blocked + high clear ⇒ a short ledge → give an upward assist
+      // to ride over it. Both blocked ⇒ too tall → stay blocked (no climb), exactly as requested.
+      const k2 = keys.current;
+      if (k2['KeyW'] || k2['KeyS'] || k2['KeyA'] || k2['KeyD']) {
+        const dx = Math.sin(headingRef.current), dz = Math.cos(headingRef.current);
+        ray.origin.x = p.x; ray.origin.y = p.y + 0.3; ray.origin.z = p.z;
+        ray.dir.x = dx; ray.dir.y = 0; ray.dir.z = dz;
+        if (world.castRay(ray, STEP_PROBE_DIST, true, undefined, undefined, undefined, b)) {
+          ray.origin.y = p.y + STEP_MAX_HEIGHT;
+          if (!world.castRay(ray, STEP_PROBE_DIST, true, undefined, undefined, undefined, b)) {
+            const nv = b.linvel();
+            if (nv.y < STEP_CLIMB_V) b.setLinvel({ x: nv.x, y: STEP_CLIMB_V, z: nv.z }, true);
+          }
+        }
+      }
+    }
 
     // Publish motion for the rotor + jet (no re-render). moving drives the rotor spin.
     const k = keys.current;

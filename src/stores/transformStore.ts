@@ -4,6 +4,10 @@ import { CORE_TEAM } from '../data/characters/coreTeam';
 import { applyAbility } from '../game/player/abilityEffects';
 import type { AbilityType } from '../types/character';
 
+// DEBUG: when true, the Q ability has NO cooldown — any ability can be used at any time (testing). Set to
+// false to restore normal per-ability cooldowns.
+export const DEBUG_UNLIMITED_ABILITY = true;
+
 // What the Q handler passes in — the active character's (merged) ability data.
 export interface AbilityInput {
   color: string;
@@ -68,14 +72,14 @@ export const useTransformStore = create<TransformState>((set, get) => {
     setFlying: (b) => set({ flying: b }),
     toggleFlight: () => set({ flying: !get().flying }),
     triggerAbility: (ability) => {
-      if (now() < get().abilityCooldownUntil) return false; // still cooling down
+      if (!DEBUG_UNLIMITED_ABILITY && now() < get().abilityCooldownUntil) return false; // still cooling down
       const type = ability.type ?? 'speed_boost';
       playSfx('ability');
       set({
         abilityColor: ability.color,
         abilityType: type,
         abilityPulseId: get().abilityPulseId + 1,
-        abilityCooldownUntil: now() + (ability.cooldownSec ?? 5),
+        abilityCooldownUntil: DEBUG_UNLIMITED_ABILITY ? 0 : now() + (ability.cooldownSec ?? 5),
       });
       applyAbility({ type, radius: ability.radius ?? 8, duration: ability.duration ?? 3, strength: ability.strength ?? 1.8 });
       return true;

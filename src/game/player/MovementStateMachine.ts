@@ -6,7 +6,6 @@ import { playerMotion } from './playerMotion';
 
 const SPEED = 7;
 const SPRINT_MULT = 1.8;   // Shift dash while moving
-const JUMP = 5.5;
 const FLY_V = 6;           // vertical ascend/descend speed while flying
 const VEHICLE_ACCEL = 10;  // how fast the car reaches target velocity
 const VEHICLE_DECEL = 4;   // slower → coast/brake feel on release
@@ -80,7 +79,6 @@ export function applyMovement(
     playerMotion.speed = spd;
     // Skid when braking/coasting at speed (not actively accelerating forward).
     playerMotion.skidding = !moving && spd > SKID_SPEED;
-    if (keys['Space'] && Math.abs(vel.y) < 0.05) b.setLinvel({ x: nx, y: JUMP, z: nz }, true);
     return;
   }
 
@@ -88,7 +86,4 @@ export function applyMovement(
   b.setLinvel({ x: _dir.x * speed, y: vel.y, z: _dir.z * speed }, true);
   playerMotion.speed = Math.hypot(_dir.x * speed, _dir.z * speed);
   playerMotion.skidding = false;
-  if (keys['Space'] && Math.abs(vel.y) < 0.05) {
-    b.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
-  }
 }
