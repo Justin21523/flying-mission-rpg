@@ -16,11 +16,19 @@ export const ABILITY_TYPES: AbilityType[] = ['water_spray', 'wind_gust', 'heal_a
 // targeting style (two each): auto/AoE (nova shockwave, homing orb), facing direction (beam, bolt volley),
 // mixed (meteor barrage on random nearby targets, dash-strike along the facing path). Each playable character
 // assigns up to three of these to keys 1/2/3; all params are editable per character in the POLI tab.
-export type SuperKind = 'nova' | 'orb' | 'beam' | 'bolt' | 'meteor' | 'dash';
-export const SUPER_KINDS: SuperKind[] = ['nova', 'orb', 'beam', 'bolt', 'meteor', 'dash'];
+export type SuperKind =
+  | 'nova' | 'orb' | 'beam' | 'bolt' | 'meteor' | 'dash'
+  | 'bomb' | 'spin' | 'blackhole' | 'chain' | 'boomerang' | 'clone' | 'sentry';
+export const SUPER_KINDS: SuperKind[] = [
+  'nova', 'orb', 'beam', 'bolt', 'meteor', 'dash',
+  'bomb', 'spin', 'blackhole', 'chain', 'boomerang', 'clone', 'sentry',
+];
 export const SUPER_KIND_LABEL: Record<SuperKind, string> = {
   nova: 'Nova (shockwave AoE)', orb: 'Orb (homing)', beam: 'Beam (forward)',
-  bolt: 'Bolt (forward volley)', meteor: 'Meteor (rain)', dash: 'Dash strike',
+  bolt: 'Bolt (forward volley)', meteor: 'Meteor (rain)', dash: 'Dash strike (lunge)',
+  bomb: 'Bomb (timed explosion)', spin: 'Spin (whirlwind)', blackhole: 'Black hole (vortex)',
+  chain: 'Chain lightning', boomerang: 'Boomerang (out + back)',
+  clone: 'Clone (替身, auto)', sentry: 'Sentry drone (auto-AI)',
 };
 export interface SuperMove {
   id: string;

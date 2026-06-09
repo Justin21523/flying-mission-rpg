@@ -38,6 +38,7 @@ export const SuperAbilityFx = () => {
   const glowRef = useRef<Mesh>(null);
   const beamRef = useRef<Mesh>(null);
   const orbRef = useRef<Mesh>(null);
+  const boomerangRef = useRef<Mesh>(null);
   const ringRefs = useRef<(Mesh | null)[]>([]);
   const boltRefs = useRef<(Mesh | null)[]>([]);
   const meteorRefs = useRef<(Mesh | null)[]>([]);
@@ -81,7 +82,7 @@ export const SuperAbilityFx = () => {
       sAttr.needsUpdate = true;
       // Tint all the materials once.
       const sm = sparkRef.current?.material as PointsMaterial | undefined; if (sm) sm.color.copy(tint);
-      [glowRef.current, beamRef.current, orbRef.current].forEach((me) => { const mt = me?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
+      [glowRef.current, beamRef.current, orbRef.current, boomerangRef.current].forEach((me) => { const mt = me?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
       ringRefs.current.forEach((r) => { const mt = r?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
       boltRefs.current.forEach((r) => { const mt = r?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
       meteorRefs.current.forEach((r) => { const mt = r?.material as MeshBasicMaterial | undefined; if (mt) mt.color.copy(tint); });
@@ -160,17 +161,28 @@ export const SuperAbilityFx = () => {
       }
     }
 
-    // BOLT — a short volley of streaks racing forward.
+    // BOLT — a short volley of streaks racing forward. CHAIN reuses the streaks as a jagged forward zig-zag.
+    const boltLike = kind === 'bolt' || kind === 'chain';
     boltRefs.current.forEach((r, i) => {
       if (!r) return;
-      if (kind !== 'bolt' || i >= st.count) { setOpacity(r, 0); return; }
-      const bt = t - i * 0.06;
+      if (!boltLike || i >= st.count) { setOpacity(r, 0); return; }
+      const bt = t - i * 0.05;
       if (bt < 0 || bt > 0.35) { setOpacity(r, 0); return; }
       const k = bt / 0.35;
-      const lateral = (i - (st.count - 1) / 2) * 0.5;
+      const lateral = kind === 'chain' ? (i % 2 === 0 ? 1 : -1) * (0.4 + i * 0.25) : (i - (st.count - 1) / 2) * 0.5;
       r.position.set(lateral, 1.0, k * st.range);
       setOpacity(r, (1 - k) * 0.9);
     });
+
+    // BOOMERANG — a spinning disc that flies out along +Z and curves back.
+    if (boomerangRef.current) {
+      if (kind !== 'boomerang') setOpacity(boomerangRef.current, 0);
+      else {
+        const dur = 0.9;
+        if (t <= dur) { const k = t / dur; boomerangRef.current.position.set(0, 1.0, Math.sin(k * Math.PI) * st.range); boomerangRef.current.rotation.z += dt * 32; setOpacity(boomerangRef.current, 0.95); }
+        else setOpacity(boomerangRef.current, 0);
+      }
+    }
 
     // METEOR — strikes raining down on random nearby points (auto-target flavour).
     meteorRefs.current.forEach((r, i) => {
@@ -217,6 +229,10 @@ export const SuperAbilityFx = () => {
       </mesh>
       <mesh ref={orbRef} position={[0, 1, 0]}>
         <sphereGeometry args={[0.5, 14, 12]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
+      </mesh>
+      <mesh ref={boomerangRef} position={[0, 1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.55, 0.16, 8, 20]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={AdditiveBlending} />
       </mesh>
       {Array.from({ length: RINGS }).map((_, i) => (

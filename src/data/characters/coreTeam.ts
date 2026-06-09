@@ -21,8 +21,11 @@ export const CORE_TEAM: CharacterDefinition[] = [
     abilityRadius: 14, abilityDuration: 5, abilityStrength: 1, abilityCooldownSec: 6,
     supers: [
       { id: 'poli_s1', name: 'Siren Pulse', kind: 'nova', color: '#3b82f6', damage: 40, radius: 8, cooldownSec: 4 },
-      { id: 'poli_s2', name: 'Justice Bolt', kind: 'orb', color: '#60a5fa', damage: 55, radius: 16, cooldownSec: 3 },
-      { id: 'poli_s3', name: 'Patrol Strike', kind: 'meteor', color: '#2563eb', damage: 35, radius: 12, count: 5, duration: 1.2, cooldownSec: 7 },
+      { id: 'poli_s2', name: 'Justice Orb', kind: 'orb', color: '#60a5fa', damage: 55, radius: 16, cooldownSec: 3 },
+      { id: 'poli_s3', name: 'Taser Chain', kind: 'chain', color: '#38bdf8', damage: 30, range: 12, count: 5, cooldownSec: 4 },
+      { id: 'poli_s4', name: 'Flash Bomb', kind: 'bomb', color: '#2563eb', damage: 60, radius: 7, range: 10, duration: 0.7, cooldownSec: 6 },
+      { id: 'poli_s5', name: 'Patrol Drone', kind: 'sentry', color: '#1d4ed8', damage: 18, radius: 7, duration: 6, cooldownSec: 10 },
+      { id: 'poli_s6', name: 'Pursuit Dash', kind: 'dash', color: '#93c5fd', damage: 45, range: 12, cooldownSec: 4 },
     ],
   },
   {
@@ -45,6 +48,9 @@ export const CORE_TEAM: CharacterDefinition[] = [
       { id: 'roy_s1', name: 'Flame Burst', kind: 'nova', color: '#f97316', damage: 45, radius: 8, cooldownSec: 4 },
       { id: 'roy_s2', name: 'Fire Cannon', kind: 'beam', color: '#ef4444', damage: 30, range: 16, duration: 0.8, cooldownSec: 5 },
       { id: 'roy_s3', name: 'Meteor Drop', kind: 'meteor', color: '#dc2626', damage: 50, radius: 12, count: 6, duration: 1.4, cooldownSec: 8 },
+      { id: 'roy_s4', name: 'Fire Bomb', kind: 'bomb', color: '#f97316', damage: 70, radius: 8, range: 11, duration: 0.7, cooldownSec: 7 },
+      { id: 'roy_s5', name: 'Flame Spin', kind: 'spin', color: '#fb923c', damage: 22, radius: 6, duration: 1.2, cooldownSec: 6 },
+      { id: 'roy_s6', name: 'Ember Boomerang', kind: 'boomerang', color: '#fca5a5', damage: 28, range: 16, cooldownSec: 4 },
     ],
   },
   {
@@ -69,8 +75,11 @@ export const CORE_TEAM: CharacterDefinition[] = [
     abilityRadius: 10, abilityDuration: 3, abilityStrength: 8, abilityCooldownSec: 5,
     supers: [
       { id: 'helly_s1', name: 'Wind Slash', kind: 'bolt', color: '#eab308', damage: 35, range: 16, count: 3, cooldownSec: 3 },
-      { id: 'helly_s2', name: 'Cyclone', kind: 'nova', color: '#facc15', damage: 40, radius: 9, cooldownSec: 5 },
-      { id: 'helly_s3', name: 'Sky Dive', kind: 'dash', color: '#fde047', damage: 50, range: 12, duration: 0.5, cooldownSec: 6 },
+      { id: 'helly_s2', name: 'Cyclone', kind: 'spin', color: '#facc15', damage: 20, radius: 7, duration: 1.4, cooldownSec: 6 },
+      { id: 'helly_s3', name: 'Sky Dive', kind: 'dash', color: '#fde047', damage: 50, range: 12, cooldownSec: 5 },
+      { id: 'helly_s4', name: 'Gale Boomerang', kind: 'boomerang', color: '#fef08a', damage: 30, range: 18, cooldownSec: 4 },
+      { id: 'helly_s5', name: 'Vortex', kind: 'blackhole', color: '#ca8a04', damage: 16, radius: 8, range: 10, duration: 1.5, cooldownSec: 9 },
+      { id: 'helly_s6', name: 'Recon Drone', kind: 'sentry', color: '#fde047', damage: 16, radius: 8, duration: 6, cooldownSec: 10 },
     ],
   },
   {
@@ -93,6 +102,9 @@ export const CORE_TEAM: CharacterDefinition[] = [
       { id: 'amber_s1', name: 'Pulse Wave', kind: 'nova', color: '#ec4899', damage: 38, radius: 8, cooldownSec: 4 },
       { id: 'amber_s2', name: 'Aura Beam', kind: 'beam', color: '#f472b6', damage: 28, range: 15, duration: 0.8, cooldownSec: 5 },
       { id: 'amber_s3', name: 'Guardian Orb', kind: 'orb', color: '#db2777', damage: 52, radius: 16, cooldownSec: 3 },
+      { id: 'amber_s4', name: 'Shadow Twin', kind: 'clone', color: '#f9a8d4', damage: 20, radius: 7, duration: 6, cooldownSec: 11 },
+      { id: 'amber_s5', name: 'Singularity', kind: 'blackhole', color: '#be185d', damage: 16, radius: 8, range: 9, duration: 1.5, cooldownSec: 9 },
+      { id: 'amber_s6', name: 'Care Chain', kind: 'chain', color: '#f472b6', damage: 26, range: 12, count: 6, cooldownSec: 4 },
     ],
   },
   {

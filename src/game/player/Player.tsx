@@ -17,6 +17,7 @@ import { PlayerMesh } from './PlayerMesh';
 import { playerMotion } from './playerMotion';
 import { playerKeysDown } from './playerInput';
 import { useBoostStore } from '../../stores/boostStore';
+import { dashImpulse } from '../combat/dashImpulse';
 
 // Merged (base ⊕ Edit-Mode override) data for the currently-active main character.
 function activeMergedChar() {
@@ -95,10 +96,10 @@ export const Player = () => {
         }
         return;
       }
-      // Super moves 1/2/3 — per-character offensive supers for the yokai hunt.
-      if ((e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') && !e.repeat) {
+      // Super moves 1–6 — per-character offensive supers for the yokai hunt.
+      if (/^Digit[1-6]$/.test(e.code) && !e.repeat) {
         if (!useUiStore.getState().editMode) {
-          const idx = e.code === 'Digit1' ? 0 : e.code === 'Digit2' ? 1 : 2;
+          const idx = parseInt(e.code.slice(5), 10) - 1;
           const move = activeMergedChar()?.supers?.[idx];
           const pos = usePlayerStore.getState().position;
           if (move && pos) useTransformStore.getState().triggerSuperMove(move, pos, headingRef.current);
@@ -200,6 +201,15 @@ export const Player = () => {
     }
 
     applyMovement(b, keys.current, camera, headingRef, flying, useTransformStore.getState().form);
+
+    // Dash-strike lunge — a 'dash' super drives the body forward for a brief window (overrides normal speed).
+    if (!flying && dashImpulse.active) {
+      if (performance.now() / 1000 < dashImpulse.until) {
+        const lv = b.linvel();
+        b.setLinvel({ x: dashImpulse.dirX * dashImpulse.speed, y: lv.y, z: dashImpulse.dirZ * dashImpulse.speed }, true);
+        headingRef.current = Math.atan2(dashImpulse.dirX, dashImpulse.dirZ);
+      } else { dashImpulse.active = false; }
+    }
 
     // ── Double jump + auto step-climb (skipped while flying — Space/Shift drive altitude there). ──
     if (!flying) {

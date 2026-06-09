@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { playSfx } from '../game/audio/sfx';
 import { CORE_TEAM } from '../data/characters/coreTeam';
 import { applyAbility } from '../game/player/abilityEffects';
-import { applySuperDamage } from '../game/combat/applySuperDamage';
+import { applySuperDamage, type DamageRequest } from '../game/combat/applySuperDamage';
+import { triggerDash } from '../game/combat/dashImpulse';
 import type { AbilityType, SuperKind, SuperMove } from '../types/character';
 
 // DEBUG: when true, the Q ability has NO cooldown — any ability can be used at any time (testing). Set to
@@ -64,6 +65,32 @@ export interface SuperFxPayload {
 // Per-super cooldown timers (module-level → no re-renders).
 const superCdUntil: Record<string, number> = {};
 
+const DASH_SPEED = 26;
+
+// Build a DamageRequest from the cast payload (optionally re-centred / re-aimed).
+function reqFrom(p: SuperFxPayload, move: SuperMove, cx = p.x, cz = p.z): DamageRequest {
+  return { kind: p.kind, x: cx, y: p.y, z: cz, dirX: p.dirX, dirZ: p.dirZ, damage: move.damage, radius: p.radius, range: p.range, count: p.count };
+}
+
+// Per-kind damage dispatch. Instant kinds hit once; dash also lunges the player; boomerang hits out + back.
+// Timed/persistent kinds (bomb/spin/blackhole/clone/sentry) are wired in later phases; until then they hit
+// once as a plain AoE so the move still does something.
+function dispatchSuperDamage(move: SuperMove, p: SuperFxPayload): void {
+  switch (p.kind) {
+    case 'dash':
+      triggerDash(p.dirX, p.dirZ, DASH_SPEED, 0.22);
+      applySuperDamage(reqFrom(p, move));
+      break;
+    case 'boomerang':
+      applySuperDamage(reqFrom(p, move));
+      window.setTimeout(() => applySuperDamage(reqFrom(p, move)), 450); // return pass
+      break;
+    default:
+      applySuperDamage(reqFrom(p, move));
+      break;
+  }
+}
+
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
 
 export const useTransformStore = create<TransformState>((set, get) => {
@@ -119,11 +146,7 @@ export const useTransformStore = create<TransformState>((set, get) => {
       };
       playSfx('ability');
       set({ superFx: payload, superFxPulseId: get().superFxPulseId + 1 });
-      // Apply damage to live yokai (no-op when no hunt is running / no sink registered).
-      applySuperDamage({
-        kind: payload.kind, x: payload.x, y: payload.y, z: payload.z, dirX, dirZ,
-        damage: move.damage, radius: payload.radius, range: payload.range,
-      });
+      dispatchSuperDamage(move, payload);
       return true;
     },
     celebrate: () => set({ celebratePulseId: get().celebratePulseId + 1 }),

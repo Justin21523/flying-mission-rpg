@@ -87,7 +87,8 @@ export const useYokaiCombatStore = create<YokaiCombatState>((set, get) => ({
     if (changed) set({ version: get().version + 1 });
   },
   damage: (req) => {
-    const facing = req.kind === 'beam' || req.kind === 'bolt' || req.kind === 'dash';
+    if (req.kind === 'chain') { damageChain(req); return; }
+    const facing = req.kind === 'beam' || req.kind === 'bolt' || req.kind === 'dash' || req.kind === 'boomerang';
     const halfWidth = 2.2; // lateral reach of forward attacks
     for (const y of liveYokai) {
       if (y.dyingAt) continue;
@@ -101,8 +102,35 @@ export const useYokaiCombatStore = create<YokaiCombatState>((set, get) => ({
         hit = dx * dx + dz * dz < req.radius * req.radius;   // AoE / auto radius
       }
       if (!hit) continue;
-      y.hp -= req.damage;
-      if (y.hp <= 0) { y.dyingAt = now(); defeat(y); }
+      applyHit(y, req.damage);
     }
   },
 }));
+
+// Apply damage to one yokai (defeat handles score/exp/coins/VFX).
+function applyHit(y: Yokai, damage: number): void {
+  if (y.dyingAt) return;
+  y.hp -= damage;
+  if (y.hp <= 0) { y.dyingAt = now(); defeat(y); }
+}
+
+// Chain lightning — strike the nearest yokai within range of the origin, then hop to the nearest not-yet-hit
+// yokai within HOP_RANGE, up to `count` total targets.
+const HOP_RANGE = 7;
+function damageChain(req: DamageRequest): void {
+  const hit = new Set<string>();
+  let cx = req.x, cz = req.z, reach = Math.max(req.range, req.radius);
+  const jumps = Math.max(1, req.count);
+  for (let j = 0; j < jumps; j++) {
+    let best: Yokai | null = null; let bestD = Infinity;
+    for (const y of liveYokai) {
+      if (y.dyingAt || hit.has(y.id)) continue;
+      const d = Math.hypot(y.x - cx, y.z - cz);
+      if (d < reach && d < bestD) { bestD = d; best = y; }
+    }
+    if (!best) break;
+    hit.add(best.id);
+    applyHit(best, req.damage);
+    cx = best.x; cz = best.z; reach = HOP_RANGE; // subsequent hops measured from the last target
+  }
+}

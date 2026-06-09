@@ -9,8 +9,9 @@ export interface DamageRequest {
   x: number; y: number; z: number;  // origin (player position)
   dirX: number; dirZ: number;       // forward unit direction (facing)
   damage: number;
-  radius: number;                   // AoE / homing search radius (nova/orb/meteor)
-  range: number;                    // forward reach (beam/bolt/dash)
+  radius: number;                   // AoE / homing search radius (nova/orb/meteor/bomb/spin/blackhole)
+  range: number;                    // forward reach (beam/bolt/dash/boomerang)
+  count: number;                    // chain jumps (chain) / projectile count
 }
 
 type Sink = (r: DamageRequest) => void;

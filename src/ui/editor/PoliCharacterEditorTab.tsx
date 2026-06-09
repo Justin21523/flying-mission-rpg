@@ -385,7 +385,7 @@ const SuperMovesEditor = ({ sel, set }: { sel: CharacterDefinition; set: (patch:
     set({ supers: next });
   };
   const addSlot = () => {
-    if (supers.length >= 3) return;
+    if (supers.length >= 6) return;
     const id = `${sel.id}_s${Date.now().toString(36)}`;
     set({ supers: [...supers, { id, name: `Super ${supers.length + 1}`, kind: 'nova', color: sel.color, damage: 40, radius: 8, range: 14, cooldownSec: 4, duration: 0.8, count: 4 }] });
   };
@@ -394,10 +394,10 @@ const SuperMovesEditor = ({ sel, set }: { sel: CharacterDefinition; set: (patch:
   return (
     <div className="mt-1 rounded-lg border border-fuchsia-700/40 bg-fuchsia-950/20 p-2">
       <div className="flex items-center justify-between">
-        <div className={lbl}>⚡ Super Moves (keys 1 / 2 / 3)</div>
-        {supers.length < 3 && <button onClick={addSlot} className="rounded bg-fuchsia-700/30 px-2 py-0.5 text-[10px] text-fuchsia-100 hover:bg-fuchsia-700/50">➕ add</button>}
+        <div className={lbl}>⚡ Super Moves (keys 1–6)</div>
+        {supers.length < 6 && <button onClick={addSlot} className="rounded bg-fuchsia-700/30 px-2 py-0.5 text-[10px] text-fuchsia-100 hover:bg-fuchsia-700/50">➕ add</button>}
       </div>
-      {supers.length === 0 && <div className="mt-1 text-[10px] text-slate-500">No supers yet — add up to 3 (fired with keys 1/2/3).</div>}
+      {supers.length === 0 && <div className="mt-1 text-[10px] text-slate-500">No supers yet — add up to 6 (fired with keys 1–6).</div>}
       {supers.map((s, i) => (
         <div key={s.id} className="mt-1.5 rounded border border-slate-700/60 bg-slate-900/40 p-1.5">
           <div className="flex items-center gap-1.5">
