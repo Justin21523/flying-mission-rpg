@@ -12,7 +12,7 @@ import { useWorldClockStore } from '../../stores/worldClockStore';
 import { useInteractionStore } from '../../stores/interactionStore';
 import { useIncidentStore } from '../../stores/incidentStore';
 import { useEditorRandomEventStore } from '../../stores/editorRandomEventStore';
-import { useMergedTransform } from '../../stores/sceneEditStore';
+import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { useAnimClipStore } from '../../stores/animClipStore';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { pickLoopRule } from '../anim/animRunner';
@@ -105,6 +105,8 @@ const EditorNpcEntity = ({ npc }: { npc: EditorNpc }) => {
   const key = objKey(npc.areaId, 'npc', npc.id);
   const base = { position: npc.position, rotation: npc.rotation ?? [0, 0, 0] as [number, number, number], scale: npc.scale ?? 1 };
   const m = useMergedTransform(key, base);
+  const deleted = useIsDeleted(key);
+  if (deleted) return null; // Edit-Mode Delete (kit soft-delete) hides it
 
   // Edit Mode: gizmo-selectable at base transform (movement is paused while editing).
   if (editMode) {

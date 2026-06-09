@@ -9,7 +9,7 @@ import { usePlayerStore } from '../../stores/playerStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { getWorldArea } from '../../stores/editorWorldStore';
-import { useMergedTransform } from '../../stores/sceneEditStore';
+import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { SceneGlbModel } from './SceneGlbModel';
@@ -143,6 +143,8 @@ const PortalEntity = ({ portal }: { portal: PortalDef }) => {
   const key = objKey(portal.areaId, 'landmark', portal.id);
   const base = { position: portal.position, rotation: [0, portal.rotation ?? 0, 0] as [number, number, number], scale: 1 };
   const m = useMergedTransform(key, base);
+  const deleted = useIsDeleted(key);
+  if (deleted) return null; // Edit-Mode Delete (kit soft-delete) hides it
 
   if (editMode) {
     return <EditableObject objKey={key} base={base}><PortalVisual portal={portal} open /></EditableObject>;

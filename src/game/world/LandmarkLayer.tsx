@@ -3,7 +3,7 @@ import { Text } from '@react-three/drei';
 import { useEditorLandmarkStore } from '../../stores/editorLandmarkStore';
 import type { Landmark } from '../../stores/editorLandmarkStore';
 import { useUiStore } from '../../stores/uiStore';
-import { useMergedTransform } from '../../stores/sceneEditStore';
+import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { SceneGlbModel } from './SceneGlbModel';
@@ -47,6 +47,8 @@ const LandmarkEntity = ({ lm }: { lm: Landmark }) => {
   const key = objKey(lm.areaId, 'landmark', lm.id);
   const base = { position: lm.position, rotation: [0, 0, 0] as [number, number, number], scale: 1 };
   const m = useMergedTransform(key, base);
+  const deleted = useIsDeleted(key);
+  if (deleted) return null; // Edit-Mode Delete (kit soft-delete) hides it
 
   if (editMode) {
     return <EditableObject objKey={key} base={base}><LandmarkVisual lm={lm} /></EditableObject>;

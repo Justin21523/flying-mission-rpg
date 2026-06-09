@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Object3D } from 'three';
 import { usePlayerStore } from './playerStore';
+import { useWorldSelectStore } from './worldSelectStore';
 import { SCENE_EDIT_OVERRIDES, SCENE_EDIT_DELETED, SCENE_EDIT_ADDED } from '../data/sceneEditOverrides';
 import { mergeTransform, objKey, defaultCollisionForKind, defaultCollisionShapeForKind, type AddedPiece, type AddedYokai, type AddedYokaiBehavior, type BaseTransform, type CollisionShape, type EditKind, type EditOverride, type MergedTransform } from '../game/edit/sceneEditMerge';
 
@@ -112,6 +113,10 @@ const HISTORY_LIMIT = 60;
 // FollowCamera while editing). A plain mutable singleton so it never triggers renders.
 export const editorSpawn = { x: 0, y: 0, z: 0 };
 
+// Clear the OTHER selection system (DataBackedPlacement / worldSelectStore) so only one gizmo is ever active.
+// Lazy getState() call — safe despite the mutual store import (used only at interaction time, never at load).
+const clearWorldSelect = () => useWorldSelectStore.getState().select(null);
+
 // Editor UI preferences (panel zoom / help visibility) persist separately from the
 // scene edits so they survive reload but never pollute the baked overrides file.
 const UI_KEY = 'lost-yokai-scene-editor-ui-v1';
@@ -202,22 +207,22 @@ export const useSceneEditStore = create<SceneEditState>((set, get) => ({
   setOverride: (key, patch) =>
     set((s) => ({ overrides: { ...s.overrides, [key]: { ...s.overrides[key], ...patch } } })),
 
-  select: (key, object, assetId = null) => set({ selectedKey: key, selectedObject: object, selectedAssetId: assetId, extraSelected: [], pendingExtraKeys: [] }),
+  select: (key, object, assetId = null) => { clearWorldSelect(); set({ selectedKey: key, selectedObject: object, selectedAssetId: assetId, extraSelected: [], pendingExtraKeys: [] }); },
 
   // Shift-click: toggle a placement in/out of the batch selection. Becomes the primary if
   // nothing is selected yet; otherwise joins (or leaves) the extra set.
-  toggleSelect: (key, object, assetId = null) => set((s) => {
+  toggleSelect: (key, object, assetId = null) => { clearWorldSelect(); return set((s) => {
     if (s.selectedKey === key) return s;
     if (s.extraSelected.some((e) => e.key === key)) return { extraSelected: s.extraSelected.filter((e) => e.key !== key) };
     if (!s.selectedKey) return { selectedKey: key, selectedObject: object, selectedAssetId: assetId };
     return { extraSelected: [...s.extraSelected, { key, object, assetId }] };
-  }),
+  }); },
   clearExtra: () => set({ extraSelected: [] }),
 
   clearSelection: () => set({ selectedKey: null, selectedObject: null, selectedAssetId: null, extraSelected: [], pendingExtraKeys: [] }),
   clearPendingSelect: () => set({ pendingSelectKey: null }),
   // POLI — queue a freshly-created object (by key) to auto-select + show the gizmo once it mounts.
-  requestSelect: (key) => set({ pendingSelectKey: key }),
+  requestSelect: (key) => { clearWorldSelect(); set({ pendingSelectKey: key }); },
   setMode: (mode) => set({ mode }),
 
   resetKey: (key) => {
@@ -446,6 +451,15 @@ export function useIsAreaFullClearActive(): boolean {
 const CLEAR_KEEP_KINDS = new Set(['groundtile', 'setpiece', 'decoration', 'landmark', 'building', 'prop']);
 // Editor-placed / imported objects are ALWAYS kept on any clear.
 const isEditorPlacement = (id: string): boolean => /^(added_|y_|eyk_|enpc_|etr_|enc_|imp_)/.test(id);
+// True when a placement should be hidden in-scene — soft-deleted (kit Delete) OR hidden by an area-clear.
+// POLI store-backed layers (NPC / landmark / map point / portal) call this so the Edit-Mode Delete works on
+// them too (same mechanism the kit uses for authored set-pieces; the data stays in its store for JSON/tab).
+export function useIsDeleted(key: string): boolean {
+  const deleted = useSceneEditStore((s) => s.deleted[key]);
+  const hidden = useIsHiddenByClear(key);
+  return !!deleted || hidden;
+}
+
 export function useIsHiddenByClear(key: string): boolean {
   const full = useIsAreaFullClearActive();
   const active = useIsAreaClearActive();
