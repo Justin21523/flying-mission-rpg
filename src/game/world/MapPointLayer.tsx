@@ -1,4 +1,4 @@
-import { Suspense, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
@@ -76,30 +76,39 @@ const MapPointEntity = ({ areaId, pt }: { areaId: string; pt: MapPoint }) => {
   );
 };
 
-// Play Mode teleport — warp the player when they enter the radius. Armed/disarmed by distance (hysteresis)
-// so it fires once per approach. No per-frame allocation.
+// Play Mode teleport — the player must press [E] while in range (no auto-trigger). Shows an "[E] Teleport"
+// prompt when nearby. No per-frame allocation.
 const TeleportPoint = ({ pt, pos }: { pt: MapPoint; pos: [number, number, number] }) => {
-  const ref = useRef<Group>(null);
-  const armed = useRef(true);
+  const inRange = useRef(false);
+  const promptRef = useRef<Group>(null);
   const r = pt.radius ?? 2;
   useFrame(() => {
     const pp = usePlayerStore.getState().position;
     if (!pp) return;
-    const d = Math.hypot(pp.x - pos[0], pp.z - pos[2]);
-    if (armed.current && d < r) {
-      armed.current = false;
+    const within = Math.hypot(pp.x - pos[0], pp.z - pos[2]) < r;
+    inRange.current = within;
+    if (promptRef.current) promptRef.current.visible = within;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyE' || e.repeat || !inRange.current) return;
+      const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       const dest = resolveTeleportTarget(pt);
       if (dest) {
         if (dest.areaId) usePlayerStore.getState().travelToArea(dest.areaId, dest.pos);
         else usePlayerStore.getState().requestSpawn(dest.pos);
       }
-    } else if (!armed.current && d > r + 1.2) {
-      armed.current = true;
-    }
-  });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pt]);
   return (
-    <group ref={ref} position={pos}>
+    <group position={pos}>
       <MapPointVisual pt={pt} />
+      <group ref={promptRef} visible={false}>
+        <Text raycast={() => null} position={[0, 0.5, 0]} fontSize={0.3} color="#c4b5fd" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#000" renderOrder={2}>[E] Teleport</Text>
+      </group>
     </group>
   );
 };
