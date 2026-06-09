@@ -11,13 +11,27 @@ import { useDoorStore } from '../../stores/doorStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { getKitArea } from '../../data/areas';
 import { getNpcProfile } from '../../data/npcs';
-import { getEditorNpc } from '../../stores/editorNpcStore';
+import { getEditorNpc, getEditorDialogueTree } from '../../stores/editorNpcStore';
+import { getDialogueTree } from '../dialogue/dialogueRegistry';
+import { evaluateCondition } from '../evaluateCondition';
+import type { EditorNpc } from '../../types/editorNPC';
 import { getDoorDef } from '../../data/doors';
 import { getAreaEntities } from '../../data/areaEntities';
 import { getEditorTrigger } from '../../stores/editorTriggerStore';
 import { fireEditorTrigger } from '../editor/fireEditorTrigger';
 import { arrivalSpawn } from '../world/gateLayout';
 import { executeEffect } from '../executeEffect';
+
+// Pick which of an editor NPC's dialogue trees plays: the first (in order) whose tree-level condition passes.
+function chooseNpcTreeId(enpc: EditorNpc): string | null {
+  const ids = enpc.dialogueTreeIds?.length ? enpc.dialogueTreeIds : (enpc.dialogueTreeId ? [enpc.dialogueTreeId] : []);
+  for (const id of ids) {
+    const tree = getEditorDialogueTree(id) ?? getDialogueTree(id);
+    const cond = tree?.condition;
+    if (!cond || evaluateCondition(cond)) return id;
+  }
+  return ids[0] ?? null;
+}
 
 // Kit — non-visual [E] dispatcher. Reads the current interaction target (set by sensor colliders on
 // gates / NPCs / items / doors) and acts on it: travel, start dialogue, pick up an item (+ its effects),
@@ -71,7 +85,9 @@ export const InteractionHandler = () => {
             return;
           }
         }
-        if (npc?.dialogueTreeId) useDialogueStore.getState().startDialogue(npc.dialogueTreeId);
+        // Pick the right tree (condition-gated) for editor NPCs; seed NPCs use their single tree.
+        const treeId = enpc ? chooseNpcTreeId(enpc) : (npc?.dialogueTreeId ?? null);
+        if (treeId) useDialogueStore.getState().startDialogue(treeId);
         return;
       }
 

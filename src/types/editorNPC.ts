@@ -65,7 +65,8 @@ export interface EditorNpc {
   npcType?: NpcType;             // archetype (drives colour + default role)
   role: string;
   description?: string;          // editor note / flavor
-  dialogueTreeId: string | null;
+  dialogueTreeId: string | null;       // primary tree (mirrors dialogueTreeIds[0] for back-compat)
+  dialogueTreeIds?: string[];          // all trees this NPC owns (condition-gated priority order)
   relatedQuestIds: string[];
   startsQuestIds?: string[];     // quests this NPC offers on interaction
   completesQuestIds?: string[];  // quests this NPC accepts turn-in for

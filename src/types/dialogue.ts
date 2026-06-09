@@ -28,6 +28,10 @@ export interface DialogueTree {
   rootNodeId: string;
   nodes: Record<string, DialogueNode>;
   allowLoop?: boolean; // opt-in: allow cycling back to a visited node
+  // Tree-level gate: when an NPC has several trees, on interact the FIRST tree (in the NPC's order) whose
+  // condition passes is played (no condition = always eligible). Lets one NPC react to quest/flag/trust state.
+  condition?: DialogueCondition;
+  label?: string; // editor label (e.g. "After rescue") — UI only
 }
 
 // Discriminated union — each condition type carries its own required fields.

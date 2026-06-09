@@ -18,6 +18,8 @@ interface EditorNpcState {
   createDialogueTree: (speakerName: string) => string;
   setDialogueTree: (tree: DialogueTree) => void;
   removeDialogueTree: (id: string) => void;
+  addDialogueTreeToNpc: (npcId: string) => string;             // new tree appended to the NPC's list
+  detachDialogueTree: (npcId: string, treeId: string) => void; // remove from the NPC + delete the tree
   importState: (data: { addedNpcs?: EditorNpc[]; dialogueTrees?: Record<string, DialogueTree> }) => void;
   reset: () => void;
 }
@@ -44,6 +46,7 @@ function migrateNpc(raw: Record<string, unknown>): EditorNpc {
     color: (raw.color as string) ?? base.color,
     modelAssetId: (raw.modelAssetId as string | null) ?? null,
     dialogueTreeId: (raw.dialogueTreeId as string | null) ?? null,
+    dialogueTreeIds: (raw.dialogueTreeIds as string[] | undefined) ?? (raw.dialogueTreeId ? [raw.dialogueTreeId as string] : []),
     interactionLabel: (raw.interactionLabel as string) ?? base.interactionLabel,
   } as EditorNpc;
 }
@@ -71,7 +74,7 @@ export const useEditorNpcStore = create<EditorNpcState>((set, get) => ({
   addNpc: (areaId, position = [0, 1, 0]) => {
     const id = `npc_${Date.now().toString(36)}`;
     const treeId = `dlg_${id}`;
-    const npc = { ...createDefaultEditorNpc(id, areaId, position), dialogueTreeId: treeId };
+    const npc = { ...createDefaultEditorNpc(id, areaId, position), dialogueTreeId: treeId, dialogueTreeIds: [treeId] };
     const addedNpcs = [...get().addedNpcs, npc];
     const dialogueTrees = { ...get().dialogueTrees, [treeId]: defaultTree(treeId, npc.displayName) };
     set({ addedNpcs, dialogueTrees });
@@ -111,6 +114,27 @@ export const useEditorNpcStore = create<EditorNpcState>((set, get) => ({
     delete dialogueTrees[id];
     set({ dialogueTrees });
     persist({ addedNpcs: get().addedNpcs, dialogueTrees });
+  },
+
+  addDialogueTreeToNpc: (npcId) => {
+    const npc = get().addedNpcs.find((n) => n.id === npcId);
+    const id = `dlg_${Date.now().toString(36)}${Math.floor(Math.random() * 1e3)}`;
+    const dialogueTrees = { ...get().dialogueTrees, [id]: defaultTree(id, npc?.displayName || 'NPC') };
+    const list = [...(npc?.dialogueTreeIds ?? (npc?.dialogueTreeId ? [npc.dialogueTreeId] : [])), id];
+    const addedNpcs = get().addedNpcs.map((n) => (n.id === npcId ? { ...n, dialogueTreeIds: list, dialogueTreeId: list[0] } : n));
+    set({ dialogueTrees, addedNpcs }); persist({ addedNpcs, dialogueTrees });
+    return id;
+  },
+
+  detachDialogueTree: (npcId, treeId) => {
+    const dialogueTrees = { ...get().dialogueTrees };
+    delete dialogueTrees[treeId];
+    const addedNpcs = get().addedNpcs.map((n) => {
+      if (n.id !== npcId) return n;
+      const list = (n.dialogueTreeIds ?? (n.dialogueTreeId ? [n.dialogueTreeId] : [])).filter((t) => t !== treeId);
+      return { ...n, dialogueTreeIds: list, dialogueTreeId: list[0] ?? null };
+    });
+    set({ dialogueTrees, addedNpcs }); persist({ addedNpcs, dialogueTrees });
   },
 
   importState: (data) => {

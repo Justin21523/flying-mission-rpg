@@ -5,7 +5,7 @@ import type { TimeOfDay } from '../../types/randomEvent';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
 import { useUiStore } from '../../stores/uiStore';
-import { listDialogueTreeIds, getDialogueTree } from '../../game/dialogue/dialogueRegistry';
+import { getDialogueTree } from '../../game/dialogue/dialogueRegistry';
 import { editorSpawn } from '../../stores/sceneEditStore';
 import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
@@ -20,6 +20,7 @@ import { AnimationPicker } from './AnimationPicker';
 import { AnimRuleList } from './AnimRuleList';
 import { AssetClipLoader } from './AssetClipLoader';
 import { DialogueTreeEditor } from './DialogueTreeEditor';
+import { ConditionEditor } from './ConditionEditor';
 import { DialoguePreviewPanel } from './DialoguePreviewPanel';
 
 const Vec3Row = ({ label, value, step, onChange }: { label: string; value: [number, number, number]; step?: number; onChange: (v: [number, number, number]) => void }) => (
@@ -218,13 +219,51 @@ const NpcAnimationsSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<E
   );
 };
 
+// Dialogue tab — an NPC owns MANY trees (condition-gated priority). Pick a tree to edit, set its label +
+// condition (the first tree whose condition passes plays on interact), add / delete whole trees.
+const NpcDialogueTab = ({ npc }: { npc: EditorNpc }) => {
+  const trees = npc.dialogueTreeIds?.length ? npc.dialogueTreeIds : (npc.dialogueTreeId ? [npc.dialogueTreeId] : []);
+  const dialogueTrees = useEditorNpcStore((s) => s.dialogueTrees);
+  const addTree = useEditorNpcStore((s) => s.addDialogueTreeToNpc);
+  const detach = useEditorNpcStore((s) => s.detachDialogueTree);
+  const setTree = useEditorNpcStore((s) => s.setDialogueTree);
+  const [sel, setSel] = useState<string | null>(trees[0] ?? null);
+  const selId = sel && trees.includes(sel) ? sel : trees[0] ?? null;
+  const tree = selId ? dialogueTrees[selId] : undefined;
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1">
+        {trees.map((id, i) => (
+          <button key={id} onClick={() => setSel(id)} className={`rounded px-2 py-0.5 text-[11px] ${selId === id ? 'bg-violet-600/40 text-violet-100' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>{dialogueTrees[id]?.label || `Tree ${i + 1}`}</button>
+        ))}
+        <button onClick={() => setSel(addTree(npc.id))} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">+ tree</button>
+        {selId && <button onClick={() => { detach(npc.id, selId); setSel(null); }} className="rounded px-2 py-0.5 text-[11px] text-rose-400 hover:bg-slate-800">🗑 delete tree</button>}
+      </div>
+      {trees.length === 0 && <p className="text-[11px] text-slate-500">No dialogue trees — add one. On interact, the first tree whose condition passes plays.</p>}
+      {selId && tree && (
+        <>
+          <div className="grid grid-cols-2 gap-2 rounded border border-slate-700/60 bg-slate-900/40 p-2">
+            <label className="flex flex-col gap-0.5"><span className={lbl}>tree label</span><input value={tree.label ?? ''} onChange={(e) => setTree({ ...tree, label: e.target.value })} className={inp} placeholder="e.g. After rescue" /></label>
+            <ConditionEditor value={tree.condition} onChange={(c) => setTree({ ...tree, condition: c })} />
+          </div>
+          <DialogueTreeEditor treeId={selId} />
+        </>
+      )}
+      {selId && !tree && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-slate-500">Seed tree (read-only). Copy into the editor to make it fully editable.</p>
+          <button onClick={() => { const seed = getDialogueTree(selId); if (seed) setTree(JSON.parse(JSON.stringify(seed))); }} className="rounded border border-violet-600/50 bg-violet-600/20 px-2 py-1 text-xs text-violet-100 hover:bg-violet-600/35">✎ Make editable</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Kit — full inspector for one Editor NPC: identity + archetype + transform + model + dialogue binding +
 // quest bindings (offer / turn-in) + validation + an in-game preview. (No yokai bindings.)
 export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
   const updateNpc = useEditorNpcStore((s) => s.updateNpc);
   const removeNpc = useEditorNpcStore((s) => s.removeNpc);
-  const createDialogueTree = useEditorNpcStore((s) => s.createDialogueTree);
-  const dialogueTrees = useEditorNpcStore((s) => s.dialogueTrees);
   const closeHub = useUiStore((s) => s.toggleEditorHub);
   const startDialogue = useDialogueStore((s) => s.startDialogue);
   const [tab, setTab] = useState<'fields' | 'dialogue' | 'preview'>('fields');
@@ -237,9 +276,6 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
     ...activities.map((a) => ({ id: a.def.id, label: a.def.title })),
     ...SEED_ACTIVITIES.map((a) => ({ id: a.def.id, label: `${a.def.title} (seed)` })),
   ], [activities]);
-  const treeIsEditor = !!(npc.dialogueTreeId && dialogueTrees[npc.dialogueTreeId]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const treeIds = useMemo(() => listDialogueTreeIds(), [dialogueTrees]);
 
   const previewInteraction = () => {
     closeHub();
@@ -325,29 +361,7 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
         </>
       )}
 
-      {tab === 'dialogue' && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Field label="dialogueTreeId">
-              <select value={npc.dialogueTreeId ?? ''} onChange={(e) => set({ dialogueTreeId: e.target.value || null })} className={inp}>
-                <option value="">(none)</option>
-                {treeIds.map((t) => <option key={t.id} value={t.id}>{t.source === 'editor' ? '✎ ' : ''}{t.id}</option>)}
-              </select>
-            </Field>
-            <button onClick={() => { const id = createDialogueTree(npc.displayName); set({ dialogueTreeId: id }); }} className="mt-4 shrink-0 rounded border border-emerald-700/50 bg-emerald-700/20 px-2 py-1 text-xs text-emerald-100 hover:bg-emerald-700/30">+ New dialogue tree</button>
-          </div>
-          {npc.dialogueTreeId && treeIsEditor && <DialogueTreeEditor treeId={npc.dialogueTreeId} />}
-          {npc.dialogueTreeId && !treeIsEditor && (
-            <div className="space-y-1.5">
-              <p className="text-[11px] text-slate-500">This is a seed dialogue tree (read-only). Copy it into the editor to make it fully editable (your copy overrides the seed and exports via JSON).</p>
-              <button
-                onClick={() => { const seed = getDialogueTree(npc.dialogueTreeId); if (seed) useEditorNpcStore.getState().setDialogueTree(JSON.parse(JSON.stringify(seed))); }}
-                className="rounded border border-violet-600/50 bg-violet-600/20 px-2 py-1 text-xs text-violet-100 hover:bg-violet-600/35">✎ Make editable (copy seed → editor)</button>
-            </div>
-          )}
-          {!npc.dialogueTreeId && <p className="text-[11px] text-slate-500">No dialogue tree assigned yet.</p>}
-        </div>
-      )}
+      {tab === 'dialogue' && <NpcDialogueTab npc={npc} />}
 
       {tab === 'preview' && (
         npc.dialogueTreeId ? <DialoguePreviewPanel treeId={npc.dialogueTreeId} /> : <p className="text-[11px] text-slate-500">Assign a dialogueTreeId first.</p>
