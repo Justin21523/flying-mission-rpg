@@ -28,6 +28,7 @@ export function seedPoliWorld(): void {
   //   • seed the three resident side-quests + their giver NPCs (by stable quest id / giver name)
   useEditorIncidentStore.getState().mergeMissingFromSeed();
   seedSideQuests();
+  seedResidentModels();
 
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
@@ -66,6 +67,25 @@ export function seedPoliWorld(): void {
   }
 
   try { localStorage.setItem(SEED_FLAG, '1'); } catch { /* ignore */ }
+}
+
+// Resident → GLB model (from public/models/npcs). Applied idempotently every boot so existing saves get
+// real models too; only sets it when the NPC has none, so user edits (NPC tab) are never overwritten.
+const RESIDENT_MODELS: Record<string, string> = {
+  mayor_lee: 'npcs/rescue+dispatcher+3d+model',
+  teacher_mi: 'npcs/3d+cartoon+student+npc',
+  dr_kim: 'npcs/stylized+nurse+3d+model',
+  harbor_worker: 'npcs/3d+construction+worker',
+  site_foreman: 'npcs/cartoon+miner+3d+model',
+};
+function seedResidentModels(): void {
+  const npcStore = useEditorNpcStore.getState();
+  for (const r of RESIDENTS) {
+    const model = RESIDENT_MODELS[r.id];
+    if (!model) continue;
+    const npc = npcStore.addedNpcs.find((n) => n.displayName === r.name);
+    if (npc && !npc.modelAssetId) useEditorNpcStore.getState().updateNpc(npc.id, { modelAssetId: model });
+  }
 }
 
 // Idempotent: seed each side-quest + its giver NPC only if the quest id is not already present.

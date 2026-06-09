@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { usePlayerStore } from '../../stores/playerStore';
-import { useEditorWorldStore, getAreaSize } from '../../stores/editorWorldStore';
+import { useEditorWorldStore, getAreaSize, getWorldArea } from '../../stores/editorWorldStore';
 import { useTransitionStore } from '../../stores/transitionStore';
 import { OPPOSITE_EDGE, type EdgeDir } from '../../types/world';
 
@@ -47,12 +47,13 @@ export const EdgeTransitionLayer = ({ areaId }: { areaId: string }) => {
     const neighbour = edges[edge]!;
     const spawn = spawnAtEdge(OPPOSITE_EDGE[edge], getAreaSize(neighbour));
     const go = () => usePlayerStore.getState().travelToArea(neighbour, spawn);
-    if (useEditorWorldStore.getState().fadeEnabled) useTransitionStore.getState().begin(go);
+    if (useEditorWorldStore.getState().fadeEnabled) useTransitionStore.getState().begin(go, getWorldArea(neighbour)?.name ?? neighbour);
     else go();
   });
 
-  // Walls on closed edges + a thin edge frame (green = open exit, red = walled).
-  const WALL_H = 6;
+  // Invisible walls ONLY on closed edges (no visible boundary line — the player just can't leave there).
+  // Open edges have no wall: walking off them triggers the transition above.
+  const WALL_H = 8;
   const t = 1;
   const sides: { dir: EdgeDir; pos: [number, number, number]; horizontal: boolean }[] = [
     { dir: 'north', pos: [0, WALL_H / 2, -size], horizontal: true },
@@ -62,24 +63,11 @@ export const EdgeTransitionLayer = ({ areaId }: { areaId: string }) => {
   ];
   return (
     <>
-      {sides.map(({ dir, pos, horizontal }) => {
-        const open = !!edges[dir];
-        const halfArgs: [number, number, number] = horizontal ? [size, WALL_H / 2, t] : [t, WALL_H / 2, size];
-        return (
-          <group key={dir}>
-            {!open && (
-              <RigidBody type="fixed" colliders={false} position={pos}>
-                <CuboidCollider args={halfArgs} />
-              </RigidBody>
-            )}
-            {/* thin edge marker bar at ground level */}
-            <mesh position={[pos[0], 0.2, pos[2]]}>
-              <boxGeometry args={horizontal ? [size * 2, 0.4, 0.4] : [0.4, 0.4, size * 2]} />
-              <meshStandardMaterial color={open ? '#22c55e' : '#ef4444'} emissive={open ? '#16a34a' : '#b91c1c'} emissiveIntensity={0.5} transparent opacity={0.5} />
-            </mesh>
-          </group>
-        );
-      })}
+      {sides.filter(({ dir }) => !edges[dir]).map(({ dir, pos, horizontal }) => (
+        <RigidBody key={dir} type="fixed" colliders={false} position={pos}>
+          <CuboidCollider args={horizontal ? [size, WALL_H / 2, t] : [t, WALL_H / 2, size]} />
+        </RigidBody>
+      ))}
     </>
   );
 };
