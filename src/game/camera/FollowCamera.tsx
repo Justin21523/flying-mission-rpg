@@ -72,9 +72,10 @@ export const FollowCamera = () => {
     const onUp = () => { dragging.current = false; };
     const onMove = (e: PointerEvent) => {
       if (!dragging.current || useUiStore.getState().editMode) return;
-      // Direct "look toward the cursor" mapping: drag right → camera looks right, drag up → camera looks up.
-      yawTarget.current -= e.movementX * LOOK_SENSITIVITY;
-      pitchTarget.current = clamp(pitchTarget.current + e.movementY * LOOK_SENSITIVITY, PITCH_MIN, PITCH_MAX);
+      // Inverted "drag the world" mapping: the camera turns OPPOSITE to the cursor (drag right → camera looks
+      // left, drag down → camera looks up) — per preference.
+      yawTarget.current += e.movementX * LOOK_SENSITIVITY;
+      pitchTarget.current = clamp(pitchTarget.current - e.movementY * LOOK_SENSITIVITY, PITCH_MIN, PITCH_MAX);
     };
     const onWheel = (e: WheelEvent) => {
       if (useUiStore.getState().editMode) return;
