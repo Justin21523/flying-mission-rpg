@@ -9,7 +9,7 @@ import { usePlayerStore } from '../../stores/playerStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { getWorldArea } from '../../stores/editorWorldStore';
-import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
+import { useMergedTransform, useIsDeleted, useSceneEditStore } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { SceneGlbModel } from './SceneGlbModel';
@@ -37,11 +37,19 @@ function isPortalOpen(p: PortalDef): boolean {
   return !p.locked;
 }
 
+// A portal's LIVE position = its gizmo override (where you dragged it) ⊕ its stored base position. The arrival
+// must use this so you come out at the door's CURRENT spot, not where it was originally authored.
+function portalPos(q: PortalDef): [number, number, number] {
+  const ov = useSceneEditStore.getState().overrides[objKey(q.areaId, 'landmark', q.id)]?.position;
+  return (ov ?? q.position) as [number, number, number];
+}
+
 // Arrive standing just OUTSIDE a portal's trigger radius, in front of it (so you don't instantly re-trigger).
 function inFrontOf(q: PortalDef): Vec3 {
   const f = q.rotation ?? 0;
   const offset = (q.radius ?? 2.5) + 1.5;
-  return { x: q.position[0] + Math.sin(f) * offset, y: q.position[1] + 1, z: q.position[2] + Math.cos(f) * offset };
+  const [px, py, pz] = portalPos(q);
+  return { x: px + Math.sin(f) * offset, y: py + 1, z: pz + Math.cos(f) * offset };
 }
 
 // Resolve where this portal drops the player: explicit map point / paired portal / spawn → else the RECIPROCAL
@@ -49,7 +57,11 @@ function inFrontOf(q: PortalDef): Vec3 {
 function resolveDest(p: PortalDef): { areaId: string; spawn: Vec3 } {
   if (p.targetPointId) {
     const pt = getWorldArea(p.targetAreaId)?.points?.find((x) => x.id === p.targetPointId);
-    if (pt) return { areaId: p.targetAreaId, spawn: { x: pt.position[0], y: pt.position[1] + 1, z: pt.position[2] } };
+    if (pt) {
+      const ov = useSceneEditStore.getState().overrides[objKey(p.targetAreaId, 'landmark', pt.id)]?.position;
+      const [x, y, z] = (ov ?? pt.position) as [number, number, number];
+      return { areaId: p.targetAreaId, spawn: { x, y: y + 1, z } };
+    }
   }
   if (p.targetPortalId) {
     const tp = getPortal(p.targetPortalId);
