@@ -9,6 +9,7 @@ import { useMergedTransform } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
+import { DataBackedPlacement } from '../edit/DataBackedPlacement';
 import { useEditorTrafficStore, getEditorRoadPath, type EditorRoad } from '../../stores/editorTrafficStore';
 import { getPathPosition, getPathHeading, computeRoadPath } from '../../types/traffic';
 import type { VehicleDefinition, TrafficSignalDef, TrafficPhase, Crosswalk } from '../../types/traffic';
@@ -199,27 +200,42 @@ const TrafficSignalMesh = ({ def, areaId }: TrafficSignalMeshProps & { areaId: s
 // Zebra stripes + a walker that crosses while the linked signal is RED (cars stopped) and waits otherwise.
 // The walker rides a kinematic capsule body so the player collides with it.
 const CrosswalkEntity = ({ def }: { def: Crosswalk }) => {
+  const editMode = useUiStore((s) => s.editMode);
+  // Stripes drawn at LOCAL offsets (relative to the crossing centre) so a parent group can place them.
   const stripes = useMemo(() => {
     const out: { key: number; pos: [number, number, number]; size: [number, number] }[] = [];
     const n = 5;
     for (let i = 0; i < n; i++) {
       const o = (i / (n - 1) - 0.5) * def.length;
-      const pos: [number, number, number] = def.axis === 'x'
-        ? [def.position[0] + o, def.position[1] + 0.02, def.position[2]]
-        : [def.position[0], def.position[1] + 0.02, def.position[2] + o];
+      const pos: [number, number, number] = def.axis === 'x' ? [o, 0.02, 0] : [0, 0.02, o];
       out.push({ key: i, pos, size: def.axis === 'x' ? [0.3, 2.6] : [2.6, 0.3] });
     }
     return out;
-  }, [def.length, def.axis, def.position]);
+  }, [def.length, def.axis]);
 
+  const stripeMeshes = stripes.map((s) => (
+    <mesh key={s.key} position={s.pos} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={s.size} />
+      <meshStandardMaterial color="#f8fafc" roughness={0.9} />
+    </mesh>
+  ));
+
+  // Edit Mode: gizmo-movable (writes back to the crosswalk position); no pedestrian while editing.
+  if (editMode) {
+    return (
+      <DataBackedPlacement
+        objKey={objKey(def.areaId, 'trigger', def.id)}
+        position={def.position}
+        color="#f8fafc"
+        onMove={(pos) => useEditorTrafficStore.getState().updateCrosswalk(def.id, { position: pos })}
+      >
+        {stripeMeshes}
+      </DataBackedPlacement>
+    );
+  }
   return (
     <>
-      {stripes.map((s) => (
-        <mesh key={s.key} position={s.pos} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <planeGeometry args={s.size} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.9} />
-        </mesh>
-      ))}
+      <group position={def.position}>{stripeMeshes}</group>
       <Pedestrian def={def} />
     </>
   );

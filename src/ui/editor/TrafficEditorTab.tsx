@@ -1,6 +1,8 @@
 import { useEditorTrafficStore } from '../../stores/editorTrafficStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
+import { useWorldSelectStore } from '../../stores/worldSelectStore';
+import { objKey } from '../../game/edit/sceneEditMerge';
 import { Field, inp, lbl } from './editorShared';
 import { ModelPicker } from './ModelPicker';
 
@@ -150,9 +152,12 @@ export const TrafficEditorTab = () => {
           <div key={c.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-400">{c.id}</span>
-              <button onClick={() => t.removeCrosswalk(c.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+              <div className="flex items-center gap-1">
+                <button onClick={() => useWorldSelectStore.getState().select(objKey(areaId, 'trigger', c.id))} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+                <button onClick={() => t.removeCrosswalk(c.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+              </div>
             </div>
-            <Field label="position (x / y / z)">
+            <Field label="position (x / y / z) — live with the gizmo">
               <div className="flex gap-1">
                 {([0, 1, 2] as const).map((a) => (
                   <input key={a} type="number" step={0.5} value={c.position[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {

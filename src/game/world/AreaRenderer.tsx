@@ -13,6 +13,7 @@ import { LandmarkLayer } from './LandmarkLayer';
 import { MapPointLayer } from './MapPointLayer';
 import { PortalLayer } from './PortalLayer';
 import { RoadEditLayer } from './RoadEditLayer';
+import { IncidentMarkerEditLayer } from './IncidentMarkerEditLayer';
 import { LayoutLayer } from './LayoutLayer';
 import { EdgeTransitionLayer } from './EdgeTransitionLayer';
 import { PickupLayer } from '../poli/PickupLayer';
@@ -99,6 +100,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <PortalLayer areaId={areaId} />
       {/* POLI seam #1i: Edit-Mode road route lines + draggable node gizmos (🚦 Traffic tab). */}
       <RoadEditLayer areaId={areaId} />
+      {/* POLI seam #1j: Edit-Mode incident spawn-marker gizmos (🚨 Incidents tab). */}
+      <IncidentMarkerEditLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />
       <EncounterMarkerRenderer areaId={areaId} />

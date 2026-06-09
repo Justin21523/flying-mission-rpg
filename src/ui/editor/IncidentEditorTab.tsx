@@ -2,6 +2,8 @@ import { useEditorIncidentStore } from '../../stores/editorIncidentStore';
 import { useEditorRandomEventStore, incidentCfg } from '../../stores/editorRandomEventStore';
 import type { ReactionMode } from '../../stores/editorRandomEventStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
+import { useWorldSelectStore } from '../../stores/worldSelectStore';
+import { objKey } from '../../game/edit/sceneEditMerge';
 import { spawnRandomIncident } from '../../game/incident/spawnIncident';
 import { Field, inp, lbl, csv, parseCsv, useAreaOptions, useNpcOptions } from './editorShared';
 import { getEditorTools } from '../../stores/editorToolStore';
@@ -143,7 +145,7 @@ export const IncidentEditorTab = () => {
               <Field label="victims"><input type="number" min={0} value={sel.victimCount ?? 0} onChange={(e) => s.updateIncident(sel.id, { victimCount: parseInt(e.target.value, 10) || 0 })} className={inp} /></Field>
             </div>
 
-            <Field label="marker position (x / y / z)">
+            <Field label="marker position (x / y / z) — live with the gizmo">
               <div className="flex gap-1">
                 {([0, 1, 2] as const).map((a) => (
                   <input key={a} type="number" step={0.5} value={sel.markerPosition[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
@@ -152,6 +154,7 @@ export const IncidentEditorTab = () => {
                     s.updateIncident(sel.id, { markerPosition: next });
                   }} />
                 ))}
+                <button onClick={() => useWorldSelectStore.getState().select(objKey(sel.spawnAreaId, 'trigger', sel.id))} title="Select gizmo in 3D (in the incident's area)" className="rounded px-1 text-[10px] text-sky-300 hover:bg-slate-800">🎯</button>
                 <button onClick={() => s.updateIncident(sel.id, { markerPosition: camPos() })} className="rounded px-1 text-[10px] text-sky-300 hover:bg-slate-800">cam</button>
               </div>
             </Field>
