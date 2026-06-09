@@ -2,7 +2,7 @@ import { Suspense, useEffect, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
-import { useEditorPortalStore, getPortal } from '../../stores/editorPortalStore';
+import { useEditorPortalStore } from '../../stores/editorPortalStore';
 import type { PortalDef } from '../../types/portal';
 import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -12,6 +12,7 @@ import { getWorldArea } from '../../stores/editorWorldStore';
 import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
+import { DataBackedPlacement } from '../edit/DataBackedPlacement';
 import { SceneGlbModel } from './SceneGlbModel';
 import { markEditHelper } from '../edit/markEditHelper';
 import { playSfx } from '../audio/sfx';
@@ -37,21 +38,10 @@ function isPortalOpen(p: PortalDef): boolean {
   return !p.locked;
 }
 
-// Resolve where this portal drops the player: target map point → paired portal (front of it) → explicit
-// spawn → the target area's spawn point.
+// Resolve where this portal drops the player: its explicit EXIT position (+1 so the player stands on it),
+// else the target area's spawn point.
 function resolveDest(p: PortalDef): { areaId: string; spawn: Vec3 } {
-  if (p.targetPointId) {
-    const pt = getWorldArea(p.targetAreaId)?.points?.find((x) => x.id === p.targetPointId);
-    if (pt) return { areaId: p.targetAreaId, spawn: { x: pt.position[0], y: pt.position[1] + 1, z: pt.position[2] } };
-  }
-  if (p.targetPortalId) {
-    const tp = getPortal(p.targetPortalId);
-    if (tp) {
-      const f = tp.rotation ?? 0;
-      return { areaId: p.targetAreaId, spawn: { x: tp.position[0] + Math.sin(f) * 1.5, y: tp.position[1] + 1, z: tp.position[2] + Math.cos(f) * 1.5 } };
-    }
-  }
-  if (p.targetSpawn) return { areaId: p.targetAreaId, spawn: { x: p.targetSpawn[0], y: p.targetSpawn[1] + 1, z: p.targetSpawn[2] } };
+  if (p.exitPosition) return { areaId: p.targetAreaId, spawn: { x: p.exitPosition[0], y: p.exitPosition[1] + 1, z: p.exitPosition[2] } };
   const sp = getWorldArea(p.targetAreaId)?.spawnPoint;
   return { areaId: p.targetAreaId, spawn: sp ? { x: sp.x, y: sp.y, z: sp.z } : { x: 0, y: 3, z: 0 } };
 }
@@ -153,8 +143,44 @@ const PortalEntity = ({ portal }: { portal: PortalDef }) => {
   return <ActivePortal portal={portal} pos={m.position} />;
 };
 
+// The EXIT handle (gizmo-movable, Edit Mode) for a portal whose destination is THIS area. Dragging it writes
+// straight back to the portal's exitPosition — the spot the player lands on after teleporting here.
+const PortalExitMarker = ({ portal }: { portal: PortalDef }) => {
+  const pos = portal.exitPosition ?? [0, 0, 0];
+  return (
+    <DataBackedPlacement
+      objKey={objKey(portal.targetAreaId, 'landmark', `${portal.id}_exit`)}
+      position={pos}
+      color="#22c55e"
+      onMove={(p) => useEditorPortalStore.getState().updatePortal(portal.id, { exitPosition: p })}
+    >
+      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={NO_RAYCAST}>
+        <ringGeometry args={[0.6, 0.95, 20]} />
+        <meshBasicMaterial color="#22c55e" transparent opacity={0.5} />
+      </mesh>
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <coneGeometry args={[0.4, 1.0, 4]} />
+        <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.5} />
+      </mesh>
+      <Text ref={markEditHelper} raycast={NO_RAYCAST} position={[0, 1.5, 0]} fontSize={0.32} color="#bbf7d0" anchorX="center" anchorY="middle" outlineWidth={0.03} outlineColor="#000">
+        {`⤓ ${portal.name} exit`}
+      </Text>
+    </DataBackedPlacement>
+  );
+};
+
 export const PortalLayer = ({ areaId }: { areaId: string }) => {
-  const portals = useEditorPortalStore((s) => s.portals).filter((p) => p.areaId === areaId);
-  if (portals.length === 0) return null;
-  return <>{portals.map((p) => <PortalEntity key={p.id} portal={p} />)}</>;
+  const editMode = useUiStore((s) => s.editMode);
+  const all = useEditorPortalStore((s) => s.portals);
+  const here = all.filter((p) => p.areaId === areaId);
+  // Edit Mode: also show the EXIT handle of any portal that teleports INTO this area, so both ends are
+  // gizmo-editable (each in its own area).
+  const exitsHere = editMode ? all.filter((p) => p.targetAreaId === areaId && p.exitPosition) : [];
+  if (here.length === 0 && exitsHere.length === 0) return null;
+  return (
+    <>
+      {here.map((p) => <PortalEntity key={p.id} portal={p} />)}
+      {exitsHere.map((p) => <PortalExitMarker key={`${p.id}_exit`} portal={p} />)}
+    </>
+  );
 };
