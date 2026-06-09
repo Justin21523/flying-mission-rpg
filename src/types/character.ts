@@ -19,7 +19,8 @@ export type AnimTrigger = 'always' | 'idle' | 'moving' | 'sprinting' | 'flying' 
 export const ANIM_TRIGGERS: AnimTrigger[] = ['always', 'idle', 'moving', 'sprinting', 'flying', 'vehicle', 'robot', 'ability', 'key'];
 export interface AnimRule {
   id: string;
-  clip: string;          // animation clip name in the model
+  name?: string;         // free custom label for this rule
+  clip: string;          // animation clip name in the model (chosen from the model's clips)
   trigger: AnimTrigger;
   speedMin?: number;     // optional horizontal-speed gate (m/s)
   speedMax?: number;
