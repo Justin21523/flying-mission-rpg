@@ -22,6 +22,9 @@ import { editorSpawn } from '../../stores/sceneEditStore';
 
 const LOOK_SENSITIVITY = 0.0025;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+// Play-mode wheel-zoom range — very close right up to far-out (big maps).
+const CAM_MIN_DIST = 1.2;
+const CAM_MAX_DIST = 600;
 
 export const FollowCamera = () => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -52,7 +55,8 @@ export const FollowCamera = () => {
     };
     const onWheel = (e: WheelEvent) => {
       if (useUiStore.getState().editMode) return;
-      dist.current = clamp(dist.current + e.deltaY * 0.01, 4, 18);
+      // Distance-proportional zoom step → smooth control across a very wide range (close-up to far-out).
+      dist.current = clamp(dist.current * (1 + e.deltaY * 0.0012), CAM_MIN_DIST, CAM_MAX_DIST);
     };
     dom.addEventListener('pointerdown', onDown);
     window.addEventListener('pointerup', onUp);
