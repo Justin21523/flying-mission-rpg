@@ -7,13 +7,14 @@ import { useEditorBoostStore } from '../../stores/editorBoostStore';
 import { computePickupPositions } from '../../game/poli/pickupScatter';
 import { resolveAreaTheme } from '../../game/environment/areaBiome';
 import { getKitArea } from '../../data/areas';
+import { playerMotion } from '../../game/player/playerMotion';
 import type { EdgeDir } from '../../types/world';
 import { MAP_POINT_COLOR } from '../../types/world';
 import { usePoll } from '../usePoll';
 
 // POLI — 🛰 radar/detector HUD (top-centre). A live top-down scope: the player at the centre, nearby NPCs
 // (cyan), active incidents (red), pickups (gold) and edge exits (green arrows) plotted relative to the
-// player, with a rotating sweep. Area-tinted; updates ~7×/s (polled, not per-frame subscribed).
+// player, with a scan cone fixed to the player's facing. Area-tinted; updates ~7×/s (polled, not subscribed).
 const R = 62;            // radar pixel radius
 const RANGE_PAD = 6;
 const EDGE_ANGLE: Record<EdgeDir, number> = { north: -90, south: 90, east: 0, west: 180 };
@@ -37,6 +38,10 @@ export const MiniMapHUD = () => {
   const scale = R / range;
   const px = pos?.x ?? 0, pz = pos?.z ?? 0;
 
+  // Scan cone points along the PLAYER'S FACING (no more constant spin). Radar screen: +x right, +z down, so a
+  // world heading θ (forward = sinθ,cosθ) maps to CSS conic angle (180 − θ°); centre the 70° cone on it.
+  const sweepFrom = 180 - (playerMotion.heading * 180) / Math.PI - 35;
+
   const points = area?.points ?? [];
   const npcs = useEditorNpcStore.getState().addedNpcs.filter((n) => n.areaId === areaId);
   const incidents = useIncidentStore.getState().getActiveForArea(areaId);
@@ -50,8 +55,8 @@ export const MiniMapHUD = () => {
         {/* range rings */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/20" style={{ width: R, height: R }} />
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/15" style={{ width: R * 1.6, height: R * 1.6 }} />
-        {/* rotating sweep */}
-        <div className="absolute inset-0 animate-spin rounded-full" style={{ animationDuration: '3s', background: 'conic-gradient(from 0deg, rgba(34,211,238,0.30), rgba(34,211,238,0) 70deg)' }} />
+        {/* scan cone — fixed to the player's facing direction (not spinning) */}
+        <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(from ${sweepFrom}deg, rgba(34,211,238,0.30), rgba(34,211,238,0) 70deg)` }} />
         {/* pickups / incidents / npcs */}
         {pickups.map((p, i) => <Dot key={`pk${i}`} x={p[0] - px} z={p[2] - pz} scale={scale} color="#fde047" size={4} />)}
         {points.map((p) => <Dot key={p.id} x={p.position[0] - px} z={p.position[2] - pz} scale={scale} color={p.color || MAP_POINT_COLOR[p.type]} size={7} />)}

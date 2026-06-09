@@ -56,14 +56,9 @@ export const FollowCamera = () => {
   const dragging = useRef(false);
   const target = useRef(new Vector3());
 
-  // Re-center the orbit angle on every travel/spawn (travelGuardUntil is bumped by travelToArea + requestSpawn,
-  // so this covers edge crossings, portals AND teleports) → the facing direction is identical on every arrival.
-  const travelTick = usePlayerStore((s) => s.travelGuardUntil);
-  useEffect(() => {
-    if (useUiStore.getState().editMode) return;
-    yaw.current = DEFAULT_YAW; yawTarget.current = DEFAULT_YAW;
-    pitch.current = DEFAULT_PITCH; pitchTarget.current = DEFAULT_PITCH;
-  }, [travelTick]);
+  // NOTE: the orbit angle is NOT reset on travel — yaw/pitch are persistent refs (this component never
+  // remounts), so the camera facing carries over UNCHANGED across area changes / portals / teleports. The
+  // player must arrive facing exactly the way they were before, never snapped to a different direction.
 
   // Mouse-drag to orbit + wheel to zoom — play mode only.
   useEffect(() => {
@@ -72,10 +67,9 @@ export const FollowCamera = () => {
     const onUp = () => { dragging.current = false; };
     const onMove = (e: PointerEvent) => {
       if (!dragging.current || useUiStore.getState().editMode) return;
-      // Inverted "drag the world" mapping: the camera turns OPPOSITE to the cursor (drag right → camera looks
-      // left, drag down → camera looks up) — per preference.
-      yawTarget.current += e.movementX * LOOK_SENSITIVITY;
-      pitchTarget.current = clamp(pitchTarget.current - e.movementY * LOOK_SENSITIVITY, PITCH_MIN, PITCH_MAX);
+      // Drag right → camera looks right, drag up → camera looks up (per preference).
+      yawTarget.current -= e.movementX * LOOK_SENSITIVITY;
+      pitchTarget.current = clamp(pitchTarget.current + e.movementY * LOOK_SENSITIVITY, PITCH_MIN, PITCH_MAX);
     };
     const onWheel = (e: WheelEvent) => {
       if (useUiStore.getState().editMode) return;

@@ -10,6 +10,7 @@ import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
+import { safeSpawnY } from '../world/groundHeight';
 import { EditableObject } from '../edit/EditableObject';
 import { applyMovement } from './MovementStateMachine';
 import { PlayerMesh } from './PlayerMesh';
@@ -112,9 +113,12 @@ export const Player = () => {
   useEffect(() => {
     const b = body.current;
     if (!spawnRequest || !b) return;
-    b.setTranslation(spawnRequest, true);
+    // Lift the spawn above the (possibly sculpted) terrain at this x,z so the player never appears UNDER the
+    // ground after travel — they drop onto the surface. Uniform across edge travel / portals / teleports.
+    const y = safeSpawnY(usePlayerStore.getState().currentAreaId, spawnRequest.x, spawnRequest.z, spawnRequest.y);
+    b.setTranslation({ x: spawnRequest.x, y, z: spawnRequest.z }, true);
     b.setLinvel({ x: 0, y: 0, z: 0 }, true);
-    headingRef.current = 0; // arrive facing the canonical direction (consistent on every travel/teleport)
+    // Keep the player's heading UNCHANGED on arrival — they face exactly the way they did before travelling.
     usePlayerStore.getState().clearSpawnRequest();
   }, [spawnRequest]);
 
@@ -124,10 +128,12 @@ export const Player = () => {
     const p = b.translation();
     usePlayerStore.getState().setPosition({ x: p.x, y: p.y, z: p.z });
 
-    // Apply edited yaw offset + scale to the visible mesh (facing = movement heading + offset).
+    // Facing: in PLAY mode it's purely the camera-relative movement heading, so it carries over CONTINUOUSLY
+    // across area travel. The per-area authored yaw override is applied ONLY in Edit Mode (where the gizmo sets
+    // it and heading is held at 0) — applying it in play mode would jump the facing when switching areas.
     const ov = useSceneEditStore.getState().overrides[pKey];
     if (visualRef.current) {
-      visualRef.current.rotation.y = headingRef.current + (ov?.rotation?.[1] ?? 0);
+      visualRef.current.rotation.y = headingRef.current + (editMode ? (ov?.rotation?.[1] ?? 0) : 0);
       const sc = ov?.scale ?? 1;
       if (Array.isArray(sc)) visualRef.current.scale.set(sc[0], sc[1], sc[2]);
       else visualRef.current.scale.set(sc, sc, sc);
