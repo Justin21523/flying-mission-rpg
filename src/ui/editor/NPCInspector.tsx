@@ -5,7 +5,7 @@ import type { TimeOfDay } from '../../types/randomEvent';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
 import { useUiStore } from '../../stores/uiStore';
-import { listDialogueTreeIds } from '../../game/dialogue/dialogueRegistry';
+import { listDialogueTreeIds, getDialogueTree } from '../../game/dialogue/dialogueRegistry';
 import { editorSpawn } from '../../stores/sceneEditStore';
 import { validateNpcLive } from '../../game/editor/validateNpc';
 import { Field, inp, lbl, csv, parseCsv, useQuestOptions } from './editorShared';
@@ -207,7 +207,14 @@ export const NPCInspector = ({ npc }: { npc: EditorNpc }) => {
             <button onClick={() => { const id = createDialogueTree(npc.displayName); set({ dialogueTreeId: id }); }} className="mt-4 shrink-0 rounded border border-emerald-700/50 bg-emerald-700/20 px-2 py-1 text-xs text-emerald-100 hover:bg-emerald-700/30">+ New dialogue tree</button>
           </div>
           {npc.dialogueTreeId && treeIsEditor && <DialogueTreeEditor treeId={npc.dialogueTreeId} />}
-          {npc.dialogueTreeId && !treeIsEditor && <p className="text-[11px] text-slate-500">This is a seed dialogue tree (read-only). Use "+ New dialogue tree" to create an editable one.</p>}
+          {npc.dialogueTreeId && !treeIsEditor && (
+            <div className="space-y-1.5">
+              <p className="text-[11px] text-slate-500">This is a seed dialogue tree (read-only). Copy it into the editor to make it fully editable (your copy overrides the seed and exports via JSON).</p>
+              <button
+                onClick={() => { const seed = getDialogueTree(npc.dialogueTreeId); if (seed) useEditorNpcStore.getState().setDialogueTree(JSON.parse(JSON.stringify(seed))); }}
+                className="rounded border border-violet-600/50 bg-violet-600/20 px-2 py-1 text-xs text-violet-100 hover:bg-violet-600/35">✎ Make editable (copy seed → editor)</button>
+            </div>
+          )}
           {!npc.dialogueTreeId && <p className="text-[11px] text-slate-500">No dialogue tree assigned yet.</p>}
         </div>
       )}

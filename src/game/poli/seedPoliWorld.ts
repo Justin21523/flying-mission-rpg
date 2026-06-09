@@ -89,6 +89,7 @@ function seedSideQuests(): void {
         interactionLabel: `Talk to ${g.name}`,
         movement: 'static',
         moveSpeed: 1.4,
+        ...(g.modelAssetId ? { modelAssetId: g.modelAssetId } : {}),
       });
     }
     // Bind the giver to offer + accept turn-in of this quest.

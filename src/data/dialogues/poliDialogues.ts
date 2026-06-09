@@ -497,11 +497,46 @@ export const POLI_DIALOGUES: DialogueTree[] = [
     id: 'dlg_harbor_worker',
     rootNodeId: 'start',
     nodes: {
+      // Trust-gated greeting: friends of the docks (trustLevel ≥ 30) get a warmer welcome.
       start: {
         id: 'start',
         speaker: 'Harbor Worker',
-        text: "Hey there! Busy day at the docks. Ships coming in, cargo going out. The lifeblood of Brooms Town!",
+        text: "Always great to see a friend of the docks! You've earned a warm welcome here anytime.",
+        emotion: 'happy',
+        conditions: [{ type: 'trustLevel', characterId: 'harbor_worker', minTrust: 30 }],
+        fallbackNodeId: 'greet',
+        nextNodeId: 'menu',
+      },
+      greet: {
+        id: 'greet',
+        speaker: 'Harbor Worker',
+        text: "Hey there! Busy day at the docks — ships coming in, cargo going out. The lifeblood of Brooms Town!",
         emotion: 'neutral',
+        nextNodeId: 'menu',
+      },
+      menu: {
+        id: 'menu',
+        speaker: 'Harbor Worker',
+        text: 'Anything I can help you with?',
+        emotion: 'neutral',
+        choices: [
+          { id: 'ask', text: 'How does the harbor work?', nextNodeId: 'info' },
+          { id: 'help', text: 'Need a hand keeping it safe?', nextNodeId: 'helped', effect: { type: 'increaseTrust', characterId: 'harbor_worker', amount: 5 } },
+          { id: 'bye', text: 'Just passing through.', nextNodeId: null },
+        ],
+      },
+      info: {
+        id: 'info',
+        speaker: 'Harbor Worker',
+        text: 'Cranes unload the ships, barriers keep the slope safe, and we always watch for water on the road after a storm. Safety first!',
+        emotion: 'thinking',
+        nextNodeId: null,
+      },
+      helped: {
+        id: 'helped',
+        speaker: 'Harbor Worker',
+        text: "That means a lot — the docks are safer with you around. Talk to Dockmaster Dan if you want a proper job!",
+        emotion: 'excited',
         nextNodeId: null,
       },
     },

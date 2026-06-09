@@ -14,6 +14,7 @@ export interface SideQuestGiver {
   color: string;
   areaId: string;
   position: [number, number, number];
+  modelAssetId?: string; // optional GLB model (model-library id) for the giver NPC
   quest: EditorQuest;
 }
 
@@ -115,6 +116,74 @@ export const BROOMS_TOWN_SIDE_QUESTS: SideQuestGiver[] = [
       unlocksAreaIds: [],
       unlocksQuestIds: [],
       setsWorldFlags: ['quest_schoolb_pickup_done'],
+      tags: ['poli', 'resident', 'safety'],
+      isEnabled: true,
+    },
+  },
+  {
+    name: 'Nurse Annie',
+    role: 'Clinic Nurse',
+    description: 'Dr. Kim’s helpful clinic nurse — always rushing medicine where it’s needed.',
+    color: '#f472b6',
+    areaId: 'central_plaza',
+    position: [4, 0, -3],
+    modelAssetId: 'npcs/stylized+nurse+3d+model',
+    quest: {
+      id: 'quest_clinic_supplies',
+      code: 'SQ_CLINIC_SUPPLIES',
+      title: 'Clinic Supply Run',
+      description: 'Nurse Annie needs medicine delivered around town before evening clinic hours.',
+      category: 'side',
+      recommendedLevel: 1,
+      prerequisiteQuestIds: [],
+      relatedAreaIds: ['central_plaza', 'school_district', 'charging_station'],
+      relatedNPCIds: [],
+      objectives: [
+        obj('obj_clinic_school', 'visitArea', 'school_district', 'Deliver first-aid kits to the School District'),
+        obj('obj_clinic_charge', 'visitArea', 'charging_station', 'Drop off supplies at the Charging Station'),
+        obj('obj_clinic_back', 'reachLocation', 'central_plaza', 'Report back to the clinic in the Plaza'),
+      ],
+      rewards: [
+        { id: 'rwd_clinic_exp', type: 'exp', amount: 130 },
+        { id: 'rwd_clinic_trust', type: 'worldFlag', targetId: 'trust:dr_kim:15' },
+      ],
+      unlocksAreaIds: [],
+      unlocksQuestIds: [],
+      setsWorldFlags: ['quest_clinic_supplies_done'],
+      tags: ['poli', 'resident', 'chore'],
+      isEnabled: true,
+    },
+  },
+  {
+    name: 'Dockmaster Dan',
+    role: 'Harbor Dockmaster',
+    description: 'Runs the harbor day to day — keeps the docks safe and the cargo moving.',
+    color: '#0ea5e9',
+    areaId: 'harbor_front',
+    position: [-4, 0, 3],
+    modelAssetId: 'npcs/rescue+dispatcher+3d+model',
+    quest: {
+      id: 'quest_harbor_cleanup',
+      code: 'SQ_HARBOR_CLEANUP',
+      title: 'Harbor Safety Sweep',
+      description: 'Dockmaster Dan wants the harbor and beach checked for hazards after the storm.',
+      category: 'side',
+      recommendedLevel: 1,
+      prerequisiteQuestIds: [],
+      relatedAreaIds: ['harbor_front', 'coast_beach', 'construction_site'],
+      relatedNPCIds: [],
+      objectives: [
+        obj('obj_harbor_dock', 'visitArea', 'harbor_front', 'Inspect the Harbor Front'),
+        obj('obj_harbor_beach', 'visitArea', 'coast_beach', 'Check Sunny Beach for debris'),
+        obj('obj_harbor_site', 'reachLocation', 'harbor_front', 'Report the all-clear at the docks'),
+      ],
+      rewards: [
+        { id: 'rwd_harbor_exp', type: 'exp', amount: 120 },
+        { id: 'rwd_harbor_trust', type: 'worldFlag', targetId: 'trust:harbor_worker:15' },
+      ],
+      unlocksAreaIds: [],
+      unlocksQuestIds: [],
+      setsWorldFlags: ['quest_harbor_cleanup_done'],
       tags: ['poli', 'resident', 'safety'],
       isEnabled: true,
     },
