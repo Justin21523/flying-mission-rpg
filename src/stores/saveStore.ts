@@ -9,6 +9,8 @@ import { useTransformStore } from './transformStore';
 import type { PoliCharId, PoliForm } from './transformStore';
 import { useRelationshipStore } from './relationshipStore';
 import { useToolStore } from './toolStore';
+import { useRescueLicenseStore } from './rescueLicenseStore';
+import { useJinResearchStore } from './jinResearchStore';
 import type { ToolId } from '../types/tool';
 import type { Quest } from '../types/quest';
 
@@ -27,6 +29,9 @@ export interface SaveData {
   transform?: { charId: string; form: string };
   relationships?: Record<string, number>;
   tools?: { unlocked: string[]; equipped: string[] };
+  // POLI progression (rescues completed + research points/completed) — player progress, per-slot.
+  license?: { rescuesCompleted: number };
+  research?: { researchPoints: number; completed: string[] };
 }
 export interface SaveSlot { name: string; savedAt: string; data: SaveData }
 
@@ -74,6 +79,8 @@ export function snapshotGame(): SaveData {
     transform: { charId: tf.charId, form: tf.form },
     relationships: { ...useRelationshipStore.getState().trust },
     tools: { unlocked: [...tools.unlockedTools], equipped: [...tools.equippedTools] },
+    license: { rescuesCompleted: useRescueLicenseStore.getState().rescuesCompleted },
+    research: { researchPoints: useJinResearchStore.getState().researchPoints, completed: [...useJinResearchStore.getState().completed] },
   };
 }
 
@@ -92,6 +99,8 @@ export function restoreGame(d: SaveData): void {
   if (d.transform) useTransformStore.setState({ charId: d.transform.charId as PoliCharId, form: d.transform.form as PoliForm, flying: false });
   if (d.relationships) useRelationshipStore.setState({ trust: { ...d.relationships } });
   if (d.tools) useToolStore.setState({ unlockedTools: d.tools.unlocked as ToolId[], equippedTools: d.tools.equipped as ToolId[] });
+  if (d.license) useRescueLicenseStore.getState().setRescues(d.license.rescuesCompleted);
+  if (d.research) useJinResearchStore.setState({ researchPoints: d.research.researchPoints, completed: [...d.research.completed] });
   // Restore location last: set area + request a spawn so the Player teleports there.
   usePlayerStore.getState().setCurrentAreaId(d.player.currentAreaId);
   if (d.player.position) usePlayerStore.getState().requestSpawn(d.player.position);
