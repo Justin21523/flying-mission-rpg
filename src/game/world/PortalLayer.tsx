@@ -68,9 +68,11 @@ function resolveDest(p: PortalDef): { areaId: string; spawn: Vec3 } {
     if (tp) return { areaId: p.targetAreaId, spawn: inFrontOf(tp) };
   }
   if (p.targetSpawn) return { areaId: p.targetAreaId, spawn: { x: p.targetSpawn[0], y: p.targetSpawn[1] + 1, z: p.targetSpawn[2] } };
-  // Auto-pair: land at the matching door on the other side (a portal there that points back to this area).
-  const reciprocal = getPortals().find((q) => q.areaId === p.targetAreaId && q.targetAreaId === p.areaId && q.id !== p.id);
-  if (reciprocal) return { areaId: p.targetAreaId, spawn: inFrontOf(reciprocal) };
+  // Auto-pair: come out at a door on the other side. Prefer the one that points back here (true pair); else
+  // ANY door in the target area — so you always exit beside a door, never dumped at the area centre.
+  const inTarget = getPortals().filter((q) => q.areaId === p.targetAreaId && q.id !== p.id);
+  const door = inTarget.find((q) => q.targetAreaId === p.areaId) ?? inTarget[0];
+  if (door) return { areaId: p.targetAreaId, spawn: inFrontOf(door) };
   const sp = getWorldArea(p.targetAreaId)?.spawnPoint;
   return { areaId: p.targetAreaId, spawn: sp ? { x: sp.x, y: sp.y, z: sp.z } : { x: 0, y: 3, z: 0 } };
 }

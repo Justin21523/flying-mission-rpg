@@ -18,7 +18,7 @@ const MIN_EXTENT = 12;
 export function getEffectiveAreaSize(areaId: string): number {
   const area = getWorldArea(areaId);
   if (area?.autoExpand === false) return area?.size ?? 40; // manual fixed size
-  const margin = area?.sizeMargin ?? 28; // a clear gap past the farthest object before the boundary
+  const margin = area?.sizeMargin ?? 14; // boundary (+ edge mist) sits close to the farthest object, small buffer
   const overrides = useSceneEditStore.getState().overrides;
 
   let far = 0;
