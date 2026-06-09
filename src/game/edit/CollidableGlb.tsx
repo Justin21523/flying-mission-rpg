@@ -4,6 +4,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { SkeletonUtils } from 'three-stdlib';
 import { Box3, Vector3 } from 'three';
 import { resolveModelAsset, useModelStudioStore } from '../../stores/modelStudioStore';
+import { asScaleVec } from './sceneEditMerge';
 import type { CollisionShape, Vec3 } from './sceneEditMerge';
 
 // Phase A/C — renders a scene GLB at the merged transform and, by collider `shape`, wraps
@@ -17,7 +18,7 @@ interface CollidableGlbProps {
   assetId: string;
   position: Vec3;
   rotation: Vec3;
-  scale: number;
+  scale: number | Vec3;
   shape: CollisionShape;
   fallback?: React.ReactNode;
 }
@@ -59,14 +60,15 @@ const Inner = ({ assetId, position, rotation, scale, shape }: Omit<CollidableGlb
   }
 
   // 'cuboid' — one explicit bounding-box collider (robust for async-loaded GLB).
-  // Total visual scale = placement scale × the asset's own scale (applied inside `visual`).
-  const t = scale * asset.scale;
+  // Total visual scale = placement scale (per-axis) × the asset's own scale (applied inside `visual`).
+  const sv = asScaleVec(scale);
+  const tx = sv[0] * asset.scale, ty = sv[1] * asset.scale, tz = sv[2] * asset.scale;
   const half: [number, number, number] = [
-    Math.max((bbox.size.x * t) / 2, 0.05),
-    Math.max((bbox.size.y * t) / 2, 0.05),
-    Math.max((bbox.size.z * t) / 2, 0.05),
+    Math.max((bbox.size.x * tx) / 2, 0.05),
+    Math.max((bbox.size.y * ty) / 2, 0.05),
+    Math.max((bbox.size.z * tz) / 2, 0.05),
   ];
-  const colliderPos: [number, number, number] = [bbox.center.x * t, bbox.center.y * t, bbox.center.z * t];
+  const colliderPos: [number, number, number] = [bbox.center.x * tx, bbox.center.y * ty, bbox.center.z * tz];
 
   return (
     <RigidBody type="fixed" colliders={false} position={position} rotation={rotation}>
@@ -104,7 +106,7 @@ export function CollidableGlb({ fallback = null, ...props }: CollidableGlbProps)
 // Generic collidable wrapper for inline-mesh scenery (decorations, scatter, regional).
 // Uses Rapier auto colliders (by `shape`) from the synchronous child meshes; 'none' = visual.
 export function CollidableGroup({ shape, position, rotation, scale, children }: {
-  shape: CollisionShape; position: Vec3; rotation: Vec3; scale: number; children: React.ReactNode;
+  shape: CollisionShape; position: Vec3; rotation: Vec3; scale: number | Vec3; children: React.ReactNode;
 }) {
   if (shape === 'none') {
     return <group position={position} rotation={rotation} scale={scale}>{children}</group>;

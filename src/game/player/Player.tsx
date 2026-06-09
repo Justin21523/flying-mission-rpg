@@ -123,8 +123,9 @@ export const Player = () => {
     const ov = useSceneEditStore.getState().overrides[pKey];
     if (visualRef.current) {
       visualRef.current.rotation.y = headingRef.current + (ov?.rotation?.[1] ?? 0);
-      const s = ov?.scale ?? 1;
-      visualRef.current.scale.set(s, s, s);
+      const sc = ov?.scale ?? 1;
+      if (Array.isArray(sc)) visualRef.current.scale.set(sc[0], sc[1], sc[2]);
+      else visualRef.current.scale.set(sc, sc, sc);
       // Conceal the model while the transform smoke is dense, then reveal as it fades (the smoke
       // covers the instant model/character swap). animStart=0 → no transform in progress.
       const animStart = useTransformStore.getState().animStart;

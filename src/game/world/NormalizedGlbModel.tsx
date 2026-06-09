@@ -25,7 +25,7 @@ interface Props {
   collision?: CollisionShape;   // when set & ≠ 'none' → wrap in a fixed RigidBody with this collider
   position?: Vec3;              // placement (used only in the collision path; RigidBody owns the transform)
   rotation?: Vec3;
-  scale?: number;
+  scale?: number | Vec3;
 }
 
 const GlbInner = ({ assetId, target, collision, position, rotation, scale }: Props & { target: number }) => {

@@ -8,9 +8,9 @@ import type { Vec3 } from './sceneEditMerge';
 // to every extra too (batch move / rotate / scale). drei auto-disables OrbitControls while
 // dragging. W/E/R switch mode (see App.tsx).
 
-interface Snap { pos: Vec3; rot: Vec3; scale: number }
-const snap = (o: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number } }): Snap =>
-  ({ pos: [o.position.x, o.position.y, o.position.z], rot: [o.rotation.x, o.rotation.y, o.rotation.z], scale: o.scale.x });
+interface Snap { pos: Vec3; rot: Vec3; scale: Vec3 }
+const snap = (o: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number; y: number; z: number } }): Snap =>
+  ({ pos: [o.position.x, o.position.y, o.position.z], rot: [o.rotation.x, o.rotation.y, o.rotation.z], scale: [o.scale.x, o.scale.y, o.scale.z] });
 
 export function SceneEditorGizmo() {
   const selectedObject = useSceneEditStore((s) => s.selectedObject);
@@ -40,19 +40,23 @@ export function SceneEditorGizmo() {
     setOverride(key, {
       position: [o.position.x, o.position.y, o.position.z],
       rotation: [o.rotation.x, o.rotation.y, o.rotation.z],
-      scale: o.scale.x,
+      scale: [o.scale.x, o.scale.y, o.scale.z], // per-axis so non-uniform scaling persists + copies exactly
     });
-    // Apply the primary's delta to each batch-selected extra.
+    // Apply the primary's delta to each batch-selected extra (per-axis scale ratio).
     const st = starts.current;
     if (!st || st.extras.length === 0) return;
     const dp: Vec3 = [o.position.x - st.primary.pos[0], o.position.y - st.primary.pos[1], o.position.z - st.primary.pos[2]];
     const dr: Vec3 = [o.rotation.x - st.primary.rot[0], o.rotation.y - st.primary.rot[1], o.rotation.z - st.primary.rot[2]];
-    const ratio = st.primary.scale !== 0 ? o.scale.x / st.primary.scale : 1;
+    const sr: Vec3 = [
+      st.primary.scale[0] !== 0 ? o.scale.x / st.primary.scale[0] : 1,
+      st.primary.scale[1] !== 0 ? o.scale.y / st.primary.scale[1] : 1,
+      st.primary.scale[2] !== 0 ? o.scale.z / st.primary.scale[2] : 1,
+    ];
     for (const ex of st.extras) {
       setOverride(ex.key, {
         position: [ex.snap.pos[0] + dp[0], ex.snap.pos[1] + dp[1], ex.snap.pos[2] + dp[2]],
         rotation: [ex.snap.rot[0] + dr[0], ex.snap.rot[1] + dr[1], ex.snap.rot[2] + dr[2]],
-        scale: ex.snap.scale * ratio,
+        scale: [ex.snap.scale[0] * sr[0], ex.snap.scale[1] * sr[1], ex.snap.scale[2] * sr[2]],
       });
     }
   }, [setOverride]);

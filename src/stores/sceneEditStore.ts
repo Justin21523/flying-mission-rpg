@@ -283,7 +283,8 @@ export const useSceneEditStore = create<SceneEditState>((set, get) => ({
         assetId: t.assetId,
         position: [t.object.position.x + 2, t.object.position.y, t.object.position.z + 2],
         rotation: [t.object.rotation.x, t.object.rotation.y, t.object.rotation.z],
-        scale: t.object.scale.x,
+        scale: [t.object.scale.x, t.object.scale.y, t.object.scale.z], // exact per-axis scale
+
       });
       copyKeys.push(objKey(areaId, 'setpiece', `added_${id}`));
     });
@@ -520,6 +521,7 @@ export function buildOverridesFile(): string {
   const s = useSceneEditStore.getState();
   const round = (n: number) => Math.round(n * 1000) / 1000;
   const fv = (v: [number, number, number]) => `[${v.map(round).join(', ')}]`;
+  const fscale = (s: number | [number, number, number]) => (Array.isArray(s) ? fv(s) : `${round(s)}`);
 
   const overrides = { ...SCENE_EDIT_OVERRIDES, ...s.overrides };
   const ovLines = Object.keys(overrides).sort().map((k) => {
@@ -527,7 +529,7 @@ export function buildOverridesFile(): string {
     const parts: string[] = [];
     if (o.position) parts.push(`position: ${fv(o.position)}`);
     if (o.rotation) parts.push(`rotation: ${fv(o.rotation)}`);
-    if (o.scale !== undefined) parts.push(`scale: ${round(o.scale)}`);
+    if (o.scale !== undefined) parts.push(`scale: ${fscale(o.scale)}`);
     if (o.collision !== undefined) parts.push(`collision: ${o.collision}`);
     if (o.collisionShape !== undefined) parts.push(`collisionShape: ${JSON.stringify(o.collisionShape)}`);
     return `  ${JSON.stringify(k)}: { ${parts.join(', ')} },`;
@@ -538,7 +540,7 @@ export function buildOverridesFile(): string {
 
   const added = [...SCENE_EDIT_ADDED, ...s.added];
   const addLines = added.map((a) =>
-    `  { id: ${JSON.stringify(a.id)}, areaId: ${JSON.stringify(a.areaId)}, assetId: ${JSON.stringify(a.assetId)}, position: ${fv(a.position)}, rotation: ${fv(a.rotation)}, scale: ${round(a.scale)} },`);
+    `  { id: ${JSON.stringify(a.id)}, areaId: ${JSON.stringify(a.areaId)}, assetId: ${JSON.stringify(a.assetId)}, position: ${fv(a.position)}, rotation: ${fv(a.rotation)}, scale: ${fscale(a.scale)} },`);
 
   return [
     "import type { AddedPiece, EditOverride } from '../game/edit/sceneEditMerge';",

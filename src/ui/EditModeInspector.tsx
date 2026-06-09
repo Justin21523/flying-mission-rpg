@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useSceneEditStore, buildOverridesFile, countEditsForArea, type GizmoMode } from '../stores/sceneEditStore';
 import { usePlayerStore } from '../stores/playerStore';
-import { defaultCollisionForKind, defaultCollisionShapeForKind, type CollisionShape, type EditKind, type Vec3 } from '../game/edit/sceneEditMerge';
+import { defaultCollisionForKind, defaultCollisionShapeForKind, asScaleVec, type CollisionShape, type EditKind, type Vec3 } from '../game/edit/sceneEditMerge';
 import { NpcSelectionExtras } from './editor/NpcSelectionExtras';
 import { duplicateAllSelected } from '../game/edit/duplicateSelection';
 
@@ -47,26 +47,26 @@ export const EditModeInspector = () => {
   const o = selectedObject;
   const position: Vec3 = override?.position ?? (o ? [o.position.x, o.position.y, o.position.z] : [0, 0, 0]);
   const rotation: Vec3 = override?.rotation ?? (o ? [o.rotation.x, o.rotation.y, o.rotation.z] : [0, 0, 0]);
-  const scale: number = override?.scale ?? (o ? o.scale.x : 1);
+  const scale: Vec3 = override?.scale != null ? asScaleVec(override.scale) : (o ? [o.scale.x, o.scale.y, o.scale.z] : [1, 1, 1]);
 
   const extraSelected = useSceneEditStore((s) => s.extraSelected);
 
-  const patch = (next: { position?: Vec3; rotation?: Vec3; scale?: number }) => {
+  const patch = (next: { position?: Vec3; rotation?: Vec3; scale?: Vec3 }) => {
     if (!selectedKey) return;
     pushHistory();
     setOverride(selectedKey, { position, rotation, scale, ...next });
     // Batch: apply the SAME change to every other selected object (position/rotation as a delta, scale as a
-    // ratio) so a numeric edit adjusts the whole selection together — matching the gizmo's batch drag.
+    // per-axis ratio) so a numeric edit adjusts the whole selection together — matching the gizmo's batch drag.
     if (extraSelected.length === 0) return;
     const dp: Vec3 = next.position ? [next.position[0] - position[0], next.position[1] - position[1], next.position[2] - position[2]] : [0, 0, 0];
     const dr: Vec3 = next.rotation ? [next.rotation[0] - rotation[0], next.rotation[1] - rotation[1], next.rotation[2] - rotation[2]] : [0, 0, 0];
-    const ratio = next.scale != null && scale !== 0 ? next.scale / scale : 1;
+    const sr: Vec3 = next.scale ? [scale[0] ? next.scale[0] / scale[0] : 1, scale[1] ? next.scale[1] / scale[1] : 1, scale[2] ? next.scale[2] / scale[2] : 1] : [1, 1, 1];
     for (const ex of extraSelected) {
       const o = ex.object;
       setOverride(ex.key, {
         position: [o.position.x + dp[0], o.position.y + dp[1], o.position.z + dp[2]],
         rotation: [o.rotation.x + dr[0], o.rotation.y + dr[1], o.rotation.z + dr[2]],
-        scale: o.scale.x * ratio,
+        scale: [o.scale.x * sr[0], o.scale.y * sr[1], o.scale.z * sr[2]],
       });
     }
   };
@@ -149,7 +149,11 @@ export const EditModeInspector = () => {
             <NumRow label="Pos Y" value={position[1]} min={-posRange} max={posRange} step={0.1} onChange={(v) => patch({ position: [position[0], v, position[2]] })} />
             <NumRow label="Pos Z" value={position[2]} min={-posRange} max={posRange} step={0.1} onChange={(v) => patch({ position: [position[0], position[1], v] })} />
             <NumRow label="Rot Y°" value={rotation[1] * RAD2DEG} min={-180} max={180} step={1} onChange={(v) => patch({ rotation: [rotation[0], v * DEG2RAD, rotation[2]] })} />
-            <NumRow label="Scale" value={scale} min={0.05} max={10} step={0.05} onChange={(v) => patch({ scale: v })} />
+            {/* Uniform scale (sets all axes) + per-axis X/Y/Z so non-uniform scaling is editable + exact. */}
+            <NumRow label="Scale" value={scale[0]} min={0.05} max={10} step={0.05} onChange={(v) => patch({ scale: [v, v, v] })} />
+            <NumRow label="Scale X" value={scale[0]} min={0.05} max={10} step={0.05} onChange={(v) => patch({ scale: [v, scale[1], scale[2]] })} />
+            <NumRow label="Scale Y" value={scale[1]} min={0.05} max={10} step={0.05} onChange={(v) => patch({ scale: [scale[0], v, scale[2]] })} />
+            <NumRow label="Scale Z" value={scale[2]} min={0.05} max={10} step={0.05} onChange={(v) => patch({ scale: [scale[0], scale[1], v] })} />
           </div>
 
           <div className="flex gap-1.5">

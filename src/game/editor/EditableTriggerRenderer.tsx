@@ -9,7 +9,7 @@ import { useEditorTriggerStore } from '../../stores/editorTriggerStore';
 import { useInteractionStore } from '../../stores/interactionStore';
 import { useSceneEditStore, useMergedTransform } from '../../stores/sceneEditStore';
 import { EditablePlacement, ProxyBox } from '../edit/EditablePlacement';
-import { objKey } from '../edit/sceneEditMerge';
+import { objKey, asScaleNum } from '../edit/sceneEditMerge';
 import { SceneGlbModel } from '../world/SceneGlbModel';
 import { evaluateTrigger } from './evaluateTrigger';
 import { fireEditorTrigger } from './fireEditorTrigger';
@@ -54,7 +54,7 @@ const TriggerSensor = ({ trigger }: { trigger: EditorTrigger }) => {
   const key = objKey(trigger.zoneId, 'trigger', trigger.id);
   const m = useMergedTransform(key, { position: trigger.position, rotation: trigger.rotation, scale: trigger.scale });
   const [sx, sy, sz] = trigger.size;
-  const s = m.scale;
+  const s = asScaleNum(m.scale);
   const isContact = CONTACT_TRIGGER_TYPES.has(trigger.triggerType);
   return (
     <RigidBody type="fixed" colliders={false} position={m.position} rotation={m.rotation}>

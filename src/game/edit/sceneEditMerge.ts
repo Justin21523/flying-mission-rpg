@@ -15,7 +15,7 @@ export type CollisionShape = 'none' | 'cuboid' | 'hull' | 'trimesh';
 export interface EditOverride {
   position?: Vec3;
   rotation?: Vec3; // radians (x, y, z)
-  scale?: number;  // uniform
+  scale?: number | Vec3;  // uniform number OR per-axis [x,y,z]
   collision?: boolean; // Phase A: solid collider in normal play (overrides per-kind default)
   collisionShape?: CollisionShape; // Phase C: collider shape used when solid
 }
@@ -65,14 +65,18 @@ export function defaultCollisionShapeForKind(kind: EditKind): CollisionShape {
 export interface BaseTransform {
   position: Vec3;
   rotation?: Vec3; // radians
-  scale?: number;
+  scale?: number | Vec3;
 }
 
 export interface MergedTransform {
   position: Vec3;
   rotation: Vec3;
-  scale: number;
+  scale: number | Vec3; // uniform OR per-axis
 }
+
+// Normalise a scale (number | per-axis) to a [x,y,z] tuple, or to a single representative number.
+export const asScaleVec = (s: number | Vec3 | undefined): Vec3 => (s == null ? [1, 1, 1] : Array.isArray(s) ? s : [s, s, s]);
+export const asScaleNum = (s: number | Vec3 | undefined): number => (s == null ? 1 : Array.isArray(s) ? s[0] : s);
 
 // A set-piece created in Edit Mode via duplicate (Ctrl+D). Rendered as an extra
 // editable set-piece in its area; its transform is then tuned like any other.
@@ -82,7 +86,7 @@ export interface AddedPiece {
   assetId: string;
   position: Vec3;
   rotation: Vec3;
-  scale: number;
+  scale: number | Vec3;
 }
 
 // How a placed yokai behaves in normal play (Phase C):
