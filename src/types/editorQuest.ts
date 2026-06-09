@@ -73,6 +73,10 @@ export interface EditorQuest {
   daily?: boolean;
   nextQuestId?: string;     // branching: auto-start this quest when this one completes
   autoStartFlag?: string;   // auto-start this quest when this world flag is set
+  prerequisites?: import('./dialogue').DialogueCondition[]; // rich gate (flag/level/item/quest/trust…)
+  timeLimitSec?: number;    // fail if not completed within this many seconds (0/undefined = no limit)
+  failFlag?: string;        // world flag set when the quest fails
+  repeatCooldownSec?: number; // min seconds between completions before it can start again
   tags: string[];
   isEnabled?: boolean;
 }

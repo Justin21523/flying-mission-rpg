@@ -8,6 +8,7 @@ import { syncEditorQuests } from '../../game/editor/editorQuestToQuest';
 import { validateQuestLive } from '../../game/editor/validateQuest';
 import { Field, inp, csv, parseCsv, useNpcOptions, useQuestOptions, useAreaOptions } from './editorShared';
 import { IdSelect, IdMultiPicker } from './idPickers';
+import { ConditionEditor } from './ConditionEditor';
 import { QuestObjectiveEditor } from './QuestObjectiveEditor';
 import { QuestRewardEditor } from './QuestRewardEditor';
 import { QuestFlowPreview } from './QuestFlowPreview';
@@ -67,11 +68,28 @@ export const QuestInspector = ({ eq }: { eq: EditorQuest }) => {
         <Field label="prerequisiteQuestIds"><IdMultiPicker ids={eq.prerequisiteQuestIds} onChange={(v) => set({ prerequisiteQuestIds: v })} options={questOptions} addLabel="+ add prerequisite…" /></Field>
         <Field label="next quest (chains on complete)"><IdSelect value={eq.nextQuestId} onChange={(v) => set({ nextQuestId: v })} options={questOptions} placeholder="(none)" /></Field>
         <Field label="auto-start when flag set"><input value={eq.autoStartFlag ?? ''} onChange={(e) => set({ autoStartFlag: e.target.value || undefined })} className={inp} placeholder="(world flag id)" /></Field>
+        <Field label="time limit (s, 0 = none)"><input type="number" min={0} value={eq.timeLimitSec ?? 0} onChange={(e) => set({ timeLimitSec: parseInt(e.target.value, 10) || undefined })} className={inp} /></Field>
+        <Field label="fail flag (set on timeout)"><input value={eq.failFlag ?? ''} onChange={(e) => set({ failFlag: e.target.value || undefined })} className={inp} placeholder="(world flag id)" /></Field>
+        <Field label="repeat cooldown (s)"><input type="number" min={0} value={eq.repeatCooldownSec ?? 0} onChange={(e) => set({ repeatCooldownSec: parseInt(e.target.value, 10) || undefined })} className={inp} /></Field>
         <label className="col-span-2 flex items-center gap-3 text-xs text-slate-400">
           <span className="flex items-center gap-1"><input type="checkbox" checked={!!eq.repeatable} onChange={(e) => set({ repeatable: e.target.checked })} className="accent-sky-500" />repeatable</span>
           <span className="flex items-center gap-1"><input type="checkbox" checked={!!eq.daily} onChange={(e) => set({ daily: e.target.checked })} className="accent-sky-500" />daily</span>
           <span className="flex items-center gap-1"><input type="checkbox" checked={eq.isEnabled !== false} onChange={(e) => set({ isEnabled: e.target.checked })} className="accent-sky-500" />enabled</span>
         </label>
+      </div>
+
+      {/* prerequisites (rich conditions) — quest only starts when all pass */}
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Prerequisites · {eq.prerequisites?.length ?? 0}</span>
+        <button onClick={() => set({ prerequisites: [...(eq.prerequisites ?? []), { type: 'worldFlagSet', flag: '' }] })} className="rounded border border-emerald-700/50 bg-emerald-700/20 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/30">+ condition</button>
+      </div>
+      <div className="space-y-1">
+        {(eq.prerequisites ?? []).map((c, i) => (
+          <div key={i} className="flex items-end gap-1 rounded border border-slate-700/60 bg-slate-900/40 p-1.5">
+            <ConditionEditor value={c} onChange={(v) => { const next = [...(eq.prerequisites ?? [])]; if (!v) next.splice(i, 1); else next[i] = v; set({ prerequisites: next }); }} />
+            <button onClick={() => set({ prerequisites: (eq.prerequisites ?? []).filter((_, j) => j !== i) })} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">✕</button>
+          </div>
+        ))}
       </div>
 
       {/* objectives */}

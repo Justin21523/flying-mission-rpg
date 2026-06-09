@@ -14,6 +14,7 @@ import { getNpcProfile } from '../../data/npcs';
 import { getEditorNpc, getEditorDialogueTree } from '../../stores/editorNpcStore';
 import { getDialogueTree } from '../dialogue/dialogueRegistry';
 import { evaluateCondition } from '../evaluateCondition';
+import { canStartQuest } from '../quest/questPrereqs';
 import type { EditorNpc } from '../../types/editorNPC';
 import { getDoorDef } from '../../data/doors';
 import { getAreaEntities } from '../../data/areaEntities';
@@ -73,7 +74,7 @@ export const InteractionHandler = () => {
           if (completable) { qs.completeQuest(completable.id); }
           const startable = (enpc.startsQuestIds ?? [])
             .map((id) => qs.getQuestById(id))
-            .find((q) => q && q.status === 'NotStarted');
+            .find((q) => q && q.status === 'NotStarted' && canStartQuest(q.id));
           if (startable) { qs.startQuest(startable.id); }
           // Functional roles: host starts a mini-game / hunt; vendor opens a shop.
           if (enpc.hostsActivityId) {

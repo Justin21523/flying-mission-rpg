@@ -14,6 +14,7 @@ import { useToolStore } from '../stores/toolStore';
 import { useTransformStore } from '../stores/transformStore';
 import type { PoliCharId, PoliForm } from '../stores/transformStore';
 import { spawnRandomIncident } from './incident/spawnIncident';
+import { canStartQuest } from './quest/questPrereqs';
 
 // Kit — apply a generic dialogue/choice/quest effect to the live stores. Add a case here when you add
 // an effect kind to DialogueEffect.
@@ -38,7 +39,7 @@ export function executeEffect(effect: DialogueEffect): void {
       useQuestStore.getState().updateObjective(effect.questId, effect.objectiveId, true);
       break;
     case 'startQuest':
-      useQuestStore.getState().startQuest(effect.questId);
+      if (canStartQuest(effect.questId)) useQuestStore.getState().startQuest(effect.questId);
       break;
     case 'completeQuest':
       useQuestStore.getState().completeQuest(effect.questId);

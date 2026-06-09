@@ -9,6 +9,7 @@ import { useWalletStore } from '../../stores/walletStore';
 import { useYokaiCombatStore } from '../../stores/yokaiCombatStore';
 import { useEditorQuestStore } from '../../stores/editorQuestStore';
 import { syncEditorQuests } from '../editor/editorQuestToQuest';
+import { canStartQuest, tickQuestTimers } from './questPrereqs';
 
 // Kit — generic auto-tracker for quests (replaces the yokai-specific YokaiQuestCondition system). Scans
 // InProgress quests' objective `track` hints against live store signals and flips isCompleted when met.
@@ -55,7 +56,7 @@ export function runQuestTracking(): void {
       if (eq.isEnabled === false || !eq.autoStartFlag || !flags.hasFlag(eq.autoStartFlag)) continue;
       if (!qs.getQuestById(eq.id)) syncEditorQuests();
       const cur = qs.getQuestById(eq.id);
-      if (cur && cur.status === 'NotStarted') qs.startQuest(eq.id);
+      if (cur && cur.status === 'NotStarted' && canStartQuest(eq.id)) qs.startQuest(eq.id);
     }
   } finally {
     running = false;
@@ -69,6 +70,7 @@ export const QuestTrackerController = () => {
     let lastArea = usePlayerStore.getState().currentAreaId;
     useFlagStore.getState().setFlag(`visited_${lastArea}`);
     runQuestTracking();
+    const timer = setInterval(tickQuestTimers, 1000); // fail time-limited quests on expiry
     const unsubs = [
       useInventoryStore.subscribe(runQuestTracking),
       useFlagStore.subscribe(runQuestTracking),
@@ -84,7 +86,7 @@ export const QuestTrackerController = () => {
         }
       }),
     ];
-    return () => unsubs.forEach((u) => u());
+    return () => { unsubs.forEach((u) => u()); clearInterval(timer); };
   }, []);
   return null;
 };

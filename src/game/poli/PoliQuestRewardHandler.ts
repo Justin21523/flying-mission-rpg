@@ -7,6 +7,7 @@ import { useJinResearchStore } from '../../stores/jinResearchStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { useEditorQuestStore } from '../../stores/editorQuestStore';
 import { syncEditorQuests } from '../editor/editorQuestToQuest';
+import { markQuestCompleted } from '../quest/questPrereqs';
 import { playSfx } from '../audio/sfx';
 
 // POLI quest reward handler (seam #2).
@@ -21,6 +22,7 @@ export function setupPoliQuestRewards(): void {
     );
     if (reward.exp) useProgressionStore.getState().addExp(reward.exp);
     if (reward.coins) useWalletStore.getState().addCoins(reward.coins);
+    markQuestCompleted(quest.id); // for repeat-cooldown gating
     // Branching: when this quest defines a nextQuestId, auto-start it on completion.
     const eq = useEditorQuestStore.getState().quests.find((q) => q.id === quest.id);
     if (eq?.nextQuestId) { syncEditorQuests(); useQuestStore.getState().startQuest(eq.nextQuestId); }
