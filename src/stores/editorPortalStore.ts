@@ -10,6 +10,7 @@ import { objKey } from '../game/edit/sceneEditMerge';
 interface EditorPortalState {
   portals: PortalDef[];
   addPortal: (areaId: string) => string;
+  createPair: (areaA: string, areaB: string) => void; // one door in each area, linked to each other
   updatePortal: (id: string, patch: Partial<PortalDef>) => void;
   removePortal: (id: string) => void;
   importState: (data: { portals?: PortalDef[] }) => void;
@@ -47,6 +48,15 @@ export const useEditorPortalStore = create<EditorPortalState>((set, get) => {
       set({ portals: [...get().portals, portal] }); save();
       useSceneEditStore.getState().requestSelect(objKey(areaId, 'landmark', id)); // gizmo appears on the new portal
       return id;
+    },
+    createPair: (areaA, areaB) => {
+      const idA = uid();
+      const idB = `${uid()}b`;
+      const posA: [number, number, number] = [Math.round(editorSpawn.x * 100) / 100, 0, Math.round(editorSpawn.z * 100) / 100];
+      const a: PortalDef = { id: idA, areaId: areaA, name: 'Door ⇄', position: posA, activation: 'interact', radius: 2.5, targetAreaId: areaB, targetPortalId: idB, interior: true, color: '#f97316' };
+      const b: PortalDef = { id: idB, areaId: areaB, name: 'Door ⇄', position: [0, 0, 0], activation: 'interact', radius: 2.5, targetAreaId: areaA, targetPortalId: idA, interior: true, color: '#f97316' };
+      set({ portals: [...get().portals, a, b] }); save();
+      useSceneEditStore.getState().requestSelect(objKey(areaA, 'landmark', idA)); // gizmo on the door in THIS area
     },
     updatePortal: (id, patch) => { set({ portals: get().portals.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); save(); },
     removePortal: (id) => { set({ portals: get().portals.filter((p) => p.id !== id) }); save(); },

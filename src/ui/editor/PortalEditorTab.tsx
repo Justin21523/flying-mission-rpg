@@ -44,6 +44,18 @@ export const PortalEditorTab = () => {
         <span className={lbl}>🚪 Portals ({portals.length})</span>
         <button onClick={() => st.addPortal(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ at cam (in “{areaName(areaId)}”)</button>
       </div>
+      {/* One-click correct setup: a linked pair = one door here, one in the chosen area, each exiting at the other. */}
+      <div className="flex items-center gap-2 rounded-lg border border-sky-700/40 bg-sky-950/20 px-2 py-1.5">
+        <span className="text-[11px] text-sky-200">🔗 Create linked pair: “{areaName(areaId)}” ⇄</span>
+        <select
+          defaultValue=""
+          onChange={(e) => { if (e.target.value) { st.createPair(areaId, e.target.value); e.target.value = ''; } }}
+          className={inp + ' flex-1'}
+        >
+          <option value="">pick the other area…</option>
+          {areaOptions.filter((o) => o.id !== areaId).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </select>
+      </div>
       <div className="text-[10px] text-amber-300/80">A linked pair needs ONE door in each area: e.g. a door whose <b>lives in = HQ interior</b> &amp; <b>target = outside</b>, plus a door whose <b>lives in = outside</b> &amp; <b>target = HQ interior</b>. Each comes out beside the other.</div>
       {portals.length === 0 && <div className="text-[11px] text-slate-500">No portals yet. Add one at the camera focus, then set its “lives in” + target areas.</div>}
 
