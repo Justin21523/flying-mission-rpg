@@ -4,17 +4,14 @@ import type { Group } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useBoostStore, isAttracting } from '../../stores/boostStore';
 import { useEditorBoostStore } from '../../stores/editorBoostStore';
-import { getAreaSize } from '../../stores/editorWorldStore';
 import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
+import { computePickupPositions } from './pickupScatter';
 
 // POLI seam #1 — ground pickups that fill the boost meter. Scattered deterministically within the area
 // bounds; collected on proximity (and drawn toward the player while an attract ability is active). All
 // config (model / value / count / spread) is editable in the ⭐ Boost tab. Respawns on area re-entry.
 
 const COLLECT_R = 1.7;
-
-// Deterministic pseudo-random in [0,1).
-const rand = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
 const Pickup = ({ pos, value, model }: { pos: [number, number, number]; value: number; model: string }) => {
   const ref = useRef<Group>(null);
@@ -53,19 +50,7 @@ export const PickupLayer = ({ areaId }: { areaId: string }) => {
   const value = useEditorBoostStore((s) => s.pickupValue);
   const model = useEditorBoostStore((s) => s.pickupModelAssetId);
 
-  const positions = useMemo(() => {
-    const lim = Math.min(spread, getAreaSize(areaId) - 4);
-    // Hash the areaId so each area gets a stable but distinct scatter.
-    let h = 0;
-    for (let i = 0; i < areaId.length; i++) h = (h * 31 + areaId.charCodeAt(i)) >>> 0;
-    const out: [number, number, number][] = [];
-    for (let i = 0; i < count; i++) {
-      const x = (rand(h + i * 2 + 1) - 0.5) * 2 * lim;
-      const z = (rand(h + i * 2 + 2) - 0.5) * 2 * lim;
-      out.push([Math.round(x), 0, Math.round(z)]);
-    }
-    return out;
-  }, [areaId, count, spread]);
+  const positions = useMemo(() => computePickupPositions(areaId, count, spread), [areaId, count, spread]);
 
   if (count <= 0) return null;
   return <>{positions.map((p, i) => <Pickup key={`${areaId}-${i}`} pos={p} value={value} model={model} />)}</>;
