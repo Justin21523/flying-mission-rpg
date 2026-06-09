@@ -1,6 +1,7 @@
 import type { DialogueEffect } from '../types/dialogue';
 import type { ToolId } from '../types/tool';
 import { useInventoryStore } from '../stores/inventoryStore';
+import { getItem } from '../data/items';
 import { useQuestStore } from '../stores/questStore';
 import { useFlagStore } from '../stores/flagStore';
 import { useDialogueStore } from '../stores/dialogueStore';
@@ -22,6 +23,16 @@ export function executeEffect(effect: DialogueEffect): void {
     case 'giveItem':
       useInventoryStore.getState().addItem(effect.itemId, effect.quantity ?? 1);
       break;
+    case 'giftItem': {
+      // Player gives an item to an NPC → remove it + raise that NPC's trust by the item's giftTrust.
+      const inv = useInventoryStore.getState();
+      if (inv.hasItem(effect.itemId)) {
+        inv.removeItem(effect.itemId, 1);
+        const gt = getItem(effect.itemId)?.giftTrust ?? 0;
+        if (gt > 0) useRelationshipStore.getState().increaseTrust(effect.characterId, gt);
+      }
+      break;
+    }
     case 'updateObjective':
     case 'completeObjective':
       useQuestStore.getState().updateObjective(effect.questId, effect.objectiveId, true);

@@ -51,6 +51,7 @@ export type DialogueCondition =
 export type DialogueEffect =
   | { type: 'addItem'; itemId: string; quantity?: number }
   | { type: 'giveItem'; itemId: string; quantity?: number }
+  | { type: 'giftItem'; itemId: string; characterId: string } // player gives item → NPC trust (item.giftTrust)
   | { type: 'updateObjective'; questId: string; objectiveId: string }
   | { type: 'completeObjective'; questId: string; objectiveId: string }
   | { type: 'startQuest'; questId: string }

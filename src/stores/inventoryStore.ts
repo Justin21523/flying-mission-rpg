@@ -1,5 +1,20 @@
 import { create } from 'zustand';
 import { getItem } from '../data/items';
+import type { ItemUseEffect } from '../types/item';
+import { useWalletStore } from './walletStore';
+import { useProgressionStore } from './progressionStore';
+import { useFlagStore } from './flagStore';
+import { useBoostStore } from './boostStore';
+
+// Apply a consumable item's on-use effect (coins / exp / world flag / boost-meter heal).
+function applyItemUseEffect(eff?: ItemUseEffect): void {
+  if (!eff || eff.kind === 'none') return;
+  const amt = eff.amount ?? 0;
+  if (eff.kind === 'coins') useWalletStore.getState().addCoins(amt || 1);
+  else if (eff.kind === 'exp') useProgressionStore.getState().addExp(amt || 1);
+  else if (eff.kind === 'flag' && eff.flag) useFlagStore.getState().setFlag(eff.flag);
+  else if (eff.kind === 'heal') useBoostStore.getState().addMeter(amt || 25);
+}
 
 // Kit — itemId → quantity inventory, plus a set of world item ids that have been picked up (so the
 // world layer can stop rendering them). Generic; the yokai quest-tracker hook was removed.
@@ -47,6 +62,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     if (!item || !item.consumable) return false;
     if (get().getItemQuantity(id) > 0) {
       get().removeItem(id, 1);
+      applyItemUseEffect(item.useEffect);
       return true;
     }
     return false;

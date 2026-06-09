@@ -19,7 +19,7 @@ export const DIALOGUE_EMOTIONS: DialogueEmotion[] = [
 
 export const DIALOGUE_EFFECT_TYPES: DialogueEffectType[] = [
   'startQuest', 'completeQuest', 'updateObjective', 'completeObjective',
-  'addItem', 'giveItem', 'setWorldFlag', 'startBattle', 'startActivity', 'closeDialogue',
+  'addItem', 'giveItem', 'giftItem', 'setWorldFlag', 'startBattle', 'startActivity', 'closeDialogue',
   'increaseTrust', 'startIncident', 'unlockTool',
   'setForm', 'setActiveCharacter', 'spawnRandomIncident',
 ];
@@ -37,6 +37,7 @@ export const EFFECT_FIELDS: Record<DialogueEffectType, MechField[]> = {
   completeObjective: [{ key: 'questId', label: 'questId', kind: 'string' }, { key: 'objectiveId', label: 'objectiveId', kind: 'string' }],
   addItem: [{ key: 'itemId', label: 'itemId', kind: 'string' }, { key: 'quantity', label: 'quantity', kind: 'number', optional: true }],
   giveItem: [{ key: 'itemId', label: 'itemId', kind: 'string' }, { key: 'quantity', label: 'quantity', kind: 'number', optional: true }],
+  giftItem: [{ key: 'itemId', label: 'itemId', kind: 'string' }, { key: 'characterId', label: 'characterId', kind: 'string' }],
   setWorldFlag: [{ key: 'flag', label: 'flag', kind: 'string' }],
   startBattle: [{ key: 'encounterId', label: 'encounterId', kind: 'string' }],
   startActivity: [{ key: 'activityId', label: 'activityId', kind: 'string' }],
