@@ -142,15 +142,18 @@ export const PlayerMesh = () => {
   const robotH = override?.robotHeight ?? base?.robotHeight ?? ROBOT_HEIGHT;
   const yOff = override?.modelYOffset ?? base?.modelYOffset ?? 0;
   const rules = override?.animations ?? base?.animations ?? [];
+  // Correct the model's authored forward axis so the character faces forward (these GLBs face +X by default;
+  // -90° turns that to +Z = away from the start camera = forward). Editable per character in the POLI tab.
+  const yawRad = ((override?.modelYawDeg ?? base?.modelYawDeg ?? -90) * Math.PI) / 180;
 
   return (
-    <>
+    <group rotation={[0, yawRad, 0]}>
       <Suspense fallback={<Capsule />}>
         {carPath && robotPath
           ? <BothForms key={charId} carPath={carPath} robotPath={robotPath} form={form} carH={carH} robotH={robotH} yOff={yOff} rules={rules} />
           : <Capsule />}
       </Suspense>
       {canFly && flying && <HelicopterRotor />}
-    </>
+    </group>
   );
 };

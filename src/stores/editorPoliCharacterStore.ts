@@ -37,6 +37,7 @@ export interface CharacterOverride {
   vehicleHeight?: number;
   robotHeight?: number;
   modelYOffset?: number;
+  modelYawDeg?: number;
 }
 
 interface EditorPoliCharacterState {
@@ -130,5 +131,6 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.vehicleHeight !== undefined && { vehicleHeight: ov.vehicleHeight }),
     ...(ov.robotHeight !== undefined && { robotHeight: ov.robotHeight }),
     ...(ov.modelYOffset !== undefined && { modelYOffset: ov.modelYOffset }),
+    ...(ov.modelYawDeg !== undefined && { modelYawDeg: ov.modelYawDeg }),
   };
 }

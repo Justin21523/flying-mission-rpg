@@ -155,6 +155,10 @@ export const PoliCharacterEditorTab = () => {
                   <input type="number" step={0.05} className={inp} value={sel.modelYOffset ?? 0}
                     onChange={(e) => set({ modelYOffset: parseFloat(e.target.value) || 0 })} />
                 </Field>
+                <Field label="Facing yaw (°)">
+                  <input type="number" step={15} className={inp} value={sel.modelYawDeg ?? -90}
+                    onChange={(e) => set({ modelYawDeg: parseFloat(e.target.value) || 0 })} />
+                </Field>
               </div>
 
               <Field label="Can Fly (F to fly, e.g. Helly)">

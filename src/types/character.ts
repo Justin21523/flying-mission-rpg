@@ -63,4 +63,5 @@ export interface CharacterDefinition {
   vehicleHeight?: number;    // normalize target height of the vehicle/car model (editable, default 1.4)
   robotHeight?: number;      // normalize target height of the robot model (editable, default 1.9)
   modelYOffset?: number;     // extra vertical nudge applied to the model (editable, default 0)
+  modelYawDeg?: number;      // yaw (deg) correcting the model's authored forward axis so it faces forward (editable, default 0)
 }
