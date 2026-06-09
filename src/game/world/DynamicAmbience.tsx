@@ -8,6 +8,7 @@ import { resolveAreaTheme } from '../environment/areaBiome';
 import { applyBiomeTint, getIndoorAmbience, getInterpolatedAmbience } from './worldAmbience';
 import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
 import { resolveAreaEnvironment, resolvedBackgroundColor } from '../environment/resolveAreaEnvironment';
+import { getWorldArea } from '../../stores/editorWorldStore';
 import { LOCK_TIME_MINUTE } from '../../types/environmentOverride';
 import { EnvironmentBackdrop } from './EnvironmentBackdrop';
 
@@ -53,7 +54,9 @@ export const DynamicAmbience = () => {
     }
     if (ambientRef.current) {
       ambientRef.current.color.set(a.ambient.color);
-      ambientRef.current.intensity = a.ambient.intensity * (env.ambientIntensity ?? 1);
+      // Per-area ambient multiplier (🗺 World tab) on top of the environment override.
+      const areaScale = getWorldArea(areaId)?.ambientScale ?? 1;
+      ambientRef.current.intensity = a.ambient.intensity * (env.ambientIntensity ?? 1) * areaScale;
     }
     if (dirRef.current) {
       dirRef.current.color.set(a.directional.color);

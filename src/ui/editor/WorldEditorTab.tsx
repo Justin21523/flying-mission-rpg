@@ -1,14 +1,15 @@
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { usePlayerStore } from '../../stores/playerStore';
-import { editorSpawn } from '../../stores/sceneEditStore';
+import { editorSpawn, useSceneEditStore } from '../../stores/sceneEditStore';
+import { objKey } from '../../game/edit/sceneEditMerge';
 import { getKitArea } from '../../data/areas';
 import { getEffectiveAreaSize } from '../../game/world/areaExtent';
 import { BIOME_THEMES } from '../../data/environmentThemes';
 import { TEXTURE_SETS } from '../../game/world/textureLibrary';
 import { defaultNormalizeFor } from '../../game/world/normalizeDefault';
-import { DISTRICT_CATEGORIES, DISTRICT_CATEGORY_LABEL, EDGE_DIRS } from '../../types/world';
-import type { DistrictCategory } from '../../types/world';
+import { DISTRICT_CATEGORIES, DISTRICT_CATEGORY_LABEL, EDGE_DIRS, MAP_POINT_TYPES, MAP_POINT_ICON } from '../../types/world';
+import type { DistrictCategory, MapPointType } from '../../types/world';
 import { Field, inp, lbl } from './editorShared';
 import { ModelPicker } from './ModelPicker';
 import { useState } from 'react';
@@ -125,8 +126,13 @@ const AreaProps = ({ areaId }: { areaId: string }) => {
             </select>
           </Field>
         </div>
+        <div className="mt-1 grid grid-cols-2 gap-2">
+          <Field label="ambient light ×"><input type="number" step={0.1} min={0} max={3} value={area.ambientScale ?? 1} onChange={(e) => w.updateArea(areaId, { ambientScale: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+          <Field label="music tag"><input value={area.musicTag ?? ''} onChange={(e) => w.updateArea(areaId, { musicTag: e.target.value })} className={inp} placeholder="e.g. town_day" /></Field>
+        </div>
         <Field label="notes"><input value={area.notes ?? ''} onChange={(e) => w.updateArea(areaId, { notes: e.target.value })} className={inp} placeholder="design notes" /></Field>
       </div>
+      <MapPointsPanel areaId={areaId} />
       <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
         <div className={lbl}>Edge neighbours (walk off an edge to travel)</div>
         <div className="mt-1 grid grid-cols-2 gap-2">
@@ -141,6 +147,79 @@ const AreaProps = ({ areaId }: { areaId: string }) => {
         </div>
         <p className="mt-1 text-[10px] text-slate-500">N=−z · S=+z · E=+x · W=−x · opposite edge auto-links back</p>
       </div>
+    </div>
+  );
+};
+
+// Named map points (POI / spawn / teleport / objective / vendor / danger) for an area. Each is gizmo-movable
+// in 3D (kind 'landmark'); positions shown here follow the gizmo live. Teleport points pick a destination.
+const MapPointsPanel = ({ areaId }: { areaId: string }) => {
+  const w = useEditorWorldStore();
+  const overrides = useSceneEditStore((s) => s.overrides); // live gizmo positions
+  const area = w.areas.find((a) => a.id === areaId);
+  const points = area?.points ?? [];
+  const [addType, setAddType] = useState<MapPointType>('poi');
+  const areaOpts = w.areas.map((a) => ({ id: a.id, label: a.name }));
+  return (
+    <div className="space-y-2 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+      <div className="flex items-center justify-between">
+        <span className={lbl}>Map points ({points.length})</span>
+        <div className="flex gap-1">
+          <select value={addType} onChange={(e) => setAddType(e.target.value as MapPointType)} className={inp + ' w-auto'}>
+            {MAP_POINT_TYPES.map((t) => <option key={t} value={t}>{MAP_POINT_ICON[t]} {t}</option>)}
+          </select>
+          <button onClick={() => w.addPoint(areaId, addType)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[10px] text-emerald-100 hover:bg-emerald-700/50">➕ at cam</button>
+        </div>
+      </div>
+      {points.length === 0 && <div className="text-[10px] text-slate-500">No points. Pick a type and add one at the camera focus, then drag its gizmo in 3D.</div>}
+      {points.map((pt) => {
+        const livePos = (overrides[objKey(areaId, 'landmark', pt.id)]?.position ?? pt.position) as [number, number, number];
+        return (
+          <div key={pt.id} className="space-y-1 rounded border border-slate-700/60 bg-slate-900/50 p-1.5">
+            <div className="flex items-center gap-1">
+              <span>{MAP_POINT_ICON[pt.type]}</span>
+              <input value={pt.name} onChange={(e) => w.updatePoint(areaId, pt.id, { name: e.target.value })} className={inp + ' flex-1'} placeholder="point name" />
+              <select value={pt.type} onChange={(e) => w.updatePoint(areaId, pt.id, { type: e.target.value as MapPointType })} className={inp + ' w-auto'}>
+                {MAP_POINT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <button onClick={() => { useSceneEditStore.getState().requestSelect(objKey(areaId, 'landmark', pt.id)); }} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+              <button onClick={() => w.removePoint(areaId, pt.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+            </div>
+            <div className="flex items-center gap-1">
+              {([0, 1, 2] as const).map((a) => (
+                <input key={a} type="number" step={0.5} value={Math.round(livePos[a] * 100) / 100} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                  const next = [...livePos] as [number, number, number];
+                  next[a] = parseFloat(e.target.value) || 0;
+                  w.updatePoint(areaId, pt.id, { position: next });
+                  useSceneEditStore.getState().setOverride(objKey(areaId, 'landmark', pt.id), { position: undefined });
+                }} />
+              ))}
+              <input type="color" value={pt.color ?? '#38bdf8'} onChange={(e) => w.updatePoint(areaId, pt.id, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" title="marker colour" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-slate-400">model</span>
+              <ModelPicker value={pt.modelAssetId ?? undefined} onChange={(v) => w.updatePoint(areaId, pt.id, { modelAssetId: v ?? undefined })} noneLabel="(marker stub)" />
+            </div>
+            {pt.type === 'teleport' && (
+              <div className="grid grid-cols-3 gap-1">
+                <label className="text-[9px] text-slate-400">radius<input type="number" step={0.5} min={0.5} value={pt.radius ?? 2} onChange={(e) => w.updatePoint(areaId, pt.id, { radius: parseFloat(e.target.value) || 0.5 })} className={inp} /></label>
+                <label className="text-[9px] text-slate-400">→ area
+                  <select value={pt.targetAreaId ?? ''} onChange={(e) => w.updatePoint(areaId, pt.id, { targetAreaId: e.target.value || undefined, targetPointId: undefined })} className={inp}>
+                    <option value="">(this area)</option>
+                    {areaOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                  </select>
+                </label>
+                <label className="text-[9px] text-slate-400">→ point
+                  <select value={pt.targetPointId ?? ''} onChange={(e) => w.updatePoint(areaId, pt.id, { targetPointId: e.target.value || undefined })} className={inp}>
+                    <option value="">(spawn)</option>
+                    {(w.areas.find((a) => a.id === (pt.targetAreaId || areaId))?.points ?? []).filter((p) => p.id !== pt.id).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

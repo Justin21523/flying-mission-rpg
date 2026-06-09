@@ -10,6 +10,7 @@ import { SceneSetPieceLayer } from './SceneSetPieceLayer';
 import { SampleEntities } from './SampleEntities';
 import { EditableNpcLayer } from './EditableNpcLayer';
 import { LandmarkLayer } from './LandmarkLayer';
+import { MapPointLayer } from './MapPointLayer';
 import { LayoutLayer } from './LayoutLayer';
 import { EdgeTransitionLayer } from './EdgeTransitionLayer';
 import { PickupLayer } from '../poli/PickupLayer';
@@ -87,6 +88,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <PickupLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
       <LandmarkLayer areaId={areaId} />
+      {/* POLI seam #1f: named map points (POI / spawn / teleport) authored in the 🗺 World tab. */}
+      <MapPointLayer areaId={areaId} />
       <EditableTriggerRenderer areaId={areaId} />
       <QuestMarkerRenderer areaId={areaId} />
       <EncounterMarkerRenderer areaId={areaId} />

@@ -8,6 +8,7 @@ import { computePickupPositions } from '../../game/poli/pickupScatter';
 import { resolveAreaTheme } from '../../game/environment/areaBiome';
 import { getKitArea } from '../../data/areas';
 import type { EdgeDir } from '../../types/world';
+import { MAP_POINT_COLOR } from '../../types/world';
 import { usePoll } from '../usePoll';
 
 // POLI — 🛰 radar/detector HUD (top-centre). A live top-down scope: the player at the centre, nearby NPCs
@@ -36,6 +37,7 @@ export const MiniMapHUD = () => {
   const scale = R / range;
   const px = pos?.x ?? 0, pz = pos?.z ?? 0;
 
+  const points = area?.points ?? [];
   const npcs = useEditorNpcStore.getState().addedNpcs.filter((n) => n.areaId === areaId);
   const incidents = useIncidentStore.getState().getActiveForArea(areaId);
   const bcfg = useEditorBoostStore.getState();
@@ -52,6 +54,7 @@ export const MiniMapHUD = () => {
         <div className="absolute inset-0 animate-spin rounded-full" style={{ animationDuration: '3s', background: 'conic-gradient(from 0deg, rgba(34,211,238,0.30), rgba(34,211,238,0) 70deg)' }} />
         {/* pickups / incidents / npcs */}
         {pickups.map((p, i) => <Dot key={`pk${i}`} x={p[0] - px} z={p[2] - pz} scale={scale} color="#fde047" size={4} />)}
+        {points.map((p) => <Dot key={p.id} x={p.position[0] - px} z={p.position[2] - pz} scale={scale} color={p.color || MAP_POINT_COLOR[p.type]} size={7} />)}
         {npcs.map((n) => <Dot key={n.id} x={n.position[0] - px} z={n.position[2] - pz} scale={scale} color="#38bdf8" />)}
         {incidents.map((d) => <Dot key={d.id} x={d.markerPosition[0] - px} z={d.markerPosition[2] - pz} scale={scale} color="#ef4444" size={8} />)}
         {/* edge exits on the rim */}

@@ -3,6 +3,7 @@ import { getWorldAreas } from '../../stores/editorWorldStore';
 import { getKitArea } from '../../data/areas';
 import { resolveAreaTheme } from '../../game/environment/areaBiome';
 import type { EdgeDir, WorldArea } from '../../types/world';
+import { MAP_POINT_ICON } from '../../types/world';
 import { PanelCard, closePanel } from './playShared';
 
 // POLI — 🗺 World Map: a clickable GRID laid out from each area's edge links (east=+col, west=-col,
@@ -72,6 +73,11 @@ export const MapPanel = () => {
             >
               <span className="leading-tight">{here ? '📍 ' : ''}{area.name}</span>
               <span className="text-[8px] font-normal text-white/70">{area.biome ?? ''}</span>
+              {(area.points?.length ?? 0) > 0 && (
+                <span className="mt-0.5 flex gap-0.5 text-[8px] leading-none">
+                  {area.points!.slice(0, 6).map((p) => <span key={p.id} title={p.name}>{MAP_POINT_ICON[p.type]}</span>)}
+                </span>
+              )}
             </button>
           );
         })}
