@@ -11,7 +11,7 @@ import type { AddedPiece } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { CollidableGlb } from '../edit/CollidableGlb';
 import { AnimatedGlbModel } from './AnimatedGlbModel';
-import { resolveModelAsset } from '../../stores/modelStudioStore';
+import { resolveModelAsset, useModelStudioStore } from '../../stores/modelStudioStore';
 
 // Phase 86 — renders the authored GLB set-pieces for the current area (visual only).
 // Phase 89/90 — each placement reads its merged transform (authored ⊕ baked ⊕ live edit)
@@ -24,6 +24,9 @@ const SetPiece = ({ objKey: key, assetId, base }: { objKey: string; assetId: str
   const collision = useCollision(key);
   const shapePref = useCollisionShape(key);
   const hidden = useIsHiddenByClear(key);
+  // Subscribe to this asset's Model-Studio override so editing its animation rules (or transform) re-renders
+  // here live — switching to/from the animated renderer and picking up changed rules without a reload.
+  useModelStudioStore((s) => s.overrides[assetId]);
 
   if (hidden) return null;
   if (editMode) {
