@@ -17,6 +17,8 @@ export const CORE_TEAM: CharacterDefinition[] = [
     modelVehiclePath: '/models/characters/Poli car 3d model.glb',
     abilityName: 'Rescue Rally',
     abilityColor: '#3b82f6',
+    abilityType: 'scan_pulse',
+    abilityRadius: 14, abilityDuration: 5, abilityStrength: 1, abilityCooldownSec: 6,
   },
   {
     id: 'roy',

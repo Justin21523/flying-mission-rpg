@@ -38,13 +38,28 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 function persist(s: Pick<EditorWorldState, 'districts' | 'areas' | 'useEdgeWalk' | 'fadeEnabled'>): void {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ districts: s.districts, areas: s.areas, useEdgeWalk: s.useEdgeWalk, fadeEnabled: s.fadeEnabled })); } catch { /* ignore */ }
 }
+// Migrate older saved areas (Iteration 6) that have connectedAreaIds but no size/edges, so walk-between-
+// areas works on existing saves: copy size/edges from the seed by id, else derive edges from connections.
+function migrateArea(a: WorldArea, seedById: Map<string, WorldArea>): WorldArea {
+  const seed = seedById.get(a.id);
+  let edges = a.edges && Object.keys(a.edges).length ? a.edges : seed?.edges;
+  if (!edges) {
+    const dirs: EdgeDir[] = ['north', 'east', 'south', 'west'];
+    edges = {};
+    (a.connectedAreaIds ?? []).slice(0, 4).forEach((n, i) => { (edges as Record<string, string>)[dirs[i]] = n; });
+  }
+  return { ...a, size: a.size ?? seed?.size ?? 40, edges: clone(edges) };
+}
+
 function load(): Pick<EditorWorldState, 'districts' | 'areas' | 'useEdgeWalk' | 'fadeEnabled'> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const p = JSON.parse(raw);
       if (Array.isArray(p.districts) && Array.isArray(p.areas)) {
-        return { districts: p.districts, areas: p.areas, useEdgeWalk: p.useEdgeWalk !== false, fadeEnabled: p.fadeEnabled !== false };
+        const seedById = new Map(BROOMS_TOWN_WORLD_AREAS.map((a) => [a.id, a]));
+        const areas = (p.areas as WorldArea[]).map((a) => migrateArea(a, seedById));
+        return { districts: p.districts, areas, useEdgeWalk: p.useEdgeWalk !== false, fadeEnabled: p.fadeEnabled !== false };
       }
     }
   } catch { /* ignore */ }
