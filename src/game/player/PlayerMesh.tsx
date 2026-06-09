@@ -1,35 +1,32 @@
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { Box3, Vector3 } from 'three';
+import { useFrame } from '@react-three/fiber';
+import { Box3, Vector3, AnimationMixer, LoopOnce, LoopRepeat, type AnimationAction } from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 import { useTransformStore, POLI_ROSTER, type PoliForm } from '../../stores/transformStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
+import { useAnimClipStore } from '../../stores/animClipStore';
+import { playerMotion } from './playerMotion';
+import { playerKeysDown } from './playerInput';
 import { HelicopterRotor } from './HelicopterRotor';
+import type { AnimRule } from '../../types/character';
 
-// The player is one of the 4 main characters (cycle with C), each with two forms (toggle with T):
-//   • vehicle (default) → the character's car/helicopter model (modelVehiclePath)
-//   • robot             → the character's transformer model   (modelRobotPath)
-//
-// CRITICAL: the ACTIVE character's BOTH models are always mounted together (one <Suspense>) inside
-// the same moving+rotating group (Player.tsx). Three keeps updating an invisible object's world
-// matrix, so the hidden form keeps following the body — a transform is a pure visibility flip and
-// the revealed model is already at the correct position (no remount, no stale spot, no disappear).
-// Cloned via SkeletonUtils.clone so rigged models work; auto-normalized (recentred X/Z, feet at y=0).
-// Paths default to CORE_TEAM but are overridable per-character in the POLI tab.
+// The player is one of the main characters (cycle with C), each with two forms (toggle with T). Both form
+// models are always mounted (visibility toggled). Each model runs an AnimationMixer driven by the character's
+// custom animation RULES (POLI tab): every frame the highest-priority rule whose trigger matches the live
+// state plays its clip (crossfaded); `once`/`key` rules play through once (celebrate/dance). No rules → the
+// model's first clip loops. Models are SkeletonUtils-cloned (rigged) + Box3-normalised (feet at y=0).
 
 const CAR_HEIGHT = 1.4;
 const ROBOT_HEIGHT = 1.9;
 
-// Preload all 8 roster models (4 chars × 2 forms) so cycling / transforming is instant.
 for (const id of POLI_ROSTER) {
   const c = CORE_TEAM.find((x) => x.id === id);
   if (c?.modelVehiclePath) useGLTF.preload(c.modelVehiclePath);
   if (c?.modelRobotPath) useGLTF.preload(c.modelRobotPath);
 }
 
-// Placeholder shown only during first GLB load. The visual group's origin is at the feet (ground), so
-// the capsule centre sits at half its height (~0.95) to stand on the floor rather than sink halfway in.
 const Capsule = () => (
   <mesh castShadow position={[0, 0.95, 0]}>
     <capsuleGeometry args={[0.45, 1.0, 8, 16]} />
@@ -37,10 +34,30 @@ const Capsule = () => (
   </mesh>
 );
 
-const ModelView = ({ path, height, yOffset, visible }: { path: string; height: number; yOffset: number; visible: boolean }) => {
-  const { scene } = useGLTF(path);
+// Evaluate whether a rule's trigger matches the current live state.
+function ruleMatches(r: AnimRule, s: { speed: number; moving: boolean; sprinting: boolean; flying: boolean; form: PoliForm; ability: boolean }): boolean {
+  if (r.speedMin != null && s.speed < r.speedMin) return false;
+  if (r.speedMax != null && s.speed > r.speedMax) return false;
+  switch (r.trigger) {
+    case 'always': return true;
+    case 'idle': return !s.moving && !s.flying;
+    case 'moving': return s.moving;
+    case 'sprinting': return s.sprinting;
+    case 'flying': return s.flying;
+    case 'vehicle': return s.form === 'vehicle';
+    case 'robot': return s.form === 'robot';
+    case 'ability': return s.ability;
+    case 'key': return !!r.key && playerKeysDown.has(r.key);
+    default: return false;
+  }
+}
+
+const ModelView = ({ path, height, yOffset, visible, rules, active, form }: {
+  path: string; height: number; yOffset: number; visible: boolean; rules: AnimRule[]; active: boolean; form: PoliForm;
+}) => {
+  const { scene, animations } = useGLTF(path);
   const { clone, scale, offset } = useMemo(() => {
-    const c = SkeletonUtils.clone(scene); // not scene.clone() — keeps rigged models intact
+    const c = SkeletonUtils.clone(scene);
     const box = new Box3().setFromObject(c);
     const size = new Vector3();
     const center = new Vector3();
@@ -53,15 +70,84 @@ const ModelView = ({ path, height, yOffset, visible }: { path: string; height: n
     const oz = Number.isFinite(center.z) ? -center.z * s : 0;
     return { clone: c, scale: s, offset: [ox, oy, oz] as [number, number, number] };
   }, [scene, height, yOffset]);
+
+  const mixer = useMemo(() => new AnimationMixer(clone), [clone]);
+  const actions = useMemo(() => {
+    const m = new Map<string, AnimationAction>();
+    for (const c of animations ?? []) m.set(c.name, mixer.clipAction(c));
+    return m;
+  }, [animations, mixer]);
+  const firstClip = animations?.[0]?.name;
+
+  useEffect(() => {
+    useAnimClipStore.getState().setClips(path, (animations ?? []).map((c) => c.name));
+  }, [animations, path]);
+  useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
+
+  const st = useRef({ action: null as AnimationAction | null, lastAbility: 0, abilityUntil: 0, oneShotUntil: 0, prevOnce: new Set<string>() });
+
+  useFrame((_, dt) => {
+    mixer.update(dt);
+    if (!active) return; // only the visible form drives selection
+    const S = st.current;
+    const tnow = performance.now() / 1000;
+    const tf = useTransformStore.getState();
+    // 'ability' trigger stays active for ~0.8s after each ability use.
+    if (tf.abilityPulseId !== S.lastAbility) { S.lastAbility = tf.abilityPulseId; S.abilityUntil = tnow + 0.8; }
+    const speed = playerMotion.speed;
+    const moving = speed > 0.3 || playerMotion.moving;
+    const state = {
+      speed, moving,
+      sprinting: playerKeysDown.has('ShiftLeft') && moving,
+      flying: tf.flying,
+      form,
+      ability: tnow < S.abilityUntil,
+    };
+
+    // One-shot (once / key) rules: fire on rising edge, play through once.
+    for (const r of rules) {
+      if (!r.once || !actions.has(r.clip)) continue;
+      const on = ruleMatches(r, state);
+      const was = S.prevOnce.has(r.id);
+      if (on && !was) {
+        const a = actions.get(r.clip)!;
+        a.reset(); a.setLoop(LoopOnce, 1); a.clampWhenFinished = true;
+        a.fadeIn(r.crossfadeSec ?? 0.15).play();
+        S.oneShotUntil = tnow + a.getClip().duration;
+        if (S.action) S.action.fadeOut(r.crossfadeSec ?? 0.15);
+        S.action = null;
+      }
+      if (on) S.prevOnce.add(r.id); else S.prevOnce.delete(r.id);
+    }
+    if (tnow < S.oneShotUntil) return; // let the one-shot finish
+
+    // Highest-priority looping rule that matches + has a clip in this model.
+    let best: AnimRule | null = null;
+    let bestP = -Infinity;
+    for (const r of rules) {
+      if (r.once || !actions.has(r.clip)) continue;
+      if (!ruleMatches(r, state)) continue;
+      const p = r.priority ?? 0;
+      if (p > bestP) { bestP = p; best = r; }
+    }
+    const clip = best?.clip ?? firstClip;
+    if (!clip || !actions.has(clip)) return;
+    const next = actions.get(clip)!;
+    if (S.action !== next) {
+      const cf = best?.crossfadeSec ?? 0.2;
+      next.reset(); next.setLoop(LoopRepeat, Infinity); next.enabled = true; next.fadeIn(cf).play();
+      if (S.action) S.action.fadeOut(cf);
+      S.action = next;
+    }
+  });
+
   return <primitive object={clone} scale={scale} position={offset} visible={visible} />;
 };
 
-// Both forms of one character, always mounted; only visibility differs. Heights + y-offset are
-// per-character editable (POLI tab) so each model can be sized/seated correctly.
-const BothForms = ({ carPath, robotPath, form, carH, robotH, yOff }: { carPath: string; robotPath: string; form: PoliForm; carH: number; robotH: number; yOff: number }) => (
+const BothForms = ({ carPath, robotPath, form, carH, robotH, yOff, rules }: { carPath: string; robotPath: string; form: PoliForm; carH: number; robotH: number; yOff: number; rules: AnimRule[] }) => (
   <>
-    <ModelView path={carPath} height={carH} yOffset={yOff} visible={form === 'vehicle'} />
-    <ModelView path={robotPath} height={robotH} yOffset={yOff} visible={form === 'robot'} />
+    <ModelView path={carPath} height={carH} yOffset={yOff} visible={form === 'vehicle'} active={form === 'vehicle'} form={form} rules={rules} />
+    <ModelView path={robotPath} height={robotH} yOffset={yOff} visible={form === 'robot'} active={form === 'robot'} form={form} rules={rules} />
   </>
 );
 
@@ -78,14 +164,13 @@ export const PlayerMesh = () => {
   const carH = override?.vehicleHeight ?? base?.vehicleHeight ?? CAR_HEIGHT;
   const robotH = override?.robotHeight ?? base?.robotHeight ?? ROBOT_HEIGHT;
   const yOff = override?.modelYOffset ?? base?.modelYOffset ?? 0;
+  const rules = override?.animations ?? base?.animations ?? [];
 
-  // Keyed by charId: switching character mounts the new pair (the old unmounts) — hidden under the
-  // smoke cover. One <Suspense> so a capsule only shows during the very first load.
   return (
     <>
       <Suspense fallback={<Capsule />}>
         {carPath && robotPath
-          ? <BothForms key={charId} carPath={carPath} robotPath={robotPath} form={form} carH={carH} robotH={robotH} yOff={yOff} />
+          ? <BothForms key={charId} carPath={carPath} robotPath={robotPath} form={form} carH={carH} robotH={robotH} yOff={yOff} rules={rules} />
           : <Capsule />}
       </Suspense>
       {canFly && flying && <HelicopterRotor />}

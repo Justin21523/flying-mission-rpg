@@ -14,6 +14,7 @@ import { EditableObject } from '../edit/EditableObject';
 import { applyMovement } from './MovementStateMachine';
 import { PlayerMesh } from './PlayerMesh';
 import { playerMotion } from './playerMotion';
+import { playerKeysDown } from './playerInput';
 import { useBoostStore } from '../../stores/boostStore';
 
 // Merged (base ⊕ Edit-Mode override) data for the currently-active main character.
@@ -85,8 +86,9 @@ export const Player = () => {
         return;
       }
       keys.current[e.code] = true;
+      playerKeysDown.add(e.code); // shared for animation 'key' rules
     };
-    const up = (e: KeyboardEvent) => { keys.current[e.code] = false; };
+    const up = (e: KeyboardEvent) => { keys.current[e.code] = false; playerKeysDown.delete(e.code); };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };

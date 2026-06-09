@@ -12,6 +12,24 @@ export type SourceConfidence =
 export type AbilityType = 'water_spray' | 'wind_gust' | 'heal_aura' | 'scan_pulse' | 'speed_boost';
 export const ABILITY_TYPES: AbilityType[] = ['water_spray', 'wind_gust', 'heal_aura', 'scan_pulse', 'speed_boost'];
 
+// Custom animation rules (editable per character in the POLI tab). The player's animation system evaluates
+// every rule each frame and plays the highest-priority one whose trigger matches the current state. 'key'
+// rules play their clip on a key press (celebrate/dance); 'once' plays through then releases.
+export type AnimTrigger = 'always' | 'idle' | 'moving' | 'sprinting' | 'flying' | 'vehicle' | 'robot' | 'ability' | 'key';
+export const ANIM_TRIGGERS: AnimTrigger[] = ['always', 'idle', 'moving', 'sprinting', 'flying', 'vehicle', 'robot', 'ability', 'key'];
+export interface AnimRule {
+  id: string;
+  clip: string;          // animation clip name in the model
+  trigger: AnimTrigger;
+  speedMin?: number;     // optional horizontal-speed gate (m/s)
+  speedMax?: number;
+  key?: string;          // KeyboardEvent.code for trigger 'key' (e.g. 'KeyV')
+  priority?: number;     // higher wins when multiple rules match (default 0)
+  loop?: boolean;        // default true (false / once = play through once)
+  once?: boolean;        // play once on trigger, then release back to the matching looping rule
+  crossfadeSec?: number; // blend time, default 0.2
+}
+
 export interface CharacterDefinition {
   id: string;
   name: string;
@@ -40,6 +58,7 @@ export interface CharacterDefinition {
   superDurationSec?: number;   // how long super lasts
   superFlies?: boolean;        // super also forces flight
   afterimageColor?: string;    // colour of the afterimage (分身) trail
+  animations?: AnimRule[];     // custom animation trigger rules (editable in the POLI tab)
   vehicleHeight?: number;    // normalize target height of the vehicle/car model (editable, default 1.4)
   robotHeight?: number;      // normalize target height of the robot model (editable, default 1.9)
   modelYOffset?: number;     // extra vertical nudge applied to the model (editable, default 0)
