@@ -11,7 +11,11 @@ import { useSceneEditStore } from './sceneEditStore';
 // per-road closure + a global emergency-yield flag. Seeded from the built-in data; CRUD + per-id field edits;
 // auto-persisted. Runtime (trafficStore, TrafficLayer) reads these via the accessors. Roads are stored as
 // id/areaId/waypoints (+ optional closed) and the RoadPath (with lengths) is recomputed on demand.
-export interface EditorRoad { id: string; areaId: string; waypoints: [number, number, number][]; closed?: boolean }
+export interface EditorRoad {
+  id: string; areaId: string; waypoints: [number, number, number][]; closed?: boolean;
+  surfaceModelAssetId?: string; surfaceSpacing?: number; surfaceScale?: number; // tile a road model along the path
+  decorModelAssetId?: string; decorSpacing?: number; decorOffset?: number;       // roadside decor (lamps/signs/trees)
+}
 
 interface EditorTrafficState {
   vehicles: VehicleDefinition[];
@@ -28,6 +32,7 @@ interface EditorTrafficState {
   updateSignal: (id: string, patch: Partial<TrafficSignalDef>) => void;
   removeSignal: (id: string) => void;
   addRoad: (areaId: string) => void;
+  updateRoad: (id: string, patch: Partial<EditorRoad>) => void;
   updateRoadWaypoint: (id: string, index: number, pos: [number, number, number]) => void;
   addRoadWaypoint: (id: string, pos: [number, number, number]) => void;
   removeRoadWaypoint: (id: string, index: number) => void;
@@ -94,6 +99,7 @@ export const useEditorTrafficStore = create<EditorTrafficState>((set, get) => {
     updateSignal: (id, patch) => { set({ signals: get().signals.map((x) => (x.id === id ? { ...x, ...patch } : x)) }); save(); },
     removeSignal: (id) => { set({ signals: get().signals.filter((x) => x.id !== id) }); save(); },
     addRoad: (areaId) => { set({ roads: [...get().roads, { id: uid('path'), areaId, waypoints: [[3, 0.5, 3], [3, 0.5, -3], [-3, 0.5, -3], [-3, 0.5, 3]] }] }); save(); },
+    updateRoad: (id, patch) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, ...patch } : r)) }); save(); },
     updateRoadWaypoint: (id, index, pos) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, waypoints: r.waypoints.map((w, i) => (i === index ? pos : w)) } : r)) }); save(); },
     addRoadWaypoint: (id, pos) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, waypoints: [...r.waypoints, pos] } : r)) }); save(); },
     removeRoadWaypoint: (id, index) => { set({ roads: get().roads.map((r) => (r.id === id ? { ...r, waypoints: r.waypoints.filter((_, i) => i !== index) } : r)) }); save(); },

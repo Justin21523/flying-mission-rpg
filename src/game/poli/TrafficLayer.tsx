@@ -9,9 +9,44 @@ import { useMergedTransform } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
-import { useEditorTrafficStore, getEditorRoadPath } from '../../stores/editorTrafficStore';
+import { useEditorTrafficStore, getEditorRoadPath, type EditorRoad } from '../../stores/editorTrafficStore';
 import { getPathPosition, getPathHeading } from '../../types/traffic';
 import type { VehicleDefinition, TrafficSignalDef, TrafficPhase, Crosswalk } from '../../types/traffic';
+
+// Tiles a road-surface model along the path + roadside decor offset to the side. Sampled once (memoised).
+const RoadModels = ({ road }: { road: EditorRoad }) => {
+  const items = useMemo(() => {
+    const path = getEditorRoadPath(road.id);
+    if (!path || path.totalLength === 0) return [];
+    const out: { key: string; model: string; pos: [number, number, number]; rot: number; scale: number }[] = [];
+    const sample = (model: string | undefined, spacing: number, scale: number, offset: number, tag: string) => {
+      if (!model || spacing <= 0) return;
+      const n = Math.max(1, Math.floor(path.totalLength / spacing));
+      for (let i = 0; i < n; i++) {
+        const t = i / n;
+        const [x, y, z] = getPathPosition(path, t);
+        const h = getPathHeading(path, t);
+        const ox = Math.cos(h) * offset; // perpendicular offset to the side
+        const oz = -Math.sin(h) * offset;
+        out.push({ key: `${tag}${i}`, model, pos: [x + ox, y - 0.4, z + oz], rot: h, scale });
+      }
+    };
+    sample(road.surfaceModelAssetId, road.surfaceSpacing ?? 6, road.surfaceScale ?? 4, 0, 's');
+    sample(road.decorModelAssetId, road.decorSpacing ?? 12, 3, road.decorOffset ?? 4, 'd');
+    return out;
+  }, [road.id, road.surfaceModelAssetId, road.surfaceSpacing, road.surfaceScale, road.decorModelAssetId, road.decorSpacing, road.decorOffset]);
+
+  if (items.length === 0) return null;
+  return (
+    <>
+      {items.map((it) => (
+        <group key={it.key} position={it.pos} rotation={[0, it.rot, 0]}>
+          <NormalizedGlbModel assetId={it.model} target={it.scale} />
+        </group>
+      ))}
+    </>
+  );
+};
 import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
 
 // Signal light layout: red top, yellow middle, green bottom.
@@ -235,6 +270,7 @@ export const TrafficLayer = ({ areaId }: TrafficLayerProps) => {
   const vehicles = useEditorTrafficStore((s) => s.vehicles).filter((v) => v.areaId === areaId);
   const signals = useEditorTrafficStore((s) => s.signals).filter((s) => s.areaId === areaId);
   const crosswalks = useEditorTrafficStore((s) => s.crosswalks).filter((c) => c.areaId === areaId);
+  const roads = useEditorTrafficStore((s) => s.roads).filter((r) => r.areaId === areaId);
 
   // Advance the traffic simulation each frame (called once, not per vehicle).
   useFrame((_, delta) => {
@@ -243,6 +279,9 @@ export const TrafficLayer = ({ areaId }: TrafficLayerProps) => {
 
   return (
     <>
+      {roads.map((r) => (
+        <RoadModels key={`rm-${r.id}`} road={r} />
+      ))}
       {vehicles.map((v) => (
         <VehicleMesh key={v.id} def={v} />
       ))}

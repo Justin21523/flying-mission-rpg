@@ -60,6 +60,12 @@ export const TrafficEditorTab = () => {
                 <button onClick={() => t.removeRoadWaypoint(r.id, i)} className="rounded px-1 text-[10px] text-rose-400 hover:bg-slate-800">✕</button>
               </div>
             ))}
+            <div className="grid grid-cols-2 gap-2 border-t border-slate-700/50 pt-1">
+              <Field label="road surface model"><ModelPicker value={r.surfaceModelAssetId || undefined} onChange={(v) => t.updateRoad(r.id, { surfaceModelAssetId: v ?? '' })} allowNone noneLabel="(none)" /></Field>
+              <Field label="surface spacing"><input type="number" step={1} min={1} value={r.surfaceSpacing ?? 6} onChange={(e) => t.updateRoad(r.id, { surfaceSpacing: parseFloat(e.target.value) || 6 })} className={inp} /></Field>
+              <Field label="roadside decor model"><ModelPicker value={r.decorModelAssetId || undefined} onChange={(v) => t.updateRoad(r.id, { decorModelAssetId: v ?? '' })} allowNone noneLabel="(none)" /></Field>
+              <Field label="decor spacing / offset"><div className="flex gap-1"><input type="number" step={1} min={1} value={r.decorSpacing ?? 12} onChange={(e) => t.updateRoad(r.id, { decorSpacing: parseFloat(e.target.value) || 12 })} className={inp} title="spacing" /><input type="number" step={0.5} value={r.decorOffset ?? 4} onChange={(e) => t.updateRoad(r.id, { decorOffset: parseFloat(e.target.value) || 0 })} className={inp} title="side offset" /></div></Field>
+            </div>
           </div>
         ))}
       </section>
