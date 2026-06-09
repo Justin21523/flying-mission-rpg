@@ -30,12 +30,17 @@ export const EnvironmentBackdrop = () => {
             mieCoefficient={env.mieCoefficient}
             mieDirectionalG={env.mieDirectionalG}
           />
-          {/* Soft white clouds across a blue sky. Sat at a moderate altitude (not overhead) so the sky reads
-              lower in view. Unlit (MeshBasicMaterial) so they stay bright white; instanced + drift slowly. */}
-          <Clouds material={MeshBasicMaterial} position={[0, 60, 0]} frustumCulled={false}>
-            <Cloud seed={1} segments={28} bounds={[200, 12, 200]} volume={26} color="#ffffff" opacity={0.62} fade={140} speed={0.07} position={[0, 0, -50]} />
-            <Cloud seed={2} segments={22} bounds={[170, 10, 170]} volume={20} color="#f7fafc" opacity={0.5} fade={140} speed={0.05} position={[90, 8, 60]} />
-            <Cloud seed={3} segments={22} bounds={[170, 10, 170]} volume={20} color="#ffffff" opacity={0.55} fade={140} speed={0.06} position={[-95, 4, 40]} />
+          {/* Realistic scattered cumulus: many soft white puffs spread wide + flat across the sky at a
+              moderate altitude (so the sky reads lower, not overhead). Unlit (MeshBasicMaterial) → stays bright
+              white regardless of light; instanced; drift slowly; puffy outward edges + slight grey underside
+              tint via per-cloud colour for a more 3D, real feel. */}
+          <Clouds material={MeshBasicMaterial} limit={400} range={400} frustumCulled={false}>
+            <Cloud seed={1} segments={48} bounds={[150, 14, 150]} volume={32} smallestVolume={0.5} concentrate="outside" growth={6} opacity={0.85} fade={220} speed={0.05} color="#ffffff" position={[-30, 58, -70]} />
+            <Cloud seed={2} segments={42} bounds={[130, 12, 130]} volume={26} smallestVolume={0.4} concentrate="outside" growth={6} opacity={0.78} fade={220} speed={0.04} color="#f4f7fb" position={[110, 70, 30]} />
+            <Cloud seed={3} segments={40} bounds={[140, 12, 140]} volume={28} smallestVolume={0.4} concentrate="outside" growth={5} opacity={0.8} fade={220} speed={0.05} color="#ffffff" position={[-120, 64, 60]} />
+            <Cloud seed={4} segments={36} bounds={[110, 10, 110]} volume={20} smallestVolume={0.3} concentrate="outside" growth={5} opacity={0.7} fade={220} speed={0.03} color="#eef2f8" position={[40, 82, 130]} />
+            <Cloud seed={5} segments={34} bounds={[100, 10, 100]} volume={18} smallestVolume={0.3} concentrate="outside" growth={5} opacity={0.72} fade={220} speed={0.04} color="#ffffff" position={[150, 54, -120]} />
+            <Cloud seed={6} segments={30} bounds={[90, 9, 90]} volume={15} smallestVolume={0.3} concentrate="outside" growth={4} opacity={0.66} fade={220} speed={0.03} color="#f4f7fb" position={[-150, 76, -40]} />
           </Clouds>
         </>
       )}

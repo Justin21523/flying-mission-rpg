@@ -150,12 +150,13 @@ export interface EnvironmentOverride {
 export const DEFAULT_STABLE_OVERRIDE: EnvironmentOverride = {
   backgroundMode: 'sky',
   // Lower sun → the bright sky band sits lower / less overhead (still a clear blue day), per request.
-  sunElevationDeg: 24,
+  // Tuned for a realistic deep-blue daytime sky: clear air (low turbidity) + stronger rayleigh blue.
+  sunElevationDeg: 26,
   sunAzimuthDeg: 165,
-  turbidity: 5,
-  rayleigh: 1.3,
-  mieCoefficient: 0.005,
-  mieDirectionalG: 0.8,
+  turbidity: 3.5,
+  rayleigh: 2.2,
+  mieCoefficient: 0.004,
+  mieDirectionalG: 0.86,
   fogEnabled: true,
   lockTimeOfDay: 'day',
 };
