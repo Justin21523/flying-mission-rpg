@@ -14,6 +14,9 @@ import { useEditorTrafficStore } from '../../stores/editorTrafficStore';
 import { useEditorToolStore } from '../../stores/editorToolStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
+import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
+import { ABILITY_TYPES } from '../../types/character';
+import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
 import { useJinResearchStore } from '../../stores/jinResearchStore';
 import { useEditorBoostStore, getBoostConfig } from '../../stores/editorBoostStore';
@@ -158,6 +161,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorToolStore.getState().importState(data as never); },
     clear: () => useEditorToolStore.getState().reset(),
     summary: () => `${useEditorToolStore.getState().tools.length} tools`,
+  },
+  {
+    id: 'editorCollectible',
+    label: 'Collectibles',
+    serialize: () => { const s = useEditorCollectibleStore.getState(); return { types: s.types, resources: s.resources }; },
+    deserialize: (data) => { if (isObj(data)) useEditorCollectibleStore.getState().importState(data as never); },
+    clear: () => useEditorCollectibleStore.getState().reset(),
+    summary: () => { const s = useEditorCollectibleStore.getState(); return `${s.types.length} collectibles · ${s.resources.length} resources`; },
   },
   {
     id: 'editorWorld',
@@ -307,6 +318,7 @@ function domainReference(id: string): Record<string, unknown> {
     case 'editorTraffic': return { areas: listAreas() };
     case 'editorTrigger': return { areas: listAreas(), quests: listQuests() };
     case 'editorEnvironment': return { areas: listAreas(), textures: listTextures() };
+    case 'editorCollectible': return { abilities: [...ABILITY_TYPES], shapes: [...COLLECTIBLE_SHAPES], resources: useEditorCollectibleStore.getState().resources.map((r) => r.id) };
     default: return { areas: listAreas() };
   }
 }

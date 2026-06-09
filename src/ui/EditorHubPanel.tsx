@@ -53,7 +53,7 @@ const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
   npc: ['editorNpc'],
   quest: ['editorQuest'],
   minigame: ['editorActivity'],
-  environment: ['editorEnvironment'],
+  environment: ['editorEnvironment', 'editorCollectible'],
   poli: ['editorPoliCharacter', 'editorBoost'],
   landmark: ['editorLandmark'],
   incident: ['editorIncident', 'editorRandomEvent'],

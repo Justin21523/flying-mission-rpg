@@ -35,6 +35,7 @@ import { ToolBeltHud } from './ui/ToolBeltHud';
 import { LicenseBadge } from './ui/LicenseBadge';
 import { ResearchStationHud } from './ui/ResearchStationHud';
 import { BoostMeterHud } from './ui/BoostMeterHud';
+import { ResourceHud } from './ui/ResourceHud';
 import { ScreenFade } from './ui/ScreenFade';
 import { useRescueOperationStore } from './stores/rescueOperationStore';
 
@@ -126,6 +127,7 @@ export const App = () => {
       {!editMode && !inBattle && !inActivity && !isRescueActive && <LicenseBadge />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <ResearchStationHud />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <BoostMeterHud />}
+      {!editMode && !inBattle && !inActivity && !isRescueActive && <ResourceHud />}
       <DialogueBox />
       <BattleOverlay />
       <ActivityHud />

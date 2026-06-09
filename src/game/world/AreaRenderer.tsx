@@ -14,6 +14,7 @@ import { MapPointLayer } from './MapPointLayer';
 import { LayoutLayer } from './LayoutLayer';
 import { EdgeTransitionLayer } from './EdgeTransitionLayer';
 import { PickupLayer } from '../poli/PickupLayer';
+import { CollectibleLayer } from '../poli/CollectibleLayer';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { EditableTriggerRenderer } from '../editor/EditableTriggerRenderer';
 import { QuestMarkerRenderer } from '../editor/QuestMarkerRenderer';
@@ -86,6 +87,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <LayoutLayer areaId={areaId} />
       {/* POLI seam #1e: ground pickups that fill the boost meter (⭐ Boost tab). */}
       <PickupLayer areaId={areaId} />
+      {/* POLI seam #1g: primitive collectibles → resource economy (🌤 Environment tab → Collectibles). */}
+      <CollectibleLayer areaId={areaId} />
       <EditableNpcLayer areaId={areaId} />
       <LandmarkLayer areaId={areaId} />
       {/* POLI seam #1f: named map points (POI / spawn / teleport) authored in the 🗺 World tab. */}

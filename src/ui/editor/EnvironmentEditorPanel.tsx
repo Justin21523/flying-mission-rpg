@@ -9,6 +9,9 @@ import { useTextureThumb } from '../../game/world/useTextureThumb';
 import { MATERIAL_SETS } from '../../game/world/gltfMaterial';
 import { usePbrPatchEditStore } from '../../stores/pbrPatchEditStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
+import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
+import { COLLECTIBLE_SHAPES } from '../../types/collectible';
+import { ABILITY_TYPES } from '../../types/character';
 import { TerrainToolsBar } from './TerrainToolsBar';
 
 // Phase 98a — Editor Hub "Environment" tab. Per-area sky / gradient / solid background, fog and a
@@ -347,6 +350,90 @@ const TerrainControls = ({ t, setTerrain }: { t: ResolvedEnvironment['terrain'];
   </div>
 );
 
+// Collectible economy editor — primitive (built-in geometry) collectibles + resources they fill, and the
+// ability each resource triggers at its threshold (auto or key-armed). Scattered live by CollectibleLayer.
+const CollectiblesSection = () => {
+  const types = useEditorCollectibleStore((s) => s.types);
+  const resources = useEditorCollectibleStore((s) => s.resources);
+  const st = useEditorCollectibleStore.getState();
+  return (
+    <details className="rounded-lg border border-fuchsia-700/40 bg-slate-900/60 p-2" open>
+      <summary className="cursor-pointer text-[11px] font-bold text-fuchsia-200">💎 Collectibles &amp; resources ({types.length} / {resources.length})</summary>
+
+      <div className="mt-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className={lbl}>Resources ({resources.length})</span>
+          <button onClick={() => st.addResource()} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[10px] text-emerald-100 hover:bg-emerald-700/50">➕ resource</button>
+        </div>
+        {resources.map((r) => (
+          <div key={r.id} className="space-y-1 rounded border border-slate-700/60 bg-slate-900/50 p-1.5">
+            <div className="flex items-center gap-1">
+              <input type="color" value={r.color} onChange={(e) => st.updateResource(r.id, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" />
+              <input value={r.name} onChange={(e) => st.updateResource(r.id, { name: e.target.value })} className={inp + ' flex-1'} placeholder="resource name" />
+              <button onClick={() => st.removeResource(r.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+            </div>
+            <div className="grid grid-cols-3 gap-1">
+              <label className="text-[9px] text-slate-400">threshold<input type="number" min={1} value={r.threshold} onChange={(e) => st.updateResource(r.id, { threshold: parseFloat(e.target.value) || 1 })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">ability
+                <select value={r.abilityType ?? ''} onChange={(e) => st.updateResource(r.id, { abilityType: e.target.value ? e.target.value as typeof ABILITY_TYPES[number] : undefined })} className={inp}>
+                  <option value="">(none)</option>
+                  {ABILITY_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </label>
+              <label className="text-[9px] text-slate-400">trigger
+                <select value={r.auto ? 'auto' : 'key'} onChange={(e) => st.updateResource(r.id, { auto: e.target.value === 'auto' })} className={inp}>
+                  <option value="auto">auto</option>
+                  <option value="key">on key</option>
+                </select>
+              </label>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {!r.auto && <label className="text-[9px] text-slate-400">key<input value={r.key ?? ''} onChange={(e) => st.updateResource(r.id, { key: e.target.value })} placeholder="KeyZ" className={inp} /></label>}
+              <label className="text-[9px] text-slate-400">radius<input type="number" step={1} value={r.abilityRadius ?? ''} onChange={(e) => st.updateResource(r.id, { abilityRadius: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">dur<input type="number" step={0.5} value={r.abilityDuration ?? ''} onChange={(e) => st.updateResource(r.id, { abilityDuration: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">str<input type="number" step={0.5} value={r.abilityStrength ?? ''} onChange={(e) => st.updateResource(r.id, { abilityStrength: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className={inp} /></label>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className={lbl}>Collectible types ({types.length})</span>
+          <button onClick={() => st.addType()} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[10px] text-emerald-100 hover:bg-emerald-700/50">➕ type</button>
+        </div>
+        {types.map((t) => (
+          <div key={t.id} className="space-y-1 rounded border border-slate-700/60 bg-slate-900/50 p-1.5">
+            <div className="flex items-center gap-1">
+              <input type="color" value={t.color} onChange={(e) => st.updateType(t.id, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" />
+              <input value={t.name} onChange={(e) => st.updateType(t.id, { name: e.target.value })} className={inp + ' flex-1'} placeholder="collectible name" />
+              <button onClick={() => st.removeType(t.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+            </div>
+            <div className="grid grid-cols-3 gap-1">
+              <label className="text-[9px] text-slate-400">shape
+                <select value={t.shape} onChange={(e) => st.updateType(t.id, { shape: e.target.value as typeof COLLECTIBLE_SHAPES[number] })} className={inp}>
+                  {COLLECTIBLE_SHAPES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </label>
+              <label className="text-[9px] text-slate-400">fills
+                <select value={t.resourceId} onChange={(e) => st.updateType(t.id, { resourceId: e.target.value })} className={inp}>
+                  {resources.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {!resources.some((r) => r.id === t.resourceId) && <option value={t.resourceId}>{t.resourceId} (missing)</option>}
+                </select>
+              </label>
+              <label className="text-[9px] text-slate-400">value<input type="number" step={1} value={t.value} onChange={(e) => st.updateType(t.id, { value: parseFloat(e.target.value) || 0 })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">size<input type="number" step={0.05} min={0.05} value={t.size} onChange={(e) => st.updateType(t.id, { size: parseFloat(e.target.value) || 0.05 })} className={inp} /></label>
+              <label className="text-[9px] text-slate-400">count<input type="number" step={1} min={0} value={t.count} onChange={(e) => st.updateType(t.id, { count: parseInt(e.target.value, 10) || 0 })} className={inp} /></label>
+              <label className="flex items-end gap-1 text-[9px] text-slate-400"><input type="checkbox" checked={t.spin !== false} onChange={(e) => st.updateType(t.id, { spin: e.target.checked })} className="accent-fuchsia-500" />spin</label>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-1 text-[10px] leading-relaxed text-slate-500">Collectibles scatter in every area (count × the area's pickup×). Collecting fills the chosen resource; at its threshold the ability fires (auto) or arms for its key. Shown on the Resource HUD (bottom-left).</p>
+    </details>
+  );
+};
+
 export const EnvironmentEditorPanel = () => {
   const currentAreaId = usePlayerStore((s) => s.currentAreaId);
   const overrides = useEditorEnvironmentStore((s) => s.overrides);
@@ -499,6 +586,9 @@ export const EnvironmentEditorPanel = () => {
           </>
         )}
       </div>
+
+      {/* Collectible economy (primitive collectibles → resources → abilities) */}
+      <CollectiblesSection />
 
       {/* Actions */}
       <div className="flex gap-2 pt-1">
