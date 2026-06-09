@@ -76,7 +76,7 @@ export const MapPanel = () => {
           );
         })}
       </div>
-      <p className="mt-2 text-[10px] text-slate-400">格子位置 = 區域相對方位(由邊界連結排出)。點選即可快速前往。</p>
+      <p className="mt-2 text-[10px] text-slate-400">Grid position = relative direction (from edge links). Click a tile to fast-travel.</p>
     </PanelCard>
   );
 };

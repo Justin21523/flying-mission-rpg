@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { TEXTURE_SETS } from '../game/world/textureLibrary';
 import { useEditorEnvironmentStore } from './editorEnvironmentStore';
 import { addedForArea, useSceneEditStore } from './sceneEditStore';
-import type { CollisionShape } from '../game/edit/sceneEditMerge';
+import { objKey, type CollisionShape } from '../game/edit/sceneEditMerge';
 
 // POLI — per-area LAYOUT PRESETS: multiple swappable arrangements of placed models + a paved ground per
 // area (🗺 World tab → Layouts). The active preset's pieces are rendered by LayoutLayer (an AreaRenderer
@@ -129,8 +129,11 @@ export const useEditorLayoutStore = create<EditorLayoutState>((set, get) => {
       writePresets(areaId, presetsFor(areaId).map((p) => (p.id === presetId ? { ...p, groundTextureKey: key, groundRepeat: repeat } : p)));
       if (get().activePresetId[areaId] === presetId) applyGround(areaId, key, repeat);
     },
-    addPiece: (areaId, assetId, position) =>
-      mutateActive(areaId, (p) => ({ ...p, pieces: [...p.pieces, { id: uid('pc'), assetId, position, rotation: [0, 0, 0], scale: 1 }] })),
+    addPiece: (areaId, assetId, position) => {
+      const pcId = uid('pc');
+      mutateActive(areaId, (p) => ({ ...p, pieces: [...p.pieces, { id: pcId, assetId, position, rotation: [0, 0, 0], scale: 1 }] }));
+      useSceneEditStore.getState().requestSelect(objKey(areaId, 'setpiece', `layout_${pcId}`)); // auto-select → gizmo
+    },
     updatePiece: (areaId, pieceId, patch) =>
       mutateActive(areaId, (p) => ({ ...p, pieces: p.pieces.map((pc) => (pc.id === pieceId ? { ...pc, ...patch } : pc)) })),
     removePiece: (areaId, pieceId) =>

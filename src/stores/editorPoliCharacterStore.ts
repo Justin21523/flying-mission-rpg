@@ -29,6 +29,10 @@ export interface CharacterOverride {
   abilityDuration?: number;
   abilityStrength?: number;
   abilityCooldownSec?: number;
+  superSpeedMult?: number;
+  superDurationSec?: number;
+  superFlies?: boolean;
+  afterimageColor?: string;
   vehicleHeight?: number;
   robotHeight?: number;
   modelYOffset?: number;
@@ -117,6 +121,10 @@ export function getMergedPoliCharacter(base: CharacterDefinition): CharacterDefi
     ...(ov.abilityDuration !== undefined && { abilityDuration: ov.abilityDuration }),
     ...(ov.abilityStrength !== undefined && { abilityStrength: ov.abilityStrength }),
     ...(ov.abilityCooldownSec !== undefined && { abilityCooldownSec: ov.abilityCooldownSec }),
+    ...(ov.superSpeedMult !== undefined && { superSpeedMult: ov.superSpeedMult }),
+    ...(ov.superDurationSec !== undefined && { superDurationSec: ov.superDurationSec }),
+    ...(ov.superFlies !== undefined && { superFlies: ov.superFlies }),
+    ...(ov.afterimageColor !== undefined && { afterimageColor: ov.afterimageColor }),
     ...(ov.vehicleHeight !== undefined && { vehicleHeight: ov.vehicleHeight }),
     ...(ov.robotHeight !== undefined && { robotHeight: ov.robotHeight }),
     ...(ov.modelYOffset !== undefined && { modelYOffset: ov.modelYOffset }),

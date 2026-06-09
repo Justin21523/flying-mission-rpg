@@ -47,8 +47,18 @@ export interface AreaEdges { north?: string; south?: string; east?: string; west
 export interface WorldArea extends KitArea {
   districtId?: string;
   biome?: string;   // a BIOME_THEMES key; falls back to ambientTheme / inferred
-  size?: number;    // playable half-extent (edges sit at ±size); default DEFAULT_AREA_SIZE
+  size?: number;    // playable half-extent (minimum); default DEFAULT_AREA_SIZE
+  autoExpand?: boolean; // grow the boundary to fit placed content (default true)
+  sizeMargin?: number;  // extra room beyond the farthest object when auto-expanding (default 10)
   edges?: AreaEdges; // neighbour area id per edge (drives edge-walk transitions + connectedAreaIds)
+  // Gameplay tuning (editable in the 🗺 World tab).
+  incidentChance?: number;  // spawn weight multiplier for incidents here (0–2, default 1)
+  trafficDensity?: number;  // hint: how busy traffic is (0–5)
+  pickupDensity?: number;   // pickup count multiplier (default 1)
+  dangerLevel?: number;     // 1–5 flavour / difficulty
+  recommendedLevel?: number;
+  weatherLock?: string;     // 'any' | 'clear' | 'rain' | 'fog' | 'storm'
+  notes?: string;
 }
 
 export const DEFAULT_AREA_SIZE = 40;

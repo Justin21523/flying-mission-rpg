@@ -4,6 +4,8 @@ import { TRAFFIC_SIGNALS } from '../data/traffic/broomsTownSignals';
 import { POLI_ROADS } from '../data/traffic/broomsTownRoads';
 import { computeRoadPath } from '../types/traffic';
 import type { VehicleDefinition, TrafficSignalDef, RoadPath, Crosswalk } from '../types/traffic';
+import { objKey } from '../game/edit/sceneEditMerge';
+import { useSceneEditStore } from './sceneEditStore';
 
 // Editable traffic (🚦 Traffic tab): vehicles, signals, roads (waypoint loops), pedestrian crosswalks, plus
 // per-road closure + a global emergency-yield flag. Seeded from the built-in data; CRUD + per-id field edits;
@@ -78,8 +80,10 @@ export const useEditorTrafficStore = create<EditorTrafficState>((set, get) => {
     removeVehicle: (id) => { set({ vehicles: get().vehicles.filter((v) => v.id !== id) }); save(); },
     addSignal: (areaId) => {
       const road = get().roads.find((r) => r.areaId === areaId);
-      const s: TrafficSignalDef = { id: uid('signal'), areaId, position: [0, 0, 0], pathId: road?.id ?? '', progressOnPath: 0.5, initialPhase: 'green', initialTimer: 0, greenSeconds: 8, yellowSeconds: 2, redSeconds: 8 };
+      const id = uid('signal');
+      const s: TrafficSignalDef = { id, areaId, position: [0, 0, 0], pathId: road?.id ?? '', progressOnPath: 0.5, initialPhase: 'green', initialTimer: 0, greenSeconds: 8, yellowSeconds: 2, redSeconds: 8 };
       set({ signals: [...get().signals, s] }); save();
+      useSceneEditStore.getState().requestSelect(objKey(areaId, 'trigger', id)); // auto-select → gizmo
     },
     updateSignal: (id, patch) => { set({ signals: get().signals.map((x) => (x.id === id ? { ...x, ...patch } : x)) }); save(); },
     removeSignal: (id) => { set({ signals: get().signals.filter((x) => x.id !== id) }); save(); },

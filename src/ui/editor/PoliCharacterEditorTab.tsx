@@ -3,7 +3,9 @@ import { useSceneEditStore } from '../../stores/sceneEditStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { RESIDENTS } from '../../data/characters/residents';
 import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
-import { Field, inp, lbl } from './editorShared';
+import { Field, inp, lbl, Check } from './editorShared';
+import { useEditorBoostStore } from '../../stores/editorBoostStore';
+import { ModelPicker as AssetIdPicker } from './ModelPicker';
 import { MODEL_ASSET_LIST } from '../../data/modelLibrary';
 import type { CharacterDefinition } from '../../types/character';
 import { ABILITY_TYPES } from '../../types/character';
@@ -74,6 +76,7 @@ export const PoliCharacterEditorTab = () => {
 
   return (
     <div className="flex h-full gap-3 text-xs">
+      {/* (GlobalBoostSection defined below the component) */}
       {/* ── Left: character list ── */}
       <div className="w-44 shrink-0 overflow-y-auto">
         <div className={`${lbl} mb-2`}>Characters ({mergedChars.length})</div>
@@ -99,6 +102,7 @@ export const PoliCharacterEditorTab = () => {
 
       {/* ── Right: inspector ── */}
       <div className="flex-1 overflow-y-auto">
+        <GlobalBoostSection />
         {!sel ? (
           <div className="text-slate-500 text-xs pt-4">Select a character to inspect or override.</div>
         ) : (
@@ -252,6 +256,19 @@ export const PoliCharacterEditorTab = () => {
                 <Field label="Cooldown (s)"><input type="number" step={0.5} className={inp} value={sel.abilityCooldownSec ?? 5} onChange={(e) => set({ abilityCooldownSec: parseFloat(e.target.value) || 0 })} /></Field>
               </div>
 
+              {/* Per-character super-boost (meter full → R). Falls back to global ⭐ Boost config if blank. */}
+              <div className="mt-1 rounded-lg border border-cyan-700/40 bg-cyan-950/20 p-2">
+                <div className={lbl}>⚡ Super Boost (this character)</div>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <Field label="Super speed ×"><input type="number" step={0.1} className={inp} value={sel.superSpeedMult ?? 2.6} onChange={(e) => set({ superSpeedMult: parseFloat(e.target.value) || 0 })} /></Field>
+                  <Field label="Super duration (s)"><input type="number" step={0.5} className={inp} value={sel.superDurationSec ?? 6} onChange={(e) => set({ superDurationSec: parseFloat(e.target.value) || 0 })} /></Field>
+                  <Field label="Afterimage colour">
+                    <input type="color" className="h-7 w-12 rounded cursor-pointer border-0 bg-transparent" value={sel.afterimageColor ?? '#38bdf8'} onChange={(e) => set({ afterimageColor: e.target.value })} />
+                  </Field>
+                  <div className="flex items-end"><Check label="Super flies" checked={sel.superFlies ?? true} onChange={(v) => set({ superFlies: v })} /></div>
+                </div>
+              </div>
+
               <Field label="Display Name (English)">
                 <input
                   className={inp}
@@ -313,5 +330,28 @@ export const PoliCharacterEditorTab = () => {
         )}
       </div>
     </div>
+  );
+};
+
+// Global pickup + boost-meter config (folded in from the old ⭐ Boost tab). Per-character super-boost
+// params live on each character above; this is the shared pickup/meter setup.
+const GlobalBoostSection = () => {
+  const b = useEditorBoostStore();
+  const set = b.set;
+  return (
+    <details className="mb-3 rounded-lg border border-amber-700/40 bg-amber-950/15 p-2">
+      <summary className="cursor-pointer text-[11px] font-bold text-amber-200">⭐ Pickups & Boost meter (global)</summary>
+      <div className="mt-2 space-y-2">
+        <Field label="Pickup model (empty = glowing orb)">
+          <AssetIdPicker value={b.pickupModelAssetId || undefined} onChange={(v) => set({ pickupModelAssetId: v ?? '' })} allowNone noneLabel="(glowing orb)" />
+        </Field>
+        <div className="grid grid-cols-3 gap-2">
+          <Field label="value / pickup"><input type="number" min={1} className={inp} value={b.pickupValue} onChange={(e) => set({ pickupValue: parseFloat(e.target.value) || 0 })} /></Field>
+          <Field label="count / area"><input type="number" min={0} className={inp} value={b.pickupCount} onChange={(e) => set({ pickupCount: parseInt(e.target.value, 10) || 0 })} /></Field>
+          <Field label="scatter spread"><input type="number" min={2} className={inp} value={b.pickupSpread} onChange={(e) => set({ pickupSpread: parseFloat(e.target.value) || 0 })} /></Field>
+        </div>
+        <Field label="meter max"><input type="number" min={1} className={inp} value={b.meterMax} onChange={(e) => set({ meterMax: parseFloat(e.target.value) || 1 })} /></Field>
+      </div>
+    </details>
   );
 };

@@ -1,5 +1,6 @@
 import { usePlayerStore } from '../../stores/playerStore';
-import { getWorldArea, getAreaSize } from '../../stores/editorWorldStore';
+import { getWorldArea } from '../../stores/editorWorldStore';
+import { getEffectiveAreaSize } from '../../game/world/areaExtent';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useIncidentStore } from '../../stores/incidentStore';
 import { useEditorBoostStore } from '../../stores/editorBoostStore';
@@ -31,7 +32,7 @@ export const MiniMapHUD = () => {
   const area = getWorldArea(areaId);
   const theme = resolveAreaTheme(areaId);
   const edges = area?.edges ?? {};
-  const range = Math.max(20, Math.min(50, getAreaSize(areaId) + RANGE_PAD));
+  const range = Math.max(20, Math.min(120, getEffectiveAreaSize(areaId) + RANGE_PAD));
   const scale = R / range;
   const px = pos?.x ?? 0, pz = pos?.z ?? 0;
 

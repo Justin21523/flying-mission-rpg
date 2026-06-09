@@ -1,9 +1,12 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import type { Mesh } from 'three';
+import { Color, type Mesh, type MeshStandardMaterial } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useBoostStore } from '../../stores/boostStore';
 import { getBoostConfig } from '../../stores/editorBoostStore';
+import { useTransformStore } from '../../stores/transformStore';
+import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
+import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { playerMotion } from './playerMotion';
 
 // POLI — afterimage (分身) trail rendered while super-boost mode is active: a pool of fading ghost capsules
@@ -18,12 +21,17 @@ export const AfterimageLayer = () => {
   const ghosts = useRef<Ghost[]>(Array.from({ length: MAX }, () => ({ t: -99, x: 0, y: 0, z: 0, ry: 0 })));
   const head = useRef(0);
   const lastSpawn = useRef(0);
+  const tint = useRef(new Color('#38bdf8'));
 
   useFrame((state) => {
     const tnow = state.clock.elapsedTime;
     const s = useBoostStore.getState();
     const cfg = getBoostConfig();
     if (s.superActive) {
+      // Tint the ghosts to the active character's afterimage colour.
+      const base = CORE_TEAM.find((c) => c.id === useTransformStore.getState().charId);
+      const col = (base ? getMergedPoliCharacter(base).afterimageColor : undefined) ?? '#38bdf8';
+      tint.current.set(col);
       if (tnow - lastSpawn.current >= cfg.afterimageIntervalSec) {
         lastSpawn.current = tnow;
         const pp = usePlayerStore.getState().position;
@@ -45,8 +53,10 @@ export const AfterimageLayer = () => {
       m.position.set(g.x, g.y + 0.9, g.z);
       m.rotation.y = g.ry;
       const k = 1 - age / life;
-      const mat = m.material as { opacity: number };
+      const mat = m.material as MeshStandardMaterial;
       mat.opacity = 0.5 * k;
+      mat.color.copy(tint.current);
+      (mat as unknown as { emissive: Color }).emissive.copy(tint.current);
       const sc = 0.7 + 0.3 * k;
       m.scale.set(sc, sc, sc);
     }

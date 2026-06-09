@@ -2,8 +2,10 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { usePlayerStore } from '../../stores/playerStore';
-import { useEditorWorldStore, getAreaSize, getWorldArea } from '../../stores/editorWorldStore';
+import { useEditorWorldStore, getWorldArea } from '../../stores/editorWorldStore';
+import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { useTransitionStore } from '../../stores/transitionStore';
+import { getEffectiveAreaSize } from './areaExtent';
 import { OPPOSITE_EDGE, type EdgeDir } from '../../types/world';
 
 // POLI seam #1 — walk-between-areas. When the player crosses an area's edge that has a neighbour, fade +
@@ -25,10 +27,11 @@ function spawnAtEdge(edge: EdgeDir, size: number): { x: number; y: number; z: nu
 }
 
 export const EdgeTransitionLayer = ({ areaId }: { areaId: string }) => {
-  // Subscribe to areas so size/edge edits update the walls + frame live in Edit Mode.
+  // Subscribe to areas + layout presets so the boundary grows live as content is placed / edited.
   const areas = useEditorWorldStore((s) => s.areas);
+  useEditorLayoutStore((s) => s.presets[areaId]);
   const area = areas.find((a) => a.id === areaId);
-  const size = area?.size ?? 40;
+  const size = getEffectiveAreaSize(areaId);
   const edges = area?.edges ?? {};
   const firedRef = useRef(false);
 
@@ -45,7 +48,7 @@ export const EdgeTransitionLayer = ({ areaId }: { areaId: string }) => {
     if (firedRef.current) return;
     firedRef.current = true;
     const neighbour = edges[edge]!;
-    const spawn = spawnAtEdge(OPPOSITE_EDGE[edge], getAreaSize(neighbour));
+    const spawn = spawnAtEdge(OPPOSITE_EDGE[edge], getEffectiveAreaSize(neighbour));
     const go = () => usePlayerStore.getState().travelToArea(neighbour, spawn);
     if (useEditorWorldStore.getState().fadeEnabled) useTransitionStore.getState().begin(go, getWorldArea(neighbour)?.name ?? neighbour);
     else go();

@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { DialogueTree } from '../types/dialogue';
 import type { EditorNpc } from '../types/editorNPC';
 import { createDefaultEditorNpc } from '../types/editorNPC';
+import { objKey } from '../game/edit/sceneEditMerge';
+import { useSceneEditStore } from './sceneEditStore';
 
 // Kit — in-editor NPC + dialogue authoring. NPCs created here are placed per-area and merged into the
 // runtime via getNpcProfile / EditableNpcLayer; dialogue trees authored here merge into getDialogueTree.
@@ -74,6 +76,7 @@ export const useEditorNpcStore = create<EditorNpcState>((set, get) => ({
     const dialogueTrees = { ...get().dialogueTrees, [treeId]: defaultTree(treeId, npc.displayName) };
     set({ addedNpcs, dialogueTrees });
     persist({ addedNpcs, dialogueTrees });
+    useSceneEditStore.getState().requestSelect(objKey(areaId, 'npc', id)); // auto-select → gizmo
     return id;
   },
 

@@ -112,7 +112,7 @@ const AreaProps = ({ areaId }: { areaId: string }) => {
             </Field>
           ))}
         </div>
-        <p className="mt-1 text-[10px] text-slate-500">N=−z · S=+z · E=+x · W=−x · 對向會自動互連</p>
+        <p className="mt-1 text-[10px] text-slate-500">N=−z · S=+z · E=+x · W=−x · opposite edge auto-links back</p>
       </div>
     </div>
   );

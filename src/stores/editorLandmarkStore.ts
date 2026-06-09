@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { Vec3 } from '../game/edit/sceneEditMerge';
+import { objKey } from '../game/edit/sceneEditMerge';
+import { useSceneEditStore } from './sceneEditStore';
 
 // POLI — per-area landmarks, fully editable in Edit Mode (🗺 Landmarks tab). Each area should have a
 // clear landmark; stubs now, models swapped later. localStorage-backed, auto-persist (mirrors the
@@ -47,6 +49,7 @@ export const useEditorLandmarkStore = create<EditorLandmarkState>((set, get) => 
     const landmarks = [...get().landmarks, lm];
     set({ landmarks });
     persist({ landmarks, seeded: get().seeded });
+    useSceneEditStore.getState().requestSelect(objKey(areaId, 'landmark', id)); // auto-select → gizmo
     return id;
   },
   updateLandmark: (id, patch) => {

@@ -1,12 +1,10 @@
 import { useRescueLicenseStore, getCurrentLicenseTier } from '../stores/rescueLicenseStore';
-import { useT } from '../stores/localeStore';
 
 // POLI — small rescue-license badge (top-left). Shows the player's current tier (driven by rescues
-// completed) + progress to the next tier. Editable thresholds in the 🎖 License tab; labels via 🌐 Strings.
+// completed) + progress to the next tier. Editable thresholds in the 🎖 License tab.
 export const LicenseBadge = () => {
   const rescues = useRescueLicenseStore((s) => s.rescuesCompleted);
   const tiers = useRescueLicenseStore((s) => s.tiers);
-  const t = useT();
   const tier = getCurrentLicenseTier();
   if (!tier) return null;
   const next = [...tiers].sort((a, b) => a.requiredRescues - b.requiredRescues).find((x) => x.requiredRescues > rescues);
@@ -17,7 +15,7 @@ export const LicenseBadge = () => {
       <div className="leading-tight">
         <div>{tier.name}</div>
         <div className="text-[10px] font-normal text-amber-200/70">
-          {rescues} {t('license.rescues')}{next ? ` · ${t('license.next')} ${next.icon} ${t('license.in')} ${next.requiredRescues - rescues}` : ` · ${t('license.max')}`}
+          {rescues} rescues{next ? ` · next ${next.icon} in ${next.requiredRescues - rescues}` : ' · max tier'}
         </div>
       </div>
     </div>

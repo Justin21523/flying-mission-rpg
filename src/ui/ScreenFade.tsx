@@ -13,7 +13,7 @@ export const ScreenFade = () => {
       {label && (
         <div className="flex flex-col items-center gap-2 text-cyan-100">
           <div className="text-2xl">🚗💨</div>
-          <div className="text-lg font-bold tracking-wide">前往 {label}…</div>
+          <div className="text-lg font-bold tracking-wide">Heading to {label}…</div>
         </div>
       )}
     </div>

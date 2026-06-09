@@ -87,6 +87,7 @@ interface SceneEditState extends PersistShape {
   clearExtra: () => void;
   clearSelection: () => void;
   clearPendingSelect: () => void;
+  requestSelect: (key: string) => void;
   setMode: (mode: GizmoMode) => void;
   resetKey: (key: string) => void;
   resetAll: () => void;
@@ -215,6 +216,8 @@ export const useSceneEditStore = create<SceneEditState>((set, get) => ({
 
   clearSelection: () => set({ selectedKey: null, selectedObject: null, selectedAssetId: null, extraSelected: [], pendingExtraKeys: [] }),
   clearPendingSelect: () => set({ pendingSelectKey: null }),
+  // POLI — queue a freshly-created object (by key) to auto-select + show the gizmo once it mounts.
+  requestSelect: (key) => set({ pendingSelectKey: key }),
   setMode: (mode) => set({ mode }),
 
   resetKey: (key) => {

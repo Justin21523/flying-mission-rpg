@@ -35,6 +35,11 @@ export interface CharacterDefinition {
   abilityDuration?: number;  // effect duration (seconds) — editable
   abilityStrength?: number;  // effect strength (e.g. speed multiplier / pull force) — editable
   abilityCooldownSec?: number; // seconds between uses — editable
+  // Per-character super-boost (meter-full → R). Falls back to the global ⭐ Boost config when unset.
+  superSpeedMult?: number;     // movement multiplier while super
+  superDurationSec?: number;   // how long super lasts
+  superFlies?: boolean;        // super also forces flight
+  afterimageColor?: string;    // colour of the afterimage (分身) trail
   vehicleHeight?: number;    // normalize target height of the vehicle/car model (editable, default 1.4)
   robotHeight?: number;      // normalize target height of the robot model (editable, default 1.9)
   modelYOffset?: number;     // extra vertical nudge applied to the model (editable, default 0)

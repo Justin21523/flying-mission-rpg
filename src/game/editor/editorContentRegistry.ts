@@ -16,7 +16,6 @@ import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
 import { useJinResearchStore } from '../../stores/jinResearchStore';
-import { useLocaleStore } from '../../stores/localeStore';
 import { useEditorBoostStore, getBoostConfig } from '../../stores/editorBoostStore';
 import { useProgressionStore } from '../../stores/progressionStore';
 import { useRelationshipStore } from '../../stores/relationshipStore';
@@ -199,14 +198,6 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorBoostStore.getState().importState(data as never); },
     clear: () => useEditorBoostStore.getState().reset(),
     summary: () => { const c = getBoostConfig(); return `meter ${c.meterMax} · ${c.pickupCount} pickups/area`; },
-  },
-  {
-    id: 'editorLocale',
-    label: 'Strings',
-    serialize: () => { const s = useLocaleStore.getState(); return { locale: s.locale, strings: s.strings }; },
-    deserialize: (data) => { if (isObj(data)) useLocaleStore.getState().importState(data as never); },
-    clear: () => useLocaleStore.getState().reset(),
-    summary: () => `${Object.keys(useLocaleStore.getState().strings).length} strings · ${useLocaleStore.getState().locale}`,
   },
   // Config + progress domains — individually JSON-controllable (surfaced in the 🧪 Debug tab).
   {
