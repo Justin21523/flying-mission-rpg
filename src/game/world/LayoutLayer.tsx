@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import type { LayoutPiece } from '../../stores/editorLayoutStore';
 import { useUiStore } from '../../stores/uiStore';
-import { useMergedTransform } from '../../stores/sceneEditStore';
+import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { NormalizedGlbModel } from './NormalizedGlbModel';
@@ -24,6 +24,8 @@ const LayoutPieceEntity = ({ areaId, pc }: { areaId: string; pc: LayoutPiece }) 
   const key = objKey(areaId, 'setpiece', `layout_${pc.id}`);
   const base = { position: pc.position, rotation: pc.rotation, scale: pc.scale };
   const m = useMergedTransform(key, base);
+  const deleted = useIsDeleted(key);
+  if (deleted) return null; // Edit-Mode Delete (kit soft-delete) hides it
 
   if (editMode) {
     // Visual-only in Edit Mode so the gizmo can move it freely (no physics fighting the drag).

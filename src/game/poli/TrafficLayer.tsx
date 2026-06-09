@@ -5,7 +5,7 @@ import { RigidBody, CapsuleCollider, type RapierRigidBody } from '@react-three/r
 import type { Group } from 'three';
 import { useTrafficStore } from '../../stores/trafficStore';
 import { useUiStore } from '../../stores/uiStore';
-import { useMergedTransform } from '../../stores/sceneEditStore';
+import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
@@ -185,6 +185,8 @@ const TrafficSignalMesh = ({ def, areaId }: TrafficSignalMeshProps & { areaId: s
   const key = objKey(areaId, 'trigger', def.id);
   const base: BaseTransform = { position: def.position, rotation: [0, 0, 0], scale: 1 };
   const m = useMergedTransform(key, base);
+  const deleted = useIsDeleted(key);
+  if (deleted) return null; // Edit-Mode Delete (kit soft-delete) hides it
 
   if (editMode) {
     return <EditableObject objKey={key} base={base}><TrafficSignalVisual def={def} /></EditableObject>;
