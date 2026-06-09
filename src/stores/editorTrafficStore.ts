@@ -19,6 +19,8 @@ interface EditorTrafficState {
   roads: EditorRoad[];
   crosswalks: Crosswalk[];
   emergencyYield: boolean; // vehicles slow when an incident/rescue is active in the area
+  vehicleIncidents: boolean;      // traffic can spontaneously trigger incidents to respond to
+  vehicleIncidentEverySec: number; // average seconds between traffic-triggered incidents
   addVehicle: (areaId: string) => void;
   updateVehicle: (id: string, patch: Partial<VehicleDefinition>) => void;
   removeVehicle: (id: string) => void;
@@ -35,20 +37,22 @@ interface EditorTrafficState {
   updateCrosswalk: (id: string, patch: Partial<Crosswalk>) => void;
   removeCrosswalk: (id: string) => void;
   setEmergencyYield: (b: boolean) => void;
-  importState: (data: { vehicles?: VehicleDefinition[]; signals?: TrafficSignalDef[]; roads?: EditorRoad[]; crosswalks?: Crosswalk[]; emergencyYield?: boolean }) => void;
+  setVehicleIncidents: (b: boolean) => void;
+  setVehicleIncidentEverySec: (n: number) => void;
+  importState: (data: { vehicles?: VehicleDefinition[]; signals?: TrafficSignalDef[]; roads?: EditorRoad[]; crosswalks?: Crosswalk[]; emergencyYield?: boolean; vehicleIncidents?: boolean; vehicleIncidentEverySec?: number }) => void;
   reset: () => void;
 }
 
 const STORAGE_KEY = 'r3f-rpg-builder-poli-traffic-v1';
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
-function persist(s: Pick<EditorTrafficState, 'vehicles' | 'signals' | 'roads' | 'crosswalks' | 'emergencyYield'>): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ vehicles: s.vehicles, signals: s.signals, roads: s.roads, crosswalks: s.crosswalks, emergencyYield: s.emergencyYield })); } catch { /* ignore */ }
+function persist(s: Pick<EditorTrafficState, 'vehicles' | 'signals' | 'roads' | 'crosswalks' | 'emergencyYield' | 'vehicleIncidents' | 'vehicleIncidentEverySec'>): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ vehicles: s.vehicles, signals: s.signals, roads: s.roads, crosswalks: s.crosswalks, emergencyYield: s.emergencyYield, vehicleIncidents: s.vehicleIncidents, vehicleIncidentEverySec: s.vehicleIncidentEverySec })); } catch { /* ignore */ }
 }
 function seedRoads(): EditorRoad[] {
   return POLI_ROADS.map((r) => ({ id: r.id, areaId: r.areaId, waypoints: clone(r.waypoints) }));
 }
-function load(): Pick<EditorTrafficState, 'vehicles' | 'signals' | 'roads' | 'crosswalks' | 'emergencyYield'> {
+function load(): Pick<EditorTrafficState, 'vehicles' | 'signals' | 'roads' | 'crosswalks' | 'emergencyYield' | 'vehicleIncidents' | 'vehicleIncidentEverySec'> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -59,10 +63,12 @@ function load(): Pick<EditorTrafficState, 'vehicles' | 'signals' | 'roads' | 'cr
         roads: Array.isArray(p.roads) ? p.roads : seedRoads(),
         crosswalks: Array.isArray(p.crosswalks) ? p.crosswalks : [],
         emergencyYield: typeof p.emergencyYield === 'boolean' ? p.emergencyYield : true,
+        vehicleIncidents: typeof p.vehicleIncidents === 'boolean' ? p.vehicleIncidents : false,
+        vehicleIncidentEverySec: typeof p.vehicleIncidentEverySec === 'number' ? p.vehicleIncidentEverySec : 45,
       };
     }
   } catch { /* ignore */ }
-  return { vehicles: clone(POLI_VEHICLES), signals: clone(TRAFFIC_SIGNALS), roads: seedRoads(), crosswalks: [], emergencyYield: true };
+  return { vehicles: clone(POLI_VEHICLES), signals: clone(TRAFFIC_SIGNALS), roads: seedRoads(), crosswalks: [], emergencyYield: true, vehicleIncidents: false, vehicleIncidentEverySec: 45 };
 }
 
 const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
@@ -100,6 +106,8 @@ export const useEditorTrafficStore = create<EditorTrafficState>((set, get) => {
     updateCrosswalk: (id, patch) => { set({ crosswalks: get().crosswalks.map((c) => (c.id === id ? { ...c, ...patch } : c)) }); save(); },
     removeCrosswalk: (id) => { set({ crosswalks: get().crosswalks.filter((c) => c.id !== id) }); save(); },
     setEmergencyYield: (b) => { set({ emergencyYield: b }); save(); },
+    setVehicleIncidents: (b) => { set({ vehicleIncidents: b }); save(); },
+    setVehicleIncidentEverySec: (n) => { set({ vehicleIncidentEverySec: Math.max(5, n) }); save(); },
     importState: (data) => {
       set({
         vehicles: Array.isArray(data.vehicles) ? data.vehicles : get().vehicles,
@@ -107,10 +115,12 @@ export const useEditorTrafficStore = create<EditorTrafficState>((set, get) => {
         roads: Array.isArray(data.roads) ? data.roads : get().roads,
         crosswalks: Array.isArray(data.crosswalks) ? data.crosswalks : get().crosswalks,
         emergencyYield: typeof data.emergencyYield === 'boolean' ? data.emergencyYield : get().emergencyYield,
+        vehicleIncidents: typeof data.vehicleIncidents === 'boolean' ? data.vehicleIncidents : get().vehicleIncidents,
+        vehicleIncidentEverySec: typeof data.vehicleIncidentEverySec === 'number' ? data.vehicleIncidentEverySec : get().vehicleIncidentEverySec,
       });
       save();
     },
-    reset: () => { set({ vehicles: clone(POLI_VEHICLES), signals: clone(TRAFFIC_SIGNALS), roads: seedRoads(), crosswalks: [], emergencyYield: true }); save(); },
+    reset: () => { set({ vehicles: clone(POLI_VEHICLES), signals: clone(TRAFFIC_SIGNALS), roads: seedRoads(), crosswalks: [], emergencyYield: true, vehicleIncidents: false, vehicleIncidentEverySec: 45 }); save(); },
   };
 });
 
@@ -126,6 +136,10 @@ export function isRoadClosed(id: string): boolean {
 }
 export function getEmergencyYield(): boolean {
   return useEditorTrafficStore.getState().emergencyYield;
+}
+export function getTrafficIncidentCfg(): { on: boolean; everySec: number } {
+  const s = useEditorTrafficStore.getState();
+  return { on: s.vehicleIncidents, everySec: s.vehicleIncidentEverySec };
 }
 export function getEditorCrosswalks(): Crosswalk[] {
   return useEditorTrafficStore.getState().crosswalks;

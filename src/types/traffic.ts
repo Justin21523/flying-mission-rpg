@@ -54,6 +54,7 @@ export interface VehicleDefinition {
   bodySize: [number, number, number]; // [width, height, length] (used when no model)
   modelAssetId?: string;    // GLB model — rendered instead of the box when set (size-normalised)
   modelScale?: number;      // normalise target (largest dim) for the model, default ~2.4
+  count?: number;           // spawn N evenly-spaced copies circulating the same loop (default 1)
   kind?: VehicleKind;       // car/truck/bus/emergency/drone (flavour + future behaviour)
   yields?: boolean;         // slows for the player during emergencies (default true)
   sourceConfidence: SourceConfidence;

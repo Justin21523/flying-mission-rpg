@@ -18,11 +18,22 @@ export const TrafficEditorTab = () => {
 
   return (
     <div className="space-y-3 overflow-y-auto text-xs">
-      {/* Global emergency yield */}
-      <label className="flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5 text-[11px] text-slate-300">
-        <input type="checkbox" checked={t.emergencyYield} onChange={(e) => t.setEmergencyYield(e.target.checked)} className="accent-amber-500" />
-        🚨 Emergency yield — vehicles slow when an incident/rescue is active
-      </label>
+      {/* Global traffic behaviour */}
+      <div className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
+        <label className="flex items-center gap-2 text-[11px] text-slate-300">
+          <input type="checkbox" checked={t.emergencyYield} onChange={(e) => t.setEmergencyYield(e.target.checked)} className="accent-amber-500" />
+          🚨 Emergency yield — vehicles slow when an incident/rescue is active
+        </label>
+        <label className="flex items-center gap-2 text-[11px] text-slate-300">
+          <input type="checkbox" checked={t.vehicleIncidents} onChange={(e) => t.setVehicleIncidents(e.target.checked)} className="accent-rose-500" />
+          🤖 Traffic AI incidents — vehicles trigger incidents to respond to
+        </label>
+        {t.vehicleIncidents && (
+          <label className="flex items-center gap-1 text-[11px] text-slate-400">every
+            <input type="number" min={5} step={5} value={t.vehicleIncidentEverySec} onChange={(e) => t.setVehicleIncidentEverySec(parseInt(e.target.value, 10) || 45)} className={inp + ' w-16'} /> sec
+          </label>
+        )}
+      </div>
 
       {/* Roads */}
       <section className="space-y-1.5">
@@ -78,6 +89,7 @@ export const TrafficEditorTab = () => {
                 </select>
               </Field>
               <Field label="model scale"><input type="number" step={0.5} value={v.modelScale ?? 2.4} onChange={(e) => t.updateVehicle(v.id, { modelScale: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="count (loop copies)"><input type="number" min={1} max={30} step={1} value={v.count ?? 1} onChange={(e) => t.updateVehicle(v.id, { count: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
             </div>
             <Field label="model (empty = box)"><ModelPicker value={v.modelAssetId || undefined} onChange={(val) => t.updateVehicle(v.id, { modelAssetId: val ?? '' })} allowNone noneLabel="(box)" /></Field>
           </div>

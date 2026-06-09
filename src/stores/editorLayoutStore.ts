@@ -92,6 +92,18 @@ export const useEditorLayoutStore = create<EditorLayoutState>((set, get) => {
     if (!activeId || list.length === 0) return;
     writePresets(areaId, list.map((p) => (p.id === activeId ? fn(p) : p)));
   };
+  // Return an active preset id for the area, creating/selecting a default if none exists yet (so
+  // "add model" always works + shows immediately, even before the user makes a preset).
+  const ensureActive = (areaId: string): string => {
+    const activeId = get().activePresetId[areaId];
+    const list = presetsFor(areaId);
+    if (activeId && list.some((p) => p.id === activeId)) return activeId;
+    if (list.length > 0) { set({ activePresetId: { ...get().activePresetId, [areaId]: list[0].id } }); save(); return list[0].id; }
+    const id = uid('layout');
+    set({ presets: { ...get().presets, [areaId]: [{ id, name: 'Default', pieces: [] }] }, activePresetId: { ...get().activePresetId, [areaId]: id } });
+    save();
+    return id;
+  };
 
   return {
     ...load(),
@@ -130,8 +142,9 @@ export const useEditorLayoutStore = create<EditorLayoutState>((set, get) => {
       if (get().activePresetId[areaId] === presetId) applyGround(areaId, key, repeat);
     },
     addPiece: (areaId, assetId, position) => {
+      const activeId = ensureActive(areaId); // create/select a preset if none, so the model shows immediately
       const pcId = uid('pc');
-      mutateActive(areaId, (p) => ({ ...p, pieces: [...p.pieces, { id: pcId, assetId, position, rotation: [0, 0, 0], scale: 1 }] }));
+      writePresets(areaId, presetsFor(areaId).map((p) => (p.id === activeId ? { ...p, pieces: [...p.pieces, { id: pcId, assetId, position, rotation: [0, 0, 0], scale: 1 }] } : p)));
       useSceneEditStore.getState().requestSelect(objKey(areaId, 'setpiece', `layout_${pcId}`)); // auto-select → gizmo
     },
     updatePiece: (areaId, pieceId, patch) =>

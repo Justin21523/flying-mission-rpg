@@ -1,8 +1,12 @@
 import { create } from 'zustand';
-import { getEditorVehicles, getEditorSignals, getEditorRoadPath, isRoadClosed, getEmergencyYield } from './editorTrafficStore';
+import { getEditorVehicles, getEditorSignals, getEditorRoadPath, isRoadClosed, getEmergencyYield, getTrafficIncidentCfg } from './editorTrafficStore';
 import { useWorldClockStore } from './worldClockStore';
 import { useIncidentStore } from './incidentStore';
 import { useRescueOperationStore } from './rescueOperationStore';
+import { spawnRandomIncident } from '../game/incident/spawnIncident';
+
+// Accumulator for traffic-triggered incidents (module-level → no re-renders).
+let trafficIncidentTimer = 0;
 import { getPathPosition, getPathHeading } from '../types/traffic';
 import type { TrafficPhase } from '../types/traffic';
 
@@ -36,6 +40,15 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   signalPhases: {},
 
   tick: (dt) => {
+    // Traffic "AI": vehicles can spontaneously trigger an incident to respond to (opt-in).
+    const tcfg = getTrafficIncidentCfg();
+    if (tcfg.on) {
+      trafficIncidentTimer += dt;
+      if (trafficIncidentTimer >= tcfg.everySec) {
+        trafficIncidentTimer = 0;
+        spawnRandomIncident();
+      }
+    }
     if (useWorldClockStore.getState().timeOfDay === 'night') return;
 
     const s = get();

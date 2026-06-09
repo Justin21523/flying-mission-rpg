@@ -26,35 +26,9 @@ interface VehicleMeshProps {
   def: VehicleDefinition;
 }
 
-const VehicleMesh = ({ def }: VehicleMeshProps) => {
-  const groupRef = useRef<Group>(null);
-
-  // Wheel offsets computed once from bodySize.
-  const wheelOffsets = useMemo<[number, number, number][]>(() => {
-    const [w, , l] = def.bodySize;
-    return [
-      [ w / 2 + 0.05, 0.3,  l / 2 - 0.4],
-      [-w / 2 - 0.05, 0.3,  l / 2 - 0.4],
-      [ w / 2 + 0.05, 0.3, -l / 2 + 0.4],
-      [-w / 2 - 0.05, 0.3, -l / 2 + 0.4],
-    ];
-  }, [def.bodySize]);
-
-  // Update position + heading directly via ref to avoid React re-renders every frame.
-  useFrame(() => {
-    if (!groupRef.current) return;
-    const path = getEditorRoadPath(def.pathId);
-    if (!path) return;
-    const progress = useTrafficStore.getState().vehicleProgress[def.id] ?? 0;
-    const [x, y, z] = getPathPosition(path, progress);
-    const heading = getPathHeading(path, progress);
-    groupRef.current.position.set(x, y, z);
-    groupRef.current.rotation.y = heading;
-  });
-
-  return (
-    <group ref={groupRef}>
-      {def.modelAssetId ? (
+const VehicleBody = ({ def, wheelOffsets }: { def: VehicleDefinition; wheelOffsets: [number, number, number][] }) => (
+  <>
+    {def.modelAssetId ? (
         <NormalizedGlbModel assetId={def.modelAssetId} target={def.modelScale ?? 2.4} />
       ) : (
         <>
@@ -77,20 +51,50 @@ const VehicleMesh = ({ def }: VehicleMeshProps) => {
           ))}
         </>
       )}
-      {/* Floating name label */}
-      <Text
-        position={[0, def.bodySize[1] + 0.75, 0]}
-        fontSize={0.28}
-        color="#ffffff"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.05}
-        outlineColor="#000000"
-        renderOrder={1}
-      >
-        {def.name}
-      </Text>
-    </group>
+  </>
+);
+
+const VehicleMesh = ({ def }: VehicleMeshProps) => {
+  const count = Math.max(1, def.count ?? 1);
+  const refs = useRef<(Group | null)[]>([]);
+  const wheelOffsets = useMemo<[number, number, number][]>(() => {
+    const [w, , l] = def.bodySize;
+    return [
+      [w / 2 + 0.05, 0.3, l / 2 - 0.4],
+      [-w / 2 - 0.05, 0.3, l / 2 - 0.4],
+      [w / 2 + 0.05, 0.3, -l / 2 + 0.4],
+      [-w / 2 - 0.05, 0.3, -l / 2 + 0.4],
+    ];
+  }, [def.bodySize]);
+
+  // All copies share one progress value but sit evenly spaced around the loop, circulating together.
+  useFrame(() => {
+    const path = getEditorRoadPath(def.pathId);
+    if (!path) return;
+    const base = useTrafficStore.getState().vehicleProgress[def.id] ?? 0;
+    for (let i = 0; i < count; i++) {
+      const g = refs.current[i];
+      if (!g) continue;
+      const prog = (base + i / count) % 1;
+      const [x, y, z] = getPathPosition(path, prog);
+      g.position.set(x, y, z);
+      g.rotation.y = getPathHeading(path, prog);
+    }
+  });
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <group key={i} ref={(el) => { refs.current[i] = el; }}>
+          <VehicleBody def={def} wheelOffsets={wheelOffsets} />
+          {i === 0 && (
+            <Text position={[0, def.bodySize[1] + 0.75, 0]} fontSize={0.28} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#000000" renderOrder={1}>
+              {def.name}
+            </Text>
+          )}
+        </group>
+      ))}
+    </>
   );
 };
 
