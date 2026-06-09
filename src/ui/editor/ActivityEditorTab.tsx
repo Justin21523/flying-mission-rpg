@@ -7,6 +7,7 @@ import {
   ARENA_POINT_LABEL, OBJECTIVE_TYPES, REWARD_TYPES, pointFieldsForType, SINGLE_POINT_FIELDS,
 } from '../../types/activity';
 import { useEditorActivityStore } from '../../stores/editorActivityStore';
+import { useYokaiDirectorStore } from '../../stores/yokaiDirectorStore';
 import { useEditorEncounterStore } from '../../stores/editorEncounterStore';
 import { SEED_COMBATANTS } from '../../data/combatants';
 import { useActivityStore } from '../../stores/activityStore';
@@ -84,8 +85,30 @@ export const ActivityEditorTab = () => {
           ))}
           {activities.length === 0 && <p className="px-1 text-[10px] text-slate-500">No mini-games yet. Pick a mode above, or use the seed games.</p>}
         </div>
+        <YokaiDirectorPanel />
       </div>
       <div className="min-w-0 flex-1">{sel ? <ActivityInspector ea={sel} /> : <p className="text-[11px] text-slate-500">Select or create a mini-game.</p>}</div>
+    </div>
+  );
+};
+
+// 🎲 Random yokai-hunt director config — auto-starts an enemyRush hunt in the player's area at intervals.
+const YokaiDirectorPanel = () => {
+  const enabled = useYokaiDirectorStore((s) => s.enabled);
+  const intervalSec = useYokaiDirectorStore((s) => s.intervalSec);
+  const chance = useYokaiDirectorStore((s) => s.chance);
+  const set = useYokaiDirectorStore((s) => s.set);
+  return (
+    <div className="rounded-lg border border-fuchsia-700/40 bg-fuchsia-950/20 p-2">
+      <label className="flex items-center gap-2 text-[11px] text-fuchsia-100">
+        <input type="checkbox" checked={enabled} onChange={(e) => set({ enabled: e.target.checked })} className="accent-fuchsia-500" />
+        🎲 Random yokai director
+      </label>
+      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+        <Field label="interval (s)"><input type="number" step={5} min={8} className={inp} value={intervalSec} onChange={(e) => set({ intervalSec: parseFloat(e.target.value) || 8 })} /></Field>
+        <Field label="chance (0–1)"><input type="number" step={0.1} min={0} max={1} className={inp} value={chance} onChange={(e) => set({ chance: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })} /></Field>
+      </div>
+      <div className="mt-1 text-[9px] text-slate-500">Starts an <b>Enemy Rush</b> mini-game whose zone = your current area, on its own. Authored hunts qualify automatically.</div>
     </div>
   );
 };
