@@ -149,10 +149,11 @@ export interface EnvironmentOverride {
 // 'stableSky': a clear daytime drei Sky with lighting locked to noon (so it never goes dark).
 export const DEFAULT_STABLE_OVERRIDE: EnvironmentOverride = {
   backgroundMode: 'sky',
-  sunElevationDeg: 38,
+  // Lower sun → the bright sky band sits lower / less overhead (still a clear blue day), per request.
+  sunElevationDeg: 24,
   sunAzimuthDeg: 165,
-  turbidity: 7,
-  rayleigh: 1.6,
+  turbidity: 5,
+  rayleigh: 1.3,
   mieCoefficient: 0.005,
   mieDirectionalG: 0.8,
   fogEnabled: true,

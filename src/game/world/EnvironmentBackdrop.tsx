@@ -1,5 +1,5 @@
-import { BackSide } from 'three';
-import { Sky, GradientTexture } from '@react-three/drei';
+import { BackSide, MeshBasicMaterial } from 'three';
+import { Sky, GradientTexture, Clouds, Cloud } from '@react-three/drei';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { resolveAreaEnvironment, sunPositionFrom } from '../environment/resolveAreaEnvironment';
@@ -21,14 +21,23 @@ export const EnvironmentBackdrop = () => {
   return (
     <>
       {env.backgroundMode === 'sky' && (
-        <Sky
-          distance={450000}
-          sunPosition={sunPositionFrom(env.sunElevationDeg, env.sunAzimuthDeg)}
-          turbidity={env.turbidity}
-          rayleigh={env.rayleigh}
-          mieCoefficient={env.mieCoefficient}
-          mieDirectionalG={env.mieDirectionalG}
-        />
+        <>
+          <Sky
+            distance={450000}
+            sunPosition={sunPositionFrom(env.sunElevationDeg, env.sunAzimuthDeg)}
+            turbidity={env.turbidity}
+            rayleigh={env.rayleigh}
+            mieCoefficient={env.mieCoefficient}
+            mieDirectionalG={env.mieDirectionalG}
+          />
+          {/* Soft white clouds across a blue sky. Sat at a moderate altitude (not overhead) so the sky reads
+              lower in view. Unlit (MeshBasicMaterial) so they stay bright white; instanced + drift slowly. */}
+          <Clouds material={MeshBasicMaterial} position={[0, 60, 0]} frustumCulled={false}>
+            <Cloud seed={1} segments={28} bounds={[200, 12, 200]} volume={26} color="#ffffff" opacity={0.62} fade={140} speed={0.07} position={[0, 0, -50]} />
+            <Cloud seed={2} segments={22} bounds={[170, 10, 170]} volume={20} color="#f7fafc" opacity={0.5} fade={140} speed={0.05} position={[90, 8, 60]} />
+            <Cloud seed={3} segments={22} bounds={[170, 10, 170]} volume={20} color="#ffffff" opacity={0.55} fade={140} speed={0.06} position={[-95, 4, 40]} />
+          </Clouds>
+        </>
       )}
 
       {env.backgroundMode === 'gradient' && (
