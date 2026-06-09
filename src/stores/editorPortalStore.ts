@@ -22,7 +22,7 @@ const uid = () => `portal_${Date.now().toString(36)}${Math.floor(Math.random() *
 
 // One safe, instructive example (locked so it never fires until the user points it at a real interior area).
 const DEFAULTS: PortalDef[] = [
-  { id: 'portal_hq_door', areaId: 'rescue_hq', name: 'HQ Door (edit me)', position: [0, 0, 6], activation: 'interact', radius: 2.5, targetAreaId: 'rescue_hq', exitPosition: [0, 0, 10], interior: true, locked: true, color: '#f97316' },
+  { id: 'portal_hq_door', areaId: 'rescue_hq', name: 'HQ Door (edit me)', position: [0, 0, 6], activation: 'interact', radius: 2.5, targetAreaId: 'rescue_hq', interior: true, locked: true, color: '#f97316' },
 ];
 
 function persist(portals: PortalDef[]): void {
@@ -43,9 +43,7 @@ export const useEditorPortalStore = create<EditorPortalState>((set, get) => {
     addPortal: (areaId) => {
       const id = uid();
       const pos: [number, number, number] = [Math.round(editorSpawn.x * 100) / 100, 0, Math.round(editorSpawn.z * 100) / 100];
-      // Default exit a few units away so its gizmo handle is visible to drag right after creating the portal.
-      const exit: [number, number, number] = [pos[0] + 4, 0, pos[2]];
-      const portal: PortalDef = { id, areaId, name: 'New Portal', position: pos, activation: 'interact', radius: 2.5, targetAreaId: areaId, exitPosition: exit, color: '#f97316' };
+      const portal: PortalDef = { id, areaId, name: 'New Portal', position: pos, activation: 'interact', radius: 2.5, targetAreaId: areaId, color: '#f97316' };
       set({ portals: [...get().portals, portal] }); save();
       useSceneEditStore.getState().requestSelect(objKey(areaId, 'landmark', id)); // gizmo appears on the new portal
       return id;
