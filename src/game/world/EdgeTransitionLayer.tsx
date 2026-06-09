@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useEditorWorldStore, getWorldArea } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
@@ -53,7 +54,24 @@ export const EdgeTransitionLayer = ({ areaId }: { areaId: string }) => {
     else go();
   });
 
-  // No invisible boundary walls — the world is open. Only connected edges act (the transition above); every
-  // other direction is free to roam. (This component is purely the edge-transition driver now.)
-  return null;
+  // Bounded map: invisible walls on CLOSED edges (no neighbour) at the effective size — which sits a margin
+  // beyond the farthest placed object — so the farthest you can walk is "farthest object + a bit". Connected
+  // edges have no wall: walking off them triggers the transition above.
+  const WALL_H = 12;
+  const t = 1;
+  const sides: { dir: EdgeDir; pos: [number, number, number]; horizontal: boolean }[] = [
+    { dir: 'north', pos: [0, WALL_H / 2, -size], horizontal: true },
+    { dir: 'south', pos: [0, WALL_H / 2, size], horizontal: true },
+    { dir: 'east', pos: [size, WALL_H / 2, 0], horizontal: false },
+    { dir: 'west', pos: [-size, WALL_H / 2, 0], horizontal: false },
+  ];
+  return (
+    <>
+      {sides.filter(({ dir }) => !edges[dir]).map(({ dir, pos, horizontal }) => (
+        <RigidBody key={dir} type="fixed" colliders={false} position={pos}>
+          <CuboidCollider args={horizontal ? [size, WALL_H / 2, t] : [t, WALL_H / 2, size]} />
+        </RigidBody>
+      ))}
+    </>
+  );
 };
