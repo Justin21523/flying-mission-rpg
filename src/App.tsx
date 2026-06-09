@@ -39,6 +39,7 @@ import { ResearchStationHud } from './ui/ResearchStationHud';
 import { BoostMeterHud } from './ui/BoostMeterHud';
 import { ResourceHud } from './ui/ResourceHud';
 import { CoinsHud } from './ui/CoinsHud';
+import { ShopPanel } from './ui/ShopPanel';
 import { ScreenFade } from './ui/ScreenFade';
 import { useRescueOperationStore } from './stores/rescueOperationStore';
 import { useJinResearchStore } from './stores/jinResearchStore';
@@ -160,6 +161,7 @@ export const App = () => {
       {!editMode && !inBattle && !inActivity && !isRescueActive && <BoostMeterHud />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <ResourceHud />}
       {!editMode && <CoinsHud />}
+      {!editMode && <ShopPanel />}
       <DialogueBox />
       <BattleOverlay />
       <ActivityHud />

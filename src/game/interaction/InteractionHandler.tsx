@@ -5,6 +5,8 @@ import { useWorldStore } from '../../stores/worldStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
 import { useInventoryStore } from '../../stores/inventoryStore';
 import { useQuestStore } from '../../stores/questStore';
+import { useActivityStore } from '../../stores/activityStore';
+import { useShopStore } from '../../stores/shopStore';
 import { useDoorStore } from '../../stores/doorStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { getKitArea } from '../../data/areas';
@@ -59,6 +61,15 @@ export const InteractionHandler = () => {
             .map((id) => qs.getQuestById(id))
             .find((q) => q && q.status === 'NotStarted');
           if (startable) { qs.startQuest(startable.id); }
+          // Functional roles: host starts a mini-game / hunt; vendor opens a shop.
+          if (enpc.hostsActivityId) {
+            const a = useActivityStore.getState();
+            if (a.startActivity(enpc.hostsActivityId)) { a.begin(); return; }
+          }
+          if (enpc.sells && enpc.sells.length > 0) {
+            useShopStore.getState().openShop(enpc.displayName, enpc.sells);
+            return;
+          }
         }
         if (npc?.dialogueTreeId) useDialogueStore.getState().startDialogue(npc.dialogueTreeId);
         return;
