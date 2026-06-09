@@ -38,7 +38,7 @@ export interface IncidentDefinition {
   markerPosition: [number, number, number];
   stages: RescueStage[];
   safetyLesson: SafetyLesson;
-  reward: { exp: number; flags?: string[] };
+  reward: { exp: number; coins?: number; flags?: string[] };
   sourceConfidence: SourceConfidence;
   // Gameplay tuning (all optional / editable via dropdowns in the 🚨 Incidents tab).
   difficulty?: number;        // 1–5

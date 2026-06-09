@@ -107,6 +107,7 @@ export const IncidentEditorTab = () => {
                 </select>
               </Field>
               <Field label="reward exp"><input type="number" value={sel.reward.exp} onChange={(e) => s.updateIncident(sel.id, { reward: { ...sel.reward, exp: parseInt(e.target.value, 10) || 0 } })} className={inp} /></Field>
+              <Field label="reward coins 🪙"><input type="number" min={0} value={sel.reward.coins ?? 0} onChange={(e) => s.updateIncident(sel.id, { reward: { ...sel.reward, coins: parseInt(e.target.value, 10) || 0 } })} className={inp} /></Field>
             </div>
             <Field label="description"><textarea value={sel.description} onChange={(e) => s.updateIncident(sel.id, { description: e.target.value })} className={inp + ' min-h-[44px] resize-y'} /></Field>
             <Field label="reward flags (, — e.g. trust:harbor_worker:10)"><input value={csv(sel.reward.flags)} onChange={(e) => s.updateIncident(sel.id, { reward: { ...sel.reward, flags: parseCsv(e.target.value) } })} className={inp} /></Field>

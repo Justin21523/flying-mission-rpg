@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getEditorIncident } from './editorIncidentStore';
 import { useIncidentStore } from './incidentStore';
 import { useProgressionStore } from './progressionStore';
+import { useWalletStore } from './walletStore';
 import { useRelationshipStore } from './relationshipStore';
 import { useFlagStore } from './flagStore';
 import { useToolStore } from './toolStore';
@@ -198,6 +199,7 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     const def = getEditorIncident(s.incidentId);
     if (def) {
       if (def.reward.exp) useProgressionStore.getState().addExp(def.reward.exp);
+      if (def.reward.coins) useWalletStore.getState().addCoins(def.reward.coins);
       def.reward.flags?.forEach((f) => {
         if (f.startsWith('trust:')) {
           const parts = f.split(':');

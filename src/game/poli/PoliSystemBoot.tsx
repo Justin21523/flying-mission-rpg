@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { setupPoliQuestRewards } from './PoliQuestRewardHandler';
 import { useToolStore } from '../../stores/toolStore';
+import { useEditorIncidentStore } from '../../stores/editorIncidentStore';
 import { seedPoliWorld } from './seedPoliWorld';
 import { seedWorld } from './seedWorld';
 
@@ -11,6 +12,7 @@ export const PoliSystemBoot = () => {
   useEffect(() => {
     setupPoliQuestRewards();
     useToolStore.getState().initStarterTools();
+    useEditorIncidentStore.getState().mergeMissingFromSeed(); // backfill new seed incidents into old saves
     seedPoliWorld();
     seedWorld();
   }, []);
