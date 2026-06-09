@@ -1,8 +1,11 @@
+import { Suspense } from 'react';
 import type { EditorNpc, NpcMovement } from '../../types/editorNPC';
 import { NPC_MOVEMENT } from '../../types/editorNPC';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
-import { useModelAnimations } from '../../game/world/useModelAnimations';
+import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
+import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { AnimRuleList } from './AnimRuleList';
+import { AssetClipLoader } from './AssetClipLoader';
 import { inp, lbl } from './editorShared';
 
 const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Patrol loop', schedule: 'Time-of-day', wander: 'Wander (AI roam)' };
@@ -13,7 +16,9 @@ const MOVE_LABEL: Record<NpcMovement, string> = { static: 'Static', patrol: 'Pat
 export const NpcSelectionExtras = ({ npcId }: { npcId: string }) => {
   const npc = useEditorNpcStore((s) => s.addedNpcs.find((n) => n.id === npcId));
   const updateNpc = useEditorNpcStore((s) => s.updateNpc);
-  const clips = useModelAnimations(npc?.modelAssetId ?? undefined);
+  useAnimClipStore((s) => s.clipsByPath); // re-render when clips finish loading
+  const path = npc?.modelAssetId ? resolveModelAsset(npc.modelAssetId)?.path : undefined;
+  const clips = getClipsForPaths([path]);
   if (!npc) return null;
   const set = (patch: Partial<EditorNpc>) => updateNpc(npc.id, patch);
   const mode = npc.movement ?? 'static';
@@ -35,7 +40,10 @@ export const NpcSelectionExtras = ({ npcId }: { npcId: string }) => {
         </label>
       )}
       {npc.modelAssetId
-        ? <AnimRuleList rules={npc.animations ?? []} clips={clips} onChange={(next) => set({ animations: next })} />
+        ? <>
+            {path && <Suspense fallback={null}><AssetClipLoader path={path} /></Suspense>}
+            <AnimRuleList rules={npc.animations ?? []} clips={clips} onChange={(next) => set({ animations: next })} />
+          </>
         : <div className={`${lbl} text-slate-500`}>Assign a 3D model in the 🧑 NPC tab to author animation rules.</div>}
     </div>
   );

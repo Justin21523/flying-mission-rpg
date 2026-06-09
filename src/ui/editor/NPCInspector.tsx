@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import type { EditorNpc, NpcType, NpcMovement } from '../../types/editorNPC';
 import { NPC_TYPES, NPC_TYPE_LABEL, NPC_TYPE_COLOR, NPC_MOVEMENT } from '../../types/editorNPC';
 import type { TimeOfDay } from '../../types/randomEvent';
@@ -7,13 +7,15 @@ import { useDialogueStore } from '../../stores/dialogueStore';
 import { useUiStore } from '../../stores/uiStore';
 import { listDialogueTreeIds, getDialogueTree } from '../../game/dialogue/dialogueRegistry';
 import { editorSpawn } from '../../stores/sceneEditStore';
-import { useModelAnimations } from '../../game/world/useModelAnimations';
+import { getClipsForPaths, useAnimClipStore } from '../../stores/animClipStore';
+import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { validateNpcLive } from '../../game/editor/validateNpc';
 import { Field, inp, lbl, csv, parseCsv, useQuestOptions } from './editorShared';
 import { IdMultiPicker } from './idPickers';
 import { ModelPicker } from './ModelPicker';
 import { AnimationPicker } from './AnimationPicker';
 import { AnimRuleList } from './AnimRuleList';
+import { AssetClipLoader } from './AssetClipLoader';
 import { DialogueTreeEditor } from './DialogueTreeEditor';
 import { DialoguePreviewPanel } from './DialoguePreviewPanel';
 
@@ -106,13 +108,20 @@ const MovementSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<Editor
   );
 };
 
-// Per-NPC custom animation rules (same engine as the player). Reads the model's real clip names via the kit's
-// useModelAnimations loader (so the track dropdown is populated) and reuses the shared AnimRuleList. NPC state
-// only exposes idle/moving/always/key triggers (no forms/flight).
+// Per-NPC custom animation rules (same engine as the player). Loads the model's real clip names via drei's
+// useGLTF (AssetClipLoader — DRACO aware, like the player) into animClipStore, so the track dropdown lists the
+// model's actual clips, then reuses the shared AnimRuleList.
 const NpcAnimationsSection = ({ npc, set }: { npc: EditorNpc; set: (p: Partial<EditorNpc>) => void }) => {
-  const clips = useModelAnimations(npc.modelAssetId ?? undefined);
+  useAnimClipStore((s) => s.clipsByPath); // re-render when clips finish loading
+  const path = npc.modelAssetId ? resolveModelAsset(npc.modelAssetId)?.path : undefined;
+  const clips = getClipsForPaths([path]);
   if (!npc.modelAssetId) return <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-2 text-[11px] text-slate-500">Assign a 3D model above to author animation rules.</div>;
-  return <AnimRuleList rules={npc.animations ?? []} clips={clips} onChange={(next) => set({ animations: next })} />;
+  return (
+    <>
+      {path && <Suspense fallback={null}><AssetClipLoader path={path} /></Suspense>}
+      <AnimRuleList rules={npc.animations ?? []} clips={clips} onChange={(next) => set({ animations: next })} />
+    </>
+  );
 };
 
 // Kit — full inspector for one Editor NPC: identity + archetype + transform + model + dialogue binding +
