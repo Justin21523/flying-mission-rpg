@@ -1,6 +1,7 @@
 import { BackSide, MeshBasicMaterial } from 'three';
 import { Sky, GradientTexture, Clouds, Cloud, Environment } from '@react-three/drei';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useUiStore } from '../../stores/uiStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { resolveAreaEnvironment, sunPositionFrom } from '../environment/resolveAreaEnvironment';
 import { resolveHdriUrl } from './hdriLibrary';
@@ -12,6 +13,7 @@ import { resolveHdriUrl } from './hdriLibrary';
 // the mode isn't 'dynamic'); this component only adds meshes. Mounted in both play and edit ambience.
 export const EnvironmentBackdrop = () => {
   const areaId = usePlayerStore((s) => s.currentAreaId);
+  const editMode = useUiStore((s) => s.editMode);
   // Subscribe so the backdrop re-resolves when overrides / default mode change.
   useEditorEnvironmentStore((s) => s.overrides);
   useEditorEnvironmentStore((s) => s.defaultMode);
@@ -31,10 +33,9 @@ export const EnvironmentBackdrop = () => {
             mieCoefficient={env.mieCoefficient}
             mieDirectionalG={env.mieDirectionalG}
           />
-          {/* Realistic scattered cumulus: many soft white puffs spread wide + flat across the sky at a
-              moderate altitude (so the sky reads lower, not overhead). Unlit (MeshBasicMaterial) → stays bright
-              white regardless of light; instanced; drift slowly; puffy outward edges + slight grey underside
-              tint via per-cloud colour for a more 3D, real feel. */}
+          {/* Realistic scattered cumulus (Play Mode only — hidden in Edit Mode so they never obscure editing).
+              Unlit (MeshBasicMaterial) → stays bright white; instanced; drift slowly; puffy outward edges. */}
+          {!editMode && (
           <Clouds material={MeshBasicMaterial} limit={400} range={400} frustumCulled={false}>
             <Cloud seed={1} segments={48} bounds={[150, 14, 150]} volume={32} smallestVolume={0.5} concentrate="outside" growth={6} opacity={0.85} fade={220} speed={0.05} color="#ffffff" position={[-30, 58, -70]} />
             <Cloud seed={2} segments={42} bounds={[130, 12, 130]} volume={26} smallestVolume={0.4} concentrate="outside" growth={6} opacity={0.78} fade={220} speed={0.04} color="#f4f7fb" position={[110, 70, 30]} />
@@ -43,6 +44,7 @@ export const EnvironmentBackdrop = () => {
             <Cloud seed={5} segments={34} bounds={[100, 10, 100]} volume={18} smallestVolume={0.3} concentrate="outside" growth={5} opacity={0.72} fade={220} speed={0.04} color="#ffffff" position={[150, 54, -120]} />
             <Cloud seed={6} segments={30} bounds={[90, 9, 90]} volume={15} smallestVolume={0.3} concentrate="outside" growth={4} opacity={0.66} fade={220} speed={0.03} color="#f4f7fb" position={[-150, 76, -40]} />
           </Clouds>
+          )}
         </>
       )}
 

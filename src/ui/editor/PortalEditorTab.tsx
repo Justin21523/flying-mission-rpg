@@ -16,8 +16,11 @@ export const PortalEditorTab = () => {
   const worldAreas = useEditorWorldStore((s) => s.areas);
   const overrides = useSceneEditStore((s) => s.overrides); // live gizmo positions
   const st = useEditorPortalStore.getState();
-  const portals = all.filter((p) => p.areaId === areaId);
   const areaOptions = useAreaOptions();
+  const areaName = (id: string) => areaOptions.find((o) => o.id === id)?.label ?? id;
+  // Show ALL portals (sorted by the area they live in) — a portal belongs to the area you created it in, so a
+  // pair must have ONE door in each area. Listing them all makes mis-placed doors obvious + fixable.
+  const portals = [...all].sort((a, b) => (a.areaId === b.areaId ? 0 : a.areaId < b.areaId ? -1 : 1));
 
   // Arrival destinations across EVERY area (indoor + outdoor), grouped by area. Each area is always present
   // and selectable as its spawn point, plus all of its map points + portals. Value encodes area + kind + id:
@@ -38,30 +41,38 @@ export const PortalEditorTab = () => {
   return (
     <div className="space-y-3 text-xs">
       <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
-        <span className={lbl}>🚪 Portals in “{areaId}” ({portals.length})</span>
-        <button onClick={() => st.addPortal(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ at cam</button>
+        <span className={lbl}>🚪 Portals ({portals.length})</span>
+        <button onClick={() => st.addPortal(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ at cam (in “{areaName(areaId)}”)</button>
       </div>
-      {portals.length === 0 && <div className="text-[11px] text-slate-500">No portals here. Add one at the camera focus, then drag its gizmo in 3D. Set its target to a building/HQ interior area (create those in the 🗺 World tab).</div>}
+      <div className="text-[10px] text-amber-300/80">A linked pair needs ONE door in each area: e.g. a door whose <b>lives in = HQ interior</b> &amp; <b>target = outside</b>, plus a door whose <b>lives in = outside</b> &amp; <b>target = HQ interior</b>. Each comes out beside the other.</div>
+      {portals.length === 0 && <div className="text-[11px] text-slate-500">No portals yet. Add one at the camera focus, then set its “lives in” + target areas.</div>}
 
       {portals.map((p) => {
-        const livePos = (overrides[objKey(areaId, 'landmark', p.id)]?.position ?? p.position) as [number, number, number];
+        const inThisArea = p.areaId === areaId;
+        const livePos = (overrides[objKey(p.areaId, 'landmark', p.id)]?.position ?? p.position) as [number, number, number];
         return (
           <div key={p.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
             <div className="flex items-center gap-1.5">
               <input type="color" value={p.color ?? '#f97316'} onChange={(e) => set(p.id, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" />
               <input value={p.name} onChange={(e) => set(p.id, { name: e.target.value })} className={inp + ' flex-1'} placeholder="portal name" />
-              <button onClick={() => useSceneEditStore.getState().requestSelect(objKey(areaId, 'landmark', p.id))} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+              {inThisArea && <button onClick={() => useSceneEditStore.getState().requestSelect(objKey(p.areaId, 'landmark', p.id))} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>}
               <button onClick={() => st.removePortal(p.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
             </div>
 
-            <Field label="position (x / y / z) — live with the gizmo">
+            <Field label="lives in area (which map this door is on)">
+              <select value={p.areaId} onChange={(e) => set(p.id, { areaId: e.target.value })} className={inp}>
+                {areaOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </Field>
+
+            <Field label={`position (x / y / z)${inThisArea ? ' — live with the gizmo' : ' — gizmo only when you are in this area'}`}>
               <div className="flex gap-1">
                 {([0, 1, 2] as const).map((a) => (
                   <input key={a} type="number" step={0.5} value={Math.round(livePos[a] * 100) / 100} className={inp + ' w-0 flex-1'} onChange={(e) => {
                     const next = [...livePos] as [number, number, number];
                     next[a] = parseFloat(e.target.value) || 0;
                     set(p.id, { position: next });
-                    useSceneEditStore.getState().setOverride(objKey(areaId, 'landmark', p.id), { position: undefined });
+                    useSceneEditStore.getState().setOverride(objKey(p.areaId, 'landmark', p.id), { position: undefined });
                   }} />
                 ))}
               </div>
