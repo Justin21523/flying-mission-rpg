@@ -155,9 +155,10 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
         }
       });
       useIncidentStore.getState().resolveIncident(def.id);
-      // Progression: count the rescue toward the license, and award a research point for Jin's station.
+      // Progression: count the rescue toward the license, and award research points for Jin's station
+      // (a base point + the incident's configured bonus).
       useRescueLicenseStore.getState().recordRescue();
-      useJinResearchStore.getState().addPoints(1);
+      useJinResearchStore.getState().addPoints(1 + (def.rewardResearchPoints ?? 0));
     }
     set({
       isActive: false,

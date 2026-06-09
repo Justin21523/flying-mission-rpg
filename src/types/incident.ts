@@ -40,4 +40,15 @@ export interface IncidentDefinition {
   safetyLesson: SafetyLesson;
   reward: { exp: number; flags?: string[] };
   sourceConfidence: SourceConfidence;
+  // Gameplay tuning (all optional / editable via dropdowns in the 🚨 Incidents tab).
+  difficulty?: number;        // 1–5
+  cooldownSec?: number;       // min seconds before this can spawn again after resolving
+  spawnTimeOfDay?: string;    // 'any' | 'dawn' | 'day' | 'evening' | 'night'
+  spawnWeather?: string;      // 'any' | 'clear' | 'rain' | 'fog' | 'storm'
+  requiredRescues?: number;   // license gate: rescues completed before this can appear
+  requiredToolId?: string;    // tool that must be unlocked first
+  rewardResearchPoints?: number; // research points granted on success
+  victimCount?: number;       // residents/vehicles involved (flavour)
+  targetNpcId?: string;       // the NPC/subject to rescue (dropdown)
+  responderCharId?: string;   // recommended POLI character for this incident (dropdown)
 }

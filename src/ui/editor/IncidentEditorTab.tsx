@@ -3,8 +3,13 @@ import { useEditorRandomEventStore, incidentCfg } from '../../stores/editorRando
 import type { ReactionMode } from '../../stores/editorRandomEventStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
 import { spawnRandomIncident } from '../../game/incident/spawnIncident';
-import { Field, inp, lbl, csv, parseCsv } from './editorShared';
+import { Field, inp, lbl, csv, parseCsv, useAreaOptions, useNpcOptions } from './editorShared';
+import { getEditorTools } from '../../stores/editorToolStore';
+import { CORE_TEAM } from '../../data/characters/coreTeam';
 import type { IncidentType, RescueStageType } from '../../types/incident';
+
+const TIME_OPTS = ['any', 'dawn', 'day', 'evening', 'night'];
+const WEATHER_OPTS = ['any', 'clear', 'rain', 'fog', 'storm'];
 
 const INCIDENT_TYPES: IncidentType[] = ['fire', 'lost_person', 'road_hazard', 'fallen_cargo', 'flat_tire', 'fallen_tree', 'lost_pet', 'broken_signal', 'road_water'];
 const STAGE_TYPES: RescueStageType[] = ['action', 'waypoints'];
@@ -18,6 +23,8 @@ export const IncidentEditorTab = () => {
   const selectedId = useEditorIncidentStore((s) => s.selectedId);
   const s = useEditorIncidentStore.getState();
   const sel = incidents.find((d) => d.id === selectedId) ?? null;
+  const areaOptions = useAreaOptions();
+  const npcOptions = useNpcOptions();
   const re = useEditorRandomEventStore();
 
   return (
@@ -92,11 +99,49 @@ export const IncidentEditorTab = () => {
                   {INCIDENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Field>
-              <Field label="spawn area id"><input value={sel.spawnAreaId} onChange={(e) => s.updateIncident(sel.id, { spawnAreaId: e.target.value })} className={inp} /></Field>
+              <Field label="spawn area">
+                <select value={sel.spawnAreaId} onChange={(e) => s.updateIncident(sel.id, { spawnAreaId: e.target.value })} className={inp}>
+                  {areaOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select>
+              </Field>
               <Field label="reward exp"><input type="number" value={sel.reward.exp} onChange={(e) => s.updateIncident(sel.id, { reward: { ...sel.reward, exp: parseInt(e.target.value, 10) || 0 } })} className={inp} /></Field>
             </div>
             <Field label="description"><textarea value={sel.description} onChange={(e) => s.updateIncident(sel.id, { description: e.target.value })} className={inp + ' min-h-[44px] resize-y'} /></Field>
             <Field label="reward flags (, — e.g. trust:harbor_worker:10)"><input value={csv(sel.reward.flags)} onChange={(e) => s.updateIncident(sel.id, { reward: { ...sel.reward, flags: parseCsv(e.target.value) } })} className={inp} /></Field>
+
+            {/* Gameplay tuning + target/condition dropdowns */}
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+              <Field label="rescue target (NPC)">
+                <select value={sel.targetNpcId ?? ''} onChange={(e) => s.updateIncident(sel.id, { targetNpcId: e.target.value || undefined })} className={inp}>
+                  <option value="">(none)</option>{npcOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select>
+              </Field>
+              <Field label="recommended responder">
+                <select value={sel.responderCharId ?? ''} onChange={(e) => s.updateIncident(sel.id, { responderCharId: e.target.value || undefined })} className={inp}>
+                  <option value="">(any)</option>{CORE_TEAM.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </Field>
+              <Field label="required tool">
+                <select value={sel.requiredToolId ?? ''} onChange={(e) => s.updateIncident(sel.id, { requiredToolId: e.target.value || undefined })} className={inp}>
+                  <option value="">(none)</option>{getEditorTools().map((t) => <option key={t.id} value={t.id}>{t.icon} {t.name}</option>)}
+                </select>
+              </Field>
+              <Field label="difficulty (1–5)"><input type="number" min={1} max={5} value={sel.difficulty ?? 1} onChange={(e) => s.updateIncident(sel.id, { difficulty: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
+              <Field label="spawn time">
+                <select value={sel.spawnTimeOfDay ?? 'any'} onChange={(e) => s.updateIncident(sel.id, { spawnTimeOfDay: e.target.value })} className={inp}>
+                  {TIME_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </Field>
+              <Field label="spawn weather">
+                <select value={sel.spawnWeather ?? 'any'} onChange={(e) => s.updateIncident(sel.id, { spawnWeather: e.target.value })} className={inp}>
+                  {WEATHER_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </Field>
+              <Field label="cooldown (s)"><input type="number" min={0} value={sel.cooldownSec ?? 0} onChange={(e) => s.updateIncident(sel.id, { cooldownSec: parseInt(e.target.value, 10) || 0 })} className={inp} /></Field>
+              <Field label="required rescues"><input type="number" min={0} value={sel.requiredRescues ?? 0} onChange={(e) => s.updateIncident(sel.id, { requiredRescues: parseInt(e.target.value, 10) || 0 })} className={inp} /></Field>
+              <Field label="research reward"><input type="number" min={0} value={sel.rewardResearchPoints ?? 0} onChange={(e) => s.updateIncident(sel.id, { rewardResearchPoints: parseInt(e.target.value, 10) || 0 })} className={inp} /></Field>
+              <Field label="victims"><input type="number" min={0} value={sel.victimCount ?? 0} onChange={(e) => s.updateIncident(sel.id, { victimCount: parseInt(e.target.value, 10) || 0 })} className={inp} /></Field>
+            </div>
 
             <Field label="marker position (x / y / z)">
               <div className="flex gap-1">
