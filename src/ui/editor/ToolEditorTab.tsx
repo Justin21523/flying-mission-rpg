@@ -1,6 +1,7 @@
 import { useEditorToolStore } from '../../stores/editorToolStore';
 import { Field, inp, lbl } from './editorShared';
 import type { ToolDefinition } from '../../types/tool';
+import { TOOL_CATEGORIES } from '../../types/tool';
 
 // 🛠 Tools tab — edit rescue tools + the skill tree (prerequisites) + per-tool upgrade level.
 // A tool can't be unlocked in-game until all its prerequisites are unlocked. Auto-saves.
@@ -55,6 +56,32 @@ export const ToolEditorTab = () => {
               <Field label="unlock trust (Jin)"><input type="number" min={0} value={sel.unlockTrustWithJin} onChange={(e) => set({ unlockTrustWithJin: parseInt(e.target.value, 10) || 0 })} className={inp} /></Field>
             </div>
             <Field label="description"><input value={sel.description} onChange={(e) => set({ description: e.target.value })} className={inp} /></Field>
+
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+              <Field label="category">
+                <select value={sel.category ?? 'utility'} onChange={(e) => set({ category: e.target.value as typeof sel.category })} className={inp}>
+                  {TOOL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="stage affinity">
+                <select value={sel.stageAffinity ?? 'any'} onChange={(e) => set({ stageAffinity: e.target.value as typeof sel.stageAffinity })} className={inp}>
+                  {['any', 'action', 'waypoints'].map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="cooldown (s)"><input type="number" step={0.5} value={sel.cooldownSec ?? 0} onChange={(e) => set({ cooldownSec: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="use duration (s)"><input type="number" step={0.5} value={sel.useDurationSec ?? 0} onChange={(e) => set({ useDurationSec: parseFloat(e.target.value) || 0 })} className={inp} /></Field>
+              <Field label="VFX colour">
+                <input type="color" value={sel.vfxColor ?? '#38bdf8'} onChange={(e) => set({ vfxColor: e.target.value })} className="h-7 w-12 cursor-pointer rounded border-0 bg-transparent" />
+              </Field>
+              <Field label="synergy tools">
+                <div className="flex flex-wrap gap-1">
+                  {tools.filter((t) => t.id !== sel.id).map((t) => {
+                    const on = (sel.synergyToolIds ?? []).includes(t.id);
+                    return <button key={t.id} onClick={() => { const cur = sel.synergyToolIds ?? []; set({ synergyToolIds: on ? cur.filter((x) => x !== t.id) : [...cur, t.id] }); }} className={`rounded px-1.5 py-0.5 text-[10px] ${on ? 'bg-violet-600/50 text-violet-50' : 'bg-slate-800 text-slate-400'}`}>{on ? '✓ ' : ''}{t.name}</button>;
+                  })}
+                </div>
+              </Field>
+            </div>
 
             <Field label="Prerequisites (skill tree — unlock these first)">
               <div className="flex flex-wrap gap-1">

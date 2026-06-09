@@ -1,6 +1,9 @@
 // POLI — Jin's research-station projects (editable in the 🔬 Research tab). Each project spends research
 // points (earned from rescues + quests) to unlock a rescue tool. Prerequisites form a small research tree.
 // GameAdaptation: designed for playability. Tool ids match data/tools/poliTools.
+export type ResearchCategory = 'tools' | 'mobility' | 'safety' | 'detection' | 'support';
+export const RESEARCH_CATEGORIES: ResearchCategory[] = ['tools', 'mobility', 'safety', 'detection', 'support'];
+
 export interface ResearchProject {
   id: string;
   name: string;          // English display name
@@ -8,6 +11,13 @@ export interface ResearchProject {
   cost: number;          // research points
   unlocksToolId: string; // a ToolId unlocked on completion
   prerequisiteProjectIds: string[];
+  // Extra tuning (editable via dropdowns in the 🔬 Research tab).
+  category?: ResearchCategory;
+  tier?: number;                 // 1–5 research tier
+  unlocksAbilityType?: string;   // grant a built-in ability (AbilityType) on completion
+  unlocksAreaId?: string;        // reveal/flag an area on completion
+  repeatable?: boolean;
+  rewardDescription?: string;
 }
 
 export const RESEARCH_PROJECTS: ResearchProject[] = [

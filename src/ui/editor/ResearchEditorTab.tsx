@@ -1,7 +1,9 @@
 import { useJinResearchStore } from '../../stores/jinResearchStore';
 import { getEditorTools } from '../../stores/editorToolStore';
-import { Field, inp, lbl } from './editorShared';
+import { Field, inp, lbl, Check, useAreaOptions } from './editorShared';
 import { IdMultiPicker } from './idPickers';
+import { RESEARCH_CATEGORIES } from '../../data/progression/researchProjects';
+import { ABILITY_TYPES } from '../../types/character';
 
 // 🔬 Research tab — edit Jin's research projects (cost / unlocked tool / prerequisites) + the live points.
 export const ResearchEditorTab = () => {
@@ -10,6 +12,7 @@ export const ResearchEditorTab = () => {
   const projects = useJinResearchStore((s) => s.projects);
   const st = useJinResearchStore.getState();
   const tools = getEditorTools();
+  const areaOptions = useAreaOptions();
   const projectOptions = projects.map((p) => ({ id: p.id, label: p.name }));
 
   return (
@@ -41,6 +44,26 @@ export const ResearchEditorTab = () => {
               </select>
             </Field>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="category">
+              <select value={p.category ?? 'tools'} onChange={(e) => st.updateProject(p.id, { category: e.target.value as typeof p.category })} className={inp}>
+                {RESEARCH_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+            <Field label="tier"><input type="number" min={1} max={5} value={p.tier ?? 1} onChange={(e) => st.updateProject(p.id, { tier: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
+            <Field label="unlocks ability">
+              <select value={p.unlocksAbilityType ?? ''} onChange={(e) => st.updateProject(p.id, { unlocksAbilityType: e.target.value || undefined })} className={inp}>
+                <option value="">(none)</option>{ABILITY_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </Field>
+            <Field label="unlocks area">
+              <select value={p.unlocksAreaId ?? ''} onChange={(e) => st.updateProject(p.id, { unlocksAreaId: e.target.value || undefined })} className={inp}>
+                <option value="">(none)</option>{areaOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Field label="reward description"><input value={p.rewardDescription ?? ''} onChange={(e) => st.updateProject(p.id, { rewardDescription: e.target.value })} className={inp} /></Field>
+          <Check label="repeatable" checked={!!p.repeatable} onChange={(v) => st.updateProject(p.id, { repeatable: v })} />
           <Field label="prerequisite projects">
             <IdMultiPicker ids={p.prerequisiteProjectIds} onChange={(v) => st.updateProject(p.id, { prerequisiteProjectIds: v })} options={projectOptions.filter((o) => o.id !== p.id)} addLabel="+ prereq…" />
           </Field>
