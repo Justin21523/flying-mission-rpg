@@ -4,7 +4,7 @@ import { getKitArea } from '../../data/areas';
 import { edgeGate } from './gateLayout';
 import { ZoneFloor } from './ZoneFloor';
 import { HeightfieldGround } from './HeightfieldGround';
-import { FlatPbrGround } from './FlatPbrGround';
+import { FlatPbrGround, PbrGroundPlane } from './FlatPbrGround';
 import { PbrPatchLayer } from './PbrPatchLayer';
 import { SceneSetPieceLayer } from './SceneSetPieceLayer';
 import { SampleEntities } from './SampleEntities';
@@ -73,8 +73,13 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {/* Infinite safety base under every ground type (open map → never fall). Heightfield/FlatPbr visuals
           layer on top within the area; this flat base continues beyond them. Dropped slightly for heightfield
           so it doesn't z-fight the sculpted terrain. */}
-      <ZoneFloor color={theme.groundColor} y={env.groundType === 'heightfield' ? -0.5 : 0} />
+      <ZoneFloor color={theme.groundColor} y={env.groundType === 'heightfield' ? -0.6 : 0} />
       <HeightfieldGround areaId={areaId} />
+      {/* Heightfield: continue the area's PBR ground material infinitely BEYOND the sculpted terrain, so the
+          textured ground matches the open map (just below the terrain; terrain covers it within the area). */}
+      {env.groundType === 'heightfield' && (env.pbrGround.albedoUrl || env.pbrGround.gltfMaterialUrl) && (
+        <PbrGroundPlane areaId={areaId} y={-0.5} />
+      )}
       <FlatPbrGround areaId={areaId} />
       <PbrPatchLayer areaId={areaId} />
       <SceneSetPieceLayer areaId={areaId} />

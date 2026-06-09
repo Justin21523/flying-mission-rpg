@@ -13,8 +13,9 @@ import { GROUND_SIZE } from './ZoneFloor';
 // the geometry UVs are pre-scaled so the per-1000-units tile density set by `repeat` is preserved at any size.
 const UV_REF = 1000; // the size at which `repeat` was authored (legacy plane size)
 
-export const FlatPbrGround = ({ areaId, size = GROUND_SIZE }: { areaId: string; size?: number }) => {
-  // Subscribe so the ground re-resolves when overrides / default mode change.
+// The textured PBR plane itself (no groundType gate) — reused by FlatPbrGround AND as the infinite base
+// beyond a heightfield's sculpted terrain. `y` places it (flat ground surface vs below the terrain).
+export const PbrGroundPlane = ({ areaId, size = GROUND_SIZE, y = 0.015 }: { areaId: string; size?: number; y?: number }) => {
   useEditorEnvironmentStore((s) => s.overrides);
   useEditorEnvironmentStore((s) => s.defaultMode);
   const env = resolveAreaEnvironment(areaId);
@@ -34,10 +35,8 @@ export const FlatPbrGround = ({ areaId, size = GROUND_SIZE }: { areaId: string; 
   }, [size]);
   useEffect(() => () => geom.dispose(), [geom]);
 
-  if (env.isIndoor || env.groundType !== 'flatPbr') return null;
-
   return (
-    <mesh geometry={geom} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} receiveShadow>
+    <mesh geometry={geom} rotation={[-Math.PI / 2, 0, 0]} position={[0, y, 0]} receiveShadow>
       {/* key forces a material rebuild when the SET of maps changes (shader recompile). */}
       <meshStandardMaterial
         key={`${!!albedo}-${!!normal}-${!!rough}-${!!ao}`}
@@ -52,4 +51,13 @@ export const FlatPbrGround = ({ areaId, size = GROUND_SIZE }: { areaId: string; 
       />
     </mesh>
   );
+};
+
+export const FlatPbrGround = ({ areaId, size = GROUND_SIZE }: { areaId: string; size?: number }) => {
+  // Subscribe so the gate re-resolves when overrides / default mode change.
+  useEditorEnvironmentStore((s) => s.overrides);
+  useEditorEnvironmentStore((s) => s.defaultMode);
+  const env = resolveAreaEnvironment(areaId);
+  if (env.isIndoor || env.groundType !== 'flatPbr') return null;
+  return <PbrGroundPlane areaId={areaId} size={size} y={0.015} />;
 };
