@@ -20,7 +20,9 @@ export const BoundaryMistLayer = ({ areaId }: { areaId: string }) => {
   // Sit RIGHT AT the boundary wall: the shells straddle the wall (a few inside, the rest outside) so there's a
   // big thick sheet of mist at the wall edge. The wall now hugs the content (margin 5), so this is also close.
   const wall = getEffectiveAreaSize(areaId);
-  const H = 200; // very tall wall of mist so it fully hides the void in every view, even looking up.
+  // A PERIMETER wall of moderate height — tall enough to hide the ground-level void at the horizon, but low
+  // enough that the HDRI / sky dome stays visible ABOVE it (a 200-tall wall used to cover the whole sky).
+  const H = 40;
   // Many tightly-packed concentric shells straddling the wall — from EVERY angle the line of sight crosses
   // several fully-opaque layers → uniform, very thick density forming a big mist sheet all along the wall.
   const SHELLS = 10;
@@ -31,8 +33,8 @@ export const BoundaryMistLayer = ({ areaId }: { areaId: string }) => {
         <mesh key={i} position={[0, H / 2 - 2, 0]} raycast={noRaycast}>
           <cylinderGeometry args={[start + i * 2, start + i * 2, H, 64, 1, true]} />
           <meshBasicMaterial color="#eef2f7" transparent opacity={1} side={DoubleSide} depthWrite={false} fog={false} toneMapped={false}>
-            {/* alpha gradient: fully opaque almost to the top (uniform density), only the very top fades to clear */}
-            <GradientTexture attach="alphaMap" stops={[0, 0.92, 1]} colors={['#ffffff', '#ffffff', '#000000']} />
+            {/* alpha gradient: dense low down (hides the void), fading out toward the top so the HDRI sky shows. */}
+            <GradientTexture attach="alphaMap" stops={[0, 0.7, 1]} colors={['#ffffff', '#ffffff', '#000000']} />
           </meshBasicMaterial>
         </mesh>
       ))}
