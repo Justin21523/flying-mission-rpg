@@ -70,7 +70,10 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
 
   return (
     <>
-      {env.groundType !== 'heightfield' && <ZoneFloor color={theme.groundColor} />}
+      {/* Infinite safety base under every ground type (open map → never fall). Heightfield/FlatPbr visuals
+          layer on top within the area; this flat base continues beyond them. Dropped slightly for heightfield
+          so it doesn't z-fight the sculpted terrain. */}
+      <ZoneFloor color={theme.groundColor} y={env.groundType === 'heightfield' ? -0.5 : 0} />
       <HeightfieldGround areaId={areaId} />
       <FlatPbrGround areaId={areaId} />
       <PbrPatchLayer areaId={areaId} />
