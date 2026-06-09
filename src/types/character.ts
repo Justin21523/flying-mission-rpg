@@ -38,8 +38,8 @@ export interface SuperMove {
 // Custom animation rules (editable per character in the POLI tab). The player's animation system evaluates
 // every rule each frame and plays the highest-priority one whose trigger matches the current state. 'key'
 // rules play their clip on a key press (celebrate/dance); 'once' plays through then releases.
-export type AnimTrigger = 'always' | 'idle' | 'moving' | 'sprinting' | 'flying' | 'vehicle' | 'robot' | 'ability' | 'key';
-export const ANIM_TRIGGERS: AnimTrigger[] = ['always', 'idle', 'moving', 'sprinting', 'flying', 'vehicle', 'robot', 'ability', 'key'];
+export type AnimTrigger = 'always' | 'idle' | 'moving' | 'sprinting' | 'flying' | 'vehicle' | 'robot' | 'ability' | 'celebrate' | 'key';
+export const ANIM_TRIGGERS: AnimTrigger[] = ['always', 'idle', 'moving', 'sprinting', 'flying', 'vehicle', 'robot', 'ability', 'celebrate', 'key'];
 export interface AnimRule {
   id: string;
   name?: string;         // free custom label for this rule

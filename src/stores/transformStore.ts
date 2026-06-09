@@ -41,6 +41,7 @@ interface TransformState {
   // Super moves (keys 1/2/3) — one pulse id + a payload the SuperAbilityFx reads to draw the right effect.
   superFxPulseId: number;
   superFx: SuperFxPayload | null;
+  celebratePulseId: number; // bumped on each yokai defeat → player plays a one-shot 'celebrate' anim
   toggleForm: () => void;     // T — flip vehicle⇄robot
   cycleCharacter: () => void; // C — next character in the roster (keeps the current form)
   setFlying: (b: boolean) => void;
@@ -48,6 +49,7 @@ interface TransformState {
   triggerAbility: (ability: AbilityInput) => boolean; // Q — returns false if on cooldown
   // Fire a super move from the player at `origin` facing `headingRad`. Returns false if on cooldown.
   triggerSuperMove: (move: SuperMove, origin: { x: number; y: number; z: number }, headingRad: number) => boolean;
+  celebrate: () => void; // play a one-shot celebrate anim (called on each yokai defeat)
 }
 
 // What SuperAbilityFx reads to draw + place the effect (and what was used to damage yokai this pulse).
@@ -83,6 +85,7 @@ export const useTransformStore = create<TransformState>((set, get) => {
     abilityCooldownUntil: 0,
     superFxPulseId: 0,
     superFx: null,
+    celebratePulseId: 0,
     toggleForm: () => pulse({ form: get().form === 'vehicle' ? 'robot' : 'vehicle' }),
     cycleCharacter: () => {
       const i = POLI_ROSTER.indexOf(get().charId);
@@ -123,5 +126,6 @@ export const useTransformStore = create<TransformState>((set, get) => {
       });
       return true;
     },
+    celebrate: () => set({ celebratePulseId: get().celebratePulseId + 1 }),
   };
 });

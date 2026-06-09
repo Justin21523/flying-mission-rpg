@@ -9,6 +9,7 @@ export interface AnimState {
   flying?: boolean;
   form?: 'vehicle' | 'robot';
   ability?: boolean;
+  celebrate?: boolean;
   keyDown?: (code: string) => boolean;
 }
 
@@ -24,6 +25,7 @@ export function ruleMatches(r: AnimRule, s: AnimState): boolean {
     case 'vehicle': return s.form === 'vehicle';
     case 'robot': return s.form === 'robot';
     case 'ability': return !!s.ability;
+    case 'celebrate': return !!s.celebrate;
     case 'key': return !!r.key && !!s.keyDown?.(r.key);
     default: return false;
   }

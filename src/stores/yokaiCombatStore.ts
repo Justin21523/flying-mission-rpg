@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import type { DamageRequest } from '../game/combat/applySuperDamage';
 import { useActivityStore } from './activityStore';
+import { useProgressionStore } from './progressionStore';
+import { useWalletStore } from './walletStore';
+import { useTransformStore } from './transformStore';
+
+// Per-defeat rewards (exp + coins). Elites are worth more. Kept here so the kill consequence is one place.
+const EXP_NORMAL = 10, EXP_ELITE = 25, COIN_NORMAL = 4, COIN_ELITE = 10;
 
 // POLI yokai-hunt — runtime state for the LIVE yokai during an enemyRush hunt. The per-yokai mutable data
 // (position, velocity, hp) lives in a module-level array updated in useFrame (no per-frame store writes / no
@@ -24,8 +30,9 @@ export interface Yokai {
 // Module-level mutable list (the render list is keyed by id; movement mutates entries in place).
 export const liveYokai: Yokai[] = [];
 
-// Where each defeat happened this frame — drained by the kill-VFX layer (Phase C).
-export interface KillEvent { x: number; y: number; z: number; elite: boolean }
+// Where each defeat happened this frame — drained by the kill-VFX layer (Phase C). Carries the exp/coin
+// awarded so the rising "+N" popups show the right numbers.
+export interface KillEvent { x: number; y: number; z: number; elite: boolean; exp: number; coin: number }
 const killQueue: KillEvent[] = [];
 export function drainKills(out: KillEvent[]): number { const n = killQueue.length; for (let i = 0; i < n; i++) out[i] = killQueue[i]; killQueue.length = 0; return n; }
 
@@ -42,9 +49,15 @@ interface YokaiCombatState {
   damage: (req: DamageRequest) => void;
 }
 
-// Defeat one yokai: queue its kill VFX, bump score + objective, win when the target is met.
+// Defeat one yokai: award exp/coins, queue its kill VFX, play a celebrate anim, bump score + objective, win
+// when the target is met.
 function defeat(y: Yokai): void {
-  killQueue.push({ x: y.x, y: y.y, z: y.z, elite: y.elite });
+  const exp = y.elite ? EXP_ELITE : EXP_NORMAL;
+  const coin = y.elite ? COIN_ELITE : COIN_NORMAL;
+  useProgressionStore.getState().addExp(exp);
+  useWalletStore.getState().addCoins(coin);
+  useTransformStore.getState().celebrate();
+  killQueue.push({ x: y.x, y: y.y, z: y.z, elite: y.elite, exp, coin });
   const as = useActivityStore.getState();
   const a = as.activity;
   const rush = a?.rushConfig;

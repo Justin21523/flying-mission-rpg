@@ -67,7 +67,7 @@ const ModelView =({ path, height, yOffset, visible, rules, active, form }: {
   }, [animations, path]);
   useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
 
-  const st = useRef({ action: null as AnimationAction | null, lastAbility: 0, abilityUntil: 0, oneShotUntil: 0, prevOnce: new Set<string>() });
+  const st = useRef({ action: null as AnimationAction | null, lastAbility: 0, abilityUntil: 0, lastCelebrate: 0, celebrateUntil: 0, oneShotUntil: 0, prevOnce: new Set<string>() });
 
   useFrame((_, dt) => {
     mixer.update(dt);
@@ -77,6 +77,7 @@ const ModelView =({ path, height, yOffset, visible, rules, active, form }: {
     const tf = useTransformStore.getState();
     // 'ability' trigger stays active for ~0.8s after each ability use.
     if (tf.abilityPulseId !== S.lastAbility) { S.lastAbility = tf.abilityPulseId; S.abilityUntil = tnow + 0.8; }
+    if (tf.celebratePulseId !== S.lastCelebrate) { S.lastCelebrate = tf.celebratePulseId; S.celebrateUntil = tnow + 1.4; }
     const speed = playerMotion.speed;
     const moving = speed > 0.3 || playerMotion.moving;
     const state = {
@@ -85,6 +86,7 @@ const ModelView =({ path, height, yOffset, visible, rules, active, form }: {
       flying: tf.flying,
       form,
       ability: tnow < S.abilityUntil,
+      celebrate: tnow < S.celebrateUntil,
       keyDown: (c: string) => playerKeysDown.has(c),
     };
 
