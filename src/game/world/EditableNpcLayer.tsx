@@ -17,6 +17,7 @@ import { useAnimClipStore } from '../../stores/animClipStore';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { pickLoopRule } from '../anim/animRunner';
 import { useDistanceCull } from '../perf/useDistanceCull';
+import { markEditHelper } from '../edit/markEditHelper';
 import { getEffectiveAreaSize } from './areaExtent';
 import { objKey } from '../edit/sceneEditMerge';
 import type { Vec3 } from '../edit/sceneEditMerge';
@@ -93,7 +94,7 @@ const NpcVisual = ({ npc, motionRef }: { npc: EditorNpc; motionRef?: MutableRefO
         : npc.modelAssetId
           ? <AnimatedGlbModel assetId={npc.modelAssetId} animation={npc.animation} fallback={<Capsule color={npc.color} />} />
           : <Capsule color={npc.color} />}
-      <Text position={[0, 2, 0]} fontSize={0.35} color="#e0f2fe" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#000">
+      <Text ref={markEditHelper} raycast={() => null} position={[0, 2, 0]} fontSize={0.35} color="#e0f2fe" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#000">
         {npc.displayName}
       </Text>
     </>

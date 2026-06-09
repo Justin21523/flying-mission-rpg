@@ -13,6 +13,7 @@ import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
 import { SceneGlbModel } from './SceneGlbModel';
+import { markEditHelper } from '../edit/markEditHelper';
 import { playSfx } from '../audio/sfx';
 
 // POLI — portals/doors authored in the 🚪 Portals tab. Edit Mode: each is an EditableObject (gizmo-movable;
@@ -87,7 +88,7 @@ const PortalVisual = ({ portal, open }: { portal: PortalDef; open: boolean }) =>
             </mesh>
           </group>
         )}
-      <Text raycast={NO_RAYCAST} position={[0, 3.4, 0]} fontSize={0.4} color={open ? '#fed7aa' : '#9ca3af'} anchorX="center" anchorY="middle" outlineWidth={0.03} outlineColor="#000" renderOrder={1}>
+      <Text ref={markEditHelper} raycast={NO_RAYCAST} position={[0, 3.4, 0]} fontSize={0.4} color={open ? '#fed7aa' : '#9ca3af'} anchorX="center" anchorY="middle" outlineWidth={0.03} outlineColor="#000" renderOrder={1}>
         {`${open ? (portal.interior ? '🚪 ' : '➜ ') : '🔒 '}${portal.name}`}
       </Text>
     </>

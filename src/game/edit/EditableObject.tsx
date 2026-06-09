@@ -25,8 +25,11 @@ export function EditableObject({ objKey, base, assetId, children }: EditableObje
   const isPendingExtra = useSceneEditStore((s) => s.pendingExtraKeys.includes(objKey));
   const groupRef = useRef<Group>(null);
 
-  const handleClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
+  // Select on pointer-DOWN (not click): when a gizmo is already up it can capture the pointer-up, so a
+  // click (down+up on the same object) never fires and selection won't switch. pointer-down is reliable.
+  const handleSelect = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (e.button !== undefined && e.button !== 0) return; // left button only
       e.stopPropagation();
       if (!groupRef.current) return;
       // Shift- or Ctrl/Cmd-click adds/removes from the batch selection; plain click replaces it.
@@ -88,7 +91,7 @@ export function EditableObject({ objKey, base, assetId, children }: EditableObje
       position={m.position}
       rotation={m.rotation}
       scale={m.scale}
-      onClick={handleClick}
+      onPointerDown={handleSelect}
     >
       {children}
       {/* Always-present invisible grab box so EVERY placement is reliably clickable —

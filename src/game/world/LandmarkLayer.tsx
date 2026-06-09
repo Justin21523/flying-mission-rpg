@@ -6,6 +6,7 @@ import { useUiStore } from '../../stores/uiStore';
 import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { objKey } from '../edit/sceneEditMerge';
 import { EditableObject } from '../edit/EditableObject';
+import { markEditHelper } from '../edit/markEditHelper';
 import { SceneGlbModel } from './SceneGlbModel';
 
 // POLI — per-area landmarks. Edit Mode: each is an EditableObject (gizmo moves it; position auto-saved
@@ -36,7 +37,7 @@ const LandmarkVisual = ({ lm }: { lm: Landmark }) => (
     {lm.modelAssetId
       ? <Suspense fallback={<StubPillar />}><SceneGlbModel assetId={lm.modelAssetId} /></Suspense>
       : <StubPillar />}
-    <Text position={[0, 3.4, 0]} fontSize={0.4} color="#fde68a" anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#000" renderOrder={1}>
+    <Text ref={markEditHelper} raycast={() => null} position={[0, 3.4, 0]} fontSize={0.4} color="#fde68a" anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#000" renderOrder={1}>
       {lm.name}
     </Text>
   </>

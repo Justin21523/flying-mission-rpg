@@ -24,14 +24,15 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
   const [obj, setObj] = useState<Group | null>(null);
   const selected = selectedKey === objKey;
 
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+  const handleSelect = (e: ThreeEvent<PointerEvent>) => {
+    if (e.button !== undefined && e.button !== 0) return; // left button only
     e.stopPropagation();
     useWorldSelectStore.getState().select(objKey, onDelete ?? null);
   };
 
   return (
     <>
-      <group ref={setObj} position={position} onClick={handleClick}>
+      <group ref={setObj} position={position} onPointerDown={handleSelect}>
         {children}
         {/* Invisible grab box so even async GLBs are reliably clickable (invisible meshes still get
             pointer events but are skipped by the raycaster only when not rendered — opacity 0 keeps it). */}
