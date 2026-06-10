@@ -8,4 +8,5 @@ export const flightHandle = {
   speed: 0,
   throttle: 0,
   altitude: 26,
+  routeU: 0, // 0..1 progress along the world route (set by RouteFollower)
 };

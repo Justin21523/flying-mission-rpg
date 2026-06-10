@@ -1,6 +1,5 @@
 import { useUiStore } from '../../stores/uiStore';
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
-import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { getModelAsset } from '../../data/modelLibrary';
 import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
 import { EditableObject } from '../edit/EditableObject';
@@ -69,7 +68,7 @@ const PartVisual = ({ part, isNext }: { part: ExteriorPart; isNext: boolean }) =
   }
 };
 
-const ExteriorEntity = ({ part, editMode, navIndex }: { part: ExteriorPart; editMode: boolean; navIndex: number }) => {
+const ExteriorEntity = ({ part, editMode }: { part: ExteriorPart; editMode: boolean }) => {
   const key = exteriorPartKey(part.id);
   const base = { position: part.position, rotation: part.rotation, scale: part.scale };
   const m = useMergedTransform(key, base);
@@ -77,7 +76,7 @@ const ExteriorEntity = ({ part, editMode, navIndex }: { part: ExteriorPart; edit
   if (deleted) return null;
   if (!editMode && part.kind === 'flight_spawn') return null; // edit-only marker
 
-  const isNext = part.kind === 'navpoint' && (part.order ?? 0) === navIndex;
+  const isNext = false; // navpoints are retired; the route is the editorPathStore path (🛣 Tracks)
   if (editMode) {
     return (
       <EditableObject objKey={key} base={base} assetId={part.assetId ?? undefined}>
@@ -95,11 +94,10 @@ const ExteriorEntity = ({ part, editMode, navIndex }: { part: ExteriorPart; edit
 export const ExteriorLayer = () => {
   const editMode = useUiStore((s) => s.editMode);
   const parts = useEditorExteriorStore((s) => s.items);
-  const navIndex = useFlightRuntimeStore((s) => s.navIndex);
   return (
     <>
       {parts.map((p) => (
-        <ExteriorEntity key={p.id} part={p} editMode={editMode} navIndex={navIndex} />
+        <ExteriorEntity key={p.id} part={p} editMode={editMode} />
       ))}
     </>
   );

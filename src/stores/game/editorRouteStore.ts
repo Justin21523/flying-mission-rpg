@@ -4,7 +4,7 @@ import type { FlightRoute } from '../../types/game/flight';
 import { SEED_ROUTES } from '../../data/game/routes';
 
 export const useEditorRouteStore = createEditorCollection<FlightRoute>({
-  storageKey: 'aero-rescue-editor-route-v2',
+  storageKey: 'aero-rescue-editor-route-v3',
   seed: SEED_ROUTES,
   makeId: () => `route_${nanoid(6)}`,
 });

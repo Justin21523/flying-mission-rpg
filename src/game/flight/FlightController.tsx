@@ -116,6 +116,8 @@ export const FlightController = () => {
         flightHandle.throttle = kk['KeyW'] ? 1 : kk['KeyS'] ? -1 : 0;
         flightHandle.altitude = _pos.y;
         if (phase === 'BASE_FLY_AROUND' && _pos.y > 40) useGameStore.getState().requestTransition('CLOUD_ASCENT');
+        // Reaching the end of the ascent path (the Sky Gate) hands off to the long-distance world flight.
+        if (phase === 'CLOUD_ASCENT' && pathU.current >= 0.985) useGameStore.getState().requestTransition('WORLD_FLIGHT');
         return;
       }
     }

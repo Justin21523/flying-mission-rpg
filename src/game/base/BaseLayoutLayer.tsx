@@ -3,6 +3,7 @@ import { useUiStore } from '../../stores/uiStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { getModelAsset } from '../../data/modelLibrary';
 import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
+import { LiftDeck } from './LiftDeck';
 import { EditableObject } from '../edit/EditableObject';
 import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { basePartKey } from './basePartKey';
@@ -17,6 +18,8 @@ const PartVisual = ({ part }: { part: BasePart }) => {
   if (part.assetId && getModelAsset(part.assetId)) {
     return <NormalizedGlbModel assetId={part.assetId} target={part.modelTarget && part.modelTarget > 0 ? part.modelTarget : undefined} />;
   }
+  // Lift platform uses the SAME deck visual as play mode (no more box-vs-cylinder mismatch).
+  if (part.kind === 'lift_platform') return <LiftDeck size={part.size} color={part.color} />;
   const emissive = part.kind === 'warning_light' || part.kind === 'base_exit';
   return (
     <mesh castShadow receiveShadow>

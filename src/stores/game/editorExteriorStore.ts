@@ -6,7 +6,7 @@ import { SEED_EXTERIOR_PARTS } from '../../data/game/exteriorLayout';
 // Editable base-exterior + flight-route layout (reuses the collection factory). Rendered + gizmo-edited
 // by ExteriorLayer; navpoints guide the flight.
 export const useEditorExteriorStore = createEditorCollection<ExteriorPart>({
-  storageKey: 'aero-rescue-editor-exterior-v1',
+  storageKey: 'aero-rescue-editor-exterior-v2',
   seed: SEED_EXTERIOR_PARTS,
   makeId: () => `ext_${nanoid(6)}`,
 });

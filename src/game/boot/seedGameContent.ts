@@ -6,8 +6,18 @@ import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
 import { useEditorTransformationStore } from '../../stores/game/editorTransformationStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
+import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
-import { FLIGHT_PATH, FLIGHT_PATH_ID } from '../../data/game/flightPath';
+import { FLIGHT_PATH } from '../../data/game/flightPath';
+import { WORLD_PATH } from '../../data/game/worldRoutes';
+import type { PathDefinition } from '../../types/path';
+
+// Seed a path into POLI's editorPathStore (idempotent) so the 🛣 Tracks tab + node gizmos can edit it.
+function seedPath(path: PathDefinition): void {
+  if (getPath(path.id)) return;
+  useEditorPathStore.setState((s) => ({ paths: [...s.paths, JSON.parse(JSON.stringify(path)) as PathDefinition] }));
+  useEditorPathStore.getState().updatePath(path.id, {}); // triggers persist
+}
 
 // One idempotent call at boot: ensure every authored-content store has its seed (without clobbering user
 // edits — mergeMissingFromSeed only adds missing ids). Safe to run on every boot / existing save.
@@ -20,11 +30,11 @@ export function seedGameContent(): void {
   useEditorTransformationStore.getState().mergeMissingFromSeed();
   useEditorBaseLayoutStore.getState().mergeMissingFromSeed();
   useEditorExteriorStore.getState().mergeMissingFromSeed();
+  useEditorFlightEventStore.getState().mergeMissingFromSeed();
 
-  // Seed the guided flight path into POLI's editorPathStore (so the 🛣 Tracks tab + node gizmos edit it).
-  if (!getPath(FLIGHT_PATH_ID)) {
-    useEditorPathStore.setState((s) => ({ paths: [...s.paths, JSON.parse(JSON.stringify(FLIGHT_PATH)) as typeof FLIGHT_PATH] }));
-    useEditorPathStore.getState().updatePath(FLIGHT_PATH_ID, {}); // triggers persist
-  }
+  // Seed our 航道 curves into the editorPathStore so the 🛣 Tracks tab + node gizmos edit the REAL paths
+  // (fly-around around the base, and the long-distance world route).
+  seedPath(FLIGHT_PATH);
+  seedPath(WORLD_PATH);
 }
 

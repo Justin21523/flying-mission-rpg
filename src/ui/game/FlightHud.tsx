@@ -2,7 +2,6 @@ import { usePoll } from '../usePoll';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { getFlightTuning } from '../../stores/game/editorFlightStore';
-import { getNavpoints } from '../../stores/game/editorExteriorStore';
 import { flightHandle } from '../../game/flight/flightHandle';
 import { playUiSound } from '../../game/audio/uiSound';
 
@@ -13,19 +12,11 @@ export const FlightHud = () => {
   const phase = useGameStore((s) => s.phase);
   const mode = useFlightRuntimeStore((s) => s.mode);
   const comfort = useFlightRuntimeStore((s) => s.comfort);
-  const navIndex = useFlightRuntimeStore((s) => s.navIndex);
 
   const tuning = getFlightTuning();
   const speed = flightHandle.speed;
   const alt = flightHandle.altitude;
   const speedPct = Math.min(1, speed / Math.max(1, tuning.maxSpeed));
-
-  const nav = getNavpoints();
-  const target = nav[navIndex];
-  const navDist = target
-    ? Math.round(Math.hypot(flightHandle.pos.x - target.position[0], flightHandle.pos.y - target.position[1], flightHandle.pos.z - target.position[2]))
-    : null;
-
   const fast = speedPct > 0.6;
 
   return (
@@ -58,9 +49,6 @@ export const FlightHud = () => {
           <span className="text-slate-400">Throttle</span>
           <span className="tabular-nums">{flightHandle.throttle > 0 ? '▲' : flightHandle.throttle < 0 ? '▼ brake' : '—'}</span>
         </div>
-        {navDist !== null && (
-          <div className="mt-1 text-[11px] text-amber-200">→ {target?.label ?? 'navpoint'} · {navDist}m</div>
-        )}
       </div>
 
       {/* mode / comfort toggles */}
@@ -92,12 +80,12 @@ export const FlightHud = () => {
         )}
         {phase === 'BASE_FLY_AROUND' && (
           <div className="rounded-full bg-slate-950/80 px-4 py-1.5 text-xs text-slate-200 backdrop-blur">
-            Fly around the base — follow the glowing navpoints
+            Fly around the base — hold W to follow the route line
           </div>
         )}
         {phase === 'CLOUD_ASCENT' && (
           <div className="rounded-full bg-slate-950/80 px-4 py-1.5 text-xs text-slate-200 backdrop-blur">
-            Climb the navpoints to the Sky Gate — World Flight arrives in Batch 5
+            Climb the route to the Sky Gate
           </div>
         )}
         <div className="rounded-full bg-slate-950/60 px-3 py-1 text-[10px] text-slate-400 backdrop-blur">

@@ -16,6 +16,9 @@ import { GameStateDebugPanel } from './ui/dev/GameStateDebugPanel';
 import { GameScreens } from './ui/game/GameScreens';
 import { BaseHud } from './ui/game/BaseHud';
 import { FlightHud } from './ui/game/FlightHud';
+import { FlightProgressHud } from './ui/game/FlightProgressHud';
+import { FlightSonarHud } from './ui/game/FlightSonarHud';
+import { WorldMapHud } from './ui/game/WorldMapHud';
 import { useGameStore } from './stores/game/useGameStore';
 import { usePoll } from './ui/usePoll';
 
@@ -89,6 +92,7 @@ export const App = () => {
   const phase = useGameStore((s) => s.phase);
   const basePhase = BASE_PHASES.has(phase);
   const flightPhase = FLIGHT_PHASES.has(phase);
+  const worldFlightPhase = phase === 'WORLD_FLIGHT';
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -205,6 +209,13 @@ export const App = () => {
       {!editMode && !world && <GameScreens />}
       {!editMode && !world && basePhase && <BaseHud />}
       {!editMode && !world && flightPhase && <FlightHud />}
+      {!editMode && !world && worldFlightPhase && (
+        <>
+          <FlightProgressHud />
+          <FlightSonarHud />
+          <WorldMapHud />
+        </>
+      )}
       <Dock />
       <DevPanel />
       {/* Phase jumper: always available in Edit Mode (jump to any mid-game scene), plus the Leva toggle. */}

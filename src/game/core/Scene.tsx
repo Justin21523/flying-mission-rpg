@@ -6,6 +6,7 @@ import { useDevStore } from '../../stores/devStore';
 import { GreyBoxScene } from '../../app/GreyBoxScene';
 import { BaseScene } from '../base/BaseScene';
 import { FlightScene } from '../flight/FlightScene';
+import { WorldFlightScene } from '../flight/world/WorldFlightScene';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
@@ -57,6 +58,14 @@ export const Scene = () => {
         <>
           <AdaptiveDpr />
           <BaseScene />
+        </>
+      );
+    }
+    if (phase === 'WORLD_FLIGHT') {
+      return (
+        <>
+          <AdaptiveDpr />
+          <WorldFlightScene />
         </>
       );
     }

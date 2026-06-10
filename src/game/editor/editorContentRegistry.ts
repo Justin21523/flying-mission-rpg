@@ -33,6 +33,7 @@ import { useEditorTransformationStore } from '../../stores/game/editorTransforma
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { useEditorFlightStore } from '../../stores/game/editorFlightStore';
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
+import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -60,7 +61,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   // New game authored-content stores (undo tracking).
   useEditorCharacterStore, useEditorLocationStore, useEditorRouteStore, useEditorMissionStore,
   useEditorGameNpcStore, useEditorTransformationStore, useEditorBaseLayoutStore,
-  useEditorFlightStore, useEditorExteriorStore,
+  useEditorFlightStore, useEditorExteriorStore, useEditorFlightEventStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -142,6 +143,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorExteriorStore.getState().importState(data as { items?: never }); },
     clear: () => useEditorExteriorStore.getState().reset(),
     summary: () => `${useEditorExteriorStore.getState().items.length} exterior parts`,
+  },
+  {
+    id: 'gameFlightEvent',
+    label: 'Flight Events',
+    serialize: () => { const s = useEditorFlightEventStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorFlightEventStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorFlightEventStore.getState().reset(),
+    summary: () => `${useEditorFlightEventStore.getState().items.length} flight events`,
   },
   {
     id: 'gameFlight',
