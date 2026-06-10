@@ -16,6 +16,8 @@ import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { useEditorLayoutStore } from '../../stores/editorLayoutStore';
 import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
 import { useEditorPortalStore } from '../../stores/editorPortalStore';
+import { useEditorPathStore } from '../../stores/editorPathStore';
+import { useEditorBoostPadStore } from '../../stores/editorBoostPadStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -37,7 +39,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorQuestStore, useEditorEncounterStore, useEditorActivityStore, useEditorPoliCharacterStore,
   useEditorLandmarkStore, useEditorIncidentStore, useEditorRandomEventStore, useEditorTrafficStore,
   useEditorToolStore, useEditorWorldStore, useEditorLayoutStore, useEditorCollectibleStore, useEditorPortalStore,
-  useEditorBoostStore, useJinResearchStore,
+  useEditorBoostStore, useJinResearchStore, useEditorPathStore, useEditorBoostPadStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -180,6 +182,22 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorPortalStore.getState().importState(data as never); },
     clear: () => useEditorPortalStore.getState().reset(),
     summary: () => `${useEditorPortalStore.getState().portals.length} portals`,
+  },
+  {
+    id: 'editorPath',
+    label: 'Paths',
+    serialize: () => ({ paths: useEditorPathStore.getState().paths }),
+    deserialize: (data) => { if (isObj(data)) useEditorPathStore.getState().importState(data as never); },
+    clear: () => useEditorPathStore.getState().reset(),
+    summary: () => `${useEditorPathStore.getState().paths.length} paths`,
+  },
+  {
+    id: 'editorBoostPad',
+    label: 'Boost Pads',
+    serialize: () => ({ pads: useEditorBoostPadStore.getState().pads }),
+    deserialize: (data) => { if (isObj(data)) useEditorBoostPadStore.getState().importState(data as never); },
+    clear: () => useEditorBoostPadStore.getState().reset(),
+    summary: () => `${useEditorBoostPadStore.getState().pads.length} boost pads`,
   },
   {
     id: 'editorCollectible',

@@ -29,6 +29,8 @@ import { PoliNpcLayer } from '../poli/PoliNpcLayer';
 import { IncidentLayer } from '../poli/IncidentLayer';
 import { TrafficLayer } from '../poli/TrafficLayer';
 import { YokaiCombatLayer } from '../poli/YokaiCombatLayer';
+import { BoostPadLayer } from '../poli/BoostPadLayer';
+import { PathDebugLayer } from '../poli/PathDebugLayer';
 import { NpcPathGizmoLayer } from './NpcPathGizmoLayer';
 import { POLI_SANDBOX } from '../../data/poli/sandboxConfig';
 import { useUiStore } from '../../stores/uiStore';
@@ -96,6 +98,9 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <IncidentLayer areaId={areaId} />
       {/* POLI yokai-hunt: live yokai while an enemyRush activity runs in this area (play-mode runtime). */}
       <YokaiCombatLayer areaId={areaId} />
+      {/* POLI Phase B: BoostPads (walk-on speed/path triggers) + curve-path debug rendering. */}
+      <BoostPadLayer areaId={areaId} />
+      <PathDebugLayer areaId={areaId} />
       {/* POLI seam #1c: traffic layer — editable NPC vehicles + traffic signals (always rendered;
           edit them in the 🚦 Traffic tab). */}
       <TrafficLayer areaId={areaId} />

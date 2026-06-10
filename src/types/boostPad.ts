@@ -1,4 +1,4 @@
-import type { Vec3Tuple } from './path';
+import type { Vec3Tuple, PathControlMode } from './path';
 
 // Phase A (data model) — a BoostPad: a small pad the player auto-triggers by entering its sensor (no key
 // press), getting a timed speed burst, optionally entering PathFollow along a linked path. Runtime (sensor +
@@ -20,6 +20,7 @@ export interface BoostPadConfig {
   customDirection?: Vec3Tuple; // for boostMode 'customDirection'
   linkedPathId?: string;       // for boostMode 'pathDirection' / enterPathFollow
   enterPathFollow: boolean;
+  pathControlMode?: PathControlMode; // how much control the follower keeps while on linkedPath (default forwardLocked)
   exitBehavior: BoostExitBehavior;
   requiredTags?: string[];     // only boosts followers carrying these tags
   blockedTags?: string[];

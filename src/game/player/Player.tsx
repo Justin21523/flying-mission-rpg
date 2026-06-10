@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Group } from 'three';
+import { Group, Vector3 } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useUiStore } from '../../stores/uiStore';
 import { useSceneEditStore } from '../../stores/sceneEditStore';
@@ -18,6 +18,9 @@ import { playerMotion } from './playerMotion';
 import { playerKeysDown } from './playerInput';
 import { useBoostStore } from '../../stores/boostStore';
 import { dashImpulse } from '../combat/dashImpulse';
+import { pathFollow, exitPathFollow } from '../combat/pathFollow';
+import { getCurve, samplePos, sampleTangent, nearestU } from '../path/pathCurve';
+import { getPath } from '../../stores/editorPathStore';
 import { playerHit } from '../combat/playerHitBus';
 
 // Merged (base ⊕ Edit-Mode override) data for the currently-active main character.
@@ -30,6 +33,11 @@ function activeMergedChar() {
 // Stable module-level initial spawn — MUST NOT be an inline array on <RigidBody>, or a per-render
 // new reference makes react-three-rapier reset the body to it every frame (pins the player at spawn).
 const INITIAL_POS: [number, number, number] = [0, 2, 0];
+
+// Reused scratch for PathFollow sampling — never allocate Vector3s inside useFrame.
+const _pos = new Vector3();
+const _tan = new Vector3();
+const _tmp = new Vector3();
 
 // Seconds the player mesh stays hidden after a transform, while the smoke is dense (then revealed).
 const TRANSFORM_COVER = 0.35;
@@ -150,7 +158,7 @@ export const Player = () => {
     usePlayerStore.getState().clearSpawnRequest();
   }, [spawnRequest]);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const b = body.current;
     if (!b) return;
     const p = b.translation();
@@ -213,6 +221,66 @@ export const Player = () => {
         b.setLinvel({ x: dashImpulse.dirX * dashImpulse.speed, y: lv.y, z: dashImpulse.dirZ * dashImpulse.speed }, true);
         headingRef.current = Math.atan2(dashImpulse.dirX, dashImpulse.dirZ);
       } else { dashImpulse.active = false; }
+    }
+
+    // ── PathFollow — a BoostPad (or rule) put the player on a curve-based track. Drive/guide the body along
+    // the cached CatmullRom curve per the control mode; fullyAutomatic/forwardLocked fully drive it (and skip
+    // the jump/step/knockback below), the assist modes only nudge and let normal control continue. ──
+    if (pathFollow.active && !flying) {
+      const def = getPath(pathFollow.pathId);
+      const cc = def ? getCurve(def) : null;
+      if (!def || !cc) {
+        exitPathFollow();
+      } else {
+        const curve = cc.curve;
+        const mode = pathFollow.mode;
+        if (mode === 'fullyAutomatic' || mode === 'forwardLocked') {
+          let spd = pathFollow.speed;
+          if (mode === 'forwardLocked') {
+            const f = (keys.current['KeyW'] ? 1 : 0) - (keys.current['KeyS'] ? 1 : 0);
+            spd = pathFollow.speed * (f === 0 ? 1 : f); // S reverses, W full speed, idle = drift forward
+          }
+          pathFollow.u += (pathFollow.dir * spd * dt) / Math.max(0.001, cc.length);
+          const done = !def.closed && (pathFollow.u >= 1 || pathFollow.u <= 0);
+          const uu = pathFollow.u < 0 ? 0 : pathFollow.u > 1 ? 1 : pathFollow.u;
+          samplePos(curve, uu, _pos);
+          sampleTangent(curve, uu, _tan);
+          b.setTranslation({ x: _pos.x, y: _pos.y, z: _pos.z }, true);
+          b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          headingRef.current = Math.atan2(_tan.x * pathFollow.dir, _tan.z * pathFollow.dir);
+          if (done) {
+            if (pathFollow.exit === 'continueMomentum') {
+              b.setLinvel({ x: _tan.x * pathFollow.dir * pathFollow.speed, y: 0, z: _tan.z * pathFollow.dir * pathFollow.speed }, true);
+            } else {
+              b.setLinvel({ x: 0, y: 0, z: 0 }, true); // releaseControl / stopAtEnd
+            }
+            exitPathFollow();
+          }
+          // Fully driven this frame — publish motion and skip jump/step/knockback (control returns next frame).
+          playerMotion.heading = headingRef.current;
+          playerMotion.moving = false;
+          return;
+        }
+        if (mode === 'steeringAssist') {
+          // Gently pull the player toward the curve when they stray past the lane half-width.
+          pathFollow.u = nearestU(curve, _tmp.set(p.x, p.y, p.z), _tan);
+          samplePos(curve, pathFollow.u, _pos);
+          const dx = _pos.x - p.x, dz = _pos.z - p.z;
+          const dist = Math.hypot(dx, dz) || 1;
+          if (dist > (def.laneWidth || 2)) {
+            const lv = b.linvel();
+            const pull = 4;
+            b.setLinvel({ x: lv.x + (dx / dist) * pull, y: lv.y, z: lv.z + (dz / dist) * pull }, true);
+          }
+        } else if (mode === 'speedAssist') {
+          // Keep steering, add a forward nudge along the tangent so the player keeps progressing.
+          pathFollow.u = nearestU(curve, _tmp.set(p.x, p.y, p.z), _pos);
+          sampleTangent(curve, pathFollow.u, _tan);
+          const lv = b.linvel();
+          const push = pathFollow.speed * dt * 4;
+          b.setLinvel({ x: lv.x + _tan.x * pathFollow.dir * push, y: lv.y, z: lv.z + _tan.z * pathFollow.dir * push }, true);
+        }
+      }
     }
 
     // ── Double jump + auto step-climb (skipped while flying — Space/Shift drive altitude there). ──

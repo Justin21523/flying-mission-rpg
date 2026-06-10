@@ -1,0 +1,63 @@
+import { Line } from '@react-three/drei';
+import { useUiStore } from '../../stores/uiStore';
+import { useEditorPathStore } from '../../stores/editorPathStore';
+import { debugPoints } from '../path/pathCurve';
+import { DataBackedPlacement } from '../edit/DataBackedPlacement';
+import type { PathDefinition } from '../../types/path';
+
+// POLI (Phase B) — debug rendering for curve-based paths. Edit Mode: every path in the area draws as a bright
+// CatmullRom line with a draggable handle per node (drag → updatePathNode → the cached curve rebuilds, so the
+// line follows live); entry nodes are tinted green. Play Mode: lines render only when PATH_DEBUG is on (a
+// testing aid). Sibling layer in AreaRenderer (kit seam #1). Full node authoring (add/remove/tangents) = Phase D.
+const PATH_DEBUG = true; // show path lines in Play Mode too (flip off once authoring lands)
+
+const PathLine = ({ def, color }: { def: PathDefinition; color: string }) => {
+  const pts = debugPoints(def);
+  if (pts.length < 2) return null;
+  return <Line points={pts} color={color} lineWidth={3} depthTest={false} transparent opacity={0.9} />;
+};
+
+const PathNodes = ({ def }: { def: PathDefinition }) => {
+  const updatePathNode = useEditorPathStore((s) => s.updatePathNode);
+  const nodes = def.nodes ?? [];
+  return (
+    <>
+      {nodes.map((n) => {
+        const isEntry = def.entryNodeIds.includes(n.id);
+        const color = isEntry ? '#34d399' : '#22d3ee';
+        return (
+          <DataBackedPlacement
+            key={`${def.id}#${n.id}`}
+            objKey={`${def.id}#node#${n.id}`}
+            position={n.position}
+            color={color}
+            onMove={(p) => updatePathNode(def.id, n.id, p)}
+          >
+            <mesh position={[0, 0.4, 0]}>
+              <sphereGeometry args={[0.32, 12, 10]} />
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
+            </mesh>
+          </DataBackedPlacement>
+        );
+      })}
+    </>
+  );
+};
+
+export const PathDebugLayer = ({ areaId }: { areaId: string }) => {
+  const editMode = useUiStore((s) => s.editMode);
+  const paths = useEditorPathStore((s) => s.paths).filter((p) => (p.areaId ?? 'rescue_hq') === areaId);
+  if (paths.length === 0) return null;
+  if (!editMode && !PATH_DEBUG) return null;
+
+  return (
+    <>
+      {paths.map((def) => (
+        <group key={def.id}>
+          <PathLine def={def} color={def.id.includes('curve') ? '#f59e0b' : '#a855f7'} />
+          {editMode && <PathNodes def={def} />}
+        </group>
+      ))}
+    </>
+  );
+};
