@@ -12,6 +12,7 @@ import { useToolStore } from './toolStore';
 import { useRescueLicenseStore } from './rescueLicenseStore';
 import { useJinResearchStore } from './jinResearchStore';
 import { useBoostStore } from './boostStore';
+import { useWalletStore } from './walletStore';
 import type { ToolId } from '../types/tool';
 import type { Quest } from '../types/quest';
 
@@ -34,6 +35,7 @@ export interface SaveData {
   license?: { rescuesCompleted: number };
   research?: { researchPoints: number; completed: string[] };
   boost?: { meter: number; collected: number };
+  wallet?: { coins: number };
 }
 export interface SaveSlot { name: string; savedAt: string; data: SaveData }
 
@@ -84,6 +86,7 @@ export function snapshotGame(): SaveData {
     license: { rescuesCompleted: useRescueLicenseStore.getState().rescuesCompleted },
     research: { researchPoints: useJinResearchStore.getState().researchPoints, completed: [...useJinResearchStore.getState().completed] },
     boost: { meter: useBoostStore.getState().meter, collected: useBoostStore.getState().collected },
+    wallet: { coins: useWalletStore.getState().coins },
   };
 }
 
@@ -105,6 +108,7 @@ export function restoreGame(d: SaveData): void {
   if (d.license) useRescueLicenseStore.getState().setRescues(d.license.rescuesCompleted);
   if (d.research) useJinResearchStore.setState({ researchPoints: d.research.researchPoints, completed: [...d.research.completed] });
   if (d.boost) useBoostStore.getState().importState(d.boost);
+  if (d.wallet) useWalletStore.getState().importState(d.wallet);
   // Restore location last: set area + request a spawn so the Player teleports there.
   usePlayerStore.getState().setCurrentAreaId(d.player.currentAreaId);
   if (d.player.position) usePlayerStore.getState().requestSpawn(d.player.position);
