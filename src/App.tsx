@@ -11,6 +11,8 @@ import { usePlayerStore } from './stores/playerStore';
 import { useEditorWorldStore } from './stores/editorWorldStore';
 import { GameCanvas } from './app/GameCanvas';
 import { DevPanel } from './app/DevPanel';
+import { GameBoot } from './game/boot/GameBoot';
+import { GameStateDebugPanel } from './ui/dev/GameStateDebugPanel';
 import { usePoll } from './ui/usePoll';
 import { syncEditorQuests } from './game/editor/editorQuestToQuest';
 import { QuestTrackerController } from './game/quest/questTracking';
@@ -74,6 +76,7 @@ export const App = () => {
   // 'greybox' (default) shows the Batch 0 base scene; 'world' wakes the inherited POLI kit + its HUD.
   // Edit Mode panels stay available in both modes. Toggle via the Leva dev panel.
   const world = useDevStore((s) => s.sceneMode) === 'world';
+  const fsmDebug = useDevStore((s) => s.fsmDebug);
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -181,10 +184,12 @@ export const App = () => {
           <RescueHud />
         </>
       )}
-      {/* Always-on shell: main dock, Leva dev panel, and the Edit Mode authoring panels (Edit Mode must
-          work in both grey-box and world scenes). */}
+      {/* Always-on shell: game boot (seed + FSM), main dock, Leva dev panel, optional FSM dev console,
+          and the Edit Mode authoring panels (Edit Mode must work in both grey-box and world scenes). */}
+      <GameBoot />
       <Dock />
       <DevPanel />
+      {fsmDebug && <GameStateDebugPanel />}
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}

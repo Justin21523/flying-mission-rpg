@@ -12,6 +12,11 @@ export const DevPanel = () => {
       options: ['greybox', 'world'] as SceneMode[],
       onChange: (v: SceneMode) => useDevStore.getState().setSceneMode(v),
     },
+    fsmDebug: {
+      label: 'Game state console',
+      value: useDevStore.getState().fsmDebug,
+      onChange: (v: boolean) => useDevStore.getState().setFsmDebug(v),
+    },
   });
 
   return <Leva collapsed hidden={!import.meta.env.DEV} />;

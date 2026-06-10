@@ -1,0 +1,44 @@
+import { nanoid } from 'nanoid';
+import { useEditorGameNpcStore } from '../../../stores/game/editorGameNpcStore';
+import { useEditorLocationStore } from '../../../stores/game/editorLocationStore';
+import { useEditorMissionStore } from '../../../stores/game/editorMissionStore';
+import type { NPCDefinition } from '../../../types/game/npc';
+import { CollectionEditor, TextRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
+
+const makeNew = (): NPCDefinition => ({
+  id: `npc_${nanoid(6)}`,
+  codename: 'New Resident',
+  nameZhTW: '新居民',
+  sourceConfidence: 'GameAdaptation',
+  locationId: '',
+  role: '',
+  description: '',
+  color: '#f472b6',
+});
+
+// 🧑 NPC — residents who give a mission its reason + basic interaction (separate from the dormant POLI NPCs).
+export const GameNpcEditorTab = () => {
+  const locations = useEditorLocationStore((s) => s.items);
+  const missions = useEditorMissionStore((s) => s.items);
+  const none = { value: '', label: '(none)' };
+  return (
+    <CollectionEditor<NPCDefinition>
+      title="NPCs"
+      store={useEditorGameNpcStore}
+      makeNew={makeNew}
+      getLabel={(n) => n.nameZhTW}
+      renderFields={(n, update) => (
+        <>
+          <TextRow label="Codename" value={n.codename} onChange={(v) => update({ codename: v })} />
+          <TextRow label="Name (zh-TW)" value={n.nameZhTW} onChange={(v) => update({ nameZhTW: v })} />
+          <TextRow label="Role" value={n.role} onChange={(v) => update({ role: v })} />
+          <TextRow label="Description" area value={n.description} onChange={(v) => update({ description: v })} />
+          <ColorRow label="Colour" value={n.color} onChange={(v) => update({ color: v })} />
+          <SelectRow label="Location" value={n.locationId} options={[none, ...locations.map((l) => ({ value: l.id, label: l.nameZhTW }))]} onChange={(v) => update({ locationId: v })} />
+          <SelectRow label="Mission" value={n.missionId ?? ''} options={[none, ...missions.map((m) => ({ value: m.id, label: m.nameZhTW }))]} onChange={(v) => update({ missionId: v || undefined })} />
+          <ConfidenceRow value={n.sourceConfidence} onChange={(v) => update({ sourceConfidence: v })} />
+        </>
+      )}
+    />
+  );
+};

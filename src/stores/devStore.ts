@@ -12,9 +12,13 @@ export type SceneMode = 'greybox' | 'world';
 interface DevState {
   sceneMode: SceneMode;
   setSceneMode: (mode: SceneMode) => void;
+  fsmDebug: boolean; // show the game state-machine dev console (GameStateDebugPanel)
+  setFsmDebug: (on: boolean) => void;
 }
 
 export const useDevStore = create<DevState>((set) => ({
   sceneMode: 'greybox',
   setSceneMode: (sceneMode) => set({ sceneMode }),
+  fsmDebug: false,
+  setFsmDebug: (fsmDebug) => set({ fsmDebug }),
 }));

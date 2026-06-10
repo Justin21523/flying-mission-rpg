@@ -23,6 +23,13 @@ import { useEditorAnimationStore } from '../../stores/editorAnimationStore';
 import { useEditorSurfaceStore } from '../../stores/editorSurfaceStore';
 import { useEditorPathFollowerStore } from '../../stores/editorPathFollowerStore';
 import { useEditorTrafficScenarioStore } from '../../stores/editorTrafficScenarioStore';
+// New game (aero-rescue) authored-content stores.
+import { useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
+import { useEditorLocationStore } from '../../stores/game/editorLocationStore';
+import { useEditorRouteStore } from '../../stores/game/editorRouteStore';
+import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
+import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
+import { useEditorTransformationStore } from '../../stores/game/editorTransformationStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -47,6 +54,9 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorBoostStore, useJinResearchStore, useEditorPathStore, useEditorBoostPadStore,
   useEditorCollisionStore, useEditorAnimationStore, useEditorSurfaceStore, useEditorPathFollowerStore,
   useEditorTrafficScenarioStore,
+  // New game authored-content stores (undo tracking).
+  useEditorCharacterStore, useEditorLocationStore, useEditorRouteStore, useEditorMissionStore,
+  useEditorGameNpcStore, useEditorTransformationStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -64,6 +74,55 @@ export interface EditorContentDomain {
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
 export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
+  // ── aero-rescue game content (current project) ──
+  {
+    id: 'gameCharacter',
+    label: 'Game Characters',
+    serialize: () => { const s = useEditorCharacterStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorCharacterStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorCharacterStore.getState().reset(),
+    summary: () => `${useEditorCharacterStore.getState().items.length} characters`,
+  },
+  {
+    id: 'gameLocation',
+    label: 'Game Locations',
+    serialize: () => { const s = useEditorLocationStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorLocationStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorLocationStore.getState().reset(),
+    summary: () => `${useEditorLocationStore.getState().items.length} locations`,
+  },
+  {
+    id: 'gameRoute',
+    label: 'Flight Routes',
+    serialize: () => { const s = useEditorRouteStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorRouteStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorRouteStore.getState().reset(),
+    summary: () => `${useEditorRouteStore.getState().items.length} routes`,
+  },
+  {
+    id: 'gameMission',
+    label: 'Missions',
+    serialize: () => { const s = useEditorMissionStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorMissionStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorMissionStore.getState().reset(),
+    summary: () => `${useEditorMissionStore.getState().items.length} missions`,
+  },
+  {
+    id: 'gameNpc',
+    label: 'Game NPCs',
+    serialize: () => { const s = useEditorGameNpcStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorGameNpcStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorGameNpcStore.getState().reset(),
+    summary: () => `${useEditorGameNpcStore.getState().items.length} NPCs`,
+  },
+  {
+    id: 'gameTransformation',
+    label: 'Transformations',
+    serialize: () => { const s = useEditorTransformationStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorTransformationStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorTransformationStore.getState().reset(),
+    summary: () => `${useEditorTransformationStore.getState().items.length} transformations`,
+  },
   {
     id: 'sceneEdit',
     label: 'Scene Edits',
