@@ -5,8 +5,11 @@ import { useEditorFlightEventStore } from '../../../stores/game/editorFlightEven
 import { useEditorPathStore } from '../../../stores/editorPathStore';
 import { WEATHER_KINDS, FLIGHT_DIFFICULTIES, ROUTE_SEGMENT_KINDS } from '../../../types/game/flight';
 import type { FlightRoute, RouteSegment } from '../../../types/game/flight';
+import { FLIGHT_EVENT_KINDS } from '../../../types/game/flightEvent';
+import type { FlightEventKind } from '../../../types/game/flightEvent';
 import { CollectionEditor, TextRow, NumRow, SelectRow } from './CollectionEditor';
 import { lbl } from '../editorShared';
+import { validateRoute } from '../../../game/flight/world/worldFlightValidation';
 
 const makeNew = (): FlightRoute => ({
   id: `route_${nanoid(6)}`,
@@ -20,7 +23,7 @@ const makeNew = (): FlightRoute => ({
   backgroundEnv: 'open_sky',
   eventPoolIds: [],
   pathId: '',
-  segments: [],
+  segments: [{ id: `seg_${nanoid(5)}`, kind: 'approach', startU: 0.85, endU: 1 }],
 });
 
 // The route's event pool — a checkbox list of authored flight events the director may spawn (empty = all).
@@ -43,7 +46,24 @@ const EventPoolPicker = ({ selected, onChange }: { selected: string[]; onChange:
   );
 };
 
-// The route's flavour bands (0..1 along it) — denser clouds, a weather band, a stunt run, the approach.
+const KindMulti = ({ selected, onChange }: { selected: FlightEventKind[]; onChange: (k: FlightEventKind[]) => void }) => {
+  const toggle = (k: FlightEventKind) => onChange(selected.includes(k) ? selected.filter((x) => x !== k) : [...selected, k]);
+  return (
+    <div>
+      <div className={lbl}>Allowed event kinds {selected.length === 0 ? '(inherit pool)' : `(${selected.length})`}</div>
+      <div className="mt-1 grid max-h-24 grid-cols-2 gap-x-2 gap-y-0.5 overflow-y-auto rounded bg-slate-900/60 p-1.5">
+        {FLIGHT_EVENT_KINDS.map((k) => (
+          <label key={k} className="flex items-center gap-1.5 text-[11px] text-slate-300">
+            <input type="checkbox" checked={selected.includes(k)} onChange={() => toggle(k)} />
+            <span className="truncate">{k}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// The route's flavour bands (0..1 along it) — type, weather, clouds, allowed events, density, altitude.
 const SegmentList = ({ segments, onChange }: { segments: RouteSegment[]; onChange: (s: RouteSegment[]) => void }) => {
   const add = () => onChange([...segments, { id: `seg_${nanoid(5)}`, kind: 'cloud', startU: 0, endU: 0.2 }]);
   const patch = (id: string, p: Partial<RouteSegment>) => onChange(segments.map((s) => (s.id === id ? { ...s, ...p } : s)));
@@ -63,7 +83,11 @@ const SegmentList = ({ segments, onChange }: { segments: RouteSegment[]; onChang
               <NumRow label="Start U" value={s.startU} step={0.05} min={0} max={1} onChange={(v) => patch(s.id, { startU: v })} />
               <NumRow label="End U" value={s.endU} step={0.05} min={0} max={1} onChange={(v) => patch(s.id, { endU: v })} />
               <NumRow label="Cloud density" value={s.cloudDensity ?? 1} step={0.1} min={0} onChange={(v) => patch(s.id, { cloudDensity: v })} />
+              <NumRow label="Event density" value={s.eventDensity ?? 1} step={0.1} min={0} onChange={(v) => patch(s.id, { eventDensity: v })} />
+              <NumRow label="Min altitude" value={s.minAltitude ?? 0} step={5} onChange={(v) => patch(s.id, { minAltitude: v || undefined })} />
+              <NumRow label="Max altitude" value={s.maxAltitude ?? 0} step={5} onChange={(v) => patch(s.id, { maxAltitude: v || undefined })} />
             </div>
+            <div className="mt-1"><KindMulti selected={s.allowedEventKinds ?? []} onChange={(k) => patch(s.id, { allowedEventKinds: k })} /></div>
             <button onClick={() => remove(s.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
           </div>
         ))}
@@ -74,7 +98,8 @@ const SegmentList = ({ segments, onChange }: { segments: RouteSegment[]; onChang
 };
 
 // 🧭 Routes — base→destination flight routes. The craft follows `pathId` (a 航道 authored in 🛣 Tracks);
-// the director spawns from the selected event pool; segments add flavour bands. All live + Edit-synced.
+// the director spawns from the selected event pool; segments add flavour/event bands. All live + Edit-synced
+// + resettable. Per-route sky/weather lives in the 🌦 Environment tab. Invalid routes show errors here.
 export const RouteEditorTab = () => {
   const locations = useEditorLocationStore((s) => s.items);
   const paths = useEditorPathStore((s) => s.paths);
@@ -86,23 +111,31 @@ export const RouteEditorTab = () => {
       store={useEditorRouteStore}
       makeNew={makeNew}
       getLabel={(r) => r.name}
-      renderFields={(r, update) => (
-        <>
-          <TextRow label="Name" value={r.name} onChange={(v) => update({ name: v })} />
-          <SelectRow label="From" value={r.fromLocationId} options={locOptions} onChange={(v) => update({ fromLocationId: v })} />
-          <SelectRow label="To" value={r.toLocationId} options={locOptions} onChange={(v) => update({ toLocationId: v })} />
-          <SelectRow label="Path (航道)" value={r.pathId ?? ''} options={pathOptions} onChange={(v) => update({ pathId: v || undefined })} />
-          <div className="grid grid-cols-2 gap-2">
-            <NumRow label="Virtual distance" value={r.virtualDistance} step={50} onChange={(v) => update({ virtualDistance: v })} />
-            <NumRow label="Est. flight (sec)" value={r.estimatedFlightSec} step={10} onChange={(v) => update({ estimatedFlightSec: v })} />
-          </div>
-          <SelectRow label="Weather" value={r.weather} options={WEATHER_KINDS.map((w) => ({ value: w, label: w }))} onChange={(v) => update({ weather: v as FlightRoute['weather'] })} />
-          <SelectRow label="Difficulty" value={r.difficulty} options={FLIGHT_DIFFICULTIES.map((d) => ({ value: d, label: d }))} onChange={(v) => update({ difficulty: v as FlightRoute['difficulty'] })} />
-          <TextRow label="Background env" value={r.backgroundEnv} onChange={(v) => update({ backgroundEnv: v })} />
-          <EventPoolPicker selected={r.eventPoolIds} onChange={(ids) => update({ eventPoolIds: ids })} />
-          <SegmentList segments={r.segments ?? []} onChange={(s) => update({ segments: s })} />
-        </>
-      )}
+      renderFields={(r, update) => {
+        const errors = validateRoute(r);
+        return (
+          <>
+            {errors.length > 0 && (
+              <div className="rounded bg-rose-900/40 p-1.5 text-[11px] text-rose-200">
+                {errors.map((er, i) => (<div key={i}>⚠ {er}</div>))}
+              </div>
+            )}
+            <TextRow label="Name" value={r.name} onChange={(v) => update({ name: v })} />
+            <SelectRow label="From" value={r.fromLocationId} options={locOptions} onChange={(v) => update({ fromLocationId: v })} />
+            <SelectRow label="To" value={r.toLocationId} options={locOptions} onChange={(v) => update({ toLocationId: v })} />
+            <SelectRow label="Path (航道)" value={r.pathId ?? ''} options={pathOptions} onChange={(v) => update({ pathId: v || undefined })} />
+            <div className="grid grid-cols-2 gap-2">
+              <NumRow label="Virtual distance" value={r.virtualDistance} step={50} onChange={(v) => update({ virtualDistance: v })} />
+              <NumRow label="Est. flight (sec)" value={r.estimatedFlightSec} step={10} onChange={(v) => update({ estimatedFlightSec: v })} />
+            </div>
+            <SelectRow label="Weather" value={r.weather} options={WEATHER_KINDS.map((w) => ({ value: w, label: w }))} onChange={(v) => update({ weather: v as FlightRoute['weather'] })} />
+            <SelectRow label="Difficulty" value={r.difficulty} options={FLIGHT_DIFFICULTIES.map((d) => ({ value: d, label: d }))} onChange={(v) => update({ difficulty: v as FlightRoute['difficulty'] })} />
+            <NumRow label="Approach starts at U" value={r.approachStartU ?? 0.85} step={0.05} min={0} max={1} onChange={(v) => update({ approachStartU: v })} />
+            <EventPoolPicker selected={r.eventPoolIds} onChange={(ids) => update({ eventPoolIds: ids })} />
+            <SegmentList segments={r.segments ?? []} onChange={(s) => update({ segments: s })} />
+          </>
+        );
+      }}
     />
   );
 };

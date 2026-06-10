@@ -3,21 +3,27 @@ import { useFrame } from '@react-three/fiber';
 import { Vector3 } from 'three';
 import { getPath } from '../../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../../path/pathCurve';
-import { getActivePathId, getActiveEventPool } from './worldRoute';
+import { getActivePathId, getActiveRoute, getActiveEventPool } from './worldRoute';
 import { getFlightTuning } from '../../../stores/game/editorFlightStore';
 import { pickEvent } from './flightEventModel';
+import { segmentAtU, allowedKindsAtU, eventDensityAtU } from './WorldFlightRouteRuntime';
 import { flightHandle } from '../flightHandle';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
-import { ACTIVE_FLIGHT_EVENTS, useFlightEventVersion, clearActiveFlightEvents } from './flightEventRuntime';
-import { FlightEventVisual } from './FlightEventVisual';
+import {
+  ACTIVE_FLIGHT_EVENTS,
+  useFlightEventVersion,
+  clearActiveFlightEvents,
+  activeKinds,
+  activeBlockingCount,
+  flightDirectorDebug,
+} from './flightEventRuntime';
 import type { FlightEventKind } from '../../../types/game/flightEvent';
 
-// World-flight event director + renderer. Events are placed AHEAD on the route as static world objects;
-// the craft flies past them. The director (one useFrame) picks events from the route's pool respecting
-// per-event cooldowns + the editable global gap / max-active (🛩 Flight tab), and resolves them on
-// fly-through (collect / energy / radio). Each event renders its distinct FlightEventVisual (so the full
-// set — cloud holes, crosswind, updraft, storm, lightning, rainbow, birds, energy, stunt rings,
-// collectibles, radio, formation, branch — looks the part). Count/gap/props/model are all Edit-Mode driven.
+// The world-flight EVENT DIRECTOR (logic only — renders nothing). One useFrame: it gates spawns by the
+// editable global gap × the current segment's eventDensity, picks an event from the route pool via the pure
+// flightEventModel (respecting cooldown, segment allowed-kinds, route-progress/altitude windows, overlap
+// rules and a blocking cap), places it ahead on the 航道 as a static world object, and resolves events on
+// fly-through (collect / energy / radio). Lifecycle + a debug snapshot live in flightEventRuntime.
 const AHEAD_U = 0.018;
 const EVENT_CLEAR_SEC = 2.5;
 const COLLECT_KINDS: ReadonlySet<FlightEventKind> = new Set(['collectible', 'energy_refill']);
@@ -27,13 +33,11 @@ const _tan = new Vector3();
 const _perp = new Vector3();
 let _idSeq = 0;
 
-export const FlightEventLayer = () => {
+export const FlightEventDirectorHost = () => {
   const lastSpawn = useRef<Record<string, number>>({});
   const globalTimer = useRef(0);
   const elapsed = useRef(0);
   const clearTimer = useRef(0);
-  // Re-render the list when the director mutates it (sparse — spawn/resolve only).
-  useFlightEventVersion((s) => s.v);
 
   useEffect(() => {
     clearActiveFlightEvents();
@@ -48,9 +52,10 @@ export const FlightEventLayer = () => {
     elapsed.current += dt;
     globalTimer.current += dt;
     const tuning = getFlightTuning();
+    const route = getActiveRoute();
     const def = getPath(getActivePathId());
     const cc = def ? getCurve(def) : null;
-    if (!cc) return;
+    if (!cc || !route) return;
     const routeU = flightHandle.routeU;
     const rt = useWorldFlightRuntimeStore.getState();
     let changed = false;
@@ -66,6 +71,7 @@ export const FlightEventLayer = () => {
         const reach = ev.def.size + 5;
         if (dx * dx + dy * dy + dz * dz < reach * reach) {
           ev.resolved = true;
+          ev.state = 'resolving';
           const d = ev.def;
           if (d.kind === 'collectible') rt.addCollectible(d.value ?? 1);
           else if (d.kind === 'energy_refill') rt.addEnergy(d.value ?? 20);
@@ -76,7 +82,8 @@ export const FlightEventLayer = () => {
       }
       const collected = ev.resolved && COLLECT_KINDS.has(ev.def.kind);
       if (collected || age > ev.def.durationSec || routeU > ev.spawnU + 0.01) {
-        ACTIVE_FLIGHT_EVENTS.splice(i, 1);
+        ev.state = 'completed';
+        ACTIVE_FLIGHT_EVENTS.splice(i, 1); // → disposed
         changed = true;
       }
     }
@@ -86,9 +93,17 @@ export const FlightEventLayer = () => {
       if (clearTimer.current <= 0) { rt.setActiveEvent(null); rt.setRadio(null); }
     }
 
-    // spawn (editable gap + max-active)
-    if (globalTimer.current >= tuning.worldEventSpawnGap && ACTIVE_FLIGHT_EVENTS.length < tuning.worldEventMaxActive && routeU < 0.985) {
-      const chosen = pickEvent(getActiveEventPool(), elapsed.current, lastSpawn.current, Math.random);
+    // spawn — gated by gap / eventDensity, max-active, and route-progress
+    const gap = tuning.worldEventSpawnGap / Math.max(0.1, eventDensityAtU(route, routeU));
+    if (globalTimer.current >= gap && ACTIVE_FLIGHT_EVENTS.length < tuning.worldEventMaxActive && routeU < 0.985) {
+      const chosen = pickEvent(getActiveEventPool(), elapsed.current, lastSpawn.current, Math.random, {
+        allowedKinds: allowedKindsAtU(route, routeU),
+        routeU,
+        altitude: flightHandle.altitude,
+        activeKinds: activeKinds(),
+        blockingActiveCount: activeBlockingCount(),
+        maxBlocking: 1,
+      });
       if (chosen) {
         const aheadU = Math.min(0.999, routeU + AHEAD_U);
         samplePos(cc.curve, aheadU, _pos);
@@ -102,25 +117,31 @@ export const FlightEventLayer = () => {
           def: chosen,
           pos: [_pos.x, _pos.y, _pos.z],
           spawnU: aheadU,
+          segmentId: segmentAtU(route, routeU)?.id,
           bornAt: elapsed.current,
+          state: 'active',
           resolved: false,
         });
         lastSpawn.current[chosen.id] = elapsed.current;
         globalTimer.current = 0;
+        flightDirectorDebug.lastRejected = null;
         changed = true;
+      } else {
+        flightDirectorDebug.lastRejected = 'no eligible event (cooldown / segment / overlap / progress)';
+        globalTimer.current = 0;
       }
     }
+
+    // debug snapshot
+    flightDirectorDebug.routeId = route.id;
+    flightDirectorDebug.progress = routeU;
+    flightDirectorDebug.segmentId = segmentAtU(route, routeU)?.id ?? '—';
+    flightDirectorDebug.cooldowns = Object.entries(lastSpawn.current)
+      .map(([id, t]) => ({ id, remaining: Math.max(0, (getActiveEventPool().find((e) => e.id === id)?.minGapSec ?? 0) - (elapsed.current - t)) }))
+      .filter((c) => c.remaining > 0);
 
     if (changed) useFlightEventVersion.getState().bump();
   });
 
-  return (
-    <>
-      {ACTIVE_FLIGHT_EVENTS.map((ev) => (
-        <group key={ev.id} position={ev.pos}>
-          <FlightEventVisual def={ev.def} />
-        </group>
-      ))}
-    </>
-  );
+  return null;
 };

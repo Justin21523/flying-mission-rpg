@@ -7,7 +7,9 @@ import { getFlightTuning, useEditorFlightStore } from '../../../stores/game/edit
 import { getPath } from '../../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../../path/pathCurve';
 import { getActivePathId } from './worldRoute';
+import { worldFlightDev } from './worldFlightDev';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
+import { useGameStore } from '../../../stores/game/useGameStore';
 import { AnimatedGlbModel } from '../../world/AnimatedGlbModel';
 import { flightHandle } from '../flightHandle';
 
@@ -68,6 +70,9 @@ export const RouteFollower = () => {
     const boost = k['KeyW'] ? 1.7 : k['KeyS'] ? 0.45 : 1;
     const pathSpeed = tuning.cruiseSpeed * speedMult * boost;
     u.current = Math.min(1, u.current + (pathSpeed * dt) / Math.max(1, cc.length));
+    // Dev jumps (WorldFlightDebugPanel): snap / advance route progress.
+    if (worldFlightDev.jumpU >= 0) { u.current = Math.min(1, worldFlightDev.jumpU); worldFlightDev.jumpU = -1; }
+    if (worldFlightDev.progressDelta !== 0) { u.current = Math.min(1, u.current + worldFlightDev.progressDelta); worldFlightDev.progressDelta = 0; }
 
     samplePos(cc.curve, u.current, _pos);
     sampleTangent(cc.curve, u.current, _tan);
@@ -83,6 +88,8 @@ export const RouteFollower = () => {
 
     if (u.current >= 0.999 && !useWorldFlightRuntimeStore.getState().arrived) {
       useWorldFlightRuntimeStore.getState().setArrived(true);
+      // Reached the destination → hand off to the approach phase (full descent/landing is Batch 7).
+      useGameStore.getState().requestTransition('DESTINATION_APPROACH');
     }
   });
 

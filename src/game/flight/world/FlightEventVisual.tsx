@@ -6,8 +6,8 @@ import type { FlightEventDef, FlightEventKind } from '../../../types/game/flight
 
 // Distinct, child-friendly 3D placeholders for every flight-event kind (PDF §批次5). All original
 // primitives (no copyrighted art); each animates locally (spin / pulse / drift) and is fully driven by the
-// editable FlightEventDef (color / size / driftSpeed / optional model). Shared by the live director
-// (FlightEventLayer) and the Edit-Mode gallery (FlightEventPreview) → edit/play parity.
+// editable FlightEventDef (color / size / driftSpeed / optional model). Shared by the live renderer
+// (FlightEventRenderer) and the Edit-Mode gallery (FlightEventPreview) → edit/play parity.
 
 // ── cloud hole: a ring opening framed by puffs ──
 const CloudHoleViz = ({ color, size }: { color: string; size: number }) => {

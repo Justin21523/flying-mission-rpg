@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { useUiStore } from '../../../stores/uiStore';
 import { EditModeAmbience } from '../../edit/EditModeAmbience';
+import { WorldFlightEnvironment } from './WorldFlightEnvironment';
 import { WorldSkyAmbience } from './WorldSkyAmbience';
 import { SceneEditorGizmo } from '../../edit/SceneEditorGizmo';
 import { FollowCamera } from '../../camera/FollowCamera';
@@ -8,20 +10,40 @@ import { FlightCamera } from '../FlightCamera';
 import { RouteFollower } from './RouteFollower';
 import { CloudField } from './CloudField';
 import { SpeedField } from './SpeedField';
-import { FlightEventLayer } from './FlightEventLayer';
+import { FlightEventDirectorHost } from './FlightEventDirectorHost';
+import { FlightEventRenderer } from './FlightEventRenderer';
 import { FlightEventPreview } from './FlightEventPreview';
+import { WorldFlightDebugGizmos } from './WorldFlightDebugGizmos';
+import { clearActiveFlightEvents } from './flightEventRuntime';
+import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
 
-// WORLD_FLIGHT — the long-distance high-altitude leg (PDF §批次5). PLAY: the craft follows the route's
-// 航道 (RouteFollower) through a recycled cloud field + speed streaks, with the pooled flight-event
-// director spawning events ahead; FlightCamera. EDIT: orbit camera + gizmo + the world route's
-// node handles (PathDebugLayer area 'world') so the route is editable in the 🛣 Tracks tab — flight
-// suspended, fully synced with play.
+// WORLD_FLIGHT — the long-distance high-altitude leg (PDF §批次5), split into layers:
+//   ambience (WorldFlightEnvironment / WorldSkyAmbience) · route geometry (PathDebugLayer, area 'world') ·
+//   the craft (RouteFollower) · cloud carpet + speed streaks (instanced, recycled) · the event DIRECTOR
+//   (FlightEventDirectorHost, logic) + RENDERER (FlightEventRenderer, view) · FlightCamera.
+// PLAY runs the full system; EDIT shows the orbit camera + gizmo + the route's event-pool gallery + segment
+// debug gizmos so everything is editable in place (🧭/🌩/🌦/🛣) and synced. All runtime is disposed on exit.
 export const WorldFlightScene = () => {
   const editMode = useUiStore((s) => s.editMode);
 
+  useEffect(() => {
+    // Dispose everything when leaving WORLD_FLIGHT (no residual events / state).
+    return () => {
+      clearActiveFlightEvents();
+      useWorldFlightRuntimeStore.getState().reset();
+    };
+  }, []);
+
   return (
     <>
-      {editMode ? <EditModeAmbience /> : <WorldSkyAmbience />}
+      {editMode ? (
+        <>
+          <EditModeAmbience />
+          <WorldSkyAmbience />
+        </>
+      ) : (
+        <WorldFlightEnvironment />
+      )}
 
       {/* World route line + draggable node handles (Tracks tab edits these; synced in play). */}
       <PathDebugLayer areaId="world" />
@@ -31,12 +53,18 @@ export const WorldFlightScene = () => {
           <RouteFollower />
           <CloudField />
           <SpeedField />
-          <FlightEventLayer />
+          <FlightEventDirectorHost />
+          <FlightEventRenderer />
         </>
       )}
 
-      {/* Edit Mode: show the route's whole event pool laid out along the 航道 (same visuals as play). */}
-      {editMode && <FlightEventPreview />}
+      {/* Edit Mode: route event-pool gallery + segment-band gizmos (same visuals as play). */}
+      {editMode && (
+        <>
+          <FlightEventPreview />
+          <WorldFlightDebugGizmos />
+        </>
+      )}
 
       {editMode ? <FollowCamera /> : <FlightCamera />}
       {editMode && <SceneEditorGizmo />}
