@@ -6,7 +6,10 @@ import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { getFlightTuning } from '../../stores/game/editorFlightStore';
 import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
-import { getExteriorByKind, getNavpoints } from '../../stores/game/editorExteriorStore';
+import { getExteriorByKind } from '../../stores/game/editorExteriorStore';
+import { getPath } from '../../stores/editorPathStore';
+import { getCurve, samplePos, sampleTangent } from '../path/pathCurve';
+import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { flightHandle } from './flightHandle';
 import { nextSpeed, isStalling } from './flightModel';
@@ -17,11 +20,13 @@ import { nextSpeed, isStalling } from './flightModel';
 const TUNNEL_LEN = 34;
 const TUNNEL_DURATION = 2.6;
 const SINK_RATE = 7;
-const NAV_REACH = 8;
 const MIN_ALT = 6;
 
 const _fwd = new Vector3();
 const _euler = new Euler(0, 0, 0, 'YXZ');
+const _pos = new Vector3();
+const _tan = new Vector3();
+const _look = new Vector3();
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
 
@@ -32,6 +37,7 @@ export const FlightController = () => {
   const angVel = useRef({ pitch: 0, yaw: 0, roll: 0 });
   const speed = useRef(0);
   const launchT = useRef(0);
+  const pathU = useRef(0);
   const prevPhase = useRef('');
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
@@ -83,8 +89,35 @@ export const FlightController = () => {
         flightHandle.pos.set(p[0], p[1], p[2] + TUNNEL_LEN);
         rot.current = { pitch: 0, yaw: 0, roll: 0 };
         speed.current = tuning.cruiseSpeed * speedMult * 0.5;
+      } else if (phase === 'BASE_FLY_AROUND') {
+        pathU.current = 0; // start of the guided flight path
       }
       prevPhase.current = phase;
+    }
+
+    // Guided fly-around + ascent — auto-follow the editable flight path (hold W to advance; reuses POLI's
+    // CatmullRom path). Locked to the curve + faces the tangent; the 3rd-person FlightCamera follows.
+    if (phase === 'BASE_FLY_AROUND' || phase === 'CLOUD_ASCENT') {
+      const def = getPath(FLIGHT_PATH_ID);
+      const cc = def ? getCurve(def) : null;
+      if (cc) {
+        const kk = keys.current;
+        const fwd = kk['KeyW'] ? 1 : kk['KeyS'] ? -0.6 : 0.2; // hold forward → advance; idle drifts slowly
+        const pathSpeed = tuning.cruiseSpeed * speedMult * (kk['KeyW'] ? 1.4 : 1);
+        pathU.current = clamp(pathU.current + (fwd * pathSpeed * dt) / Math.max(1, cc.length), 0, 1);
+        samplePos(cc.curve, pathU.current, _pos);
+        sampleTangent(cc.curve, pathU.current, _tan);
+        flightHandle.pos.copy(_pos);
+        craft.position.copy(_pos);
+        _look.copy(_pos).add(_tan);
+        craft.lookAt(_look);
+        flightHandle.quat.copy(craft.quaternion);
+        flightHandle.speed = pathSpeed * Math.abs(fwd);
+        flightHandle.throttle = kk['KeyW'] ? 1 : kk['KeyS'] ? -1 : 0;
+        flightHandle.altitude = _pos.y;
+        if (phase === 'BASE_FLY_AROUND' && _pos.y > 40) useGameStore.getState().requestTransition('CLOUD_ASCENT');
+        return;
+      }
     }
 
     // ── input ──
@@ -145,28 +178,10 @@ export const FlightController = () => {
     craft.position.copy(flightHandle.pos);
     craft.quaternion.copy(flightHandle.quat);
 
-    // ── phase progression ──
+    // ── phase progression ── (tunnel auto-launch; fly-around/ascent handled by the path-follow branch)
     if (tunnel) {
       launchT.current += dt;
       if (launchT.current > TUNNEL_DURATION) useGameStore.getState().requestTransition('BASE_FLY_AROUND');
-      return;
-    }
-
-    // Navpoint guidance + fly-around → ascent.
-    const nav = getNavpoints();
-    const idx = useFlightRuntimeStore.getState().navIndex;
-    const target = nav[idx];
-    if (target) {
-      const d = Math.hypot(flightHandle.pos.x - target.position[0], flightHandle.pos.y - target.position[1], flightHandle.pos.z - target.position[2]);
-      if (d < NAV_REACH) {
-        const next = idx + 1;
-        useFlightRuntimeStore.getState().setNavIndex(next);
-        const upcoming = nav[next];
-        // crossing into an ascent navpoint (high up) starts the cloud ascent
-        if (phase === 'BASE_FLY_AROUND' && upcoming && upcoming.position[1] > 40) {
-          useGameStore.getState().requestTransition('CLOUD_ASCENT');
-        }
-      }
     }
   });
 

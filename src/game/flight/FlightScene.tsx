@@ -5,6 +5,7 @@ import { DynamicAmbience } from '../world/DynamicAmbience';
 import { EditModeAmbience } from '../edit/EditModeAmbience';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
+import { PathDebugLayer } from '../poli/PathDebugLayer';
 import { ExteriorLayer } from './ExteriorLayer';
 import { LaunchTunnel } from './LaunchTunnel';
 import { FlightController } from './FlightController';
@@ -22,6 +23,8 @@ export const FlightScene = () => {
       {editMode ? <EditModeAmbience /> : <DynamicAmbience />}
 
       <ExteriorLayer />
+      {/* Flight route: POLI path line (play guidance) + draggable node handles (edit). Tracks tab edits nodes. */}
+      <PathDebugLayer areaId="exterior" />
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
 
