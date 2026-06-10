@@ -11,6 +11,7 @@ import { BOOST_MODES, BOOST_EXIT_BEHAVIORS, type BoostMode, type BoostExitBehavi
 import { SURFACE_TYPES, type SurfaceType } from '../../types/surface';
 import { Field, inp, lbl, Check, csv, parseCsv, usePathOptions } from './editorShared';
 import { IdSelect } from './idPickers';
+import { ModelPicker } from './ModelPicker';
 
 // 🛣 Tracks tab — authoring for the movement systems (Paths · Boost Pads · Surfaces). Pure data editing; the
 // in-scene gizmos (PathDebugLayer / BoostPadLayer) read the same stores, so edits and drags stay in sync. 🎯
@@ -51,6 +52,9 @@ const PathsSection = () => {
       {paths.map((p) => {
         const nodes = p.nodes ?? [];
         const nodeOpts = nodes.map((n) => ({ id: n.id, label: n.id }));
+        const pathOpts = paths.filter((x) => x.id !== p.id).map((x) => ({ id: x.id, label: x.name || x.id }));
+        const branches = p.branchRules ?? [];
+        const setBranch = (bi: number, patch: Partial<typeof branches[number]>) => st.updatePath(p.id, { branchRules: branches.map((x, j) => (j === bi ? { ...x, ...patch } : x)) });
         return (
           <div key={p.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
             <div className="flex items-center gap-1.5">
@@ -84,6 +88,22 @@ const PathsSection = () => {
                 </div>
               ))}
               <div className="mt-0.5 text-[9px] text-slate-500">x / y / z · width · speed×. Drag the 🎯 handle in 3D — the line follows live.</div>
+            </div>
+
+            <div className="rounded border border-slate-700/50 bg-slate-900/50 p-1.5">
+              <div className="flex items-center justify-between"><span className={lbl}>branch rules ({branches.length})</span>
+                <button onClick={() => st.updatePath(p.id, { branchRules: [...branches, { fromNodeId: nodes[0]?.id ?? '', toPathId: '' }] })} className="rounded bg-sky-700/30 px-1.5 text-[11px] text-sky-100 hover:bg-sky-700/50">➕ branch</button></div>
+              {branches.map((b, bi) => (
+                <div key={bi} className="mt-1 flex items-center gap-1">
+                  <div className="min-w-[5rem] flex-1"><IdSelect value={b.fromNodeId} onChange={(v) => setBranch(bi, { fromNodeId: v ?? '' })} options={nodeOpts} placeholder="from node" /></div>
+                  <span className="text-[10px] text-slate-500">→</span>
+                  <div className="min-w-[5rem] flex-1"><IdSelect value={b.toPathId} onChange={(v) => setBranch(bi, { toPathId: v ?? '' })} options={pathOpts} placeholder="to path" /></div>
+                  <input type="number" step={0.5} title="weight" value={b.weight ?? 1} className={inp + ' w-12'} onChange={(e) => setBranch(bi, { weight: num(e.target.value, 1) })} />
+                  <input title="required flag" value={b.requiredFlag ?? ''} placeholder="flag" className={inp + ' w-16'} onChange={(e) => setBranch(bi, { requiredFlag: e.target.value || undefined })} />
+                  <button onClick={() => st.updatePath(p.id, { branchRules: branches.filter((_, j) => j !== bi) })} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+                </div>
+              ))}
+              <div className="mt-0.5 text-[9px] text-slate-500">At a node, a follower with “can reroute” diverts onto another path (by weight / world flag).</div>
             </div>
           </div>
         );
@@ -126,6 +146,18 @@ const BoostPadsSection = () => {
               <Field label="linked path"><IdSelect value={p.linkedPathId} onChange={(v) => st.updatePad(p.id, { linkedPathId: v })} options={pathOpts} placeholder="(path)" /></Field>
               <Field label="control mode"><select value={p.pathControlMode ?? 'forwardLocked'} onChange={(e) => st.updatePad(p.id, { pathControlMode: e.target.value as PathControlMode })} className={inp}>{PATH_CONTROL_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></Field>
             </div>
+          )}
+          {p.boostMode === 'customDirection' && (
+            <Field label="custom direction (x / y / z)">
+              <div className="flex gap-1">
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={0.1} value={(p.customDirection ?? [0, 0, 1])[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                    const cur = (p.customDirection ?? [0, 0, 1]) as [number, number, number];
+                    const next = [...cur] as [number, number, number]; next[a] = num(e.target.value); st.updatePad(p.id, { customDirection: next });
+                  }} />
+                ))}
+              </div>
+            </Field>
           )}
           <Field label="tags (comma-separated)"><input value={csv(p.requiredTags)} onChange={(e) => st.updatePad(p.id, { requiredTags: parseCsv(e.target.value) })} className={inp} placeholder="(any)" /></Field>
         </div>
@@ -219,7 +251,19 @@ const FollowersSection = () => {
             <Field label="look-ahead (m)"><input type="number" step={0.5} value={f.lookAhead} onChange={(e) => st.updateFollower(f.id, { lookAhead: num(e.target.value) })} className={inp} /></Field>
             <Field label="min gap (m)"><input type="number" step={0.5} value={f.minGap} onChange={(e) => st.updateFollower(f.id, { minGap: num(e.target.value) })} className={inp} /></Field>
             <Field label="model scale"><input type="number" step={0.1} value={f.scale ?? 2} onChange={(e) => st.updateFollower(f.id, { scale: num(e.target.value, 1) })} className={inp} /></Field>
+            <Field label="model (empty = box/capsule)"><ModelPicker value={f.modelAssetId || undefined} onChange={(v) => st.updateFollower(f.id, { modelAssetId: v ?? undefined })} allowNone noneLabel="(primitive)" /></Field>
+            <Field label="color"><input type="color" value={f.color ?? '#38bdf8'} onChange={(e) => st.updateFollower(f.id, { color: e.target.value })} className="h-7 w-full rounded bg-slate-800" /></Field>
           </div>
+          <Field label="body size (x / y / z)">
+            <div className="flex gap-1">
+              {([0, 1, 2] as const).map((a) => (
+                <input key={a} type="number" step={0.1} value={(f.size ?? [0.9, 1.2, 2.2])[a]} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                  const cur = (f.size ?? [0.9, 1.2, 2.2]) as [number, number, number];
+                  const next = [...cur] as [number, number, number]; next[a] = num(e.target.value, 0.5); st.updateFollower(f.id, { size: next });
+                }} />
+              ))}
+            </div>
+          </Field>
           <div className="flex flex-wrap gap-3">
             <Check label="enabled" checked={f.enabled} onChange={(v) => st.updateFollower(f.id, { enabled: v })} />
             <Check label="yield to incidents" checked={f.yieldToIncidents} onChange={(v) => st.updateFollower(f.id, { yieldToIncidents: v })} />
