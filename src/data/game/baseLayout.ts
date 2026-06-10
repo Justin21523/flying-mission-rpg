@@ -3,9 +3,10 @@ import type { BasePart } from '../../types/game/base';
 // Seed base layout (grey-box + the real hangar/station models where available). Positions form a small
 // apron the vehicle taxis across toward the lift platform + launch tunnel at the back. Everything here is
 // editable in Edit Mode (🏗 Base tab + gizmo). English labels.
-export const BASE_SPAWN: [number, number, number] = [0, 1.2, 9];
-export const BASE_HALF_EXTENT = 18; // perimeter wall half-size (keeps the vehicle from falling out)
+export const BASE_SPAWN: [number, number, number] = [0, 1.2, 7];
+export const BASE_HALF_EXTENT = 11; // enclosed room half-size (keeps the vehicle in)
 export const BASE_GROUND_Y = 0;
+export const BASE_CEILING_Y = 7; // enclosed ceiling height
 
 export const SEED_BASE_PARTS: BasePart[] = [
   {
@@ -13,8 +14,8 @@ export const SEED_BASE_PARTS: BasePart[] = [
     kind: 'hangar',
     label: 'Main Hangar',
     assetId: 'super-wings/futuristic aircraft hangar 3d model',
-    modelTarget: 30,
-    position: [0, 0, -6],
+    modelTarget: 16,
+    position: [0, 0, -4],
     rotation: [0, 0, 0],
     scale: 1,
     size: [10, 6, 10],
@@ -102,7 +103,7 @@ export const SEED_BASE_PARTS: BasePart[] = [
     id: 'base_exit',
     kind: 'base_exit',
     label: 'Base Exterior Exit',
-    position: [0, 1.4, 13],
+    position: [0, 1.4, 9.5],
     rotation: [0, 0, 0],
     scale: 1,
     size: [4, 2.8, 0.5],

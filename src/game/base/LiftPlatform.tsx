@@ -5,8 +5,10 @@ import { useGameStore } from '../../stores/game/useGameStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { useBaseRuntimeStore } from '../../stores/game/baseRuntimeStore';
+import { useMergedTransform } from '../../stores/sceneEditStore';
 import { vehicleHandle } from './vehicleHandle';
 import { withinRadius } from './platformAlign';
+import { basePartKey } from './basePartKey';
 
 // Owns the lift platform in PLAY mode: proximity/alignment detection (HANGAR) → lock + cinematic descent
 // (PLATFORM_ALIGNMENT) → LAUNCH_PREPARATION. The reused FollowCamera follows the vehicle down automatically
@@ -23,6 +25,12 @@ const easeInOut = (t: number) => t * t * (3 - 2 * t);
 
 export const LiftPlatform = () => {
   const part = useEditorBaseLayoutStore((s) => s.items.find((p) => p.kind === 'lift_platform'));
+  // Honour gizmo moves: read the merged (base ⊕ override) platform transform.
+  const merged = useMergedTransform(part ? basePartKey(part.id) : 'base#structure#none', {
+    position: part ? part.position : [0, 0, 0],
+    rotation: part ? part.rotation : [0, 0, 0],
+    scale: part ? part.scale : 1,
+  });
   const platformRef = useRef<Group>(null);
   const gateLeftRef = useRef<Group>(null);
   const gateRightRef = useRef<Group>(null);
@@ -45,9 +53,9 @@ export const LiftPlatform = () => {
   useFrame((_, dtRaw) => {
     if (!part) return;
     const dt = Math.min(dtRaw, 0.05);
-    const cx = part.position[0];
-    const startY = part.position[1];
-    const cz = part.position[2];
+    const cx = merged.position[0];
+    const startY = merged.position[1];
+    const cz = merged.position[2];
     const phase = useGameStore.getState().phase;
     const plat = platformRef.current;
 
@@ -123,9 +131,9 @@ export const LiftPlatform = () => {
 
   if (!part) return null;
   const [sx, sy, sz] = part.size;
-  const cx = part.position[0];
-  const startY = part.position[1];
-  const cz = part.position[2];
+  const cx = merged.position[0];
+  const startY = merged.position[1];
+  const cz = merged.position[2];
 
   return (
     <group>

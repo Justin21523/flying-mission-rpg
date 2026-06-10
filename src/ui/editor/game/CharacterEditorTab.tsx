@@ -3,7 +3,8 @@ import { useEditorCharacterStore } from '../../../stores/game/editorCharacterSto
 import { useEditorTransformationStore } from '../../../stores/game/editorTransformationStore';
 import { CHARACTER_FORMS } from '../../../types/game/character';
 import type { CharacterDefinition } from '../../../types/game/character';
-import { csv, parseCsv } from '../editorShared';
+import { csv, parseCsv, Field } from '../editorShared';
+import { ModelPicker } from '../ModelPicker';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
 
 const makeNew = (): CharacterDefinition => ({
@@ -58,6 +59,9 @@ export const CharacterEditorTab = () => {
             onChange={(v) => update({ transformationId: v || undefined })}
           />
           <TextRow label="Card image (src/assets/cards)" value={c.cardImage ?? ''} onChange={(v) => update({ cardImage: v || undefined })} />
+          <Field label="Model (robot/transformer)">
+            <ModelPicker value={c.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(none)" />
+          </Field>
           <p className="text-[10px] text-slate-500">Abilities: {c.abilities.length} (deep editor in a later batch).</p>
         </>
       )}

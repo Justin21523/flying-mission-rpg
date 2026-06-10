@@ -3,80 +3,68 @@ import { useUiStore } from '../../stores/uiStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { getModelAsset } from '../../data/modelLibrary';
 import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
-import { DataBackedPlacement } from '../edit/DataBackedPlacement';
+import { EditableObject } from '../edit/EditableObject';
+import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
+import { basePartKey } from './basePartKey';
 import type { BasePart } from '../../types/game/base';
 
-// Renders every editable base-layout part. EDIT MODE: each part is wrapped in the kit's DataBackedPlacement
-// so it's click-selectable + gizmo-movable, writing the new position back to the store (numeric fields in
-// the 🏗 Base tab + gizmo stay in sync). PLAY MODE: parts render with their collider (reused Rapier
-// helpers); the lift platform is owned by LiftPlatform, so it's skipped here in play.
+// Renders every editable base-layout part using the POLI gizmo pipeline: EDIT MODE wraps each part in
+// EditableObject so the shared SceneEditorGizmo selects/moves it (W/E/R, Ctrl+Z undo, pointerOnGizmo —
+// no mis-clicking objects behind the handle), writing the transform into sceneEditStore. PLAY MODE renders
+// at the merged transform with the part's collider. The lift platform is owned by LiftPlatform in play.
 
-const partKey = (id: string) => `base#${id}`;
-
-// The visual (no placement transform) — a normalised GLB when assetId is set, else a primitive box.
 const PartVisual = ({ part }: { part: BasePart }) => {
   if (part.assetId && getModelAsset(part.assetId)) {
-    return (
-      <group rotation={part.rotation} scale={part.scale}>
-        <NormalizedGlbModel assetId={part.assetId} target={part.modelTarget && part.modelTarget > 0 ? part.modelTarget : undefined} />
-      </group>
-    );
+    return <NormalizedGlbModel assetId={part.assetId} target={part.modelTarget && part.modelTarget > 0 ? part.modelTarget : undefined} />;
   }
   const emissive = part.kind === 'warning_light' || part.kind === 'base_exit';
   return (
-    <group rotation={part.rotation} scale={part.scale}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={part.size} />
-        <meshStandardMaterial
-          color={part.color}
-          emissive={emissive ? part.color : '#000000'}
-          emissiveIntensity={emissive ? 0.6 : 0}
-        />
-      </mesh>
-    </group>
+    <mesh castShadow receiveShadow>
+      <boxGeometry args={part.size} />
+      <meshStandardMaterial color={part.color} emissive={emissive ? part.color : '#000000'} emissiveIntensity={emissive ? 0.6 : 0} />
+    </mesh>
+  );
+};
+
+const BasePartEntity = ({ part, editMode }: { part: BasePart; editMode: boolean }) => {
+  const key = basePartKey(part.id);
+  const base = { position: part.position, rotation: part.rotation, scale: part.scale };
+  const m = useMergedTransform(key, base);
+  const deleted = useIsDeleted(key);
+  if (deleted) return null;
+  if (!editMode && part.kind === 'lift_platform') return null; // LiftPlatform owns it in play
+
+  if (editMode) {
+    return (
+      <EditableObject objKey={key} base={base} assetId={part.assetId ?? undefined}>
+        <PartVisual part={part} />
+      </EditableObject>
+    );
+  }
+  if (part.collision === 'none') {
+    return (
+      <group position={m.position} rotation={m.rotation} scale={m.scale}>
+        <PartVisual part={part} />
+      </group>
+    );
+  }
+  return (
+    <RigidBody type="fixed" colliders={part.collision} position={m.position} rotation={m.rotation}>
+      <group scale={m.scale}>
+        <PartVisual part={part} />
+      </group>
+    </RigidBody>
   );
 };
 
 export const BaseLayoutLayer = () => {
   const editMode = useUiStore((s) => s.editMode);
   const parts = useEditorBaseLayoutStore((s) => s.items);
-  const update = useEditorBaseLayoutStore((s) => s.update);
-  const remove = useEditorBaseLayoutStore((s) => s.remove);
-
   return (
     <>
-      {parts.map((part) => {
-        // The lift platform is rendered + animated by LiftPlatform in play mode.
-        if (!editMode && part.kind === 'lift_platform') return null;
-
-        if (editMode) {
-          return (
-            <DataBackedPlacement
-              key={part.id}
-              objKey={partKey(part.id)}
-              position={part.position}
-              onMove={(pos) => update(part.id, { position: pos })}
-              onDelete={() => remove(part.id)}
-              color="#38bdf8"
-            >
-              <PartVisual part={part} />
-            </DataBackedPlacement>
-          );
-        }
-
-        if (part.collision === 'none') {
-          return (
-            <group key={part.id} position={part.position}>
-              <PartVisual part={part} />
-            </group>
-          );
-        }
-        return (
-          <RigidBody key={part.id} type="fixed" colliders={part.collision} position={part.position}>
-            <PartVisual part={part} />
-          </RigidBody>
-        );
-      })}
+      {parts.map((p) => (
+        <BasePartEntity key={p.id} part={p} editMode={editMode} />
+      ))}
     </>
   );
 };
