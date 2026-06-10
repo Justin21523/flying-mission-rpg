@@ -14,6 +14,7 @@ interface EditorAnimationState {
   addProfile: () => string;
   updateProfile: (id: string, patch: Partial<AnimationReactionProfile>) => void;
   removeProfile: (id: string) => void;
+  mergeMissingFromSeed: () => void;
   importState: (data: { definitions?: AnimationDefinition[]; profiles?: AnimationReactionProfile[] }) => void;
   reset: () => void;
 }
@@ -59,6 +60,11 @@ export const useEditorAnimationStore = create<EditorAnimationState>((set, get) =
     },
     updateProfile: (id, patch) => { set({ profiles: get().profiles.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); save(); },
     removeProfile: (id) => { set({ profiles: get().profiles.filter((p) => p.id !== id) }); save(); },
+    mergeMissingFromSeed: () => {
+      const have = new Set(get().definitions.map((d) => d.id));
+      const add = ANIMATION_DEF_SEED.filter((s) => !have.has(s.id));
+      if (add.length) { set({ definitions: [...get().definitions, ...clone(add)] }); save(); }
+    },
     importState: (data) => {
       set({
         definitions: Array.isArray(data.definitions) ? data.definitions : get().definitions,

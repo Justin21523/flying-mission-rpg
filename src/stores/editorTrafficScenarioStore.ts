@@ -14,6 +14,7 @@ interface EditorTrafficScenarioState extends DirectorCfg {
   addScenario: () => string;
   updateScenario: (id: string, patch: Partial<IncidentScenarioDefinition>) => void;
   removeScenario: (id: string) => void;
+  mergeMissingFromSeed: () => void;
   importState: (data: { scenarios?: IncidentScenarioDefinition[]; enabled?: boolean; intervalSec?: number; maxConcurrent?: number }) => void;
   reset: () => void;
 }
@@ -58,6 +59,11 @@ export const useEditorTrafficScenarioStore = create<EditorTrafficScenarioState>(
     },
     updateScenario: (id, patch) => { set({ scenarios: get().scenarios.map((d) => (d.id === id ? { ...d, ...patch } : d)) }); save(); },
     removeScenario: (id) => { set({ scenarios: get().scenarios.filter((d) => d.id !== id) }); save(); },
+    mergeMissingFromSeed: () => {
+      const have = new Set(get().scenarios.map((d) => d.id));
+      const add = TRAFFIC_SCENARIO_SEED.filter((s) => !have.has(s.id));
+      if (add.length) { set({ scenarios: [...get().scenarios, ...clone(add)] }); save(); }
+    },
     importState: (data) => {
       set({
         scenarios: Array.isArray(data.scenarios) ? data.scenarios : get().scenarios,

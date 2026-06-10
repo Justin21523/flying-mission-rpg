@@ -15,6 +15,7 @@ interface EditorBoostPadState {
   updatePad: (id: string, patch: Partial<BoostPadConfig>) => void;
   updatePadPosition: (id: string, position: [number, number, number]) => void;
   removePad: (id: string) => void;
+  mergeMissingFromSeed: () => void;
   importState: (data: { pads?: BoostPadConfig[] }) => void;
   reset: () => void;
 }
@@ -52,6 +53,11 @@ export const useEditorBoostPadStore = create<EditorBoostPadState>((set, get) => 
     updatePad: (id, patch) => { set({ pads: get().pads.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); save(); },
     updatePadPosition: (id, position) => { set({ pads: get().pads.map((p) => (p.id === id ? { ...p, position } : p)) }); save(); },
     removePad: (id) => { set({ pads: get().pads.filter((p) => p.id !== id) }); save(); },
+    mergeMissingFromSeed: () => {
+      const have = new Set(get().pads.map((p) => p.id));
+      const add = BOOST_PAD_SEED.filter((s) => !have.has(s.id));
+      if (add.length) { set({ pads: [...get().pads, ...clone(add)] }); save(); }
+    },
     importState: (data) => { set({ pads: Array.isArray(data.pads) ? data.pads : get().pads }); save(); },
     reset: () => { set({ pads: clone(BOOST_PAD_SEED) }); save(); },
   };

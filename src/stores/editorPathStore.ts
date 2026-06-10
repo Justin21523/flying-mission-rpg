@@ -17,6 +17,7 @@ interface EditorPathState {
   addNode: (pathId: string) => void;
   removeNode: (pathId: string, nodeId: string) => void;
   removePath: (id: string) => void;
+  mergeMissingFromSeed: () => void;
   importState: (data: { paths?: PathDefinition[] }) => void;
   reset: () => void;
 }
@@ -101,6 +102,11 @@ export const useEditorPathStore = create<EditorPathState>((set, get) => {
       save();
     },
     removePath: (id) => { set({ paths: get().paths.filter((p) => p.id !== id) }); save(); },
+    mergeMissingFromSeed: () => {
+      const have = new Set(get().paths.map((p) => p.id));
+      const add = PATH_SEED.filter((s) => !have.has(s.id));
+      if (add.length) { set({ paths: [...get().paths, ...clone(add)] }); save(); }
+    },
     importState: (data) => { set({ paths: Array.isArray(data.paths) ? data.paths : get().paths }); save(); },
     reset: () => { set({ paths: clone(PATH_SEED) }); save(); },
   };

@@ -18,6 +18,7 @@ interface EditorCollisionState {
   addRule: () => string;
   updateRule: (id: string, patch: Partial<CollisionReactionRule>) => void;
   removeRule: (id: string) => void;
+  mergeMissingFromSeed: () => void;
   importState: (data: { objects?: CollisionObjectDef[]; rules?: CollisionReactionRule[] }) => void;
   reset: () => void;
 }
@@ -69,6 +70,13 @@ export const useEditorCollisionStore = create<EditorCollisionState>((set, get) =
     },
     updateRule: (id, patch) => { set({ rules: get().rules.map((r) => (r.id === id ? { ...r, ...patch } : r)) }); save(); },
     removeRule: (id) => { set({ rules: get().rules.filter((r) => r.id !== id) }); save(); },
+    mergeMissingFromSeed: () => {
+      const haveO = new Set(get().objects.map((o) => o.id));
+      const haveR = new Set(get().rules.map((r) => r.id));
+      const addO = COLLISION_OBJECT_SEED.filter((o) => !haveO.has(o.id));
+      const addR = COLLISION_RULE_SEED.filter((r) => !haveR.has(r.id));
+      if (addO.length || addR.length) { set({ objects: [...get().objects, ...clone(addO)], rules: [...get().rules, ...clone(addR)] }); save(); }
+    },
     importState: (data) => {
       set({
         objects: Array.isArray(data.objects) ? data.objects : get().objects,

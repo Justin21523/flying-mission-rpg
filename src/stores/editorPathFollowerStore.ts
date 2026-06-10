@@ -10,6 +10,7 @@ interface EditorPathFollowerState {
   addFollower: (areaId: string) => string;
   updateFollower: (id: string, patch: Partial<PathFollowerDef>) => void;
   removeFollower: (id: string) => void;
+  mergeMissingFromSeed: () => void;
   importState: (data: { followers?: PathFollowerDef[] }) => void;
   reset: () => void;
 }
@@ -45,6 +46,11 @@ export const useEditorPathFollowerStore = create<EditorPathFollowerState>((set, 
     },
     updateFollower: (id, patch) => { set({ followers: get().followers.map((f) => (f.id === id ? { ...f, ...patch } : f)) }); save(); },
     removeFollower: (id) => { set({ followers: get().followers.filter((f) => f.id !== id) }); save(); },
+    mergeMissingFromSeed: () => {
+      const have = new Set(get().followers.map((f) => f.id));
+      const add = FOLLOWER_SEED.filter((s) => !have.has(s.id));
+      if (add.length) { set({ followers: [...get().followers, ...clone(add)] }); save(); }
+    },
     importState: (data) => { set({ followers: Array.isArray(data.followers) ? data.followers : get().followers }); save(); },
     reset: () => { set({ followers: clone(FOLLOWER_SEED) }); save(); },
   };

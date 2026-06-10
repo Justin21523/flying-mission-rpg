@@ -18,6 +18,7 @@ interface EditorSurfaceState {
   updateZone: (id: string, patch: Partial<SurfaceZoneDef>) => void;
   updateZonePosition: (id: string, position: [number, number, number]) => void;
   removeZone: (id: string) => void;
+  mergeMissingFromSeed: () => void;
   importState: (data: { surfaces?: SurfaceDefinition[]; zones?: SurfaceZoneDef[] }) => void;
   reset: () => void;
 }
@@ -70,6 +71,13 @@ export const useEditorSurfaceStore = create<EditorSurfaceState>((set, get) => {
     updateZone: (id, patch) => { set({ zones: get().zones.map((z) => (z.id === id ? { ...z, ...patch } : z)) }); save(); },
     updateZonePosition: (id, position) => { set({ zones: get().zones.map((z) => (z.id === id ? { ...z, position } : z)) }); save(); },
     removeZone: (id) => { set({ zones: get().zones.filter((z) => z.id !== id) }); save(); },
+    mergeMissingFromSeed: () => {
+      const haveS = new Set(get().surfaces.map((s) => s.id));
+      const haveZ = new Set(get().zones.map((z) => z.id));
+      const addS = SURFACE_SEED.filter((s) => !haveS.has(s.id));
+      const addZ = SURFACE_ZONE_SEED.filter((z) => !haveZ.has(z.id));
+      if (addS.length || addZ.length) { set({ surfaces: [...get().surfaces, ...clone(addS)], zones: [...get().zones, ...clone(addZ)] }); save(); }
+    },
     importState: (data) => {
       set({
         surfaces: Array.isArray(data.surfaces) ? data.surfaces : get().surfaces,
