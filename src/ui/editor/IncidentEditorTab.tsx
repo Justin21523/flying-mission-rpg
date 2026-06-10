@@ -5,8 +5,7 @@ import { editorSpawn } from '../../stores/sceneEditStore';
 import { useWorldSelectStore } from '../../stores/worldSelectStore';
 import { objKey } from '../../game/edit/sceneEditMerge';
 import { spawnRandomIncident } from '../../game/incident/spawnIncident';
-import { useEditorTrafficScenarioStore } from '../../stores/editorTrafficScenarioStore';
-import { startScenario } from '../../game/incident/trafficIncidentRunner';
+import { TrafficScenarioEditor } from './TrafficScenarioEditor';
 import { Field, inp, lbl, csv, parseCsv, useAreaOptions, useNpcOptions } from './editorShared';
 import { getEditorTools } from '../../stores/editorToolStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
@@ -30,10 +29,10 @@ export const IncidentEditorTab = () => {
   const areaOptions = useAreaOptions();
   const npcOptions = useNpcOptions();
   const re = useEditorRandomEventStore();
-  const ts = useEditorTrafficScenarioStore();
 
   return (
-    <div className="flex h-full gap-3 text-xs">
+    <div className="space-y-4 text-xs">
+      <div className="flex gap-3">
       {/* ── Left: list + director config ── */}
       <div className="w-52 shrink-0 space-y-2 overflow-y-auto">
         <div className="flex items-center justify-between">
@@ -69,27 +68,6 @@ export const IncidentEditorTab = () => {
               </div>
             );
           })}
-        </div>
-
-        <div className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
-          <div className={lbl}>🚧 Traffic Scenarios</div>
-          <label className="flex items-center gap-2 text-slate-300">
-            <input type="checkbox" checked={ts.enabled} onChange={(e) => ts.setDirector({ enabled: e.target.checked })} />
-            <span className="text-[11px]">{ts.enabled ? 'Scenario director ON' : 'Scenario director off'}</span>
-          </label>
-          <Field label="interval (sec)"><input type="number" min={1} value={ts.intervalSec} onChange={(e) => ts.setDirector({ intervalSec: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
-          <Field label="max concurrent"><input type="number" min={1} value={ts.maxConcurrent} onChange={(e) => ts.setDirector({ maxConcurrent: parseInt(e.target.value, 10) || 1 })} className={inp} /></Field>
-          {ts.scenarios.map((d) => (
-            <div key={d.id} className="flex items-center gap-1">
-              <input type="checkbox" checked={d.enabled} onChange={(e) => ts.updateScenario(d.id, { enabled: e.target.checked })} />
-              <span className="flex-1 truncate text-[10px] text-slate-300">{d.name}</span>
-              <input type="number" min={0} step={0.5} value={d.weight} onChange={(e) => ts.updateScenario(d.id, { weight: parseFloat(e.target.value) || 0 })} className={inp + ' w-12'} title="weight" />
-              <button onClick={() => startScenario(d.id)} title="Trigger now" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">▶</button>
-              <button onClick={() => ts.removeScenario(d.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
-            </div>
-          ))}
-          <button onClick={() => ts.addScenario()} className="w-full rounded bg-emerald-700/30 px-2 py-1 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ scenario</button>
-          <div className="text-[9px] text-slate-500">Stages a vehicle/cargo/blocked-road on a path; resolves when you reach it or it times out. Deep timeline edits via 🧩 JSON.</div>
         </div>
 
         <div className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
@@ -236,6 +214,8 @@ export const IncidentEditorTab = () => {
           </div>
         )}
       </div>
+      </div>
+      <TrafficScenarioEditor />
     </div>
   );
 };

@@ -71,6 +71,8 @@ export interface IncidentScenarioDefinition {
   triggerMode: IncidentTriggerMode;
   weight: number;
 
+  rescueIncidentId?: string;   // notifyRescue → spawn this existing rescue IncidentDefinition (by id)
+
   setupActions: IncidentAction[];
   timeline: IncidentTimelineStep[];
   resolutionConditions: IncidentResolutionCondition[];

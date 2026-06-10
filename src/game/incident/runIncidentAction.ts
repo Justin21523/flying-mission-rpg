@@ -1,6 +1,9 @@
 import type { IncidentAction } from '../../types/trafficIncident';
 import { useIncidentScenarioStore, type SpawnedEntity } from '../../stores/incidentScenarioStore';
 import { useFlagStore } from '../../stores/flagStore';
+import { useIncidentStore } from '../../stores/incidentStore';
+import { getEditorIncidents } from '../../stores/editorIncidentStore';
+import { getScenarios } from '../../stores/editorTrafficScenarioStore';
 import { setPathBlocked, addBlocker } from '../path/pathBlocks';
 import { registerCollision } from '../collision/collisionRegistry';
 import { emitGameEvent } from '../collision/gameEventBus';
@@ -67,11 +70,15 @@ export function runIncidentAction(action: IncidentAction, instanceId: string): v
       addBlocker(`${instanceId}#blk`, inst.areaId, inst.position[0], inst.position[2]);
       emitGameEvent({ kind: 'npcReaction', payload: action.reaction, x: inst.position[0], y: inst.position[1], z: inst.position[2] });
       return;
-    case 'notifyRescue':
-      // Flag + event the call-for-rescue; a real rescue-incident bridge by id/category is an additive hook.
+    case 'notifyRescue': {
+      // Flag + event the call-for-rescue, and bridge to a real rescue IncidentDefinition when the scenario
+      // names one that exists (the player can then run its rescue pipeline).
       useFlagStore.getState().setFlag(`traffic_notified_${inst.scenarioId}`);
       emitGameEvent({ kind: 'gameEvent', payload: 'notifyRescue', x: inst.position[0], y: inst.position[1], z: inst.position[2] });
+      const rid = getScenarios().find((s) => s.id === inst.scenarioId)?.rescueIncidentId;
+      if (rid && getEditorIncidents().some((d) => d.id === rid)) useIncidentStore.getState().spawn(rid);
       return;
+    }
     case 'playAnimation':
       emitGameEvent({ kind: 'reaction', payload: action.animationId, x: inst.position[0], y: inst.position[1], z: inst.position[2] });
       return;

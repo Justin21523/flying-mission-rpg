@@ -42,6 +42,7 @@ export const TRAFFIC_SCENARIO_SEED: IncidentScenarioDefinition[] = [
     id: 'scn_bump', name: 'Controlled Minor Collision', enabled: true, category: 'collision', severity: 3,
     requiredLocationTags: [], minParticipants: 2, maxParticipants: 2,
     cooldown: 50, globalCooldown: 15, maxConcurrentInstances: 1, triggerMode: 'randomWeighted', weight: 1,
+    rescueIncidentId: 'incident_harbor_brake', // notifyRescue spawns this real rescue incident
     setupActions: [
       { type: 'spawnVehicle', vehicleType: 'sedan' },
       { type: 'spawnVehicle', vehicleType: 'sedan' },
@@ -50,7 +51,7 @@ export const TRAFFIC_SCENARIO_SEED: IncidentScenarioDefinition[] = [
     ],
     timeline: [
       { atSeconds: 1, actions: [{ type: 'setVehicleState', participant: 'v0', state: 'stopped' }, { type: 'setVehicleState', participant: 'v1', state: 'stopped' }] },
-      { atSeconds: 3, actions: [{ type: 'npcReaction', npcSelector: 'nearby', reaction: 'callRescue' }] },
+      { atSeconds: 3, actions: [{ type: 'npcReaction', npcSelector: 'nearby', reaction: 'callRescue' }, { type: 'notifyRescue' }] },
     ],
     resolutionConditions: [{ type: 'playerReached', radius: 5 }, { type: 'timeout', seconds: 70 }],
     cleanupActions: [{ type: 'emitEvent', event: 'collision_cleared' }],
