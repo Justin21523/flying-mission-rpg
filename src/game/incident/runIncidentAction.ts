@@ -7,6 +7,7 @@ import { getScenarios } from '../../stores/editorTrafficScenarioStore';
 import { useIncidentFollowerStore, countIncidentFollowers } from '../../stores/incidentFollowerStore';
 import type { PathFollowerDef } from '../../types/pathFollower';
 import { setPathBlocked, addBlocker } from '../path/pathBlocks';
+import { addReactionSource, reactionModeFor } from './reactionField';
 import { registerCollision } from '../collision/collisionRegistry';
 import { emitGameEvent } from '../collision/gameEventBus';
 
@@ -86,10 +87,16 @@ export function runIncidentAction(action: IncidentAction, instanceId: string): v
       addBlocker(`${instanceId}#blk`, inst.areaId, inst.position[0], inst.position[2]);
       return;
     }
-    case 'npcReaction':
+    case 'npcReaction': {
       addBlocker(`${instanceId}#blk`, inst.areaId, inst.position[0], inst.position[2]);
+      // Make nearby NPCs visibly react. Gather radius scales with the scenario's onlooker count / severity.
+      const scn = getScenarios().find((s) => s.id === inst.scenarioId);
+      const onlookers = scn?.onlookerCount ?? scn?.severity ?? 1;
+      const mode = reactionModeFor(action.reaction);
+      if (mode) addReactionSource(`${instanceId}#react#${action.reaction}`, instanceId, inst.areaId, inst.position[0], inst.position[2], mode, 8 + onlookers * 2);
       emitGameEvent({ kind: 'npcReaction', payload: action.reaction, x: inst.position[0], y: inst.position[1], z: inst.position[2] });
       return;
+    }
     case 'notifyRescue': {
       // Flag + event the call-for-rescue, and bridge to a real rescue IncidentDefinition when the scenario
       // names one that exists (the player can then run its rescue pipeline).

@@ -10,6 +10,7 @@ import { useRelationshipStore } from '../../stores/relationshipStore';
 import { getPaths } from '../../stores/editorPathStore';
 import { getCurve, samplePos } from '../path/pathCurve';
 import { setPathBlocked, removeBlocker } from '../path/pathBlocks';
+import { clearReactionsForInstance } from './reactionField';
 import { unregisterCollision } from '../collision/collisionRegistry';
 import { useIncidentFollowerStore } from '../../stores/incidentFollowerStore';
 import { runIncidentAction } from './runIncidentAction';
@@ -88,6 +89,7 @@ function resolveInstance(inst: ScenarioInstance, def: IncidentScenarioDefinition
   for (const e of live.entities) unregisterCollision(e.id);
   for (const pid of live.blockedPaths) setPathBlocked(pid, false);
   removeBlocker(`${live.instanceId}#blk`);
+  clearReactionsForInstance(live.instanceId);
   useIncidentFollowerStore.getState().removeForInstance(live.instanceId);
   store.end(live.instanceId);
   lastResolved.set(live.scenarioId, nowSec());

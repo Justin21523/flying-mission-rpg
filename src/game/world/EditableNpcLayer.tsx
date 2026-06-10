@@ -12,6 +12,7 @@ import { useWorldClockStore } from '../../stores/worldClockStore';
 import { useInteractionStore } from '../../stores/interactionStore';
 import { useIncidentStore } from '../../stores/incidentStore';
 import { useEditorRandomEventStore } from '../../stores/editorRandomEventStore';
+import { nearestReaction } from '../incident/reactionField';
 import { useMergedTransform, useIsDeleted } from '../../stores/sceneEditStore';
 import { useAnimClipStore } from '../../stores/animClipStore';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
@@ -190,6 +191,18 @@ const MovingNpc = ({ npc, start, scale }: { npc: EditorNpc; start: Vec3; scale: 
         } else { // watch
           _target.copy(p);
         }
+      }
+    }
+
+    // ── React to staged traffic-scenario reaction sources (npcReaction) — watch / approach / flee. ──
+    if (!reacting) {
+      const rs = nearestReaction(npc.areaId, p.x, p.z);
+      if (rs) {
+        reacting = true;
+        faceYaw = Math.atan2(rs.x - p.x, rs.z - p.z);
+        if (rs.mode === 'approach') { if (rs.d > 2.4) _target.set(rs.x, p.y, rs.z); else _target.copy(p); }
+        else if (rs.mode === 'flee') { const len = rs.d || 1; _target.set(p.x - (rs.x - p.x) / len * 3, p.y, p.z - (rs.z - p.z) / len * 3); }
+        else _target.copy(p); // watch
       }
     }
 
