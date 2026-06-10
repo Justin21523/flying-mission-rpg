@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { TransformControls } from '@react-three/drei';
 import type { Group } from 'three';
+import type { TransformControls as TransformControlsImpl } from 'three-stdlib';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useWorldSelectStore } from '../../stores/worldSelectStore';
-import { pointerOnGizmo } from './gizmoState';
+import { gizmoState, pointerOnGizmo } from './gizmoState';
 
 // Kit — a gizmo-movable world placement whose moves write BACK into the owning data store (not a
 // sceneEditStore override). Renders the visual at `position` (the data value); clicking selects it
@@ -23,6 +24,7 @@ interface DataBackedPlacementProps {
 export function DataBackedPlacement({ objKey, position, onMove, onDelete, color = '#a855f7', children }: DataBackedPlacementProps) {
   const selectedKey = useWorldSelectStore((s) => s.selectedKey);
   const [obj, setObj] = useState<Group | null>(null);
+  const ctrlRef = useRef<TransformControlsImpl | null>(null);
   const selected = selectedKey === objKey;
 
   const handleSelect = (e: ThreeEvent<PointerEvent>) => {
@@ -51,6 +53,13 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
       </group>
       {selected && obj && (
         <TransformControls
+          // Register the active controls so pointerOnGizmo() protects the drag (clicks near a handle no longer
+          // steal selection) — same as SceneEditorGizmo. Clear on unmount only if we're still the active one.
+          ref={(c) => {
+            const ctrl = (c as unknown as TransformControlsImpl) ?? null;
+            if (ctrl) { ctrlRef.current = ctrl; gizmoState.controls = ctrl; }
+            else { if (gizmoState.controls === ctrlRef.current) gizmoState.controls = null; ctrlRef.current = null; }
+          }}
           object={obj}
           mode="translate"
           onObjectChange={() => onMove([obj.position.x, obj.position.y, obj.position.z])}
