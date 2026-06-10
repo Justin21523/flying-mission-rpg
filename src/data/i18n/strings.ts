@@ -60,6 +60,9 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     save_title: 'Save / Load', save_slotName: 'slot name…', save_save: 'Save', save_none: 'No saves yet.', save_load: 'Load', save_saved: 'Saved', save_loaded: 'Loaded',
     inc_title: 'Incidents', inc_go: 'Go', inc_onScene: 'On scene', inc_new: 'New incident', inc_missed: 'Incident missed', inc_resolved: 'Incident resolved',
     robot_faster: 'Robot form works tools faster (T)', robot_active: 'Robot form · tools +50%',
+    ob_title: 'Getting started', ob_move: 'Move around with WASD.', ob_interact: 'Press E near an NPC or object to interact.',
+    ob_map: 'Open the map from the bottom toolbar to fast-travel.', ob_rescue: 'Find an incident (🚨) and reach it to start a rescue.',
+    ob_done: 'All set — have fun!', ob_skip: 'Skip', ob_replay: 'Replay tutorial',
   },
   zh: {
     activeQuests: '進行中的任務',
@@ -111,5 +114,8 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     save_title: '存檔 / 讀取', save_slotName: '存檔名稱…', save_save: '存檔', save_none: '尚無存檔。', save_load: '讀取', save_saved: '已儲存', save_loaded: '已讀取',
     inc_title: '事件', inc_go: '前往', inc_onScene: '在現場', inc_new: '新事件', inc_missed: '錯過事件', inc_resolved: '事件解決',
     robot_faster: '機器人形操作工具更快(按 T)', robot_active: '機器人形 · 工具 +50%',
+    ob_title: '新手引導', ob_move: '用 WASD 四處移動。', ob_interact: '靠近 NPC 或物件按 E 互動。',
+    ob_map: '從底部工具列開啟地圖以快速旅行。', ob_rescue: '找到事件(🚨)並抵達現場開始救援。',
+    ob_done: '準備好了 — 玩得開心!', ob_skip: '略過', ob_replay: '重播教學',
   },
 };

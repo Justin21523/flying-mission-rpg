@@ -2,6 +2,7 @@ import { useGraphicsSettingsStore, CULL_RADIUS_MIN, CULL_RADIUS_MAX } from '../.
 import { QUALITY_LEVELS } from '../../game/render/renderSettings';
 import { PanelCard, closePanel } from './playShared';
 import { useLocaleStore, LOCALES } from '../../stores/localeStore';
+import { useOnboardingStore } from '../../stores/onboardingStore';
 import { useT } from '../../i18n/useT';
 
 // Kit — play-mode ⚙ Settings: graphics quality ceiling, auto-adapt toggle, on-screen perf HUD, render distance.
@@ -22,6 +23,7 @@ export const SettingsPanel = () => {
             {LOCALES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
           </select>
         </label>
+        <button onClick={() => { useOnboardingStore.getState().replay(); closePanel(); }} className="w-full rounded bg-slate-800 px-2 py-1 text-left text-slate-200 hover:bg-slate-700">🎓 {t('ob_replay')}</button>
         <label className="flex flex-col gap-1">
           <span className="text-slate-400">Graphics quality</span>
           <select value={quality} onChange={(e) => useGraphicsSettingsStore.getState().setQuality(e.target.value as typeof quality)} className="rounded bg-slate-800 px-2 py-1 text-slate-100">

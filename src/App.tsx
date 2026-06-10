@@ -37,6 +37,7 @@ import { RescueHud } from './ui/RescueHud';
 import { ToolBeltHud } from './ui/ToolBeltHud';
 import { LicenseBadge } from './ui/LicenseBadge';
 import { IncidentTracker } from './ui/IncidentTracker';
+import { OnboardingHud } from './ui/OnboardingHud';
 import { ResearchStationHud } from './ui/ResearchStationHud';
 import { BoostMeterHud } from './ui/BoostMeterHud';
 import { ResourceHud } from './ui/ResourceHud';
@@ -162,6 +163,7 @@ export const App = () => {
       {!editMode && <PlayToolbar />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <ToolBeltHud />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <LicenseBadge />}
+      {!editMode && <OnboardingHud />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <IncidentTracker />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <ResearchStationHud />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <BoostMeterHud />}
