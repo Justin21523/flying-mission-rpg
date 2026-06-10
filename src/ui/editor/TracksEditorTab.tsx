@@ -225,7 +225,7 @@ const SurfacesSection = () => {
             <Field label="friction"><input type="number" step={0.05} value={s.friction} onChange={(e) => st.updateSurface(s.id, { friction: num(e.target.value, 1) })} className={inp} /></Field>
             <Field label="accel ×"><input type="number" step={0.05} value={s.accelerationMultiplier} onChange={(e) => st.updateSurface(s.id, { accelerationMultiplier: num(e.target.value, 1) })} className={inp} /></Field>
             <Field label="max-speed ×"><input type="number" step={0.05} value={s.maxSpeedMultiplier} onChange={(e) => st.updateSurface(s.id, { maxSpeedMultiplier: num(e.target.value, 1) })} className={inp} /></Field>
-            <Field label="steering ×"><input type="number" step={0.05} value={s.steeringMultiplier} onChange={(e) => st.updateSurface(s.id, { steeringMultiplier: num(e.target.value, 1) })} className={inp} /></Field>
+            <Field label="steering × (not applied yet)"><input type="number" step={0.05} value={s.steeringMultiplier} onChange={(e) => st.updateSurface(s.id, { steeringMultiplier: num(e.target.value, 1) })} className={inp} /></Field>
             <Field label="braking ×"><input type="number" step={0.05} value={s.brakingMultiplier} onChange={(e) => st.updateSurface(s.id, { brakingMultiplier: num(e.target.value, 1) })} className={inp} /></Field>
             <Field label="path assist"><input type="number" step={0.1} value={s.pathAssistStrength} onChange={(e) => st.updateSurface(s.id, { pathAssistStrength: num(e.target.value) })} className={inp} /></Field>
             <Field label="linked path"><IdSelect value={s.linkedPathId} onChange={(v) => st.updateSurface(s.id, { linkedPathId: v })} options={pathOpts} placeholder="(none)" /></Field>
@@ -254,7 +254,7 @@ const SurfacesSection = () => {
           </div>
         </div>
       ))}
-      <div className="text-[9px] text-slate-500">Surface zones apply their surface's multipliers to the player while standing on them (drag the 🎯 pad in 3D). Speed/accel/braking already affect movement.</div>
+      <div className="text-[9px] text-slate-500">Surface zones apply their surface to the player while standing on them (drag the 🎯 pad in 3D). <b>friction / accel × / max-speed × / braking ×</b> affect the player + followers; <b>steering ×</b> and the sound/particle ids are authoring-only for now. Kick-up VFX colour follows the surface type.</div>
     </div>
   );
 };

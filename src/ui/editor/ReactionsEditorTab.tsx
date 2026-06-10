@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useAnimClipStore } from '../../stores/animClipStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useWorldSelectStore } from '../../stores/worldSelectStore';
 import { useEditorCollisionStore } from '../../stores/editorCollisionStore';
@@ -158,8 +159,13 @@ const AnimationsSection = () => {
   const profiles = useEditorAnimationStore((s) => s.profiles);
   const st = useEditorAnimationStore.getState();
   const animOpts = useAnimationOptions();
+  // Real clip names discovered in the loaded player models (filled by PlayerMesh) — so clipName suggests clips
+  // that actually exist instead of guessed strings.
+  const clipsByPath = useAnimClipStore((s) => s.clipsByPath);
+  const knownClips = useMemo(() => [...new Set(Object.values(clipsByPath).flat())].sort(), [clipsByPath]);
   return (
     <div className="space-y-3">
+      <datalist id="poli-model-clips">{knownClips.map((c) => <option key={c} value={c} />)}</datalist>
       <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
         <span className={lbl}>🎞 Animation Definitions ({definitions.length})</span>
         <button onClick={() => st.addDefinition()} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ animation</button>
@@ -171,7 +177,7 @@ const AnimationsSection = () => {
             <button onClick={() => st.removeDefinition(d.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="clip name (in the GLB)"><input value={d.clipName} onChange={(e) => st.updateDefinition(d.id, { clipName: e.target.value })} className={inp} placeholder="e.g. Wave" /></Field>
+            <Field label="clip name (in the GLB)"><input list="poli-model-clips" value={d.clipName} onChange={(e) => st.updateDefinition(d.id, { clipName: e.target.value })} className={inp} placeholder={knownClips.length ? 'pick / type a clip…' : 'e.g. Wave'} /></Field>
             <Field label="layer"><select value={d.layer} onChange={(e) => st.updateDefinition(d.id, { layer: e.target.value as AnimationLayer })} className={inp}>{ANIMATION_LAYERS.map((l) => <option key={l} value={l}>{l}</option>)}</select></Field>
             <Field label="fade in"><input type="number" step={0.05} value={d.fadeIn} onChange={(e) => st.updateDefinition(d.id, { fadeIn: num(e.target.value) })} className={inp} /></Field>
             <Field label="fade out"><input type="number" step={0.05} value={d.fadeOut} onChange={(e) => st.updateDefinition(d.id, { fadeOut: num(e.target.value) })} className={inp} /></Field>
