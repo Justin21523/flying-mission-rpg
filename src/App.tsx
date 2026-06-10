@@ -58,6 +58,7 @@ import { useRescueOperationStore } from './stores/rescueOperationStore';
 import { useJinResearchStore } from './stores/jinResearchStore';
 import { initEditorUndo, editorUndo, editorRedo } from './stores/editorUndoStore';
 import { duplicateAllSelected } from './game/edit/duplicateSelection';
+import { duplicateGameSelection, deleteGameSelection } from './game/editor/gameLayoutOps';
 
 // Kit — top-level: the 3D <Canvas> with DOM overlays layered over it. F1 toggles Edit Mode; in Edit
 // Mode the camera free-pans, gizmos appear, and the Editor Hub + floating terrain palette are usable.
@@ -145,13 +146,14 @@ export const App = () => {
       if (e.repeat) return;
       if ((e.code === 'KeyZ' && e.shiftKey && (e.ctrlKey || e.metaKey)) || (e.code === 'KeyY' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); if (!useTerrainHistoryStore.getState().redo()) editorRedo(); return; }
       if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!useTerrainHistoryStore.getState().undo()) editorUndo(); return; }
-      if (e.code === 'KeyD' && e.shiftKey) { e.preventDefault(); duplicateAllSelected(); return; }
+      if (e.code === 'KeyD' && e.shiftKey) { e.preventDefault(); if (!duplicateGameSelection()) duplicateAllSelected(); return; }
       if (e.code === 'KeyW') useSceneEditStore.getState().setMode('translate');
       else if (e.code === 'KeyE') useSceneEditStore.getState().setMode('rotate');
       else if (e.code === 'KeyR') useSceneEditStore.getState().setMode('scale');
       else if (e.code === 'Delete' || e.code === 'Backspace') {
-        // A DataBackedPlacement (crosswalk / incident / marker) selection deletes via its own store; otherwise
-        // delete the kit-selected placement (set-piece / NPC / landmark / map point / portal).
+        // Game layout parts (base/exterior) hard-delete from their data store (incl. multi-selection); then a
+        // DataBackedPlacement selection deletes via its own store; otherwise the kit-selected placement.
+        if (deleteGameSelection()) return;
         const ws = useWorldSelectStore.getState();
         if (ws.selectedKey && ws.onDelete) { ws.onDelete(); ws.select(null); }
         else useSceneEditStore.getState().deleteSelected();
