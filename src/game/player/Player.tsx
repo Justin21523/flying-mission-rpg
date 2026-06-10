@@ -10,7 +10,7 @@ import { getMergedPoliCharacter } from '../../stores/editorPoliCharacterStore';
 import { CORE_TEAM } from '../../data/characters/coreTeam';
 import { objKey } from '../edit/sceneEditMerge';
 import type { BaseTransform } from '../edit/sceneEditMerge';
-import { safeSpawnY } from '../world/groundHeight';
+import { safeSpawnY, groundHeightAt } from '../world/groundHeight';
 import { EditableObject } from '../edit/EditableObject';
 import { applyMovement } from './MovementStateMachine';
 import { PlayerMesh } from './PlayerMesh';
@@ -73,6 +73,11 @@ export const Player = () => {
   const spacePrev = useRef(false);
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
   const stun = useRef({ until: 0, kx: 0, kz: 0 }); // yokai-hit knockback window
+  // Spawn settle: after a spawn/area-change, hold the player up + raycast down each frame until the REAL ground
+  // collider (heightfield / flat / placed platform) is found, then snap the feet onto it — so async/unknown
+  // ground never lets the player fall through and sink under the terrain.
+  const settle = useRef({ until: 0, x: 0, z: 0, baseY: 0 });
+  const didInitSettle = useRef(false);
 
   const pKey = playerKey(currentAreaId);
 
@@ -139,8 +144,10 @@ export const Player = () => {
     if (!b || usePlayerStore.getState().spawnRequest) return;
     const ov = useSceneEditStore.getState().overrides[playerKey(currentAreaId)];
     if (ov?.position) {
-      b.setTranslation({ x: ov.position[0], y: ov.position[1], z: ov.position[2] }, true);
+      const sy = safeSpawnY(currentAreaId, ov.position[0], ov.position[2], ov.position[1]);
+      b.setTranslation({ x: ov.position[0], y: sy, z: ov.position[2] }, true);
       b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      settle.current = { until: performance.now() / 1000 + 0.8, x: ov.position[0], z: ov.position[2], baseY: sy };
     }
   }, [currentAreaId]);
 
@@ -154,6 +161,8 @@ export const Player = () => {
     const y = safeSpawnY(usePlayerStore.getState().currentAreaId, spawnRequest.x, spawnRequest.z, spawnRequest.y);
     b.setTranslation({ x: spawnRequest.x, y, z: spawnRequest.z }, true);
     b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    // Settle the player onto the real ground over the next moment (colliders may build async).
+    settle.current = { until: performance.now() / 1000 + 0.8, x: spawnRequest.x, z: spawnRequest.z, baseY: y };
     // Keep the player's heading UNCHANGED on arrival — they face exactly the way they did before travelling.
     usePlayerStore.getState().clearSpawnRequest();
   }, [spawnRequest]);
@@ -197,6 +206,46 @@ export const Player = () => {
       return;
     }
     wasEdit.current = false;
+
+    // First-frame settle for the fresh game start (no spawnRequest / no override fired) — settle onto the
+    // ground at the player's current spot so the initial HQ spawn never starts under the terrain.
+    if (!didInitSettle.current) {
+      didInitSettle.current = true;
+      if (settle.current.until <= 0) {
+        const areaNow = usePlayerStore.getState().currentAreaId;
+        settle.current = { until: performance.now() / 1000 + 0.8, x: p.x, z: p.z, baseY: safeSpawnY(areaNow, p.x, p.z, p.y) };
+      }
+    }
+
+    // ── Spawn settle: raycast down to the real ground and snap the feet onto it; hold up while the collider
+    // is still building. Pre-empts normal movement for the brief window so the player can't fall through. ──
+    if (settle.current.until > performance.now() / 1000) {
+      let sray = rayRef.current;
+      if (!sray) { sray = new rapier.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 }); rayRef.current = sray; }
+      const sx = settle.current.x, sz = settle.current.z;
+      const areaNow = usePlayerStore.getState().currentAreaId;
+      const estimate = groundHeightAt(areaNow, sx, sz) + 0.05;
+      sray.origin.x = sx; sray.origin.y = p.y + 40; sray.origin.z = sz;
+      sray.dir.x = 0; sray.dir.y = -1; sray.dir.z = 0;
+      const hit = world.castRay(sray, 80, true, undefined, undefined, undefined, b);
+      if (hit) {
+        const hy = (p.y + 40) - hit.timeOfImpact;
+        if (hy + 0.05 >= estimate - 0.2) { // reached the real ground (not the low ZoneFloor under terrain)
+          b.setTranslation({ x: sx, y: Math.max(hy + 0.02, estimate), z: sz }, true);
+          b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          settle.current.until = 0; // done — release to normal physics
+        } else { // collider not ready → hold at the heightfield estimate so we don't drop onto the base floor
+          b.setTranslation({ x: sx, y: estimate, z: sz }, true);
+          b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        }
+      } else { // no ground found yet → hold up
+        b.setTranslation({ x: sx, y: Math.max(p.y, estimate), z: sz }, true);
+        b.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      }
+      playerMotion.heading = headingRef.current;
+      playerMotion.moving = false;
+      return; // skip movement/jump/etc. during the settle frame
+    }
 
     // Advance super-boost mode (speed/flight drain + end).
     useBoostStore.getState().tick(0);
