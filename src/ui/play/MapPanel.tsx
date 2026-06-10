@@ -1,7 +1,8 @@
 import { usePlayerStore } from '../../stores/playerStore';
-import { getWorldAreas } from '../../stores/editorWorldStore';
-import { getKitArea } from '../../data/areas';
+import { getWorldAreas, getWorldArea } from '../../stores/editorWorldStore';
 import { resolveAreaTheme } from '../../game/environment/areaBiome';
+import { arrivalNearBoundary } from '../../game/world/boundaryArrival';
+import { safeSpawnY } from '../../game/world/groundHeight';
 import type { EdgeDir, WorldArea } from '../../types/world';
 import { MAP_POINT_ICON } from '../../types/world';
 import { PanelCard, closePanel } from './playShared';
@@ -54,9 +55,18 @@ export const MapPanel = () => {
   const t = useT();
   const areas = getWorldAreas();
   const { cells, cols, rows } = buildGrid(areas);
+  // Map fast-travel arrival: prefer an authored 🏁 spawn / 🌀 teleport point in the target area, else arrive in
+  // the OPEN near the boundary edge that links back (never the centre, where HQ buildings sit). Then lift to
+  // terrain height (safeSpawnY) so sculpted ground never swallows the player.
   const travel = (id: string) => {
-    const sp = getKitArea(id)?.spawnPoint ?? { x: 0, y: 3, z: 0 };
-    usePlayerStore.getState().travelToArea(id, sp);
+    const from = usePlayerStore.getState().currentAreaId;
+    const pts = getWorldArea(id)?.points ?? [];
+    const sp = pts.find((p) => p.type === 'spawn') ?? pts.find((p) => p.type === 'teleport');
+    const base = sp
+      ? { x: sp.position[0], y: (sp.position[1] ?? 0) + 1, z: sp.position[2] }
+      : arrivalNearBoundary(id, from);
+    const y = safeSpawnY(id, base.x, base.z, base.y);
+    usePlayerStore.getState().travelToArea(id, { x: base.x, y, z: base.z });
     closePanel();
   };
   return (
