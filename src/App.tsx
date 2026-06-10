@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
 import { useUiStore } from './stores/uiStore';
+import { useDevStore } from './stores/devStore';
 import { useAudioStore } from './stores/audioStore';
 import { useTerrainHistoryStore } from './stores/terrainHistoryStore';
 import { useSceneEditStore } from './stores/sceneEditStore';
@@ -9,8 +9,8 @@ import { usePbrPatchEditStore } from './stores/pbrPatchEditStore';
 import { useEditorEnvironmentStore } from './stores/editorEnvironmentStore';
 import { usePlayerStore } from './stores/playerStore';
 import { useEditorWorldStore } from './stores/editorWorldStore';
-import { Scene } from './game/core/Scene';
-import { CanvasErrorBoundary } from './ui/CanvasErrorBoundary';
+import { GameCanvas } from './app/GameCanvas';
+import { DevPanel } from './app/DevPanel';
 import { usePoll } from './ui/usePoll';
 import { syncEditorQuests } from './game/editor/editorQuestToQuest';
 import { QuestTrackerController } from './game/quest/questTracking';
@@ -71,6 +71,9 @@ const PlayerPosDebug = () => {
 export const App = () => {
   const editMode = useUiStore((s) => s.editMode);
   const editorHubOpen = useUiStore((s) => s.editorHubOpen);
+  // 'greybox' (default) shows the Batch 0 base scene; 'world' wakes the inherited POLI kit + its HUD.
+  // Edit Mode panels stay available in both modes. Toggle via the Leva dev panel.
+  const world = useDevStore((s) => s.sceneMode) === 'world';
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -147,33 +150,41 @@ export const App = () => {
 
   return (
     <div className="fixed inset-0 bg-gray-900">
-      <InteractionHandler />
-      <QuestTrackerController />
-      <PoliSystemBoot />
-      <IncidentDirector />
-      <TrafficIncidentDirector />
-      <YokaiDirector />
+      {/* Inherited POLI kit runtime + its HUD — only when the world scene is active (dormant in grey-box). */}
+      {world && (
+        <>
+          <InteractionHandler />
+          <QuestTrackerController />
+          <PoliSystemBoot />
+          <IncidentDirector />
+          <TrafficIncidentDirector />
+          <YokaiDirector />
+          <WorldClockHUD />
+          {/* Overworld-only HUD (hidden while editing). */}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <InteractionPrompt />}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <QuestTracker />}
+          {/* Bottom toolbar (map / quests / items / stats / settings / saves / hints + radar) — always available in
+              play mode, even during an activity / rescue / yokai hunt, so the map & tools never vanish. */}
+          {!editMode && <PlayToolbar />}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <ToolBeltHud />}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <LicenseBadge />}
+          {!editMode && <OnboardingHud />}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <IncidentTracker />}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <ResearchStationHud />}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <BoostMeterHud />}
+          {!editMode && !inBattle && !inActivity && !isRescueActive && <ResourceHud />}
+          {!editMode && <CoinsHud />}
+          {!editMode && <ShopPanel />}
+          <DialogueBox />
+          <BattleOverlay />
+          <ActivityHud />
+          <RescueHud />
+        </>
+      )}
+      {/* Always-on shell: main dock, Leva dev panel, and the Edit Mode authoring panels (Edit Mode must
+          work in both grey-box and world scenes). */}
       <Dock />
-      <WorldClockHUD />
-      {/* Overworld-only HUD (hidden while editing). */}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <InteractionPrompt />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <QuestTracker />}
-      {/* Bottom toolbar (map / quests / items / stats / settings / saves / hints + radar) — always available in
-          play mode, even during an activity / rescue / yokai hunt, so the map & tools never vanish. */}
-      {!editMode && <PlayToolbar />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <ToolBeltHud />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <LicenseBadge />}
-      {!editMode && <OnboardingHud />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <IncidentTracker />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <ResearchStationHud />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <BoostMeterHud />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <ResourceHud />}
-      {!editMode && <CoinsHud />}
-      {!editMode && <ShopPanel />}
-      <DialogueBox />
-      <BattleOverlay />
-      <ActivityHud />
-      <RescueHud />
+      <DevPanel />
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}
@@ -182,24 +193,9 @@ export const App = () => {
       {editMode && editorHubOpen && <EditorHubPanel />}
       <ScreenFade />
       <PlayerPosDebug />
-      {/* DPR capped lower (high-DPI screens were fill-bound); a PerformanceMonitor in Scene adapts it. */}
-      <CanvasErrorBoundary>
-        <Canvas
-          shadows
-          dpr={[1, 1.5]}
-          camera={{ position: [0, 5, 10], fov: 50, near: 0.1, far: 1500 }}
-          // Clicking empty space deselects both selection systems so a gizmo never gets "stuck" and the next
-          // object click always lands (Edit Mode only).
-          onPointerMissed={() => {
-            if (!useUiStore.getState().editMode) return;
-            useSceneEditStore.getState().clearSelection();
-            useWorldSelectStore.getState().select(null);
-            usePbrPatchEditStore.getState().select(null);
-          }}
-        >
-          <Scene />
-        </Canvas>
-      </CanvasErrorBoundary>
+      {/* Single R3F canvas (error boundary + Suspense loading inside). DPR capped lower (high-DPI screens
+          were fill-bound); a PerformanceMonitor in Scene adapts it. */}
+      <GameCanvas />
     </div>
   );
 };

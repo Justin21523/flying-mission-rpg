@@ -2,153 +2,182 @@
 
 This file provides guidance to LLMProvider Tooling (llm_provider.ai/code) when working in this repository.
 
+## Two sources of truth
+
+1. **`docs/LLMProvider Tooling 專案總控指令.pdf`** — the **highest source of truth for *what* to build** (gameplay):
+   the two core pillars, the full launch→flight→transform→land→rescue→return loop, the fixed stack, the
+   strongly-typed ~30-state `GameStateMachine`, the suggested project structure, and the batch 0–13 plan with
+   per-batch acceptance criteria. Read it before any gameplay work.
+2. **This `LLM_PROVIDER.md` + the existing code** — the **highest source of truth for *how* to build**: the Edit-Mode
+   editable-store paradigm, the Editor Hub, i18n, save, the dialogue condition/effect engine, asset
+   auto-discovery, and the engineering discipline below.
+
+`docs/prompt.md`, `docs/POLI_RPG_KICKOFF.md`, and other `docs/**` describe the *previous* project (a POLI RPG in
+Unity/C#, then an R3F kit). **Ignore their tech stack and gameplay** — only the reusable how-to infrastructure
+survives. The `救援小英雄研究遊戲*.pdf` are research references.
+
 ## Commands
 
 ```bash
 npm run dev          # dev server at http://localhost:3000 (auto-opens)
 npm run check        # tsc -b + eslint (run before every commit)
-npm run build        # tsc -b && vite build (must stay green per phase)
+npm run build        # tsc -b && vite build (must stay green per batch)
 npm run typecheck    # tsc -b only
 npm run lint         # eslint only
+npm run test         # vitest run (unit/integration)
+npm run test:watch   # vitest watch
+npm run e2e          # playwright (boots dev server, drives a browser)
+npm run format       # prettier --write src
 npm run preview      # preview the production build locally
 ```
 
-There are no tests yet (deferred to Phase 9). Each phase must end with `npm run check` and `npm run build` both green.
-
-## Stack (fixed — do not change)
-
-TypeScript · React 19 · @react-three/fiber 9 · drei · @react-three/rapier · zustand · Tailwind v4 · Vite.  
-Path alias: `@/` → `src/`. `main.tsx` mounts without `StrictMode` — double-mount disposes the WebGL context under R3F.
+Every batch must end with `npm run check` **and** `npm run build` both green, the game playable, and F1 Edit
+Mode still working. `npm run e2e` needs a browser: `npx playwright install chromium` once.
 
 ## Project identity
 
-This is the **R3F RPG Builder kit** — a finished, data-driven world-builder with an in-app Edit Mode. The goal is to build the **Robocar POLI rescue RPG on top of it, additively**. The kit core is the edit base; it must not be rewritten to fit POLI.
+This is **aero-rescue-rpg** — an original, personal/non-commercial/research-only single-player 3D web game about
+**anthropomorphic flying robots: world delivery, character dispatch, flight, transformation, landing, and
+rescue**. Inspired by that *genre*, but **no official models/textures/audio/video/logos/character art** —
+only original codenames, primitives, self-made placeholders, original UI, and swappable GLTF interfaces.
 
-`docs/prompt.md` describes the game in Unity 6/C# — **ignore that tech stack entirely**. Only the game-design intent survives. `docs/POLI_RPG_KICKOFF.md` is the source of truth for how to build.
+The repo was cloned from a finished **POLI RPG / R3F world-builder kit**. We **keep that kit's infrastructure**
+(the Edit-Mode paradigm, Editor Hub, i18n, save, dialogue engine, asset auto-discovery, build config) and
+**rebuild the gameplay spine on top, per the PDF, batch by batch**. The inherited POLI gameplay is **kept on disk
+but dormant** (see *Scene modes* below) and is replaced subsystem-by-subsystem as the flight/transform/mission
+FSM lands — never deleted blindly before its reusable patterns are absorbed.
+
+## The two core pillars (never compromise)
+
+1. **Flight feel.**
+2. **Transformation performance** (real-time 3D vehicle⇄robot, replayable & interactive — not a video swap).
+
+NPC missions only supply a *reason*, *objective*, and *basic interaction*. **If any system degrades flight or
+transformation quality, simplify the NPC/mission side first — never sacrifice flight or transformation.**
 
 ## Architecture
 
 ```
-App.tsx
- ├─ DOM overlays (React/Tailwind) ─ ui/**, InteractionHandler, QuestTrackerController
- └─ <Canvas> (R3F)
-     └─ Scene.tsx
-         ├─ ambience: DynamicAmbience (play) | EditModeAmbience (edit)
-         ├─ <Physics>
-         │   ├─ AreaRenderer (current area: ground + set-pieces + gates + editor layers)
-         │   └─ Player (Rapier capsule, camera-relative WASD)
-         ├─ particles: WeatherParticles, BiomeParticles (play only)
-         ├─ FollowCamera
-         └─ SceneEditorGizmo (edit only)
+main.tsx (no StrictMode — double-mount disposes the WebGL context under R3F)
+ └─ App.tsx ─ DOM overlays (React/Tailwind) + the single <Canvas>
+     ├─ Dock · DevPanel (Leva) · Edit-Mode panels (always available)
+     ├─ {world && …}  inherited POLI runtime + HUD (dormant in grey-box)
+     └─ app/GameCanvas.tsx  (CanvasErrorBoundary → <Canvas> → Suspense<Loading> → Scene)
+         └─ game/core/Scene.tsx  branches on devStore.sceneMode:
+             ├─ 'greybox' → app/GreyBoxScene.tsx + OrbitControls   (Batch 0 base; default)
+             └─ 'world'   → Dynamic/EditModeAmbience + Physics(AreaRenderer + Player) + FollowCamera + VFX
 ```
 
-Both layers share state exclusively through **zustand stores** — never prop-drill between 3D and DOM.
+**Scene modes** (`src/stores/devStore.ts`, toggled in the Leva dev panel):
+- `greybox` (default) — the engineering base scene: ground + grid + test cubes + orbit camera. The flight FSM,
+  base hangar, world flight, and transformation stage get built here in later batches.
+- `world` — wakes the inherited POLI kit world + its HUD/directors. Reference only; being phased out.
 
-**F1** flips `uiStore.editMode`: swaps lighting to flat-bright, suspends the player, enables transform gizmos and the Editor Hub.
+Both DOM and 3D layers share state **exclusively through zustand stores** — never prop-drill between 3D and DOM.
 
-## Key kit seams (where POLI plugs in)
+**F1** flips `uiStore.editMode`: swaps lighting to flat-bright, suspends the player, enables transform gizmos and
+the Editor Hub. Edit Mode works in **both** scene modes.
 
-1. **Sibling layer inside `AreaRenderer`** — add new `<YourLayer areaId={areaId} />` between the existing children; the world/terrain/edit layers have no dependency on it.
-2. **`setQuestRewardHandler((reward, quest) => …)`** in `stores/questStore.ts` — the single reward seam. Replaces the default item/exp/flag grant.
-3. **Player mesh slot** — swap the capsule mesh in `game/player/Player.tsx`; extend via `TransformationController` / `MovementStateMachine` for the vehicle⇄robot mode.
+## Game state machine (Batch 1)
 
-Never modify kit core files for any other reason. Only touch them at the three seams above.
+Build a **strongly-typed** machine (hand-rolled typed FSM — no scattered booleans). States (≥):
+`BOOT · MISSION_CONTROL · MISSION_BRIEFING · CHARACTER_SELECTION · HANGAR · PLATFORM_ALIGNMENT ·
+LAUNCH_PREPARATION · LAUNCH_TUNNEL · BASE_FLY_AROUND · CLOUD_ASCENT · WORLD_FLIGHT · DESTINATION_APPROACH ·
+TRANSFORMATION · DESCENT · LANDING · NPC_GREETING · MISSION_GAMEPLAY · SUPPORT_SELECTION · MISSION_COMPLETE ·
+RETURN_TRANSFORMATION · RETURN_FLIGHT · BASE_APPROACH · HANGAR_RETURN · MISSION_RESULTS · PAUSED · ERROR`.
+Every transition: validate allowed previous state, define next state, preserve mission data + current character
++ world position, support dev-mode direct jumps, and **never reset on React re-render**. Big flows live in
+`GameStateMachine` / `GameDirector` / `EventBus` — **not** in stores.
+
+## Edit Mode discipline (non-negotiable — the inherited paradigm)
+
+Every author-created data object (character, world location, flight route, route event, mission, transformation
+timeline, support AI, NPC, game settings…) **must be viewable / editable / duplicable in Edit Mode (F1) with the
+3D updating live**. Follow the existing pattern for each new content domain:
+
+1. `src/data/**` — seed data (typed by `src/types/**`).
+2. `src/stores/editor<X>Store.ts` — zustand + `localStorage` + `importState` + `reset` + `mergeMissingFromSeed`.
+3. `src/ui/editor/<X>EditorTab.tsx` — the authoring tab.
+4. Register it in `src/ui/EditorHubPanel.tsx` **and** `src/game/editor/editorContentRegistry.ts`
+   (for undo + project JSON export/import).
+5. Provide a **non-hook `getEditor*()`** accessor for the 3D layer to read.
+
+**A batch with a new author-created data object is not done until that object has a synced Edit Mode tab.**
 
 ## Data-driven pattern
 
-| Unity concept | Kit equivalent |
+| Concept | Kit equivalent |
 |---|---|
 | ScriptableObject | Plain TS data modules in `src/data/**` + interfaces in `src/types/**` |
-| MonoBehaviour / singletons | zustand stores in `src/stores/` — one system each, no God-class |
-| Scenes / Addressables | `data/areas.ts` (`KitArea`) + `AreaRenderer`; area = data |
-| NavMesh | Waypoint/path data on road nodes + `useFrame` lerp along a polyline |
+| Singletons / managers | zustand stores in `src/stores/` — one system each, no God-class |
+| Scenes / Addressables | data modules + renderers; a place = data |
+| NavMesh / routes | Waypoint/path data + `useFrame` lerp along a polyline |
 
-### Asset auto-discovery
-
-Drop files into these folders — **no manual registry edits needed**:
+### Asset auto-discovery (drop files in — no registry edits)
 - `src/assets/models/` — `.glb`/`.gltf` (subfolders = categories) → Edit Mode → Assets palette
-- `src/assets/textures/` — Poly Haven PBR maps (`name_diff/_nor_gl/_arm`) → Environment → ground/splat pickers
-- `src/assets/materials/` — whole-material `.glb` + its `.bin` → Environment → GLTF material picker
+- `src/assets/textures/` — Poly Haven PBR maps (`name_diff/_nor_gl/_arm`) → Environment pickers
+- `src/assets/materials/` — whole-material `.glb` + `.bin` → Environment → GLTF material picker
 
-HMR picks new files without a restart.
+HMR picks up new files without a restart. Large binary asset packs are git-ignored (folder + README stay tracked).
 
-## Stores overview
+## Stack (fixed — do not change)
 
-Each store owns one system. Key ones for POLI work:
+TypeScript (strict) · React 19 · @react-three/fiber 9 · drei · @react-three/rapier · zustand · Tailwind v4 ·
+Vite · **Phaser 4** (embedded 2D mini-games via a React⇄Phaser⇄zustand bridge) · **Leva** (dev panel) ·
+**zod** (validate all AI/imported content) · **Howler** (audio interface) · **postprocessing** +
+**@react-three/postprocessing** (Bloom etc.). Helpers: nanoid, clsx, tailwind-merge, lucide-react. Tests:
+Vitest + Testing Library + Playwright. Path alias `@/` → `src/`.
 
-| Store | Owns |
-|---|---|
-| `uiStore` | `editMode`, hub open, active panel |
-| `playerStore` | Position, `currentAreaId`, `travelToArea`, spawn requests |
-| `worldStore` | Discovered areas |
-| `worldClockStore` | Real-time day/night, time-of-day, weather |
-| `questStore` | Quest state + **`setQuestRewardHandler` seam** |
-| `dialogueStore` | Active dialogue traversal |
-| `inventoryStore` / `flagStore` / `doorStore` / `progressionStore` | Items, world flags, doors, level/exp |
-| `editorNpcStore` | Authored NPCs + dialogue trees (localStorage) |
-| `editorQuestStore` | Authored quests (localStorage, merged via `editorQuestToQuest`) |
-| `editorTriggerStore` | Authored triggers (localStorage) |
-| `editorActivityStore` | Authored mini-games / activities (localStorage) |
-| `activityStore` | Runtime activity session |
-| `editorEnvironmentStore` | Per-area sky/fog/ground/terrain/patches override (localStorage) |
-| `sceneEditStore` | Edit-mode placement layers + gizmo selection + undo |
+## Content / IP / tone rules (non-negotiable)
 
-New POLI systems each get their own store file (`src/stores/<system>Store.ts`).
-
-## Dialogue + condition/effect engine
-
-`types/dialogue.ts` defines `DialogueCondition` and `DialogueEffect` as discriminated unions. To add a new condition or effect kind: extend the union → add a case to `game/evaluateCondition.ts` / `game/executeEffect.ts` → add a case to the `DialogueBox` renderer. The engine is intentionally open-closed.
-
-## POLI-specific rules (non-negotiable)
-
-**Content:**
-- Personal/non-commercial/research only. No copyrighted audio/video/scripts/models.
-- Placeholders, primitives, legally-free assets, or user-provided assets only.
-- Child-friendly: warm, bright, tension-not-horror. **No death, blood, or dismemberment.**
-- Rescue failure is always **recoverable** (retry / more time / lower score / extra steps). Never permadeath.
-- **No combat** in POLI. Re-theme "Encounters" as non-combat incident stages.
-
-**Source confidence tagging:** Every authored character, location, incident, and tool must carry one of:
-`OfficialConfirmed · EpisodeObserved · CrossSourceConfirmed · SecondarySource · FanCompiled · Unverified · GameAdaptation`
-
-Never present `GameAdaptation` content as official canon. On conflicting sources, keep both and record provenance.
-
-**Language:** All code, filenames, comments, commits, and technical docs in **English**. User-facing UI text may be in Traditional Chinese.
+- Personal / non-commercial / research only. **No copyrighted models/textures/audio/video/logos/character art.**
+- Placeholders, primitives, legally-free, or user-provided assets only. Original codenames, not IP names.
+- Child-friendly: warm, bright, **tension not horror. No death, blood, or combat.**
+- Rescue/mission failure is always **recoverable** (retry / more time / lower score / extra steps). No permadeath.
+- **Source-confidence tag** on every authored character/location/incident/tool:
+  `OfficialConfirmed · EpisodeObserved · CrossSourceConfirmed · SecondarySource · FanCompiled · Unverified ·
+  GameAdaptation`. Never present `GameAdaptation` as official canon. On conflict, keep both + record provenance.
+- **Language:** all code, filenames, comments, commits, and technical docs in **English**. Player-facing UI text
+  may be Traditional Chinese — always through the i18n layer, never hard-coded.
 
 ## Engineering rules
 
-- SOLID; small focused modules; composition over inheritance; no God-class.
-- No per-frame allocations in `useFrame` (no object literals, array spreads, or closures created inside the callback).
-- No magic-string IDs — define constants or enums in the relevant `types/` file.
-- No UI↔gameplay tight coupling — communicate only through zustand stores.
-- No silent `catch` blocks.
-- Each phase ends: `npm run check` green, `npm run build` green, fully playable, F1 Edit Mode still works.
-- One Conventional Commit per phase (`feat(rescue): …`, `feat(npc): …`, etc.).
-- Unfinished work in a phase → `docs/implementation/DEFERRED_WORK.md` with reason + dependencies. Never a `// TODO` pretending to be done.
-- Before editing any file: read it first, check `git status`, never overwrite uncommitted work, never delete existing assets/PDFs.
+- TS strict; **no `any`**; SOLID; small focused modules; composition over inheritance; no God-class.
+- **React UI and R3F 3D are separated**; they communicate only through zustand stores.
+- Stores hold **data + small actions only**; large flows go to `GameStateMachine` / Service / Controller.
+- No per-frame allocations in `useFrame` (no object/array literals or closures created inside the callback).
+- **No magic-string IDs** — define stable string constants/enums in the relevant `types/` file.
+- All subscriptions / listeners / animation frames / timers must be cleaned up. All scene switches have
+  loading + error handling. No silent `catch`.
+- **Do not** build multiplayer, shop, gacha, login, or payment systems. **Do not** wire an LLM into core game
+  judgement — LLMs may only generate constrained content, validated by zod, with a local-template fallback.
+- Before editing any file: read it, check `git status`, never overwrite uncommitted work, never delete existing
+  assets/PDFs.
 
-## POLI new systems (additive only)
+## Working protocol (strict batch-by-batch)
 
-Add each as new files; wire through the seams. Never edit kit core to accommodate them:
+Do **only** the batch the user names. Before changing anything: read the project, read the PDF for that batch,
+check `package.json` + file structure, and state what the batch will change. Each batch ends with: `npm run
+check` + `npm run build` green, fully playable, F1 Edit Mode working, and **one Conventional Commit**
+(`feat(flight): …`, `feat(transform): …`, etc.) ending with
+`Co-Authored-By: LLMProvider Opus 4.8 <noreply@llm_vendor.com>`. Then **only announce the next batch — do not implement
+ahead.** Unfinished work → `docs/implementation/DEFERRED_WORK.md` with reason + dependencies; never a fake
+`// TODO`.
 
-- `src/types/character.ts` + `src/data/characters/**` — character database
-- `src/stores/relationshipStore.ts` — player↔NPC trust + NPC↔NPC graph
-- `src/stores/npcScheduleStore.ts` + `src/data/schedules/**` — NPC routines driven by `worldClockStore`
-- `src/types/incident.ts` + `src/stores/incidentStore.ts` + `src/game/incident/IncidentDirector.ts` — incident spawning
-- `src/stores/rescueOperationStore.ts` — rescue pipeline (*Detection → Dispatch → … → Safety Debrief*), each step a mini-game
-- `src/types/tool.ts` + `src/stores/toolStore.ts` — rescue tools + loadout
-- `TransformationController` / `MovementStateMachine` extending `game/player/Player.tsx` — vehicle⇄robot
-- `src/types/safetyLesson.ts` — post-rescue one/two-line reflection (not a quiz pop-up)
+## Batch roadmap (PDF)
 
-## Phased roadmap
-
-Phase 0 (current): Audit + research docs only — build nothing.  
-Phase 1: Brooms Town vertical slice (areas as `KitArea`s + Edit Mode placements).  
-Phase 2: Vehicle⇄robot transformation.  
-Phase 3: NPC schedules + dialogue.  
-Phase 4: Quests (3 resident side-quests).  
-Phase 5: Incident + rescue pipeline (3 incidents, recoverable failure).  
-Phase 6: Traffic (road nodes, NPC vehicle flow, signals).  
-Phase 7: Tools / skills / trust / Jin research.  
-Phase 8: Weather + random incident director.  
-Phase 9: Polish — save/load, localization scaffold, audio placeholders, tests, build docs.
+- **0 — Engineering base (done):** Vite/TS/React 3D base, fixed-stack deps, grey-box `GameCanvas`, Leva dev
+  panel, error boundary, Loading, tests + build verified, README + this file. POLI kept dormant under `world`.
+- **1:** Types, data models, zustand stores, the typed `GameStateMachine` (+ Debug UI) — no real 3D base yet.
+- **2:** Mission Control console + character-card selection (`MISSION_CONTROL → BRIEFING → CHARACTER_SELECTION → HANGAR`).
+- **3:** 3D base hangar, ground movement (Rapier), launch platform alignment.
+- **4:** Launch tunnel, base take-off, the first real **flight controller** + flight camera.
+- **5:** World high-altitude segmented route + flight-event direction (≥10 min flight, chunk pooling).
+- **6:** Transformation stage + real-time 3D transform flow (full / interactive / fast modes).
+- **7:** Descent, landing, NPC + first basic missions (+ first Phaser mini-game via the bridge).
+- **8:** Support-character calling + multi-character AI (Active/Standby/Remote).
+- **9:** Return flight, reverse transformation, mission results — full dispatch loop closed.
+- **10:** Rule-based mission generator (templates + validation + fixed seed).
+- **11:** LLM mission text/dialogue interface (provider abstraction, zod, local fallback — never controls rules).
+- **12:** Visual/audio/perf/playability polish (LOD, pooling, settings UI).
+- **13:** Save/load (versioned schema + migration), tests, AI auto-playtester, final README.

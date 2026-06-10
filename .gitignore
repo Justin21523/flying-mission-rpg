@@ -1,10 +1,33 @@
+# Dependencies
 node_modules
+
+# Build output
 dist
 *.local
+
+# OS
 .DS_Store
-docs/
-# User-dropped binary assets are large (multi-GB texture/model packs) and are NOT version-controlled.
-# The folders + their README / .gitkeep stay tracked so the drop-in contract is documented.
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test / tooling artifacts
+coverage
+/playwright-report
+/test-results
+node_modules/.tmp
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Kept tracked on purpose: docs/ and public/models/ (design source-of-truth + game models).
+
+# Large user-dropped binary asset packs are NOT version-controlled — the folders + their README /
+# .gitkeep stay tracked so the drop-in contract is documented (see LLM_PROVIDER.md "Asset auto-discovery").
+docs
 src/assets/**/*.glb
 src/assets/**/*.gltf
 src/assets/**/*.bin
@@ -16,9 +39,9 @@ src/assets/**/*.avif
 src/assets/**/*.ktx2
 src/assets/**/*.basis
 src/assets/**/*.hdr
-public/models/**
 public/textures/**
 public/materials/**
+public/models/**
 public/hdri/**
 !**/README.md
 !**/.gitkeep

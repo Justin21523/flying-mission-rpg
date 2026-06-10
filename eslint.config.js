@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -16,5 +16,10 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: { globals: globals.browser },
+  },
+  // Node-context files (tooling configs + Playwright e2e) — give them Node globals.
+  {
+    files: ['*.config.{ts,js}', 'e2e/**/*.{ts,tsx}'],
+    languageOptions: { globals: globals.node },
   },
 ])

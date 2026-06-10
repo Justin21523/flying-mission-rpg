@@ -1,7 +1,9 @@
 import { Physics } from '@react-three/rapier';
-import { PerformanceMonitor } from '@react-three/drei';
+import { PerformanceMonitor, OrbitControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { useUiStore } from '../../stores/uiStore';
+import { useDevStore } from '../../stores/devStore';
+import { GreyBoxScene } from '../../app/GreyBoxScene';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -34,12 +36,27 @@ const AdaptiveDpr = () => {
 
 export const Scene = () => {
   const editMode = useUiStore((s) => s.editMode);
+  const sceneMode = useDevStore((s) => s.sceneMode);
   const areaId = usePlayerStore((s) => s.currentAreaId);
   // Subscribe so the world reacts to environment edits.
   useEditorEnvironmentStore((s) => s.overrides);
   useEditorEnvironmentStore((s) => s.defaultMode);
   // Indoor areas have no sky/weather — subscribe so toggling indoor in the 🗺 World tab applies live.
   const indoor = useEditorWorldStore((s) => s.areas.find((a) => a.id === areaId)?.indoor === true);
+
+  // Batch 0 grey-box base scene — a self-contained ground + cubes + orbit camera. No physics/player/
+  // world coupling; Edit Mode lighting + gizmos still attach so F1 keeps working. Default scene mode.
+  if (sceneMode === 'greybox') {
+    return (
+      <>
+        <AdaptiveDpr />
+        {editMode ? <EditModeAmbience /> : <DynamicAmbience />}
+        <GreyBoxScene />
+        <OrbitControls makeDefault target={[0, 0.75, 0]} />
+        {editMode && <SceneEditorGizmo />}
+      </>
+    );
+  }
 
   return (
     <>
