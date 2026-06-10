@@ -21,6 +21,7 @@ import { useEditorBoostPadStore } from '../../stores/editorBoostPadStore';
 import { useEditorCollisionStore } from '../../stores/editorCollisionStore';
 import { useEditorAnimationStore } from '../../stores/editorAnimationStore';
 import { useEditorSurfaceStore } from '../../stores/editorSurfaceStore';
+import { useEditorPathFollowerStore } from '../../stores/editorPathFollowerStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -43,7 +44,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorLandmarkStore, useEditorIncidentStore, useEditorRandomEventStore, useEditorTrafficStore,
   useEditorToolStore, useEditorWorldStore, useEditorLayoutStore, useEditorCollectibleStore, useEditorPortalStore,
   useEditorBoostStore, useJinResearchStore, useEditorPathStore, useEditorBoostPadStore,
-  useEditorCollisionStore, useEditorAnimationStore, useEditorSurfaceStore,
+  useEditorCollisionStore, useEditorAnimationStore, useEditorSurfaceStore, useEditorPathFollowerStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -226,6 +227,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorSurfaceStore.getState().importState(data as never); },
     clear: () => useEditorSurfaceStore.getState().reset(),
     summary: () => `${useEditorSurfaceStore.getState().surfaces.length} surfaces`,
+  },
+  {
+    id: 'editorPathFollower',
+    label: 'Path Followers',
+    serialize: () => ({ followers: useEditorPathFollowerStore.getState().followers }),
+    deserialize: (data) => { if (isObj(data)) useEditorPathFollowerStore.getState().importState(data as never); },
+    clear: () => useEditorPathFollowerStore.getState().reset(),
+    summary: () => `${useEditorPathFollowerStore.getState().followers.length} followers`,
   },
   {
     id: 'editorCollectible',

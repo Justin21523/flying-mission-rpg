@@ -71,7 +71,7 @@ const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
   portal: ['editorPortal'],
   license: ['editorLicense'],
   research: ['editorResearch'],
-  tracks: ['editorPath', 'editorBoostPad', 'editorSurface'],
+  tracks: ['editorPath', 'editorBoostPad', 'editorSurface', 'editorPathFollower'],
   reactions: ['editorCollision', 'editorAnimation'],
 };
 

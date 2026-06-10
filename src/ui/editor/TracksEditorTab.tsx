@@ -4,6 +4,8 @@ import { useWorldSelectStore } from '../../stores/worldSelectStore';
 import { useEditorPathStore } from '../../stores/editorPathStore';
 import { useEditorBoostPadStore } from '../../stores/editorBoostPadStore';
 import { useEditorSurfaceStore } from '../../stores/editorSurfaceStore';
+import { useEditorPathFollowerStore } from '../../stores/editorPathFollowerStore';
+import { PATH_FOLLOWER_KINDS, type PathFollowerKind } from '../../types/pathFollower';
 import { PATH_CONTROL_MODES, type PathControlMode, type PathCurveType, type PathDirectionMode } from '../../types/path';
 import { BOOST_MODES, BOOST_EXIT_BEHAVIORS, type BoostMode, type BoostExitBehavior } from '../../types/boostPad';
 import { SURFACE_TYPES, type SurfaceType } from '../../types/surface';
@@ -13,7 +15,7 @@ import { IdSelect } from './idPickers';
 // 🛣 Tracks tab — authoring for the movement systems (Paths · Boost Pads · Surfaces). Pure data editing; the
 // in-scene gizmos (PathDebugLayer / BoostPadLayer) read the same stores, so edits and drags stay in sync. 🎯
 // focuses the matching 3D handle (worldSelectStore key).
-type Section = 'paths' | 'pads' | 'surfaces';
+type Section = 'paths' | 'pads' | 'surfaces' | 'followers';
 const focus = (key: string) => useWorldSelectStore.getState().select(key);
 const CURVE_TYPES: PathCurveType[] = ['catmullRom', 'bezier', 'linear'];
 const DIRECTIONS: PathDirectionMode[] = ['oneWay', 'twoWay'];
@@ -24,13 +26,13 @@ export const TracksEditorTab = () => {
   return (
     <div className="space-y-3 text-xs">
       <div className="flex gap-1">
-        {(['paths', 'pads', 'surfaces'] as Section[]).map((s) => (
+        {(['paths', 'pads', 'surfaces', 'followers'] as Section[]).map((s) => (
           <button key={s} onClick={() => setSection(s)} className={`rounded px-2.5 py-1 text-[11px] font-semibold ${section === s ? 'bg-violet-600/30 text-violet-100' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'}`}>
-            {s === 'paths' ? '🛤 Paths' : s === 'pads' ? '🚀 Boost Pads' : '🧱 Surfaces'}
+            {s === 'paths' ? '🛤 Paths' : s === 'pads' ? '🚀 Boost Pads' : s === 'surfaces' ? '🧱 Surfaces' : '🚗 Followers'}
           </button>
         ))}
       </div>
-      {section === 'paths' ? <PathsSection /> : section === 'pads' ? <BoostPadsSection /> : <SurfacesSection />}
+      {section === 'paths' ? <PathsSection /> : section === 'pads' ? <BoostPadsSection /> : section === 'surfaces' ? <SurfacesSection /> : <FollowersSection />}
     </div>
   );
 };
@@ -164,6 +166,47 @@ const SurfacesSection = () => {
         </div>
       ))}
       <div className="text-[9px] text-slate-500">Surface multipliers are authoring data; runtime application to movement is a later phase.</div>
+    </div>
+  );
+};
+
+// ── Followers (NPC / vehicle path AI) ────────────────────────────────────────
+const FollowersSection = () => {
+  const areaId = usePlayerStore((s) => s.currentAreaId);
+  const followers = useEditorPathFollowerStore((s) => s.followers);
+  const st = useEditorPathFollowerStore.getState();
+  const pathOpts = usePathOptions();
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
+        <span className={lbl}>🚗 Path Followers ({followers.length})</span>
+        <button onClick={() => st.addFollower(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ follower</button>
+      </div>
+      {followers.map((f) => (
+        <div key={f.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+          <div className="flex items-center gap-1.5">
+            <input type="color" value={f.color ?? '#38bdf8'} onChange={(e) => st.updateFollower(f.id, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" />
+            <input value={f.name} onChange={(e) => st.updateFollower(f.id, { name: e.target.value })} className={inp + ' flex-1'} placeholder="follower name" />
+            <button onClick={() => st.removeFollower(f.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="kind"><select value={f.kind} onChange={(e) => st.updateFollower(f.id, { kind: e.target.value as PathFollowerKind })} className={inp}>{PATH_FOLLOWER_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select></Field>
+            <Field label="path"><IdSelect value={f.pathId} onChange={(v) => st.updateFollower(f.id, { pathId: v ?? '' })} options={pathOpts} placeholder="(path)" /></Field>
+            <Field label="count (convoy)"><input type="number" step={1} min={1} value={f.count} onChange={(e) => st.updateFollower(f.id, { count: Math.max(1, Math.round(num(e.target.value, 1))) })} className={inp} /></Field>
+            <Field label="speed"><input type="number" step={0.5} value={f.speed} onChange={(e) => st.updateFollower(f.id, { speed: num(e.target.value) })} className={inp} /></Field>
+            <Field label="look-ahead (m)"><input type="number" step={0.5} value={f.lookAhead} onChange={(e) => st.updateFollower(f.id, { lookAhead: num(e.target.value) })} className={inp} /></Field>
+            <Field label="min gap (m)"><input type="number" step={0.5} value={f.minGap} onChange={(e) => st.updateFollower(f.id, { minGap: num(e.target.value) })} className={inp} /></Field>
+            <Field label="model scale"><input type="number" step={0.1} value={f.scale ?? 2} onChange={(e) => st.updateFollower(f.id, { scale: num(e.target.value, 1) })} className={inp} /></Field>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Check label="enabled" checked={f.enabled} onChange={(v) => st.updateFollower(f.id, { enabled: v })} />
+            <Check label="yield to incidents" checked={f.yieldToIncidents} onChange={(v) => st.updateFollower(f.id, { yieldToIncidents: v })} />
+            <Check label="can reroute" checked={f.canReroute} onChange={(v) => st.updateFollower(f.id, { canReroute: v })} />
+            <Check label="loop" checked={f.loop} onChange={(v) => st.updateFollower(f.id, { loop: v })} />
+          </div>
+        </div>
+      ))}
+      <div className="text-[9px] text-slate-500">Followers ride the curve paths (🛤 Paths) with obstacle / spacing / reroute / incident AI. Branch reroute uses a path's branch rules.</div>
     </div>
   );
 };
