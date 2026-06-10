@@ -157,7 +157,9 @@ export const App = () => {
       {/* Overworld-only HUD (hidden while editing). */}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <InteractionPrompt />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <QuestTracker />}
-      {!editMode && !inBattle && !inActivity && !isRescueActive && <PlayToolbar />}
+      {/* Bottom toolbar (map / quests / items / stats / settings / saves / hints + radar) — always available in
+          play mode, even during an activity / rescue / yokai hunt, so the map & tools never vanish. */}
+      {!editMode && <PlayToolbar />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <ToolBeltHud />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <LicenseBadge />}
       {!editMode && !inBattle && !inActivity && !isRescueActive && <IncidentTracker />}
