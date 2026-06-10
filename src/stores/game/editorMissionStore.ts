@@ -4,7 +4,7 @@ import type { MissionDefinition } from '../../types/game/mission';
 import { SEED_MISSIONS } from '../../data/game/missions';
 
 export const useEditorMissionStore = createEditorCollection<MissionDefinition>({
-  storageKey: 'aero-rescue-editor-mission-v1',
+  storageKey: 'aero-rescue-editor-mission-v2',
   seed: SEED_MISSIONS,
   makeId: () => `mission_${nanoid(6)}`,
 });

@@ -45,7 +45,9 @@ The repo was cloned from a finished **POLI RPG / R3F world-builder kit**. We **k
 (the Edit-Mode paradigm, Editor Hub, i18n, save, dialogue engine, asset auto-discovery, build config) and
 **rebuild the gameplay spine on top, per the PDF, batch by batch**. The inherited POLI gameplay is **kept on disk
 but dormant** (see *Scene modes* below) and is replaced subsystem-by-subsystem as the flight/transform/mission
-FSM lands — never deleted blindly before its reusable patterns are absorbed.
+FSM lands. **Reuse the POLI kit aggressively** (utilities/stores/editor seams — e.g. `ui/editor/editorShared.tsx`,
+the Hub + `editorContentRegistry` seams, dialogue/i18n/save) instead of writing new code; then **gradually
+delete the POLI blocks that become unused** — only after absorbing their reusable patterns, never blindly.
 
 ## The two core pillars (never compromise)
 
@@ -137,8 +139,8 @@ Vitest + Testing Library + Playwright. Path alias `@/` → `src/`.
 - **Source-confidence tag** on every authored character/location/incident/tool:
   `OfficialConfirmed · EpisodeObserved · CrossSourceConfirmed · SecondarySource · FanCompiled · Unverified ·
   GameAdaptation`. Never present `GameAdaptation` as official canon. On conflict, keep both + record provenance.
-- **Language:** all code, filenames, comments, commits, and technical docs in **English**. Player-facing UI text
-  may be Traditional Chinese — always through the i18n layer, never hard-coded.
+- **Language:** **everything in English** — code, filenames, comments, commits, technical docs, **and all
+  in-game content + UI text** (per user rule). No Traditional Chinese in shipped strings or seed data.
 
 ## Engineering rules
 

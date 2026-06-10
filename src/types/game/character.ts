@@ -35,7 +35,7 @@ export const ABILITY_KINDS: readonly AbilityKind[] = [
 
 export interface CharacterAbility {
   id: string;
-  nameZhTW: string;
+  name: string;
   kind: AbilityKind;
   description: string;
 }
@@ -51,7 +51,7 @@ export interface CharacterStats {
 export interface CharacterDefinition {
   id: string;
   codename: string; // original codename — never an IP name
-  nameZhTW: string; // player-facing display
+  name: string; // player-facing display
   role: string;
   description: string;
   sourceConfidence: SourceConfidence;
@@ -61,8 +61,7 @@ export interface CharacterDefinition {
   abilities: CharacterAbility[];
   missionSuitability: string[]; // MissionType ids this character suits
   transformationId?: string; // TransformationDefinition id
-  cardImage?: string; // reference card filename in src/assets/cards (display wired in Batch 2)
-  modelPlanePath?: string; // swappable GLTF (placeholders for now)
-  modelRobotPath?: string;
+  cardImage?: string; // reference card filename in src/assets/cards (Character Select art)
+  modelAssetId?: string; // kit model-library id (e.g. 'super-wings/Jett+transformer+3d+model')
   homeBaseLocationId?: string;
 }

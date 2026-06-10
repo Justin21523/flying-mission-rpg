@@ -4,7 +4,7 @@ import type { WorldLocation } from '../../types/game/world';
 import { SEED_LOCATIONS } from '../../data/game/locations';
 
 export const useEditorLocationStore = createEditorCollection<WorldLocation>({
-  storageKey: 'aero-rescue-editor-location-v1',
+  storageKey: 'aero-rescue-editor-location-v2',
   seed: SEED_LOCATIONS,
   makeId: () => `loc_${nanoid(6)}`,
 });

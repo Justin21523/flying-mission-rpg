@@ -31,9 +31,9 @@ export const GameStateDebugPanel = () => {
   useEffect(() => gameEventBus.on('phase:blocked', (p) => setBlocked(p.reason)), []);
 
   const allowed = TRANSITIONS[phase];
-  const charName = selectedCharacterId ? getEditorCharacter(selectedCharacterId)?.nameZhTW ?? selectedCharacterId : '—';
-  const missionName = currentMissionId ? getEditorMission(currentMissionId)?.nameZhTW ?? currentMissionId : '—';
-  const locName = currentLocationId ? getEditorLocation(currentLocationId)?.nameZhTW ?? currentLocationId : '—';
+  const charName = selectedCharacterId ? getEditorCharacter(selectedCharacterId)?.name ?? selectedCharacterId : '—';
+  const missionName = currentMissionId ? getEditorMission(currentMissionId)?.name ?? currentMissionId : '—';
+  const locName = currentLocationId ? getEditorLocation(currentLocationId)?.name ?? currentLocationId : '—';
 
   return (
     <div className="pointer-events-auto fixed bottom-2 right-2 z-[90] w-72 rounded-lg border border-sky-800/60 bg-slate-950/85 p-3 text-xs text-slate-200 shadow-xl backdrop-blur">

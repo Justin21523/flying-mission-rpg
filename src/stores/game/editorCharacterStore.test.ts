@@ -19,9 +19,9 @@ describe('editorCharacterStore', () => {
 
   it('does not clobber a user edit on re-merge', () => {
     useEditorCharacterStore.getState().mergeMissingFromSeed();
-    useEditorCharacterStore.getState().update('char_jett', { nameZhTW: '我的杰特' });
+    useEditorCharacterStore.getState().update('char_jett', { name: 'My Jett' });
     useEditorCharacterStore.getState().mergeMissingFromSeed();
-    expect(getEditorCharacter('char_jett')?.nameZhTW).toBe('我的杰特');
+    expect(getEditorCharacter('char_jett')?.name).toBe('My Jett');
   });
 
   it('duplicates with a fresh id', () => {

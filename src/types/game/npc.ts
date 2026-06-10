@@ -5,7 +5,7 @@ import type { SourceConfidence } from '../sourceConfidence';
 export interface NPCDefinition {
   id: string;
   codename: string;
-  nameZhTW: string;
+  name: string;
   sourceConfidence: SourceConfidence;
   locationId: string;
   role: string;

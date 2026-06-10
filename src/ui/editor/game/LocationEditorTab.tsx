@@ -8,7 +8,7 @@ import { CollectionEditor, TextRow, NumRow, SelectRow, ConfidenceRow } from './C
 const makeNew = (): WorldLocation => ({
   id: `loc_${nanoid(6)}`,
   codename: 'New Place',
-  nameZhTW: '新地點',
+  name: 'New Location',
   sourceConfidence: 'GameAdaptation',
   kind: 'city',
   isBase: false,
@@ -24,11 +24,11 @@ export const LocationEditorTab = () => (
     title="Locations"
     store={useEditorLocationStore}
     makeNew={makeNew}
-    getLabel={(l) => `${l.nameZhTW}${l.isBase ? ' ★' : ''}`}
+    getLabel={(l) => `${l.name}${l.isBase ? ' ★' : ''}`}
     renderFields={(l, update) => (
       <>
         <TextRow label="Codename" value={l.codename} onChange={(v) => update({ codename: v })} />
-        <TextRow label="Name (zh-TW)" value={l.nameZhTW} onChange={(v) => update({ nameZhTW: v })} />
+        <TextRow label="Name" value={l.name} onChange={(v) => update({ name: v })} />
         <SelectRow
           label="Kind"
           value={l.kind}

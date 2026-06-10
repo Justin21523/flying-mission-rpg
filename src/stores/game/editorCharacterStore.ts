@@ -4,7 +4,7 @@ import type { CharacterDefinition } from '../../types/game/character';
 import { SEED_CHARACTERS } from '../../data/game/characters';
 
 export const useEditorCharacterStore = createEditorCollection<CharacterDefinition>({
-  storageKey: 'aero-rescue-editor-character-v1',
+  storageKey: 'aero-rescue-editor-character-v3',
   seed: SEED_CHARACTERS,
   makeId: () => `char_${nanoid(6)}`,
 });

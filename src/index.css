@@ -63,3 +63,9 @@ body {
   0% { opacity: 0.9; }
   100% { opacity: 0; }
 }
+
+/* aero-rescue — game screen fade-in transition (Mission Control / Briefing / Character Select). */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

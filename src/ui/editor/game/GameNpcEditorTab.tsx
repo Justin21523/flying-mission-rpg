@@ -8,7 +8,7 @@ import { CollectionEditor, TextRow, SelectRow, ColorRow, ConfidenceRow } from '.
 const makeNew = (): NPCDefinition => ({
   id: `npc_${nanoid(6)}`,
   codename: 'New Resident',
-  nameZhTW: '新居民',
+  name: 'New NPC',
   sourceConfidence: 'GameAdaptation',
   locationId: '',
   role: '',
@@ -26,16 +26,16 @@ export const GameNpcEditorTab = () => {
       title="NPCs"
       store={useEditorGameNpcStore}
       makeNew={makeNew}
-      getLabel={(n) => n.nameZhTW}
+      getLabel={(n) => n.name}
       renderFields={(n, update) => (
         <>
           <TextRow label="Codename" value={n.codename} onChange={(v) => update({ codename: v })} />
-          <TextRow label="Name (zh-TW)" value={n.nameZhTW} onChange={(v) => update({ nameZhTW: v })} />
+          <TextRow label="Name" value={n.name} onChange={(v) => update({ name: v })} />
           <TextRow label="Role" value={n.role} onChange={(v) => update({ role: v })} />
           <TextRow label="Description" area value={n.description} onChange={(v) => update({ description: v })} />
           <ColorRow label="Colour" value={n.color} onChange={(v) => update({ color: v })} />
-          <SelectRow label="Location" value={n.locationId} options={[none, ...locations.map((l) => ({ value: l.id, label: l.nameZhTW }))]} onChange={(v) => update({ locationId: v })} />
-          <SelectRow label="Mission" value={n.missionId ?? ''} options={[none, ...missions.map((m) => ({ value: m.id, label: m.nameZhTW }))]} onChange={(v) => update({ missionId: v || undefined })} />
+          <SelectRow label="Location" value={n.locationId} options={[none, ...locations.map((l) => ({ value: l.id, label: l.name }))]} onChange={(v) => update({ locationId: v })} />
+          <SelectRow label="Mission" value={n.missionId ?? ''} options={[none, ...missions.map((m) => ({ value: m.id, label: m.name }))]} onChange={(v) => update({ missionId: v || undefined })} />
           <ConfidenceRow value={n.sourceConfidence} onChange={(v) => update({ sourceConfidence: v })} />
         </>
       )}

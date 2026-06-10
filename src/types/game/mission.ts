@@ -19,7 +19,7 @@ export const MISSION_OBJECTIVE_KINDS: readonly MissionObjectiveKind[] = [
 export interface MissionObjective {
   id: string;
   kind: MissionObjectiveKind;
-  descriptionZhTW: string;
+  description: string;
   targetCount: number;
   optional?: boolean;
 }
@@ -27,7 +27,7 @@ export interface MissionObjective {
 // Authored mission template (data-driven). Failure is always recoverable downstream (no permadeath).
 export interface MissionDefinition {
   id: string;
-  nameZhTW: string;
+  name: string;
   sourceConfidence: SourceConfidence;
   type: MissionType;
   locationId: string;
@@ -37,7 +37,7 @@ export interface MissionDefinition {
   weather: WeatherKind;
   recommendedAbility?: AbilityKind;
   recommendedCharacterIds: string[];
-  summaryZhTW: string;
+  summary: string;
   objectives: MissionObjective[];
 }
 

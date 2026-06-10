@@ -11,7 +11,7 @@ export interface TransformationStep {
 
 export interface TransformationDefinition {
   id: string;
-  nameZhTW: string;
+  name: string;
   characterId?: string; // optional binding to one character
   durationSec: number;
   backdropColor: string; // hex

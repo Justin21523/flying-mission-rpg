@@ -13,6 +13,7 @@ import { GameCanvas } from './app/GameCanvas';
 import { DevPanel } from './app/DevPanel';
 import { GameBoot } from './game/boot/GameBoot';
 import { GameStateDebugPanel } from './ui/dev/GameStateDebugPanel';
+import { GameScreens } from './ui/game/GameScreens';
 import { usePoll } from './ui/usePoll';
 import { syncEditorQuests } from './game/editor/editorQuestToQuest';
 import { QuestTrackerController } from './game/quest/questTracking';
@@ -187,6 +188,9 @@ export const App = () => {
       {/* Always-on shell: game boot (seed + FSM), main dock, Leva dev panel, optional FSM dev console,
           and the Edit Mode authoring panels (Edit Mode must work in both grey-box and world scenes). */}
       <GameBoot />
+      {/* Game front-end (Mission Control → Briefing → Character Select → Hangar). Shown on the new
+          grey-box game, hidden in Edit Mode and in the dormant POLI 'world' reference. */}
+      {!editMode && !world && <GameScreens />}
       <Dock />
       <DevPanel />
       {fsmDebug && <GameStateDebugPanel />}

@@ -1,16 +1,16 @@
 import type { WorldLocation } from '../../types/game/world';
 
 // Seed world — 1 home base + 2 destinations. Abstract coordinates (no real-scale globe). mapPosition is
-// 0..100 % for the Batch 2 2D world map.
+// 0..100 % for the Batch 2 2D world map. All display text is English.
 export const SEED_LOCATIONS: WorldLocation[] = [
   {
     id: 'loc_homebase',
     codename: 'Skyport Home',
-    nameZhTW: '天港基地',
+    name: 'Skyport Home Base',
     sourceConfidence: 'GameAdaptation',
     kind: 'base',
     isBase: true,
-    description: '角色出動的中心基地,有機艙、升降平台與發射通道。',
+    description: 'The central base for dispatch — hangar, lift platform and launch tunnel.',
     coordinate: { x: 0, y: 0, z: 0 },
     mapPosition: { x: 50, y: 50 },
     environment: 'open_sky',
@@ -18,11 +18,11 @@ export const SEED_LOCATIONS: WorldLocation[] = [
   {
     id: 'loc_brightcity',
     codename: 'Bright City',
-    nameZhTW: '亮亮城',
+    name: 'Bright City',
     sourceConfidence: 'GameAdaptation',
     kind: 'city',
     isBase: false,
-    description: '熱鬧的小城,街道上總有人在等待包裹。',
+    description: 'A busy little city where someone is always waiting on a parcel.',
     coordinate: { x: 320, y: 0, z: -180 },
     mapPosition: { x: 72, y: 38 },
     environment: 'city',
@@ -30,11 +30,11 @@ export const SEED_LOCATIONS: WorldLocation[] = [
   {
     id: 'loc_coralisle',
     codename: 'Coral Isle',
-    nameZhTW: '珊瑚島',
+    name: 'Coral Isle',
     sourceConfidence: 'GameAdaptation',
     kind: 'island',
     isBase: false,
-    description: '海風強勁的小島,燈塔與沙灘是地標。',
+    description: 'A windy little island; its lighthouse and beaches are the landmarks.',
     coordinate: { x: -260, y: 0, z: 220 },
     mapPosition: { x: 30, y: 68 },
     environment: 'coast',

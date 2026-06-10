@@ -9,7 +9,7 @@ export const FLIGHT_DIFFICULTIES: readonly FlightDifficulty[] = ['easy', 'normal
 // `eventPoolIds` is a shell the Batch 5 flight-event director will fill.
 export interface FlightRoute {
   id: string;
-  nameZhTW: string;
+  name: string;
   fromLocationId: string;
   toLocationId: string;
   virtualDistance: number;

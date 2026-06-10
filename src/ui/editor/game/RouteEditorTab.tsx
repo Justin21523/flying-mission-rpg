@@ -7,7 +7,7 @@ import { CollectionEditor, TextRow, NumRow, SelectRow } from './CollectionEditor
 
 const makeNew = (): FlightRoute => ({
   id: `route_${nanoid(6)}`,
-  nameZhTW: '新航線',
+  name: 'New Route',
   fromLocationId: 'loc_homebase',
   toLocationId: '',
   virtualDistance: 1000,
@@ -23,17 +23,17 @@ export const RouteEditorTab = () => {
   const locations = useEditorLocationStore((s) => s.items);
   const locOptions = [
     { value: '', label: '(none)' },
-    ...locations.map((l) => ({ value: l.id, label: l.nameZhTW })),
+    ...locations.map((l) => ({ value: l.id, label: l.name })),
   ];
   return (
     <CollectionEditor<FlightRoute>
       title="Flight Routes"
       store={useEditorRouteStore}
       makeNew={makeNew}
-      getLabel={(r) => r.nameZhTW}
+      getLabel={(r) => r.name}
       renderFields={(r, update) => (
         <>
-          <TextRow label="Name (zh-TW)" value={r.nameZhTW} onChange={(v) => update({ nameZhTW: v })} />
+          <TextRow label="Name" value={r.name} onChange={(v) => update({ name: v })} />
           <SelectRow label="From" value={r.fromLocationId} options={locOptions} onChange={(v) => update({ fromLocationId: v })} />
           <SelectRow label="To" value={r.toLocationId} options={locOptions} onChange={(v) => update({ toLocationId: v })} />
           <div className="grid grid-cols-2 gap-2">

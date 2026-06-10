@@ -6,7 +6,7 @@ import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow } from './Collec
 
 const makeNew = (): TransformationDefinition => ({
   id: `xf_${nanoid(6)}`,
-  nameZhTW: '新變形',
+  name: 'New Transformation',
   durationSec: 4,
   backdropColor: '#0b1220',
   particleColor: '#38bdf8',
@@ -22,11 +22,11 @@ export const TransformationEditorTab = () => {
       title="Transformations"
       store={useEditorTransformationStore}
       makeNew={makeNew}
-      getLabel={(t) => t.nameZhTW}
+      getLabel={(t) => t.name}
       renderFields={(t, update) => (
         <>
-          <TextRow label="Name (zh-TW)" value={t.nameZhTW} onChange={(v) => update({ nameZhTW: v })} />
-          <SelectRow label="Character" value={t.characterId ?? ''} options={[none, ...characters.map((c) => ({ value: c.id, label: c.nameZhTW }))]} onChange={(v) => update({ characterId: v || undefined })} />
+          <TextRow label="Name" value={t.name} onChange={(v) => update({ name: v })} />
+          <SelectRow label="Character" value={t.characterId ?? ''} options={[none, ...characters.map((c) => ({ value: c.id, label: c.name }))]} onChange={(v) => update({ characterId: v || undefined })} />
           <NumRow label="Duration (sec)" value={t.durationSec} step={0.5} min={0} onChange={(v) => update({ durationSec: v })} />
           <ColorRow label="Backdrop colour" value={t.backdropColor} onChange={(v) => update({ backdropColor: v })} />
           <ColorRow label="Particle colour" value={t.particleColor} onChange={(v) => update({ particleColor: v })} />

@@ -9,7 +9,7 @@ import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow }
 const makeNew = (): CharacterDefinition => ({
   id: `char_${nanoid(6)}`,
   codename: 'New Flyer',
-  nameZhTW: '新角色',
+  name: 'New Character',
   role: '',
   description: '',
   sourceConfidence: 'GameAdaptation',
@@ -29,11 +29,11 @@ export const CharacterEditorTab = () => {
       title="Characters"
       store={useEditorCharacterStore}
       makeNew={makeNew}
-      getLabel={(c) => `${c.nameZhTW} · ${c.codename}`}
+      getLabel={(c) => `${c.name} · ${c.codename}`}
       renderFields={(c, update) => (
         <>
           <TextRow label="Codename" value={c.codename} onChange={(v) => update({ codename: v })} />
-          <TextRow label="Name (zh-TW)" value={c.nameZhTW} onChange={(v) => update({ nameZhTW: v })} />
+          <TextRow label="Name" value={c.name} onChange={(v) => update({ name: v })} />
           <TextRow label="Role" value={c.role} onChange={(v) => update({ role: v })} />
           <TextRow label="Description" area value={c.description} onChange={(v) => update({ description: v })} />
           <ConfidenceRow value={c.sourceConfidence} onChange={(v) => update({ sourceConfidence: v })} />
@@ -54,7 +54,7 @@ export const CharacterEditorTab = () => {
           <SelectRow
             label="Transformation"
             value={c.transformationId ?? ''}
-            options={[{ value: '', label: '(none)' }, ...transformations.map((t) => ({ value: t.id, label: t.nameZhTW }))]}
+            options={[{ value: '', label: '(none)' }, ...transformations.map((t) => ({ value: t.id, label: t.name }))]}
             onChange={(v) => update({ transformationId: v || undefined })}
           />
           <TextRow label="Card image (src/assets/cards)" value={c.cardImage ?? ''} onChange={(v) => update({ cardImage: v || undefined })} />

@@ -4,7 +4,7 @@ import type { FlightRoute } from '../../types/game/flight';
 export const SEED_ROUTES: FlightRoute[] = [
   {
     id: 'route_home_brightcity',
-    nameZhTW: '天港 → 亮亮城',
+    name: 'Skyport → Bright City',
     fromLocationId: 'loc_homebase',
     toLocationId: 'loc_brightcity',
     virtualDistance: 1000,

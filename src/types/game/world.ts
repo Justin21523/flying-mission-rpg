@@ -22,7 +22,7 @@ export const LOCATION_KINDS: readonly LocationKind[] = [
 export interface WorldLocation {
   id: string;
   codename: string;
-  nameZhTW: string;
+  name: string;
   sourceConfidence: SourceConfidence;
   kind: LocationKind;
   isBase: boolean;
