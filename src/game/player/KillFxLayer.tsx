@@ -15,12 +15,12 @@ import type { AnimRule } from '../../types/character';
 // four screen diagonals (up-left / up-right / down-left / down-right), play a happy animation, and fade out;
 // plus rising "+N XP" (green) / "+N" coin (gold) popups. Pooled, no per-frame allocation. Mounted in Scene.
 
-const CLONES = 12;        // pool = 3 bursts × 4
-const PER_KILL = 4;
+const CLONES = 4;         // hard cap: only ever 4 clone instances (a burst reuses the same 4 slots)
 const POPUPS = 8;
 const CLONE_LIFE = 3.0;   // total lifetime — clones linger longer before vanishing
 const POPUP_LIFE = 1.2;
 const SPREAD = 2.6;       // how far the clones drift out along their diagonal (slower with the longer life)
+const BURST_COOLDOWN = 1.0; // min seconds between clone bursts — rapid kills still spawn only one set of 4
 const _kills: KillEvent[] = [];
 // Sign pairs for the 4 screen diagonals (right, up): UL, UR, DL, DR.
 const DIAG: [number, number][] = [[-1, 1], [1, 1], [-1, -1], [1, -1]];
@@ -70,7 +70,7 @@ export const KillFxLayer = () => {
   const groups = useRef<(Group | null)[]>(Array.from({ length: CLONES }, () => null));
   const mats = useRef<Material[][]>(Array.from({ length: CLONES }, () => []));
   const slots = useRef<CloneSlot[]>(Array.from({ length: CLONES }, () => ({ active: false, t: 0, x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, spin: 0 })));
-  const head = useRef(0);
+  const lastBurst = useRef(0); // throttle: one burst of 4 per BURST_COOLDOWN
   const setGroup = useCallback((i: number, el: Group | null) => { groups.current[i] = el; }, []);
   const setMats = useCallback((i: number, m: Material[]) => { mats.current[i] = m; }, []);
 
@@ -95,24 +95,27 @@ export const KillFxLayer = () => {
     const n = drainKills(_kills);
     if (n > 0) {
       const pp = usePlayerStore.getState().position;
-      // Camera right/up so the 4 clones fly to the screen corners regardless of camera angle.
-      camera.matrixWorld.extractBasis(_cr, _cu, _cf);
-      _cr.normalize(); _cu.normalize();
-      for (let k = 0; k < n; k++) {
+      playSfx('rescueSuccess'); // once per batch (no spam on a kill spree)
+      // +XP / +coin popups per kill (cheap, pooled).
+      if (pp) for (let k = 0; k < n; k++) {
         const ev = _kills[k];
-        playSfx('rescueSuccess');
-        if (!pp) continue;
-        for (let d = 0; d < PER_KILL; d++) {
+        activatePopup(pp.x - 0.5, pp.y + 2.0, pp.z, `+${ev.exp} XP`);
+        activatePopup(pp.x + 0.6, pp.y + 1.6, pp.z, `+${ev.coin}`);
+      }
+      // Clone burst: at most ONE set of 4 per BURST_COOLDOWN. Reuses the same 4 slots, so however many yokai
+      // you defeat in a short window there are never more than 4 clones (perf-safe).
+      const tnow = performance.now() / 1000;
+      if (pp && tnow - lastBurst.current >= BURST_COOLDOWN) {
+        lastBurst.current = tnow;
+        camera.matrixWorld.extractBasis(_cr, _cu, _cf); _cr.normalize(); _cu.normalize();
+        for (let d = 0; d < CLONES; d++) {
           const [sx, sy] = DIAG[d];
-          const i = head.current % CLONES; head.current++;
-          const s = slots.current[i];
+          const s = slots.current[d];
           s.active = true; s.t = 0; s.x = pp.x; s.y = pp.y + 1.0; s.z = pp.z; s.spin = 0;
           s.dx = _cr.x * sx + _cu.x * sy;
           s.dy = _cr.y * sx + _cu.y * sy + 0.4; // bias upward so they rise as they spread
           s.dz = _cr.z * sx + _cu.z * sy;
         }
-        activatePopup(pp.x - 0.5, pp.y + 2.0, pp.z, `+${ev.exp} XP`);
-        activatePopup(pp.x + 0.6, pp.y + 1.6, pp.z, `+${ev.coin}`);
       }
     }
 

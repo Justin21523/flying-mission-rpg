@@ -58,15 +58,15 @@ export const YokaiCombatLayer = ({ areaId }: { areaId: string }) => {
     store.removeDead();
     const pp = usePlayerStore.getState().position;
     if (pp) store.cullFar(pp.x, pp.z, DESPAWN_DIST); // recycle far-off yokai → keep spawning fresh ones nearby
-    const alive = liveYokai.reduce((n, y) => n + (y.dyingAt ? 0 : 1), 0);
-    // Endless rush: keep a big swarm on screen and spawn fast. Floor the cap so even old hunt configs swarm;
-    // far yokai are recycled (cullFar) so fresh ones keep coming for the whole minute. Total kills unlimited.
-    const cap = Math.max(rush.maxActiveEnemies, 24);
+    // ENDLESS rush: spawn every interval the whole minute — never gated by a cap, so the stream never stops.
+    // The live count is kept perf-safe by recycling the OLDEST yokai (trimToCap); total defeats are unlimited.
+    const cap = Math.max(rush.maxActiveEnemies, 36);
     spawnTimer.current += dt;
-    if (spawnTimer.current >= Math.max(0.15, rush.spawnIntervalSeconds) && alive < cap) {
+    if (spawnTimer.current >= Math.max(0.12, rush.spawnIntervalSeconds)) {
       spawnTimer.current = 0;
       spawnYokai(activity, areaId);
-      if (alive + 2 < cap) spawnYokai(activity, areaId); // spawn a couple at a time to build the swarm faster
+      spawnYokai(activity, areaId); // a steady pair each tick
+      store.trimToCap(cap);         // drop the oldest to stay within the perf cap while still spawning forever
     }
   });
 

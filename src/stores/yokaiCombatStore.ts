@@ -58,6 +58,7 @@ interface YokaiCombatState {
   spawn: (y: Yokai) => void;
   removeDead: () => void;     // sweep finished poofs (called by the layer)
   cullFar: (px: number, pz: number, dist: number) => void;
+  trimToCap: (cap: number) => void;
   damage: (req: DamageRequest) => void;
 }
 
@@ -106,6 +107,16 @@ export const useYokaiCombatStore = create<YokaiCombatState>((set, get) => ({
       const y = liveYokai[i];
       if (y.dyingAt) continue;
       if ((y.x - px) ** 2 + (y.z - pz) ** 2 > d2) { liveYokai.splice(i, 1); changed = true; }
+    }
+    if (changed) set({ version: get().version + 1 });
+  },
+  // Keep the LIVE count perf-safe while spawning endlessly: silently remove the OLDEST alive yokai (front of
+  // the array) until within `cap`. Recycled yokai aren't "defeated" (no score) — they just wander off.
+  trimToCap: (cap) => {
+    let alive = liveYokai.reduce((n, y) => n + (y.dyingAt ? 0 : 1), 0);
+    let changed = false;
+    for (let i = 0; i < liveYokai.length && alive > cap; i++) {
+      if (!liveYokai[i].dyingAt) { liveYokai.splice(i, 1); i--; alive--; changed = true; }
     }
     if (changed) set({ version: get().version + 1 });
   },
