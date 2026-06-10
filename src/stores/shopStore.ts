@@ -8,7 +8,8 @@ interface ShopState {
   open: boolean;
   title: string;
   items: ShopEntry[];
-  openShop: (title: string, items: ShopEntry[]) => void;
+  vendorId: string | null; // the vendor NPC id — drives a trust-based discount (relationshipStore)
+  openShop: (title: string, items: ShopEntry[], vendorId?: string) => void;
   close: () => void;
 }
 
@@ -16,6 +17,7 @@ export const useShopStore = create<ShopState>((set) => ({
   open: false,
   title: '',
   items: [],
-  openShop: (title, items) => set({ open: true, title, items }),
-  close: () => set({ open: false, items: [] }),
+  vendorId: null,
+  openShop: (title, items, vendorId) => set({ open: true, title, items, vendorId: vendorId ?? null }),
+  close: () => set({ open: false, items: [], vendorId: null }),
 }));

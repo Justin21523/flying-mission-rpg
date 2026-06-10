@@ -82,7 +82,7 @@ export const InteractionHandler = () => {
             if (a.startActivity(enpc.hostsActivityId)) { a.begin(); return; }
           }
           if (enpc.sells && enpc.sells.length > 0) {
-            useShopStore.getState().openShop(enpc.displayName, enpc.sells);
+            useShopStore.getState().openShop(enpc.displayName, enpc.sells, enpc.id);
             return;
           }
         }
