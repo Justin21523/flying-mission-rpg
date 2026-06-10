@@ -32,7 +32,8 @@ const BasePartEntity = ({ part, editMode }: { part: BasePart; editMode: boolean 
   const m = useMergedTransform(key, base);
   const deleted = useIsDeleted(key);
   if (deleted) return null;
-  if (!editMode && part.kind === 'lift_platform') return null; // LiftPlatform owns it in play
+  // Lift platform is owned by LiftPlatform in play; the spawn marker is edit-only (just a draggable point).
+  if (!editMode && (part.kind === 'lift_platform' || part.kind === 'spawn')) return null;
 
   if (editMode) {
     return (

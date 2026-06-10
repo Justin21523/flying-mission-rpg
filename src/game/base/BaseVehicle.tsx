@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier';
 import type { Group } from 'three';
@@ -6,10 +6,13 @@ import { usePlayerStore } from '../../stores/playerStore';
 import { useBaseRuntimeStore } from '../../stores/game/baseRuntimeStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
+import { getBaseParts } from '../../stores/game/editorBaseLayoutStore';
+import { useSceneEditStore } from '../../stores/sceneEditStore';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { applyMovement } from '../player/MovementStateMachine';
 import { BASE_SPAWN } from '../../data/game/baseLayout';
 import { vehicleHandle } from './vehicleHandle';
+import { basePartKey } from './basePartKey';
 
 // Ground vehicle for the base. Reuses the kit's camera-relative movement (applyMovement, same as the
 // player): W goes into the screen, A/D strafe, turning the camera turns the controls — momentum/coast in
@@ -25,6 +28,13 @@ export const BaseVehicle = () => {
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
   const locked = useBaseRuntimeStore((s) => s.locked);
+  // Spawn at the editable 'spawn' part's (gizmo-draggable) position — not a hardcoded point.
+  const spawnPos = useMemo<[number, number, number]>(() => {
+    const sp = getBaseParts().find((p) => p.kind === 'spawn');
+    if (!sp) return BASE_SPAWN;
+    const ov = useSceneEditStore.getState().overrides[basePartKey(sp.id)]?.position as [number, number, number] | undefined;
+    return ov ?? sp.position;
+  }, []);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -76,7 +86,7 @@ export const BaseVehicle = () => {
       ref={bodyRef}
       type={locked ? 'kinematicPosition' : 'dynamic'}
       colliders={false}
-      position={BASE_SPAWN}
+      position={spawnPos}
       lockRotations
       canSleep={false}
       linearDamping={0.4}

@@ -3,6 +3,7 @@
 // box sized by `size`. Mirrors the kit's collision-shape vocabulary so parts can drop straight into the
 // reused Rapier collidable renderers.
 export type BasePartKind =
+  | 'spawn'
   | 'hangar'
   | 'apron'
   | 'navline'
@@ -14,6 +15,7 @@ export type BasePartKind =
   | 'wall';
 
 export const BASE_PART_KINDS: readonly BasePartKind[] = [
+  'spawn',
   'hangar',
   'apron',
   'navline',

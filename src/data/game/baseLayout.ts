@@ -3,12 +3,23 @@ import type { BasePart } from '../../types/game/base';
 // Seed base layout (grey-box + the real hangar/station models where available). Positions form a small
 // apron the vehicle taxis across toward the lift platform + launch tunnel at the back. Everything here is
 // editable in Edit Mode (🏗 Base tab + gizmo). English labels.
-export const BASE_SPAWN: [number, number, number] = [0, 1.2, 7];
+export const BASE_SPAWN: [number, number, number] = [0, 1.2, 4]; // inside the hangar, behind the platform
 export const BASE_HALF_EXTENT = 11; // enclosed room half-size (keeps the vehicle in)
 export const BASE_GROUND_Y = 0;
 export const BASE_CEILING_Y = 7; // enclosed ceiling height
 
 export const SEED_BASE_PARTS: BasePart[] = [
+  {
+    id: 'base_spawn',
+    kind: 'spawn',
+    label: 'Vehicle Spawn',
+    position: [0, 1.2, 4],
+    rotation: [0, 0, 0],
+    scale: 1,
+    size: [1.2, 0.4, 1.8],
+    color: '#22d3ee',
+    collision: 'none',
+  },
   {
     id: 'base_hangar',
     kind: 'hangar',
@@ -26,10 +37,10 @@ export const SEED_BASE_PARTS: BasePart[] = [
     id: 'base_apron',
     kind: 'apron',
     label: 'Apron',
-    position: [0, 0.02, 3],
+    position: [0, 0.02, 0],
     rotation: [0, 0, 0],
     scale: 1,
-    size: [26, 0.04, 26],
+    size: [20, 0.04, 20],
     color: '#39414f',
     collision: 'none',
   },
