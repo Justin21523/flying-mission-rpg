@@ -1,0 +1,193 @@
+import { useEffect, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Euler, Vector3, type Group } from 'three';
+import { useGameStore } from '../../stores/game/useGameStore';
+import { useCharacterStore } from '../../stores/game/useCharacterStore';
+import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
+import { getFlightTuning } from '../../stores/game/editorFlightStore';
+import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
+import { getExteriorByKind, getNavpoints } from '../../stores/game/editorExteriorStore';
+import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
+import { flightHandle } from './flightHandle';
+import { nextSpeed, isStalling } from './flightModel';
+
+// First flight system. Arcade-smooth, euler-integrated (pitch clamped, roll auto-levels) so the craft can
+// never flip/loop out of control. Character stats drive speed/turn. Reads live-editable tuning + navpoints.
+// Mounted only during flight phases. No Rapier — free flight is pure integration for the best feel.
+const TUNNEL_LEN = 34;
+const TUNNEL_DURATION = 2.6;
+const SINK_RATE = 7;
+const NAV_REACH = 8;
+const MIN_ALT = 6;
+
+const _fwd = new Vector3();
+const _euler = new Euler(0, 0, 0, 'YXZ');
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
+
+export const FlightController = () => {
+  const aircraft = useRef<Group>(null);
+  const keys = useRef<Record<string, boolean>>({});
+  const rot = useRef({ pitch: 0, yaw: 0, roll: 0 });
+  const angVel = useRef({ pitch: 0, yaw: 0, roll: 0 });
+  const speed = useRef(0);
+  const launchT = useRef(0);
+  const prevPhase = useRef('');
+  const charId = useCharacterStore((s) => s.selectedCharacterId);
+  const character = charId ? getEditorCharacter(charId) : undefined;
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      keys.current[e.code] = true;
+    };
+    const up = (e: KeyboardEvent) => {
+      keys.current[e.code] = false;
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+      keys.current = {};
+    };
+  }, []);
+
+  // Spawn at the editable flight-spawn marker.
+  useEffect(() => {
+    const sp = getExteriorByKind('flight_spawn');
+    const p = sp ? sp.position : [0, 26, 60];
+    flightHandle.pos.set(p[0], p[1], p[2]);
+    rot.current = { pitch: 0, yaw: 0, roll: 0 };
+    speed.current = getFlightTuning().cruiseSpeed * 0.6;
+  }, []);
+
+  useFrame((_, dtRaw) => {
+    const craft = aircraft.current;
+    if (!craft) return;
+    const dt = Math.min(dtRaw, 0.05);
+    const phase = useGameStore.getState().phase;
+    const tuning = getFlightTuning();
+    const mode = useFlightRuntimeStore.getState().mode;
+    const speedMult = character ? character.stats.flightSpeed / 6 : 1;
+    const turnMult = character ? character.stats.agility / 6 : 1;
+
+    // ── phase edges ──
+    if (phase !== prevPhase.current) {
+      if (phase === 'LAUNCH_TUNNEL') {
+        launchT.current = 0;
+        const sp = getExteriorByKind('flight_spawn');
+        const p = sp ? sp.position : [0, 26, 60];
+        // start inside the tunnel, behind the exit, flying toward it (+z behind → nose -z).
+        flightHandle.pos.set(p[0], p[1], p[2] + TUNNEL_LEN);
+        rot.current = { pitch: 0, yaw: 0, roll: 0 };
+        speed.current = tuning.cruiseSpeed * speedMult * 0.5;
+      }
+      prevPhase.current = phase;
+    }
+
+    // ── input ──
+    const k = keys.current;
+    const tunnel = phase === 'LAUNCH_TUNNEL';
+    const throttle = tunnel ? 1 : k['KeyW'] ? 1 : k['KeyS'] ? -1 : 0;
+    const pitchIn = tunnel ? 0 : (k['ArrowUp'] || k['Space'] ? 1 : 0) - (k['ArrowDown'] || k['ShiftLeft'] ? 1 : 0);
+    const turnIn = tunnel ? 0 : (k['KeyA'] || k['ArrowLeft'] ? 1 : 0) - (k['KeyD'] || k['ArrowRight'] ? 1 : 0);
+    const rollIn = mode === 'advanced' ? (k['KeyQ'] ? 1 : 0) - (k['KeyE'] ? 1 : 0) : 0;
+
+    // ── speed ──
+    speed.current = nextSpeed(speed.current, throttle, tuning, speedMult, dt);
+
+    // ── angular (smoothed) ──
+    const av = angVel.current;
+    av.pitch = lerp(av.pitch, pitchIn * tuning.pitchRate * turnMult, tuning.turnSmooth * dt);
+    av.yaw = lerp(av.yaw, turnIn * tuning.yawRate * turnMult, tuning.turnSmooth * dt);
+    av.roll = lerp(av.roll, rollIn * tuning.rollRate * turnMult, tuning.turnSmooth * dt);
+
+    const r = rot.current;
+    r.yaw += av.yaw * dt;
+    r.pitch = clamp(r.pitch + av.pitch * dt, -1.1, 1.1); // clamp → never loops/flips
+    if (mode === 'advanced') {
+      r.roll = clamp(r.roll + av.roll * dt, -1.0, 1.0);
+      if (rollIn === 0) r.roll = lerp(r.roll, 0, tuning.autoLevel * dt); // auto-level
+    } else {
+      // simple: bank into the turn, auto-level otherwise
+      r.roll = lerp(r.roll, -turnIn * 0.45, tuning.autoLevel * dt);
+    }
+
+    _euler.set(r.pitch, r.yaw, r.roll);
+    flightHandle.quat.setFromEuler(_euler);
+
+    // ── translate along the nose ──
+    _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
+    flightHandle.pos.addScaledVector(_fwd, speed.current * dt);
+
+    // stall → sink
+    if (isStalling(speed.current, tuning, speedMult)) flightHandle.pos.y -= SINK_RATE * dt;
+
+    // ── boundary + altitude recovery (never lose control) ──
+    const dxz = Math.hypot(flightHandle.pos.x, flightHandle.pos.z);
+    if (dxz > tuning.boundaryRadius) {
+      const back = Math.atan2(-flightHandle.pos.x, -flightHandle.pos.z); // yaw toward centre (nose -z)
+      r.yaw = lerp(r.yaw, back, 1.5 * dt);
+      const s = tuning.boundaryRadius / dxz;
+      flightHandle.pos.x *= s;
+      flightHandle.pos.z *= s;
+    }
+    if (flightHandle.pos.y < MIN_ALT) {
+      flightHandle.pos.y = lerp(flightHandle.pos.y, MIN_ALT, 3 * dt);
+      r.pitch = lerp(r.pitch, 0.2, 2 * dt);
+    }
+
+    flightHandle.speed = speed.current;
+    flightHandle.throttle = throttle;
+    flightHandle.altitude = flightHandle.pos.y;
+    craft.position.copy(flightHandle.pos);
+    craft.quaternion.copy(flightHandle.quat);
+
+    // ── phase progression ──
+    if (tunnel) {
+      launchT.current += dt;
+      if (launchT.current > TUNNEL_DURATION) useGameStore.getState().requestTransition('BASE_FLY_AROUND');
+      return;
+    }
+
+    // Navpoint guidance + fly-around → ascent.
+    const nav = getNavpoints();
+    const idx = useFlightRuntimeStore.getState().navIndex;
+    const target = nav[idx];
+    if (target) {
+      const d = Math.hypot(flightHandle.pos.x - target.position[0], flightHandle.pos.y - target.position[1], flightHandle.pos.z - target.position[2]);
+      if (d < NAV_REACH) {
+        const next = idx + 1;
+        useFlightRuntimeStore.getState().setNavIndex(next);
+        const upcoming = nav[next];
+        // crossing into an ascent navpoint (high up) starts the cloud ascent
+        if (phase === 'BASE_FLY_AROUND' && upcoming && upcoming.position[1] > 40) {
+          useGameStore.getState().requestTransition('CLOUD_ASCENT');
+        }
+      }
+    }
+  });
+
+  return (
+    <group ref={aircraft}>
+      {character?.modelAssetId ? (
+        <AnimatedGlbModel
+          assetId={character.modelAssetId}
+          fallback={
+            <mesh castShadow>
+              <coneGeometry args={[0.6, 2, 6]} />
+              <meshStandardMaterial color={character?.color ?? '#38bdf8'} />
+            </mesh>
+          }
+        />
+      ) : (
+        <mesh castShadow>
+          <coneGeometry args={[0.6, 2, 6]} />
+          <meshStandardMaterial color={character?.color ?? '#38bdf8'} />
+        </mesh>
+      )}
+    </group>
+  );
+};

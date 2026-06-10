@@ -5,6 +5,7 @@ import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
 import { useEditorTransformationStore } from '../../stores/game/editorTransformationStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
+import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
 
 // One idempotent call at boot: ensure every authored-content store has its seed (without clobbering user
 // edits — mergeMissingFromSeed only adds missing ids). Safe to run on every boot / existing save.
@@ -16,4 +17,5 @@ export function seedGameContent(): void {
   useEditorGameNpcStore.getState().mergeMissingFromSeed();
   useEditorTransformationStore.getState().mergeMissingFromSeed();
   useEditorBaseLayoutStore.getState().mergeMissingFromSeed();
+  useEditorExteriorStore.getState().mergeMissingFromSeed();
 }

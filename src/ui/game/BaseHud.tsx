@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useBaseRuntimeStore } from '../../stores/game/baseRuntimeStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { playUiSound } from '../../game/audio/uiSound';
@@ -13,6 +14,16 @@ export const BaseHud = () => {
   const countdown = useBaseRuntimeStore((s) => s.countdown);
 
   const descending = phase === 'PLATFORM_ALIGNMENT' && liftPhase === 'descending';
+
+  // LAUNCH_PREPARATION: the player actively accelerates (W) to blast out through the launch tunnel.
+  useEffect(() => {
+    if (phase !== 'LAUNCH_PREPARATION') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyW' || e.code === 'Space') useGameStore.getState().requestTransition('LAUNCH_TUNNEL');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase]);
 
   return (
     <>
@@ -58,8 +69,19 @@ export const BaseHud = () => {
       )}
 
         {phase === 'LAUNCH_PREPARATION' && (
-          <div className="rounded-full bg-emerald-900/70 px-5 py-2 text-sm font-bold text-emerald-100 backdrop-blur">
-            Launch preparation complete — flight arrives in Batch 4
+          <div className="pointer-events-auto flex flex-col items-center gap-2">
+            <div className="rounded-full bg-emerald-900/70 px-5 py-2 text-sm font-bold text-emerald-100 backdrop-blur">
+              Launch ready — accelerate to blast out!
+            </div>
+            <button
+              onClick={() => {
+                playUiSound('launch');
+                requestTransition('LAUNCH_TUNNEL');
+              }}
+              className="rounded-lg border border-sky-400/40 bg-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-sky-500"
+            >
+              🚀 Launch (W)
+            </button>
           </div>
         )}
       </div>

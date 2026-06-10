@@ -5,6 +5,7 @@ import { useUiStore } from '../../stores/uiStore';
 import { useDevStore } from '../../stores/devStore';
 import { GreyBoxScene } from '../../app/GreyBoxScene';
 import { BaseScene } from '../base/BaseScene';
+import { FlightScene } from '../flight/FlightScene';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
@@ -56,6 +57,15 @@ export const Scene = () => {
         <>
           <AdaptiveDpr />
           <BaseScene />
+        </>
+      );
+    }
+    const flightPhase = phase === 'LAUNCH_TUNNEL' || phase === 'BASE_FLY_AROUND' || phase === 'CLOUD_ASCENT';
+    if (flightPhase) {
+      return (
+        <>
+          <AdaptiveDpr />
+          <FlightScene />
         </>
       );
     }
