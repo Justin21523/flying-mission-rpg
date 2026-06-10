@@ -61,8 +61,8 @@ interface YokaiCombatState {
   damage: (req: DamageRequest) => void;
 }
 
-// Defeat one yokai: award exp/coins, queue its kill VFX, play a celebrate anim, bump score + objective, win
-// when the target is met.
+// Defeat one yokai: award exp/coins, queue its kill VFX, play a celebrate anim, bump the score/kill count.
+// Endless 1-minute rush — there is NO kill target; the hunt ends only when the timer runs out (score = kills).
 function defeat(y: Yokai): void {
   const exp = y.elite ? EXP_ELITE : EXP_NORMAL;
   const coin = y.elite ? COIN_ELITE : COIN_NORMAL;
@@ -78,10 +78,7 @@ function defeat(y: Yokai): void {
   const s = useYokaiCombatStore.getState();
   const kills = s.kills + 1;
   useYokaiCombatStore.setState({ kills, totalDefeated: s.totalDefeated + 1 });
-  if (obj) {
-    as.setObjective(obj.id, kills);
-    if (kills >= obj.targetValue) as.finish('win');
-  }
+  if (obj) as.setObjective(obj.id, kills); // track count for the HUD only — no early win on a target
 }
 
 export const useYokaiCombatStore = create<YokaiCombatState>((set, get) => ({

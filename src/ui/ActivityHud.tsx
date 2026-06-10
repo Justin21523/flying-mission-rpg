@@ -21,6 +21,13 @@ export const ActivityHud = () => {
     return () => clearInterval(id);
   }, [phase]);
 
+  // Result auto-dismisses — just show it, no confirm popup to click.
+  useEffect(() => {
+    if (phase !== 'result') return;
+    const id = setTimeout(() => useActivityStore.getState().close(), 3500);
+    return () => clearTimeout(id);
+  }, [phase]);
+
   if (!isActive || !activity) return null;
   const d = activity.def;
 
@@ -70,15 +77,15 @@ export const ActivityHud = () => {
       )}
 
       {phase === 'result' && (
-        <div className="pointer-events-auto m-auto flex w-[24rem] flex-col items-center gap-3 rounded-2xl border border-violet-600/50 bg-slate-950/90 p-6 backdrop-blur">
+        // Non-blocking banner that fades itself away (auto-close ~3.5s) — no confirm button.
+        <div className="pointer-events-none mt-20 flex flex-col items-center gap-1 rounded-2xl border border-violet-600/50 bg-slate-950/85 px-8 py-4 backdrop-blur">
           <span className={`text-2xl font-bold ${outcome === 'win' ? 'text-emerald-300' : 'text-red-300'}`}>{outcome === 'win' ? '🏆 Cleared!' : '✗ Failed'}</span>
-          <span className="text-sm text-slate-300">Score {score}</span>
+          <span className="text-sm text-slate-300">Defeated {score}</span>
           {outcome === 'win' && activity.rewards.length > 0 && (
             <div className="text-center text-xs text-amber-200">
               Rewards: {activity.rewards.map((r) => r.rewardType === 'exp' ? `${r.exp} EXP` : r.rewardType === 'item' ? `${r.itemId} ×${r.quantity}` : `flag ${r.unlockFlag}`).join(' · ')}
             </div>
           )}
-          <button onClick={() => useActivityStore.getState().close()} className="rounded-lg bg-cyan-500 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-300">Close</button>
         </div>
       )}
     </div>

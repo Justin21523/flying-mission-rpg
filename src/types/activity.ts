@@ -227,7 +227,8 @@ export function createDefaultActivity(zoneId: string, type: ActivityType): Edito
     objectives: [
       {
         id: `${base}_obj`, objectiveType: objectiveTypeFor(type), description: 'Complete the activity.',
-        targetValue: type === 'enemyRush' || type === 'collectionRush' ? 5 : 1,
+        // enemyRush = endless 1-min score rush (no real target — defeat as many as you can); others use a real goal.
+        targetValue: type === 'enemyRush' ? 999 : type === 'collectionRush' ? 5 : 1,
       },
     ],
     rewards: [
@@ -240,7 +241,7 @@ export function createDefaultActivity(zoneId: string, type: ActivityType): Edito
     ea.raceConfig = { lapCount: 1, allowItems: type === 'itemRace', zoneRadius: 1.2, baseSpeed: 6, boostMult: 1.6, slowMult: 0.6 };
   } else if (type === 'enemyRush') {
     ea.rushConfig = {
-      durationSeconds: 60, maxActiveEnemies: 12, spawnIntervalSeconds: 1.2, combatantIds: [], eliteCombatantIds: [],
+      durationSeconds: 60, maxActiveEnemies: 30, spawnIntervalSeconds: 0.7, combatantIds: [], eliteCombatantIds: [],
       eliteChance: 0.15, scoreNormal: 10, scoreElite: 30, comboStep: 2, enemyHpScale: 0.4, moveSpeed: 3,
     };
   } else if (type === 'defenseZone') {
