@@ -18,9 +18,9 @@ import type { AnimRule } from '../../types/character';
 const CLONES = 12;        // pool = 3 bursts × 4
 const PER_KILL = 4;
 const POPUPS = 8;
-const CLONE_LIFE = 1.3;
+const CLONE_LIFE = 3.0;   // total lifetime — clones linger longer before vanishing
 const POPUP_LIFE = 1.2;
-const SPREAD = 3.2;       // how far the clones fly out along their diagonal
+const SPREAD = 2.6;       // how far the clones drift out along their diagonal (slower with the longer life)
 const _kills: KillEvent[] = [];
 // Sign pairs for the 4 screen diagonals (right, up): UL, UR, DL, DR.
 const DIAG: [number, number][] = [[-1, 1], [1, 1], [-1, -1], [1, -1]];
@@ -130,7 +130,8 @@ export const KillFxLayer = () => {
       s.spin += dt * 6; g.rotation.y = s.spin;
       const sc = 0.7 + Math.sin(k * Math.PI) * 0.25; // bounce scale
       g.scale.setScalar(sc);
-      if (mats.current[i].length) setCloneOpacity(mats.current[i], Math.max(0, 1 - k));
+      // Stay fully solid for the first ~60% of the life, then fade out over the last ~40% (linger → vanish).
+      if (mats.current[i].length) setCloneOpacity(mats.current[i], k < 0.6 ? 1 : Math.max(0, 1 - (k - 0.6) / 0.4));
     }
 
     // Popups: rise + shrink-out (reads as a fade), billboard the camera.
