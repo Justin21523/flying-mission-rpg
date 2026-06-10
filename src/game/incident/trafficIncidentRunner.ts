@@ -3,6 +3,7 @@ import { getScenarios, getScenarioDirectorCfg } from '../../stores/editorTraffic
 import { useIncidentScenarioStore, countActive, type ScenarioInstance } from '../../stores/incidentScenarioStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useFlagStore } from '../../stores/flagStore';
+import { useWorldClockStore } from '../../stores/worldClockStore';
 import { getPaths } from '../../stores/editorPathStore';
 import { getCurve, samplePos } from '../path/pathCurve';
 import { setPathBlocked, removeBlocker } from '../path/pathBlocks';
@@ -35,12 +36,34 @@ function pickLocation(areaId: string): { pathId: string; pos: [number, number, n
   return { pathId: path.id, pos: [_pos.x, _pos.y, _pos.z] };
 }
 
-// Start a scenario instance now (used by the auto-loop + the Debug ▶ trigger).
-export function startScenario(scenarioId: string): void {
+const MIN_SPACING = 14; // metres — don't stack scenarios, and don't spawn on top of the player
+
+// World-time + weather gate (used by the auto-loop; the Debug ▶ trigger bypasses it).
+function timeWeatherOk(def: IncidentScenarioDefinition): boolean {
+  const clock = useWorldClockStore.getState();
+  if (def.minWorldTime != null && clock.timeMinutes < def.minWorldTime) return false;
+  if (def.maxWorldTime != null && clock.timeMinutes > def.maxWorldTime) return false;
+  if (def.weatherConditions && def.weatherConditions.length > 0 && !def.weatherConditions.includes(clock.weather)) return false;
+  return true;
+}
+
+// A candidate location is OK if it isn't on top of the player or an existing scenario instance.
+function locationOk(pos: [number, number, number]): boolean {
+  const p = usePlayerStore.getState().position;
+  if (p && Math.hypot(p.x - pos[0], p.z - pos[2]) < MIN_SPACING) return false;
+  for (const inst of useIncidentScenarioStore.getState().instances) {
+    if (Math.hypot(inst.position[0] - pos[0], inst.position[2] - pos[2]) < MIN_SPACING) return false;
+  }
+  return true;
+}
+
+// Start a scenario instance now (used by the auto-loop + the Debug ▶ trigger). Auto-loop passes a pre-picked,
+// spacing-checked location; the Debug trigger lets it pick its own.
+export function startScenario(scenarioId: string, loc?: { pathId: string; pos: [number, number, number] }): void {
   const def = getScenarios().find((d) => d.id === scenarioId);
   if (!def) return;
   const areaId = usePlayerStore.getState().currentAreaId;
-  const { pathId, pos } = pickLocation(areaId);
+  const { pathId, pos } = loc ?? pickLocation(areaId);
   const instance: ScenarioInstance = {
     instanceId: `inst_${Date.now().toString(36)}${counter++}`,
     scenarioId: def.id, name: def.name, areaId, pathId, position: pos,
@@ -112,12 +135,18 @@ export function tick(): void {
 
   const eligible = scenarios.filter((d) => d.enabled
     && countActive(d.id) < d.maxConcurrentInstances
-    && t - (lastResolved.get(d.id) ?? -Infinity) >= d.cooldown);
+    && t - (lastResolved.get(d.id) ?? -Infinity) >= d.cooldown
+    && timeWeatherOk(d));
   if (eligible.length === 0) return;
   const total = eligible.reduce((s, d) => s + Math.max(0, d.weight), 0);
   if (total <= 0) return;
   let r = Math.random() * total;
   let chosen = eligible[0];
   for (const d of eligible) { r -= Math.max(0, d.weight); if (r <= 0) { chosen = d; break; } }
-  startScenario(chosen.id);
+  // Spacing: pick a location away from the player + existing scenes (a few tries, else skip this tick).
+  const areaId = usePlayerStore.getState().currentAreaId;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const loc = pickLocation(areaId);
+    if (locationOk(loc.pos)) { startScenario(chosen.id, loc); return; }
+  }
 }

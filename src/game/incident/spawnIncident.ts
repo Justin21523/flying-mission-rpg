@@ -3,8 +3,11 @@ import { useEditorRandomEventStore, incidentCfg } from '../../stores/editorRando
 import { getEditorIncidents } from '../../stores/editorIncidentStore';
 import { useWorldClockStore } from '../../stores/worldClockStore';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
+import { usePlayerStore } from '../../stores/playerStore';
 import { playSfx } from '../audio/sfx';
 import { notifyIncident } from './incidentNotify';
+
+const MIN_PLAYER_SPACING = 10; // don't drop a rescue incident right on top of the player
 
 // Pick + spawn one eligible incident now (weighted-random; respects enabled/active/resolved + cap, plus
 // each incident's spawn conditions: time-of-day, weather, and required-rescues license gate).
@@ -16,7 +19,9 @@ export function spawnRandomIncident(): string | null {
 
   const clock = useWorldClockStore.getState();
   const rescues = useRescueLicenseStore.getState().rescuesCompleted;
+  const pp = usePlayerStore.getState().position;
   const matches = (cond: string | undefined, current: string) => !cond || cond === 'any' || cond === current;
+  const notOnPlayer = (m: [number, number, number]) => !pp || Math.hypot(pp.x - m[0], pp.z - m[2]) >= MIN_PLAYER_SPACING;
 
   const eligible = getEditorIncidents().filter((d) =>
     incidentCfg(d.id).enabled
@@ -24,7 +29,8 @@ export function spawnRandomIncident(): string | null {
     && !incident.isResolved(d.id)
     && matches(d.spawnTimeOfDay, clock.timeOfDay)
     && matches(d.spawnWeather, clock.weather)
-    && rescues >= (d.requiredRescues ?? 0));
+    && rescues >= (d.requiredRescues ?? 0)
+    && notOnPlayer(d.markerPosition));
   if (eligible.length === 0) return null;
 
   const total = eligible.reduce((s, d) => s + Math.max(0, incidentCfg(d.id).weight), 0);
