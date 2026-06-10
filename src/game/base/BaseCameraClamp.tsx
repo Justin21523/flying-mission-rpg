@@ -1,22 +1,36 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useBaseRuntimeStore } from '../../stores/game/baseRuntimeStore';
+import { getBaseParts } from '../../stores/game/editorBaseLayoutStore';
+import { useSceneEditStore } from '../../stores/sceneEditStore';
+import { basePartKey } from './basePartKey';
 import { BASE_HALF_EXTENT, BASE_CEILING_Y } from '../../data/game/baseLayout';
 
-// Keeps the orbit camera INSIDE the enclosed base room (no peeking through the walls into the void).
-// Runs after FollowCamera (mount order) to clamp its result; skipped during the lift descent so the
-// cinematic camera can dip below the floor into the shaft.
-const M = 0.6;
+// Keeps the (still user-controllable) orbit camera in-bounds: inside the room while driving, and inside
+// the LIFT SHAFT footprint during/after the descent — so it can't drift outside the shaft. Runs after
+// FollowCamera (mount order) to clamp its result; the user can still orbit/zoom within the bounds.
+const M = 0.5;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export const BaseCameraClamp = () => {
   const { camera } = useThree();
   useFrame(() => {
-    if (useBaseRuntimeStore.getState().liftPhase === 'descending') return;
-    const lim = BASE_HALF_EXTENT - M;
+    const liftPhase = useBaseRuntimeStore.getState().liftPhase;
     const p = camera.position;
-    const x = Math.max(-lim, Math.min(lim, p.x));
-    const z = Math.max(-lim, Math.min(lim, p.z));
-    const y = Math.max(0.4, Math.min(BASE_CEILING_Y - M, p.y));
-    camera.position.set(x, y, z);
+
+    if (liftPhase === 'idle') {
+      const lim = BASE_HALF_EXTENT - M;
+      camera.position.set(clamp(p.x, -lim, lim), clamp(p.y, 0.4, BASE_CEILING_Y - M), clamp(p.z, -lim, lim));
+      return;
+    }
+
+    // During/after the lift: confine to the shaft column around the platform centre.
+    const lift = getBaseParts().find((part) => part.kind === 'lift_platform');
+    if (!lift) return;
+    const ov = useSceneEditStore.getState().overrides[basePartKey(lift.id)]?.position as [number, number, number] | undefined;
+    const cx = ov ? ov[0] : lift.position[0];
+    const cz = ov ? ov[2] : lift.position[2];
+    const half = Math.max(lift.size[0], lift.size[2]) / 2 + 0.4; // just inside the shaft walls
+    camera.position.set(clamp(p.x, cx - half, cx + half), p.y, clamp(p.z, cz - half, cz + half));
   });
   return null;
 };

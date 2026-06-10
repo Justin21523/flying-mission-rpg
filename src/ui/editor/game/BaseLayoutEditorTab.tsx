@@ -147,6 +147,17 @@ export const BaseLayoutEditorTab = () => {
                 </select>
               </Field>
 
+              {sel.kind === 'lift_platform' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Lift depth">
+                    <input type="number" step={0.5} min={0} value={sel.liftDepth ?? 12} onChange={(e) => update(sel.id, { liftDepth: num(e.target.value) })} className={inp} />
+                  </Field>
+                  <Field label="Lift duration (s)">
+                    <input type="number" step={0.5} min={0.5} value={sel.liftDurationSec ?? 5} onChange={(e) => update(sel.id, { liftDurationSec: num(e.target.value) })} className={inp} />
+                  </Field>
+                </div>
+              )}
+
               <div className="flex items-center gap-1.5 border-t border-slate-800/60 pt-2">
                 <button onClick={() => { const id = duplicate(sel.id); if (id) selectPart(id); }} className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
                 <button onClick={() => remove(sel.id)} className="rounded bg-rose-700/20 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Delete</button>

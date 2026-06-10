@@ -43,4 +43,7 @@ export interface BasePart {
   size: [number, number, number]; // primitive box dimensions (when no assetId)
   color: string;
   collision: BaseCollision;
+  // Lift-platform-only tuning (Edit Mode editable; code defaults apply when unset).
+  liftDepth?: number; // how far the platform descends (world units)
+  liftDurationSec?: number; // descent duration
 }

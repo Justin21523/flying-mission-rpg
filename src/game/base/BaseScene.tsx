@@ -9,7 +9,6 @@ import { FollowCamera } from '../camera/FollowCamera';
 import { BaseLayoutLayer } from './BaseLayoutLayer';
 import { BaseVehicle } from './BaseVehicle';
 import { LiftPlatform } from './LiftPlatform';
-import { LiftCinematicCamera } from './LiftCinematicCamera';
 import { BaseCameraClamp } from './BaseCameraClamp';
 import { BASE_HALF_EXTENT, BASE_GROUND_Y, BASE_CEILING_Y } from '../../data/game/baseLayout';
 
@@ -108,9 +107,9 @@ export const BaseScene = () => {
       </Physics>
 
       <FollowCamera />
-      {/* Keep the camera inside the room (after FollowCamera), then the descent cinematic overrides. */}
+      {/* Keep the (still user-controllable) camera inside the room while driving, and inside the lift
+          shaft during/after the descent. Runs after FollowCamera so it clamps its result. */}
       {!editMode && <BaseCameraClamp />}
-      {!editMode && <LiftCinematicCamera />}
       {editMode && <SceneEditorGizmo />}
     </>
   );

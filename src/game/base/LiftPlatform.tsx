@@ -18,8 +18,8 @@ import { basePartKey } from './basePartKey';
 const IN_RANGE = 3.6;
 const ALIGNED = 1.9;
 const AUTO_DWELL = 1.6; // s aligned before auto-locking (also press E)
-const LIFT_DURATION = 5;
-const LIFT_DEPTH = 12;
+const DEFAULT_LIFT_DURATION = 5;
+const DEFAULT_LIFT_DEPTH = 12;
 const SHAFT_BELOW = 4; // shaft extends this far past the platform's lowest point
 
 const _trans = { x: 0, y: 0, z: 0 };
@@ -88,6 +88,9 @@ export const LiftPlatform = () => {
     rotation: part ? part.rotation : [0, 0, 0],
     scale: part ? part.scale : 1,
   });
+  // Editable lift tuning (🏗 Base tab), with code defaults.
+  const LIFT_DEPTH = part?.liftDepth ?? DEFAULT_LIFT_DEPTH;
+  const LIFT_DURATION = part?.liftDurationSec ?? DEFAULT_LIFT_DURATION;
   const platformRef = useRef<Group>(null);
   const gateLeftRef = useRef<Group>(null);
   const gateRightRef = useRef<Group>(null);
@@ -102,7 +105,7 @@ export const LiftPlatform = () => {
     const t = makeShaftTexture();
     t.repeat.set(1, (LIFT_DEPTH + SHAFT_BELOW) / 2);
     return t;
-  }, []);
+  }, [LIFT_DEPTH]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
