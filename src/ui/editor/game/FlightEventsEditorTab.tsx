@@ -3,6 +3,8 @@ import { useEditorFlightEventStore } from '../../../stores/game/editorFlightEven
 import { FLIGHT_EVENT_KINDS } from '../../../types/game/flightEvent';
 import type { FlightEventDef } from '../../../types/game/flightEvent';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
+import { ModelPicker } from '../ModelPicker';
+import { Field } from '../editorShared';
 
 const makeNew = (): FlightEventDef => ({
   id: `fe_${nanoid(6)}`,
@@ -36,8 +38,12 @@ export const FlightEventsEditorTab = () => (
           <NumRow label="Size" value={e.size} step={0.5} min={0.1} onChange={(v) => update({ size: v })} />
           <NumRow label="Duration (sec)" value={e.durationSec} step={0.5} min={1} onChange={(v) => update({ durationSec: v })} />
           <NumRow label="Value" value={e.value ?? 0} step={1} onChange={(v) => update({ value: v })} />
+          <NumRow label="Drift speed" value={e.driftSpeed ?? 0} step={1} min={0} onChange={(v) => update({ driftSpeed: v })} />
         </div>
         <ColorRow label="Colour" value={e.color} onChange={(v) => update({ color: v })} />
+        <Field label="Model (empty = built-in visual)">
+          <ModelPicker value={e.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(built-in)" />
+        </Field>
         <TextRow label="Radio text" value={e.radioText ?? ''} onChange={(v) => update({ radioText: v })} />
         <ConfidenceRow value={e.sourceConfidence} onChange={(v) => update({ sourceConfidence: v })} />
       </>

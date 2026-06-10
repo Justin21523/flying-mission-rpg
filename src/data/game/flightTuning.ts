@@ -19,4 +19,7 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   camPullback: 4,
   rollFollow: 0.45,
   boundaryRadius: 240,
+  worldCloudCount: 70,
+  worldEventMaxActive: 10,
+  worldEventSpawnGap: 1.6,
 };

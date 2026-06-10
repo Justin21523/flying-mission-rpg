@@ -43,6 +43,8 @@ export interface FlightEventDef {
   color: string;
   size: number;
   durationSec: number; // how long it lingers before recycling
+  driftSpeed?: number; // gentle world-units/sec drift (movement param — birds/formation/wisps)
+  modelAssetId?: string; // optional GLB placeholder (empty = built-in primitive visual for the kind)
   radioText?: string; // for 'radio' events
   value?: number; // collectible/energy amount
   sourceConfidence: SourceConfidence;

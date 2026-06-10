@@ -189,22 +189,25 @@ export const FlightController = () => {
 
   return (
     <group ref={aircraft}>
-      {character?.modelAssetId ? (
-        <AnimatedGlbModel
-          assetId={character.modelAssetId}
-          fallback={
-            <mesh castShadow>
-              <coneGeometry args={[0.6, 2, 6]} />
-              <meshStandardMaterial color={character?.color ?? '#38bdf8'} />
-            </mesh>
-          }
-        />
-      ) : (
-        <mesh castShadow>
-          <coneGeometry args={[0.6, 2, 6]} />
-          <meshStandardMaterial color={character?.color ?? '#38bdf8'} />
-        </mesh>
-      )}
+      {/* π-yaw so the model's +z nose points along −z travel (camera trails behind it). */}
+      <group rotation={[0, Math.PI, 0]}>
+        {character?.modelAssetId ? (
+          <AnimatedGlbModel
+            assetId={character.modelAssetId}
+            fallback={
+              <mesh castShadow>
+                <coneGeometry args={[0.6, 2, 6]} />
+                <meshStandardMaterial color={character?.color ?? '#38bdf8'} />
+              </mesh>
+            }
+          />
+        ) : (
+          <mesh castShadow>
+            <coneGeometry args={[0.6, 2, 6]} />
+            <meshStandardMaterial color={character?.color ?? '#38bdf8'} />
+          </mesh>
+        )}
+      </group>
     </group>
   );
 };

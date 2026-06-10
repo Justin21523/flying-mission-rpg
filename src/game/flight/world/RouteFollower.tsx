@@ -11,8 +11,10 @@ import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRunt
 import { AnimatedGlbModel } from '../../world/AnimatedGlbModel';
 import { flightHandle } from '../flightHandle';
 
-// The craft follows the active route's 航道 (editorPathStore path) — hold W to advance (forward-locked),
-// reusing the kit's CatmullRom path. Publishes pos/quat/speed/routeU to flightHandle for camera + HUDs.
+// The craft cruises FORWARD along the active route's 航道 (editorPathStore path) — it always flies ahead
+// (never reverses); W boosts, S eases off. lookAt aligns the craft's −z to the route tangent, so the
+// FlightCamera trails behind and the world streams backward past it. The model is wrapped in a π-yaw group
+// so its nose points along travel (GLB models face +z by default → otherwise it looks like flying backward).
 const _pos = new Vector3();
 const _tan = new Vector3();
 const _look = new Vector3();
@@ -59,9 +61,10 @@ export const RouteFollower = () => {
     const tuning = getFlightTuning();
     const speedMult = character ? character.stats.flightSpeed / 6 : 1;
     const k = keys.current;
-    const fwd = k['KeyW'] ? 1 : k['KeyS'] ? -0.5 : 0.25;
-    const pathSpeed = tuning.cruiseSpeed * speedMult * (k['KeyW'] ? 1.6 : 1);
-    u.current = Math.max(0, Math.min(1, u.current + (fwd * pathSpeed * dt) / Math.max(1, cc.length)));
+    // Always cruise forward — W boosts, S eases off (never reverses).
+    const boost = k['KeyW'] ? 1.7 : k['KeyS'] ? 0.45 : 1;
+    const pathSpeed = tuning.cruiseSpeed * speedMult * boost;
+    u.current = Math.min(1, u.current + (pathSpeed * dt) / Math.max(1, cc.length));
 
     samplePos(cc.curve, u.current, _pos);
     sampleTangent(cc.curve, u.current, _tan);
@@ -70,7 +73,7 @@ export const RouteFollower = () => {
     _look.copy(_pos).add(_tan);
     c.lookAt(_look);
     flightHandle.quat.copy(c.quaternion);
-    flightHandle.speed = pathSpeed * Math.abs(fwd);
+    flightHandle.speed = pathSpeed;
     flightHandle.altitude = _pos.y;
     flightHandle.routeU = u.current;
     flightHandle.throttle = k['KeyW'] ? 1 : k['KeyS'] ? -1 : 0;
@@ -86,5 +89,12 @@ export const RouteFollower = () => {
       <meshStandardMaterial color={character?.color ?? '#38bdf8'} />
     </mesh>
   );
-  return <group ref={craft}>{character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} /> : fallback}</group>;
+  return (
+    <group ref={craft}>
+      {/* π-yaw so the model's +z nose points along −z travel (camera trails behind it). */}
+      <group rotation={[0, Math.PI, 0]}>
+        {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} /> : fallback}
+      </group>
+    </group>
+  );
 };

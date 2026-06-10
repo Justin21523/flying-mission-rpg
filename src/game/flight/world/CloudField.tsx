@@ -2,55 +2,56 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3, Object3D, type InstancedMesh } from 'three';
 import { flightHandle } from '../flightHandle';
+import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
 
-// Recycled cloud field — a FIXED instanced pool of soft puffs around the craft. As the craft flies, any
-// puff that falls behind (or too far) is repositioned ahead (chunk recycling) → constant object count for
-// unlimited flight, no memory growth, and a strong sense of speed as clouds stream past. No per-frame
-// allocations (reused dummy + vectors; instanceMatrix updated in place).
-const COUNT = 64;
-const AHEAD = 520; // max distance ahead a recycled puff is placed
+// Recycled cloud floor — a FIXED instanced pool of soft puffs that sits WELL BELOW the craft, so the craft
+// cruises through open blue sky (WorldSkyAmbience) with a distinct cloud floor far beneath and stays clearly
+// visible against the sky. As it flies, puffs that fall behind are repositioned ahead (chunk recycling) →
+// constant object count for unlimited flight, no memory growth, a strong sense of speed as clouds stream
+// past below. Count is editable (🛩 Flight → World cloud count).
+const MAX_CLOUDS = 260;
+const AHEAD = 560;
 const SPAWN_MIN = 60;
-const LATERAL = 150;
-const VERT = 70;
-const BEHIND = 70; // recycle once a puff is this far behind the nose
+const LATERAL = 260; // wide spread to the sides → reads as a horizon-wide floor
+const DROP_MIN = 75; // clouds sit at least this far below the craft (clear gap → sky + craft visible)
+const DROP_RANGE = 55; // …down to this much below (a deck of depth)
+const BEHIND = 80;
 
+// Module-level reusable buffers (never render-owned → no per-frame allocations).
 const _dummy = new Object3D();
 const _fwd = new Vector3();
 const _rel = new Vector3();
-const positions: Vector3[] = Array.from({ length: COUNT }, () => new Vector3());
-const scales: number[] = new Array(COUNT).fill(8);
+const POS: Vector3[] = Array.from({ length: MAX_CLOUDS }, () => new Vector3());
+const SCALE = new Float32Array(MAX_CLOUDS);
 
-// Place puff i ahead of `base` along `fwd`, with a random lateral (perpendicular in XZ) + vertical spread.
-function place(i: number, base: Vector3, fwd: Vector3, ahead: number): void {
+// Place puff i ahead of the craft along `fwd`, spread to the sides and dropped well below the flight path.
+function place(i: number, ahead: number): void {
   const lat = (Math.random() * 2 - 1) * LATERAL;
-  const vert = (Math.random() * 2 - 1) * VERT;
-  const p = positions[i];
-  p.copy(base).addScaledVector(fwd, ahead);
-  p.x += -fwd.z * lat; // perpendicular (in XZ) lateral spread
-  p.z += fwd.x * lat;
-  p.y += vert;
-  scales[i] = 7 + Math.random() * 12;
+  const p = POS[i];
+  p.copy(flightHandle.pos).addScaledVector(_fwd, ahead);
+  p.x += -_fwd.z * lat;
+  p.z += _fwd.x * lat;
+  p.y = flightHandle.pos.y - (DROP_MIN + Math.random() * DROP_RANGE);
+  SCALE[i] = 7 + Math.random() * 12;
 }
 
-export const CloudField = () => {
+const CloudFieldInner = ({ count }: { count: number }) => {
   const mesh = useRef<InstancedMesh>(null);
 
   useEffect(() => {
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
-    // initial scatter all around the craft (front and back), so the field is full immediately
-    for (let i = 0; i < COUNT; i++) place(i, flightHandle.pos, _fwd, (Math.random() * 2 - 1) * AHEAD);
-  }, []);
+    for (let i = 0; i < count; i++) place(i, (Math.random() * 2 - 1) * AHEAD);
+  }, [count]);
 
   useFrame(() => {
     const m = mesh.current;
     if (!m) return;
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
-    for (let i = 0; i < COUNT; i++) {
-      _rel.copy(positions[i]).sub(flightHandle.pos);
-      const along = _rel.dot(_fwd);
-      if (along < -BEHIND || _rel.length() > AHEAD + 200) place(i, flightHandle.pos, _fwd, SPAWN_MIN + Math.random() * AHEAD);
-      _dummy.position.copy(positions[i]);
-      _dummy.scale.setScalar(scales[i]);
+    for (let i = 0; i < count; i++) {
+      _rel.copy(POS[i]).sub(flightHandle.pos);
+      if (_rel.dot(_fwd) < -BEHIND || _rel.length() > AHEAD + 240) place(i, SPAWN_MIN + Math.random() * AHEAD);
+      _dummy.position.copy(POS[i]);
+      _dummy.scale.setScalar(SCALE[i]);
       _dummy.updateMatrix();
       m.setMatrixAt(i, _dummy.matrix);
     }
@@ -58,9 +59,15 @@ export const CloudField = () => {
   });
 
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, COUNT]} frustumCulled={false}>
+    <instancedMesh ref={mesh} args={[undefined, undefined, count]} frustumCulled={false}>
       <icosahedronGeometry args={[1, 1]} />
-      <meshStandardMaterial color="#f1f5f9" transparent opacity={0.5} depthWrite={false} roughness={1} flatShading />
+      <meshStandardMaterial color="#ffffff" transparent opacity={0.7} depthWrite={false} roughness={1} flatShading />
     </instancedMesh>
   );
+};
+
+export const CloudField = () => {
+  const count = useEditorFlightStore((s) => Math.min(MAX_CLOUDS, Math.max(8, Math.round(s.tuning.worldCloudCount))));
+  // Key by count so changing it in the Flight tab rebuilds the instanced pool cleanly.
+  return <CloudFieldInner key={count} count={count} />;
 };

@@ -9,10 +9,10 @@ export const SEED_FLIGHT_EVENTS: FlightEventDef[] = [
   { id: 'fe_storm', kind: 'storm', label: 'Storm Cell', weight: 1, minGapSec: 12, lateralRange: 4, color: '#64748b', size: 14, durationSec: 8, sourceConfidence: 'GameAdaptation' },
   { id: 'fe_lightning', kind: 'lightning', label: 'Lightning Warning', weight: 1, minGapSec: 10, lateralRange: 6, color: '#fde047', size: 5, durationSec: 4, sourceConfidence: 'GameAdaptation' },
   { id: 'fe_rainbow', kind: 'rainbow', label: 'Rainbow', weight: 1, minGapSec: 14, lateralRange: 0, color: '#f0abfc', size: 26, durationSec: 10, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_birds', kind: 'birds', label: 'Bird Flock', weight: 2, minGapSec: 7, lateralRange: 7, color: '#1f2937', size: 3, durationSec: 6, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_birds', kind: 'birds', label: 'Bird Flock', weight: 2, minGapSec: 7, lateralRange: 7, color: '#1f2937', size: 3, durationSec: 6, driftSpeed: 7, sourceConfidence: 'GameAdaptation' },
   { id: 'fe_energy', kind: 'energy_refill', label: 'Energy Refill', weight: 2, minGapSec: 8, lateralRange: 6, color: '#34d399', size: 1.4, durationSec: 8, value: 20, sourceConfidence: 'GameAdaptation' },
   { id: 'fe_stunt_ring', kind: 'stunt_ring', label: 'Stunt Ring', weight: 3, minGapSec: 3, lateralRange: 5, color: '#fb923c', size: 4, durationSec: 7, sourceConfidence: 'GameAdaptation' },
   { id: 'fe_collectible', kind: 'collectible', label: 'Star Collectible', weight: 3, minGapSec: 2.5, lateralRange: 7, color: '#fde047', size: 1, durationSec: 8, value: 1, sourceConfidence: 'GameAdaptation' },
   { id: 'fe_radio', kind: 'radio', label: 'Radio Call', weight: 1, minGapSec: 16, lateralRange: 0, color: '#38bdf8', size: 1, durationSec: 5, radioText: 'Mission Control: looking good — stay on the route!', sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_formation', kind: 'formation', label: 'Formation Flight', weight: 1, minGapSec: 18, lateralRange: 4, color: '#93c5fd', size: 2, durationSec: 9, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_formation', kind: 'formation', label: 'Formation Flight', weight: 1, minGapSec: 18, lateralRange: 4, color: '#93c5fd', size: 2, durationSec: 9, driftSpeed: 5, sourceConfidence: 'GameAdaptation' },
 ];

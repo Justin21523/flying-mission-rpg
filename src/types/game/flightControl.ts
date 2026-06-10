@@ -22,4 +22,7 @@ export interface FlightTuning {
   camPullback: number; // extra distance while accelerating
   rollFollow: number; // 0..1 how much the camera follows the craft roll (comfort mode halves it)
   boundaryRadius: number; // soft fly-around boundary from the base centre (auto re-centre beyond it)
+  worldCloudCount: number; // world-flight: number of recycled cloud puffs in the floor below
+  worldEventMaxActive: number; // world-flight: max concurrent flight events
+  worldEventSpawnGap: number; // world-flight: min seconds between event spawns
 }

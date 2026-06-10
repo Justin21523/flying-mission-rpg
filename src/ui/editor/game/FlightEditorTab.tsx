@@ -22,6 +22,9 @@ const FIELDS: { key: keyof FlightTuning; label: string; step: number }[] = [
   { key: 'camPullback', label: 'Cam pullback', step: 0.5 },
   { key: 'rollFollow', label: 'Cam roll follow', step: 0.05 },
   { key: 'boundaryRadius', label: 'Boundary radius', step: 10 },
+  { key: 'worldCloudCount', label: 'World cloud count', step: 5 },
+  { key: 'worldEventMaxActive', label: 'World event max', step: 1 },
+  { key: 'worldEventSpawnGap', label: 'World event gap (s)', step: 0.2 },
 ];
 
 export const FlightEditorTab = () => {

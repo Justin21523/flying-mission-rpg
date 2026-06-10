@@ -4,7 +4,7 @@ import { flightHandle } from '../../game/flight/flightHandle';
 import { getActivePathId } from '../../game/flight/world/worldRoute';
 import { getPath } from '../../stores/editorPathStore';
 import { getCurve, samplePos } from '../../game/path/pathCurve';
-import { FLIGHT_EVENT_POOL } from '../../game/flight/world/flightEventPool';
+import { ACTIVE_FLIGHT_EVENTS } from '../../game/flight/world/flightEventRuntime';
 
 // 🛰 Flight sonar scope (top-centre) — reuses the POLI radar look (top-down ring + scan cone fixed to the
 // craft's heading). Plots the route ahead (cyan trail), the destination bearing (amber ★), and active
@@ -19,8 +19,8 @@ const _rel = new Vector3();
 const _p = new Vector3();
 
 // Project a world point into the scope (forward = up). Returns clamped {px, py} pixels from centre.
-function project(p: Vector3): { px: number; py: number } {
-  _rel.copy(p).sub(flightHandle.pos);
+function project(x: number, y: number, z: number): { px: number; py: number } {
+  _rel.set(x, y, z).sub(flightHandle.pos);
   let px = _rel.dot(_right) * SCALE;
   let py = -_rel.dot(_fwd) * SCALE;
   const d = Math.hypot(px, py);
@@ -55,13 +55,13 @@ export const FlightSonarHud = () => {
     for (let i = 1; i <= 6; i++) {
       const su = Math.min(1, u + i * 0.012);
       samplePos(cc.curve, su, _p);
-      trail.push(project(_p));
+      trail.push(project(_p.x, _p.y, _p.z));
     }
     samplePos(cc.curve, 1, _p);
-    dest = project(_p);
+    dest = project(_p.x, _p.y, _p.z);
   }
 
-  const events = FLIGHT_EVENT_POOL.filter((s) => s.active && s.def);
+  const events = ACTIVE_FLIGHT_EVENTS;
 
   return (
     <div className="pointer-events-none fixed left-1/2 top-3 z-[60] flex -translate-x-1/2 flex-col items-center">
@@ -76,9 +76,10 @@ export const FlightSonarHud = () => {
           <Blip key={`t${i}`} px={t.px} py={t.py} color="#22d3ee" size={3} />
         ))}
         {/* events */}
-        {events.map((s, i) => (
-          <Blip key={`e${i}`} px={project(s.pos).px} py={project(s.pos).py} color={s.def!.color} size={7} />
-        ))}
+        {events.map((s) => {
+          const pr = project(s.pos[0], s.pos[1], s.pos[2]);
+          return <Blip key={s.id} px={pr.px} py={pr.py} color={s.def.color} size={7} />;
+        })}
         {/* destination */}
         {dest && <Blip px={dest.px} py={dest.py} color="#f59e0b" size={8} />}
         {/* craft (centre) */}
