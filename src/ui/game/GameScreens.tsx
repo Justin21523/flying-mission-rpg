@@ -2,10 +2,10 @@ import { useGameStore } from '../../stores/game/useGameStore';
 import { MissionControlScreen } from './MissionControlScreen';
 import { MissionBriefingScreen } from './MissionBriefingScreen';
 import { CharacterSelectScreen } from './CharacterSelectScreen';
-import { HangarPlaceholderScreen } from './HangarPlaceholderScreen';
 
-// Phase router for the game front-end. Mounted only when not editing + grey-box scene (see App), so each
-// screen is a full-screen console chosen by the FSM phase. Other phases render nothing here yet.
+// Phase router for the DOM game front-end (Mission Control → Briefing → Character Select). The on-ground
+// base phases (HANGAR / PLATFORM_ALIGNMENT / LAUNCH_PREPARATION) render the 3D BaseScene instead, with the
+// BaseHud overlay — so this returns null for them.
 export const GameScreens = () => {
   const phase = useGameStore((s) => s.phase);
   switch (phase) {
@@ -15,8 +15,6 @@ export const GameScreens = () => {
       return <MissionBriefingScreen />;
     case 'CHARACTER_SELECTION':
       return <CharacterSelectScreen />;
-    case 'HANGAR':
-      return <HangarPlaceholderScreen />;
     default:
       return null;
   }

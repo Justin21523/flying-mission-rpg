@@ -4,6 +4,8 @@ import { useThree } from '@react-three/fiber';
 import { useUiStore } from '../../stores/uiStore';
 import { useDevStore } from '../../stores/devStore';
 import { GreyBoxScene } from '../../app/GreyBoxScene';
+import { BaseScene } from '../base/BaseScene';
+import { useGameStore } from '../../stores/game/useGameStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -37,6 +39,7 @@ const AdaptiveDpr = () => {
 export const Scene = () => {
   const editMode = useUiStore((s) => s.editMode);
   const sceneMode = useDevStore((s) => s.sceneMode);
+  const phase = useGameStore((s) => s.phase);
   const areaId = usePlayerStore((s) => s.currentAreaId);
   // Subscribe so the world reacts to environment edits.
   useEditorEnvironmentStore((s) => s.overrides);
@@ -44,9 +47,18 @@ export const Scene = () => {
   // Indoor areas have no sky/weather — subscribe so toggling indoor in the 🗺 World tab applies live.
   const indoor = useEditorWorldStore((s) => s.areas.find((a) => a.id === areaId)?.indoor === true);
 
-  // Batch 0 grey-box base scene — a self-contained ground + cubes + orbit camera. No physics/player/
-  // world coupling; Edit Mode lighting + gizmos still attach so F1 keeps working. Default scene mode.
+  // The new game runs in the 'greybox' scene mode. On-ground base phases render the 3D hangar (BaseScene,
+  // Batch 3); other phases (Mission Control etc.) keep the grey-box behind the DOM console.
   if (sceneMode === 'greybox') {
+    const basePhase = phase === 'HANGAR' || phase === 'PLATFORM_ALIGNMENT' || phase === 'LAUNCH_PREPARATION';
+    if (basePhase) {
+      return (
+        <>
+          <AdaptiveDpr />
+          <BaseScene />
+        </>
+      );
+    }
     return (
       <>
         <AdaptiveDpr />

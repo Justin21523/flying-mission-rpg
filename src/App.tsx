@@ -14,7 +14,12 @@ import { DevPanel } from './app/DevPanel';
 import { GameBoot } from './game/boot/GameBoot';
 import { GameStateDebugPanel } from './ui/dev/GameStateDebugPanel';
 import { GameScreens } from './ui/game/GameScreens';
+import { BaseHud } from './ui/game/BaseHud';
+import { useGameStore } from './stores/game/useGameStore';
 import { usePoll } from './ui/usePoll';
+
+// On-ground base phases render the 3D hangar (BaseScene) + BaseHud instead of a DOM screen.
+const BASE_PHASES = new Set(['HANGAR', 'PLATFORM_ALIGNMENT', 'LAUNCH_PREPARATION']);
 import { syncEditorQuests } from './game/editor/editorQuestToQuest';
 import { QuestTrackerController } from './game/quest/questTracking';
 import { InteractionHandler } from './game/interaction/InteractionHandler';
@@ -78,6 +83,7 @@ export const App = () => {
   // Edit Mode panels stay available in both modes. Toggle via the Leva dev panel.
   const world = useDevStore((s) => s.sceneMode) === 'world';
   const fsmDebug = useDevStore((s) => s.fsmDebug);
+  const basePhase = BASE_PHASES.has(useGameStore((s) => s.phase));
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -191,9 +197,11 @@ export const App = () => {
       {/* Game front-end (Mission Control → Briefing → Character Select → Hangar). Shown on the new
           grey-box game, hidden in Edit Mode and in the dormant POLI 'world' reference. */}
       {!editMode && !world && <GameScreens />}
+      {!editMode && !world && basePhase && <BaseHud />}
       <Dock />
       <DevPanel />
-      {fsmDebug && <GameStateDebugPanel />}
+      {/* Phase jumper: always available in Edit Mode (jump to any mid-game scene), plus the Leva toggle. */}
+      {(fsmDebug || editMode) && <GameStateDebugPanel />}
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}

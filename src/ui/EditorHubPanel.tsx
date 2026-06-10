@@ -28,13 +28,14 @@ import { RouteEditorTab } from './editor/game/RouteEditorTab';
 import { MissionEditorTab } from './editor/game/MissionEditorTab';
 import { GameNpcEditorTab } from './editor/game/GameNpcEditorTab';
 import { TransformationEditorTab } from './editor/game/TransformationEditorTab';
+import { BaseLayoutEditorTab } from './editor/game/BaseLayoutEditorTab';
 import { DomainFileRow } from './editor/DomainFileRow';
 import { getDomain } from '../game/editor/editorContentRegistry';
 import { useSceneEditStore } from '../stores/sceneEditStore';
 import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
-type Tab = 'gchar' | 'gloc' | 'groute' | 'gmission' | 'gnpc' | 'gxform' | 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save';
+type Tab = 'gchar' | 'gloc' | 'groute' | 'gmission' | 'gnpc' | 'gxform' | 'gbase' | 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save';
 const TABS: { id: Tab; label: string }[] = [
   // ── aero-rescue game content (current project) ──
   { id: 'gchar', label: '🛩 Characters' },
@@ -43,6 +44,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'gmission', label: '🎯 Missions' },
   { id: 'gnpc', label: '🧑 NPC (game)' },
   { id: 'gxform', label: '✨ Transform' },
+  { id: 'gbase', label: '🏗 Base' },
   // ── inherited kit / POLI editors ──
   { id: 'debug', label: '🧪 Debug' },
   { id: 'trigger', label: '⚡ Triggers' },
@@ -76,6 +78,7 @@ const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
   gmission: ['gameMission'],
   gnpc: ['gameNpc'],
   gxform: ['gameTransformation'],
+  gbase: ['gameBase'],
   debug: ['progression', 'relationships', 'settings'],
   trigger: ['editorTrigger'],
   encounter: ['editorEncounter'],
@@ -191,7 +194,7 @@ export const EditorHubPanel = () => {
       <div className="relative min-w-0 flex-1 overflow-auto p-4 pr-10">
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
         <TabJsonStrip tab={tab} />
-        {tab === 'gchar' ? <CharacterEditorTab /> : tab === 'gloc' ? <LocationEditorTab /> : tab === 'groute' ? <RouteEditorTab /> : tab === 'gmission' ? <MissionEditorTab /> : tab === 'gnpc' ? <GameNpcEditorTab /> : tab === 'gxform' ? <TransformationEditorTab /> : tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
+        {tab === 'gchar' ? <CharacterEditorTab /> : tab === 'gloc' ? <LocationEditorTab /> : tab === 'groute' ? <RouteEditorTab /> : tab === 'gmission' ? <MissionEditorTab /> : tab === 'gnpc' ? <GameNpcEditorTab /> : tab === 'gxform' ? <TransformationEditorTab /> : tab === 'gbase' ? <BaseLayoutEditorTab /> : tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
       </div>
     </div>
   );

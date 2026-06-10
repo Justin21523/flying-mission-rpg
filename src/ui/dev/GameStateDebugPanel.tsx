@@ -7,9 +7,24 @@ import { GAME_PHASES } from '../../types/game/state';
 import type { GamePhase } from '../../types/game/state';
 import { TRANSITIONS } from '../../game/core/GameStateMachine';
 import { gameEventBus } from '../../game/core/EventBus';
-import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
-import { getEditorMission } from '../../stores/game/editorMissionStore';
+import { getEditorCharacter, getEditorCharacters } from '../../stores/game/editorCharacterStore';
+import { getEditorMission, getEditorMissions } from '../../stores/game/editorMissionStore';
 import { getEditorLocation } from '../../stores/game/editorLocationStore';
+
+// Jumping straight to a mid-game phase must Just Work — fill in a default mission + character if the
+// player hasn't picked any yet (so the base/flight/mission scenes have the context they need).
+function ensureJumpPrereqs(): void {
+  const ms = useMissionStore.getState();
+  if (!ms.currentMissionId) {
+    const m = getEditorMissions()[0];
+    if (m) ms.selectMission(m.id);
+  }
+  const cs = useCharacterStore.getState();
+  if (!cs.selectedCharacterId) {
+    const c = getEditorCharacters()[0];
+    if (c) cs.selectCharacter(c.id);
+  }
+}
 
 // Dev-only console for the game state machine (toggled via the Leva DevPanel). Shows the current/previous
 // phase + selection, advances via legal-only buttons, and surfaces blocked illegal moves. Not a play UI —
@@ -84,6 +99,7 @@ export const GameStateDebugPanel = () => {
         <select
           onChange={(e) => {
             if (e.target.value) {
+              ensureJumpPrereqs();
               jumpTo(e.target.value as GamePhase);
               e.target.value = '';
             }

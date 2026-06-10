@@ -30,6 +30,7 @@ import { useEditorRouteStore } from '../../stores/game/editorRouteStore';
 import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
 import { useEditorTransformationStore } from '../../stores/game/editorTransformationStore';
+import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -56,7 +57,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorTrafficScenarioStore,
   // New game authored-content stores (undo tracking).
   useEditorCharacterStore, useEditorLocationStore, useEditorRouteStore, useEditorMissionStore,
-  useEditorGameNpcStore, useEditorTransformationStore,
+  useEditorGameNpcStore, useEditorTransformationStore, useEditorBaseLayoutStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -122,6 +123,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorTransformationStore.getState().importState(data as { items?: never }); },
     clear: () => useEditorTransformationStore.getState().reset(),
     summary: () => `${useEditorTransformationStore.getState().items.length} transformations`,
+  },
+  {
+    id: 'gameBase',
+    label: 'Base Layout',
+    serialize: () => { const s = useEditorBaseLayoutStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorBaseLayoutStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorBaseLayoutStore.getState().reset(),
+    summary: () => `${useEditorBaseLayoutStore.getState().items.length} base parts`,
   },
   {
     id: 'sceneEdit',
