@@ -23,6 +23,7 @@ export interface ScenarioInstance {
   ranSteps: number[];      // timeline step indices already executed
   entities: SpawnedEntity[];
   blockedPaths: string[];
+  rescueStarted?: boolean;  // K2: the on-scene rescue mini-game has been handed off (awaiting completion)
 }
 
 interface IncidentScenarioState {

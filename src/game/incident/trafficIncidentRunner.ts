@@ -7,6 +7,9 @@ import { useWorldClockStore } from '../../stores/worldClockStore';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { useRelationshipStore } from '../../stores/relationshipStore';
+import { useIncidentStore } from '../../stores/incidentStore';
+import { useRescueOperationStore } from '../../stores/rescueOperationStore';
+import { getEditorIncident } from '../../stores/editorIncidentStore';
 import { getPaths } from '../../stores/editorPathStore';
 import { getCurve, samplePos } from '../path/pathCurve';
 import { setPathBlocked, removeBlocker } from '../path/pathBlocks';
@@ -150,7 +153,23 @@ export function tick(): void {
         store.update(inst.instanceId, { ranSteps: ran });
       }
     });
+    // K2 unified flow: a scenario with a real rescueIncidentId is the front-end of an on-scene rescue.
+    const rid = def.rescueIncidentId;
+    const hasRescue = !!rid && !!getEditorIncident(rid);
+    if (inst.rescueStarted && rid) {
+      // Awaiting the rescue mini-game. Resolve+reward when it's completed; re-arm if the player abandoned it.
+      if (useIncidentStore.getState().isResolved(rid)) { resolveInstance(inst, def, 'player'); continue; }
+      const ro = useRescueOperationStore.getState();
+      if (!(ro.isActive && ro.incidentId === rid)) store.update(inst.instanceId, { rescueStarted: false });
+      continue; // stay staged while the rescue runs (no timeout-miss mid-rescue)
+    }
     const cause = resolved(inst, def);
+    if (cause === 'player' && hasRescue) {
+      // Hand off to the rescue pipeline on-scene instead of resolving immediately.
+      useRescueOperationStore.getState().startRescue(rid!);
+      store.update(inst.instanceId, { rescueStarted: true });
+      continue;
+    }
     if (cause) resolveInstance(inst, def, cause);
   }
 

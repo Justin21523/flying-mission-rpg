@@ -1,8 +1,6 @@
 import type { IncidentAction } from '../../types/trafficIncident';
 import { useIncidentScenarioStore, type SpawnedEntity } from '../../stores/incidentScenarioStore';
 import { useFlagStore } from '../../stores/flagStore';
-import { useIncidentStore } from '../../stores/incidentStore';
-import { getEditorIncidents } from '../../stores/editorIncidentStore';
 import { getScenarios } from '../../stores/editorTrafficScenarioStore';
 import { useIncidentFollowerStore, countIncidentFollowers } from '../../stores/incidentFollowerStore';
 import type { PathFollowerDef } from '../../types/pathFollower';
@@ -98,12 +96,11 @@ export function runIncidentAction(action: IncidentAction, instanceId: string): v
       return;
     }
     case 'notifyRescue': {
-      // Flag + event the call-for-rescue, and bridge to a real rescue IncidentDefinition when the scenario
-      // names one that exists (the player can then run its rescue pipeline).
+      // Flag + event the call-for-rescue. The actual rescue is started on-scene by the director when the player
+      // reaches a scenario carrying a rescueIncidentId (K2 unified flow) — not spawned separately here, to avoid
+      // a second trigger via IncidentLayer.
       useFlagStore.getState().setFlag(`traffic_notified_${inst.scenarioId}`);
       emitGameEvent({ kind: 'gameEvent', payload: 'notifyRescue', x: inst.position[0], y: inst.position[1], z: inst.position[2] });
-      const rid = getScenarios().find((s) => s.id === inst.scenarioId)?.rescueIncidentId;
-      if (rid && getEditorIncidents().some((d) => d.id === rid)) useIncidentStore.getState().spawn(rid);
       return;
     }
     case 'playAnimation':
