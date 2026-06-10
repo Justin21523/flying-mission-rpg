@@ -20,6 +20,7 @@ import { useEditorPathStore } from '../../stores/editorPathStore';
 import { useEditorBoostPadStore } from '../../stores/editorBoostPadStore';
 import { useEditorCollisionStore } from '../../stores/editorCollisionStore';
 import { useEditorAnimationStore } from '../../stores/editorAnimationStore';
+import { useEditorSurfaceStore } from '../../stores/editorSurfaceStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -42,7 +43,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorLandmarkStore, useEditorIncidentStore, useEditorRandomEventStore, useEditorTrafficStore,
   useEditorToolStore, useEditorWorldStore, useEditorLayoutStore, useEditorCollectibleStore, useEditorPortalStore,
   useEditorBoostStore, useJinResearchStore, useEditorPathStore, useEditorBoostPadStore,
-  useEditorCollisionStore, useEditorAnimationStore,
+  useEditorCollisionStore, useEditorAnimationStore, useEditorSurfaceStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -217,6 +218,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorAnimationStore.getState().importState(data as never); },
     clear: () => useEditorAnimationStore.getState().reset(),
     summary: () => `${useEditorAnimationStore.getState().definitions.length} animations`,
+  },
+  {
+    id: 'editorSurface',
+    label: 'Surfaces',
+    serialize: () => ({ surfaces: useEditorSurfaceStore.getState().surfaces }),
+    deserialize: (data) => { if (isObj(data)) useEditorSurfaceStore.getState().importState(data as never); },
+    clear: () => useEditorSurfaceStore.getState().reset(),
+    summary: () => `${useEditorSurfaceStore.getState().surfaces.length} surfaces`,
   },
   {
     id: 'editorCollectible',

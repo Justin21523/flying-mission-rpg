@@ -18,6 +18,8 @@ import { PortalEditorTab } from './editor/PortalEditorTab';
 import { LicenseEditorTab } from './editor/LicenseEditorTab';
 import { ResearchEditorTab } from './editor/ResearchEditorTab';
 import { ModelStudioTab } from './editor/ModelStudioTab';
+import { TracksEditorTab } from './editor/TracksEditorTab';
+import { ReactionsEditorTab } from './editor/ReactionsEditorTab';
 import { SaveSlotsPanel } from './play/SaveSlotsPanel';
 import { DomainFileRow } from './editor/DomainFileRow';
 import { getDomain } from '../game/editor/editorContentRegistry';
@@ -25,7 +27,7 @@ import { useSceneEditStore } from '../stores/sceneEditStore';
 import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
-type Tab = 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'save';
+type Tab = 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'debug', label: '🧪 Debug' },
   { id: 'trigger', label: '⚡ Triggers' },
@@ -45,6 +47,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'license', label: '🎖 License' },
   { id: 'research', label: '🔬 Research' },
   { id: 'studio', label: '🎬 Model Studio' },
+  { id: 'tracks', label: '🛣 Tracks' },
+  { id: 'reactions', label: '💥 Reactions' },
   { id: 'save', label: '💾 Save' },
 ];
 
@@ -67,6 +71,8 @@ const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
   portal: ['editorPortal'],
   license: ['editorLicense'],
   research: ['editorResearch'],
+  tracks: ['editorPath', 'editorBoostPad', 'editorSurface'],
+  reactions: ['editorCollision', 'editorAnimation'],
 };
 
 // Collapsible JSON import/export strip shown atop a content tab (per-domain rows). Lets the user download
@@ -161,7 +167,7 @@ export const EditorHubPanel = () => {
       <div className="relative min-w-0 flex-1 overflow-auto p-4 pr-10">
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
         <TabJsonStrip tab={tab} />
-        {tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
+        {tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
       </div>
     </div>
   );

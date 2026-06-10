@@ -8,6 +8,9 @@ import { useQuestStore } from '../../stores/questStore';
 import { useEditorQuestStore } from '../../stores/editorQuestStore';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
+import { useEditorPathStore } from '../../stores/editorPathStore';
+import { useEditorAnimationStore } from '../../stores/editorAnimationStore';
+import { useEditorSurfaceStore } from '../../stores/editorSurfaceStore';
 import { listDialogueTreeIds } from '../../game/dialogue/dialogueRegistry';
 import type { IdOption } from './idPickers';
 
@@ -68,6 +71,19 @@ export function useNpcOptions(): IdOption[] {
     const seen = new Set<string>();
     return [...ed, ...seed].filter((o) => (seen.has(o.id) ? false : (seen.add(o.id), true)));
   }, [editorNpcs]);
+}
+
+export function usePathOptions(): IdOption[] {
+  const paths = useEditorPathStore((s) => s.paths);
+  return useMemo(() => paths.map((p) => ({ id: p.id, label: p.name || p.id })), [paths]);
+}
+export function useAnimationOptions(): IdOption[] {
+  const defs = useEditorAnimationStore((s) => s.definitions);
+  return useMemo(() => defs.map((d) => ({ id: d.id, label: d.displayName || d.id })), [defs]);
+}
+export function useSurfaceOptions(): IdOption[] {
+  const surfaces = useEditorSurfaceStore((s) => s.surfaces);
+  return useMemo(() => surfaces.map((s) => ({ id: s.id, label: s.name || s.id })), [surfaces]);
 }
 
 export function useDialogueOptions(): IdOption[] {

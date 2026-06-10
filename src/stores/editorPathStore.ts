@@ -1,14 +1,19 @@
 import { create } from 'zustand';
-import type { PathDefinition } from '../types/path';
+import type { PathDefinition, PathNodeData } from '../types/path';
 import { PATH_SEED } from '../data/poli/boostPathsSeed';
+import { editorSpawn } from './sceneEditStore';
 
 // POLI (Phase B) — curve-based guided paths (Test Straight / Test Curve seeded; more via the Phase-D editor).
 // Auto-persisted; imported/exported through the editor content registry (domain 'editorPath') and tracked for
 // Undo. Node drags in the PathDebugLayer write back here via updatePathNode → the cached curve rebuilds live.
 interface EditorPathState {
   paths: PathDefinition[];
+  addPath: () => string;
   updatePath: (id: string, patch: Partial<PathDefinition>) => void;
   updatePathNode: (pathId: string, nodeId: string, position: [number, number, number]) => void;
+  updateNode: (pathId: string, nodeId: string, patch: Partial<PathNodeData>) => void;
+  addNode: (pathId: string) => void;
+  removeNode: (pathId: string, nodeId: string) => void;
   removePath: (id: string) => void;
   importState: (data: { paths?: PathDefinition[] }) => void;
   reset: () => void;
@@ -16,6 +21,8 @@ interface EditorPathState {
 
 const STORAGE_KEY = 'r3f-rpg-builder-poli-path-v1';
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+const camPos = (): [number, number, number] => [Math.round(editorSpawn.x * 100) / 100, 0.3, Math.round(editorSpawn.z * 100) / 100];
 
 function persist(paths: PathDefinition[]): void {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ paths })); } catch { /* ignore */ }
@@ -32,12 +39,56 @@ export const useEditorPathStore = create<EditorPathState>((set, get) => {
   const save = () => persist(get().paths);
   return {
     paths: load(),
+    addPath: () => {
+      const id = uid('path');
+      const c = camPos();
+      const n0: PathNodeData = { id: uid('node'), position: [c[0] - 4, c[1], c[2]], tangentMode: 'automatic', speedMultiplier: 1, width: 2 };
+      const n1: PathNodeData = { id: uid('node'), position: [c[0] + 4, c[1], c[2]], tangentMode: 'automatic', speedMultiplier: 1, width: 2 };
+      const path: PathDefinition = {
+        id, name: 'New Path', areaId: 'rescue_hq', nodeIds: [n0.id, n1.id], nodes: [n0, n1],
+        curveType: 'catmullRom', closed: false, defaultSpeed: 12, laneWidth: 2, directionMode: 'oneWay',
+        entryNodeIds: [n0.id], exitNodeIds: [n1.id],
+      };
+      set({ paths: [...get().paths, path] }); save();
+      return id;
+    },
     updatePath: (id, patch) => { set({ paths: get().paths.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); save(); },
     updatePathNode: (pathId, nodeId, position) => {
       set({
         paths: get().paths.map((p) =>
           p.id === pathId ? { ...p, nodes: (p.nodes ?? []).map((n) => (n.id === nodeId ? { ...n, position } : n)) } : p,
         ),
+      });
+      save();
+    },
+    updateNode: (pathId, nodeId, patch) => {
+      set({ paths: get().paths.map((p) => (p.id === pathId ? { ...p, nodes: (p.nodes ?? []).map((n) => (n.id === nodeId ? { ...n, ...patch } : n)) } : p)) });
+      save();
+    },
+    addNode: (pathId) => {
+      set({
+        paths: get().paths.map((p) => {
+          if (p.id !== pathId) return p;
+          const nodes = p.nodes ?? [];
+          const last = nodes[nodes.length - 1]?.position ?? camPos();
+          const node: PathNodeData = { id: uid('node'), position: [last[0] + 3, last[1], last[2]], tangentMode: 'automatic', speedMultiplier: 1, width: p.laneWidth };
+          const nextNodes = [...nodes, node];
+          return { ...p, nodes: nextNodes, nodeIds: nextNodes.map((n) => n.id) };
+        }),
+      });
+      save();
+    },
+    removeNode: (pathId, nodeId) => {
+      set({
+        paths: get().paths.map((p) => {
+          if (p.id !== pathId) return p;
+          const nextNodes = (p.nodes ?? []).filter((n) => n.id !== nodeId);
+          return {
+            ...p, nodes: nextNodes, nodeIds: nextNodes.map((n) => n.id),
+            entryNodeIds: p.entryNodeIds.filter((x) => x !== nodeId),
+            exitNodeIds: p.exitNodeIds.filter((x) => x !== nodeId),
+          };
+        }),
       });
       save();
     },
