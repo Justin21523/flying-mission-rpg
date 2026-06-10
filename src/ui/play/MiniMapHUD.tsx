@@ -3,6 +3,7 @@ import { getWorldArea } from '../../stores/editorWorldStore';
 import { getEffectiveAreaSize } from '../../game/world/areaExtent';
 import { useEditorNpcStore } from '../../stores/editorNpcStore';
 import { useIncidentStore } from '../../stores/incidentStore';
+import { useIncidentScenarioStore } from '../../stores/incidentScenarioStore';
 import { useEditorBoostStore } from '../../stores/editorBoostStore';
 import { computePickupPositions } from '../../game/poli/pickupScatter';
 import { resolveAreaTheme } from '../../game/environment/areaBiome';
@@ -45,6 +46,7 @@ export const MiniMapHUD = () => {
   const points = area?.points ?? [];
   const npcs = useEditorNpcStore.getState().addedNpcs.filter((n) => n.areaId === areaId);
   const incidents = useIncidentStore.getState().getActiveForArea(areaId);
+  const scenarios = useIncidentScenarioStore.getState().instances.filter((x) => x.areaId === areaId);
   const bcfg = useEditorBoostStore.getState();
   const pickups = computePickupPositions(areaId, bcfg.pickupCount, bcfg.pickupSpread);
 
@@ -62,6 +64,7 @@ export const MiniMapHUD = () => {
         {points.map((p) => <Dot key={p.id} x={p.position[0] - px} z={p.position[2] - pz} scale={scale} color={p.color || MAP_POINT_COLOR[p.type]} size={7} />)}
         {npcs.map((n) => <Dot key={n.id} x={n.position[0] - px} z={n.position[2] - pz} scale={scale} color="#38bdf8" />)}
         {incidents.map((d) => <Dot key={d.id} x={d.markerPosition[0] - px} z={d.markerPosition[2] - pz} scale={scale} color="#ef4444" size={8} />)}
+        {scenarios.map((s) => <Dot key={s.instanceId} x={s.position[0] - px} z={s.position[2] - pz} scale={scale} color="#fb923c" size={8} />)}
         {/* edge exits on the rim */}
         {(Object.keys(edges) as EdgeDir[]).filter((e) => edges[e]).map((e) => {
           const a = (EDGE_ANGLE[e] * Math.PI) / 180;

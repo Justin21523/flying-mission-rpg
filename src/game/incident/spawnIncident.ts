@@ -4,6 +4,7 @@ import { getEditorIncidents } from '../../stores/editorIncidentStore';
 import { useWorldClockStore } from '../../stores/worldClockStore';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
 import { playSfx } from '../audio/sfx';
+import { notifyIncident } from './incidentNotify';
 
 // Pick + spawn one eligible incident now (weighted-random; respects enabled/active/resolved + cap, plus
 // each incident's spawn conditions: time-of-day, weather, and required-rescues license gate).
@@ -33,5 +34,6 @@ export function spawnRandomIncident(): string | null {
   for (const d of eligible) { r -= Math.max(0, incidentCfg(d.id).weight); if (r <= 0) { chosen = d; break; } }
   incident.spawn(chosen.id);
   playSfx('incident');
+  notifyIncident('new', chosen.title);
   return chosen.id;
 }

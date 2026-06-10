@@ -9,6 +9,7 @@ import { setPathBlocked, removeBlocker } from '../path/pathBlocks';
 import { unregisterCollision } from '../collision/collisionRegistry';
 import { useIncidentFollowerStore } from '../../stores/incidentFollowerStore';
 import { runIncidentAction } from './runIncidentAction';
+import { notifyIncident } from './incidentNotify';
 import { playSfx } from '../audio/sfx';
 import type { IncidentScenarioDefinition } from '../../types/trafficIncident';
 
@@ -47,6 +48,8 @@ export function startScenario(scenarioId: string): void {
   };
   useIncidentScenarioStore.getState().start(instance);
   for (const a of def.setupActions) runIncidentAction(a, instance.instanceId);
+  playSfx('incident');
+  notifyIncident('new', def.name);
 }
 
 function resolveInstance(inst: ScenarioInstance, def: IncidentScenarioDefinition | undefined): void {
