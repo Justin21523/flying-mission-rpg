@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
 import { useCharacterStore } from '../../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../../stores/game/editorCharacterStore';
-import { getFlightTuning } from '../../../stores/game/editorFlightStore';
+import { getFlightTuning, useEditorFlightStore } from '../../../stores/game/editorFlightStore';
 import { getPath } from '../../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../../path/pathCurve';
 import { getActivePathId } from './worldRoute';
@@ -12,12 +12,14 @@ import { AnimatedGlbModel } from '../../world/AnimatedGlbModel';
 import { flightHandle } from '../flightHandle';
 
 // The craft cruises FORWARD along the active route's 航道 (editorPathStore path) — it always flies ahead
-// (never reverses); W boosts, S eases off. lookAt aligns the craft's −z to the route tangent, so the
-// FlightCamera trails behind and the world streams backward past it. The model is wrapped in a π-yaw group
-// so its nose points along travel (GLB models face +z by default → otherwise it looks like flying backward).
+// (never reverses); W boosts, S eases off. NOTE: three's Object3D.lookAt on a non-camera Group points its
+// +Z at the target, but the FlightCamera (and free-flight) treat −Z as forward — so we aim lookAt at
+// (pos − tangent) to make the craft's −Z follow the route. Then the camera trails BEHIND and the world
+// streams backward past it (no more inversion). The model's facing offset is editable (🛩 Flight → Craft yaw).
 const _pos = new Vector3();
 const _tan = new Vector3();
 const _look = new Vector3();
+const DEG2RAD = Math.PI / 180;
 
 export const RouteFollower = () => {
   const craft = useRef<Group>(null);
@@ -25,6 +27,7 @@ export const RouteFollower = () => {
   const u = useRef(0);
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
+  const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
   const pathId = getActivePathId();
 
   useEffect(() => {
@@ -70,7 +73,7 @@ export const RouteFollower = () => {
     sampleTangent(cc.curve, u.current, _tan);
     flightHandle.pos.copy(_pos);
     c.position.copy(_pos);
-    _look.copy(_pos).add(_tan);
+    _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
     c.lookAt(_look);
     flightHandle.quat.copy(c.quaternion);
     flightHandle.speed = pathSpeed;
@@ -91,9 +94,9 @@ export const RouteFollower = () => {
   );
   return (
     <group ref={craft}>
-      {/* π-yaw so the model's +z nose points along −z travel (camera trails behind it). */}
-      <group rotation={[0, Math.PI, 0]}>
-        {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} /> : fallback}
+      {/* editable facing offset so the model's nose points along travel (default 180°; dial in 🛩 Flight). */}
+      <group rotation={[0, craftYaw * DEG2RAD, 0]}>
+        {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
       </group>
     </group>
   );

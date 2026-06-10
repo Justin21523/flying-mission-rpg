@@ -1,18 +1,20 @@
 import type { FlightEventDef } from '../../types/game/flightEvent';
 
 // Seed flight-event pool (the world-flight director spawns from this along a route). Child-friendly,
-// non-combat. Editable in the 🌩 Events tab.
+// non-combat. Each carries director gating — cooldown (minGapSec), route-progress window, altitude window,
+// overlap rules (canOverlapWith) and a blocking flag for navigation-affecting events. Editable in 🌩 Events.
 export const SEED_FLIGHT_EVENTS: FlightEventDef[] = [
-  { id: 'fe_cloud_hole', kind: 'cloud_hole', label: 'Cloud Hole', weight: 3, minGapSec: 4, lateralRange: 8, color: '#cbd5e1', size: 6, durationSec: 6, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_crosswind', kind: 'crosswind', label: 'Crosswind', weight: 2, minGapSec: 6, lateralRange: 0, color: '#a5f3fc', size: 10, durationSec: 5, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_updraft', kind: 'updraft', label: 'Updraft', weight: 2, minGapSec: 6, lateralRange: 6, color: '#86efac', size: 4, durationSec: 6, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_storm', kind: 'storm', label: 'Storm Cell', weight: 1, minGapSec: 12, lateralRange: 4, color: '#64748b', size: 14, durationSec: 8, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_lightning', kind: 'lightning', label: 'Lightning Warning', weight: 1, minGapSec: 10, lateralRange: 6, color: '#fde047', size: 5, durationSec: 4, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_rainbow', kind: 'rainbow', label: 'Rainbow', weight: 1, minGapSec: 14, lateralRange: 0, color: '#f0abfc', size: 26, durationSec: 10, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_birds', kind: 'birds', label: 'Bird Flock', weight: 2, minGapSec: 7, lateralRange: 7, color: '#1f2937', size: 3, durationSec: 6, driftSpeed: 7, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_energy', kind: 'energy_refill', label: 'Energy Refill', weight: 2, minGapSec: 8, lateralRange: 6, color: '#34d399', size: 1.4, durationSec: 8, value: 20, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_stunt_ring', kind: 'stunt_ring', label: 'Stunt Ring', weight: 3, minGapSec: 3, lateralRange: 5, color: '#fb923c', size: 4, durationSec: 7, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_collectible', kind: 'collectible', label: 'Star Collectible', weight: 3, minGapSec: 2.5, lateralRange: 7, color: '#fde047', size: 1, durationSec: 8, value: 1, sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_radio', kind: 'radio', label: 'Radio Call', weight: 1, minGapSec: 16, lateralRange: 0, color: '#38bdf8', size: 1, durationSec: 5, radioText: 'Mission Control: looking good — stay on the route!', sourceConfidence: 'GameAdaptation' },
-  { id: 'fe_formation', kind: 'formation', label: 'Formation Flight', weight: 1, minGapSec: 18, lateralRange: 4, color: '#93c5fd', size: 2, durationSec: 9, driftSpeed: 5, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_cloud_hole', kind: 'cloud_hole', label: 'Cloud Hole', weight: 3, minGapSec: 4, lateralRange: 8, color: '#cbd5e1', size: 6, durationSec: 6, minRouteProgress: 0.05, maxRouteProgress: 0.95, canOverlapWith: ['collectible', 'energy_refill', 'stunt_ring', 'radio'], sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_crosswind', kind: 'crosswind', label: 'Crosswind', weight: 2, minGapSec: 6, lateralRange: 0, color: '#a5f3fc', size: 10, durationSec: 5, minRouteProgress: 0.1, maxRouteProgress: 0.95, canOverlapWith: ['collectible', 'energy_refill', 'radio', 'birds'], sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_updraft', kind: 'updraft', label: 'Updraft', weight: 2, minGapSec: 6, lateralRange: 6, color: '#86efac', size: 4, durationSec: 6, minRouteProgress: 0.05, maxRouteProgress: 0.95, canOverlapWith: ['collectible', 'energy_refill', 'radio', 'stunt_ring'], sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_storm', kind: 'storm', label: 'Storm Cell', weight: 1, minGapSec: 12, lateralRange: 4, color: '#64748b', size: 14, durationSec: 8, minRouteProgress: 0.3, maxRouteProgress: 0.9, canOverlapWith: ['lightning', 'radio'], blocking: true, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_lightning', kind: 'lightning', label: 'Lightning Warning', weight: 1, minGapSec: 10, lateralRange: 6, color: '#fde047', size: 5, durationSec: 4, minRouteProgress: 0.3, maxRouteProgress: 0.9, canOverlapWith: ['storm', 'radio'], sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_rainbow', kind: 'rainbow', label: 'Rainbow', weight: 1, minGapSec: 14, lateralRange: 0, color: '#f0abfc', size: 26, durationSec: 10, minRouteProgress: 0.1, maxRouteProgress: 0.9, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_birds', kind: 'birds', label: 'Bird Flock', weight: 2, minGapSec: 7, lateralRange: 7, color: '#1f2937', size: 3, durationSec: 6, driftSpeed: 7, minRouteProgress: 0.05, maxRouteProgress: 0.95, canOverlapWith: ['collectible', 'energy_refill', 'radio', 'crosswind'], sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_energy', kind: 'energy_refill', label: 'Energy Refill', weight: 2, minGapSec: 8, lateralRange: 6, color: '#34d399', size: 1.4, durationSec: 8, value: 20, minRouteProgress: 0, maxRouteProgress: 1, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_stunt_ring', kind: 'stunt_ring', label: 'Stunt Ring', weight: 3, minGapSec: 3, lateralRange: 5, color: '#fb923c', size: 4, durationSec: 7, minRouteProgress: 0.05, maxRouteProgress: 0.95, canOverlapWith: ['collectible', 'energy_refill', 'cloud_hole', 'radio'], sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_collectible', kind: 'collectible', label: 'Star Collectible', weight: 3, minGapSec: 2.5, lateralRange: 7, color: '#fde047', size: 1, durationSec: 8, value: 1, minRouteProgress: 0, maxRouteProgress: 1, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_radio', kind: 'radio', label: 'Radio Call', weight: 1, minGapSec: 16, lateralRange: 0, color: '#38bdf8', size: 1, durationSec: 5, radioText: 'Mission Control: looking good — stay on the route!', minRouteProgress: 0, maxRouteProgress: 1, sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_formation', kind: 'formation', label: 'Formation Flight', weight: 1, minGapSec: 18, lateralRange: 4, color: '#93c5fd', size: 2, durationSec: 9, driftSpeed: 5, minRouteProgress: 0.1, maxRouteProgress: 0.8, canOverlapWith: ['collectible', 'radio', 'rainbow'], sourceConfidence: 'GameAdaptation' },
+  { id: 'fe_branch', kind: 'branch', label: 'Route Branch', weight: 1, minGapSec: 20, lateralRange: 0, color: '#f59e0b', size: 5, durationSec: 8, minRouteProgress: 0.4, maxRouteProgress: 0.85, canOverlapWith: ['radio'], blocking: true, sourceConfidence: 'GameAdaptation' },
 ];

@@ -17,9 +17,10 @@ interface AnimatedGlbModelProps {
   assetId: string;
   animation?: string;
   fallback?: React.ReactNode;
+  noCull?: boolean; // skip distance-culling (the flight craft moves far from playerStore → must stay visible)
 }
 
-const AnimatedInner = ({ assetId, animation }: { assetId: string; animation?: string }) => {
+const AnimatedInner = ({ assetId, animation, noCull }: { assetId: string; animation?: string; noCull?: boolean }) => {
   // Re-render when this asset's Model Studio tuning changes.
   useModelStudioStore((s) => s.overrides[assetId]);
   const asset = resolveModelAsset(assetId)!;
@@ -76,7 +77,7 @@ const AnimatedInner = ({ assetId, animation }: { assetId: string; animation?: st
 
   const cullRef = useDistanceCull<Group>(); // hide when far from the player (Play Mode perf)
   return (
-    <group ref={cullRef} position={asset.position} rotation={asset.rotation} scale={asset.scale}>
+    <group ref={noCull ? undefined : cullRef} position={asset.position} rotation={asset.rotation} scale={asset.scale}>
       <primitive object={cloned} />
     </group>
   );
@@ -97,12 +98,12 @@ class ModelErrorBoundary extends React.Component<{ fallback: React.ReactNode; ch
   }
 }
 
-export function AnimatedGlbModel({ assetId, animation, fallback = null }: AnimatedGlbModelProps) {
+export function AnimatedGlbModel({ assetId, animation, fallback = null, noCull }: AnimatedGlbModelProps) {
   if (!resolveModelAsset(assetId)) return <>{fallback}</>;
   return (
     <ModelErrorBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
-        <AnimatedInner assetId={assetId} animation={animation} />
+        <AnimatedInner assetId={assetId} animation={animation} noCull={noCull} />
       </Suspense>
     </ModelErrorBoundary>
   );

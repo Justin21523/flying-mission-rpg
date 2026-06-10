@@ -4,7 +4,7 @@ import { Euler, Vector3, type Group } from 'three';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
-import { getFlightTuning } from '../../stores/game/editorFlightStore';
+import { getFlightTuning, useEditorFlightStore } from '../../stores/game/editorFlightStore';
 import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { getExteriorByKind } from '../../stores/game/editorExteriorStore';
 import { getPath } from '../../stores/editorPathStore';
@@ -41,6 +41,7 @@ export const FlightController = () => {
   const prevPhase = useRef('');
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
+  const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -109,7 +110,7 @@ export const FlightController = () => {
         sampleTangent(cc.curve, pathU.current, _tan);
         flightHandle.pos.copy(_pos);
         craft.position.copy(_pos);
-        _look.copy(_pos).add(_tan);
+        _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
         craft.lookAt(_look);
         flightHandle.quat.copy(craft.quaternion);
         flightHandle.speed = pathSpeed * Math.abs(fwd);
@@ -189,11 +190,12 @@ export const FlightController = () => {
 
   return (
     <group ref={aircraft}>
-      {/* π-yaw so the model's +z nose points along −z travel (camera trails behind it). */}
-      <group rotation={[0, Math.PI, 0]}>
+      {/* editable facing offset so the model's nose points along travel (default 180°; 🛩 Flight → Craft yaw). */}
+      <group rotation={[0, (craftYaw * Math.PI) / 180, 0]}>
         {character?.modelAssetId ? (
           <AnimatedGlbModel
             assetId={character.modelAssetId}
+            noCull
             fallback={
               <mesh castShadow>
                 <coneGeometry args={[0.6, 2, 6]} />

@@ -25,4 +25,5 @@ export interface FlightTuning {
   worldCloudCount: number; // world-flight: number of recycled cloud puffs in the floor below
   worldEventMaxActive: number; // world-flight: max concurrent flight events
   worldEventSpawnGap: number; // world-flight: min seconds between event spawns
+  worldCraftYawDeg: number; // craft model facing offset (deg) — dial so the nose points along travel
 }

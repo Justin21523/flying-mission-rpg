@@ -9,7 +9,7 @@ import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
 import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
-import { WORLD_PATH } from '../../data/game/worldRoutes';
+import { ALL_WORLD_PATHS } from '../../data/game/worldRoutes';
 import type { PathDefinition } from '../../types/path';
 
 // Seed a path into POLI's editorPathStore (idempotent) so the 🛣 Tracks tab + node gizmos can edit it.
@@ -35,6 +35,6 @@ export function seedGameContent(): void {
   // Seed our 航道 curves into the editorPathStore so the 🛣 Tracks tab + node gizmos edit the REAL paths
   // (fly-around around the base, and the long-distance world route).
   seedPath(FLIGHT_PATH);
-  seedPath(WORLD_PATH);
+  ALL_WORLD_PATHS.forEach(seedPath);
 }
 

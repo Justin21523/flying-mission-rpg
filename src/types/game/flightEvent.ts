@@ -38,7 +38,7 @@ export interface FlightEventDef {
   kind: FlightEventKind;
   label: string;
   weight: number; // relative spawn likelihood
-  minGapSec: number; // min seconds since the last event before this can spawn (no overlap)
+  minGapSec: number; // cooldown — min seconds since THIS event last spawned before it can spawn again
   lateralRange: number; // how far off the route centre it can appear (world units)
   color: string;
   size: number;
@@ -47,5 +47,12 @@ export interface FlightEventDef {
   modelAssetId?: string; // optional GLB placeholder (empty = built-in primitive visual for the kind)
   radioText?: string; // for 'radio' events
   value?: number; // collectible/energy amount
+  // ── director gating (Batch 5) ──
+  minRouteProgress?: number; // 0..1 — earliest point on the route it may appear (default 0)
+  maxRouteProgress?: number; // 0..1 — latest point (default 1)
+  minAltitude?: number;
+  maxAltitude?: number;
+  canOverlapWith?: FlightEventKind[]; // kinds it may coexist with (undefined = overlaps anything)
+  blocking?: boolean; // navigation-affecting — only a limited number may be active at once
   sourceConfidence: SourceConfidence;
 }

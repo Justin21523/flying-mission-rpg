@@ -25,6 +25,7 @@ const FIELDS: { key: keyof FlightTuning; label: string; step: number }[] = [
   { key: 'worldCloudCount', label: 'World cloud count', step: 5 },
   { key: 'worldEventMaxActive', label: 'World event max', step: 1 },
   { key: 'worldEventSpawnGap', label: 'World event gap (s)', step: 0.2 },
+  { key: 'worldCraftYawDeg', label: 'Craft yaw (deg)', step: 90 },
 ];
 
 export const FlightEditorTab = () => {
