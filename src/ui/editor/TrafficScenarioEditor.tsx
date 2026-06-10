@@ -84,6 +84,13 @@ export const TrafficScenarioEditor = () => {
                   <Field label="max instances"><input type="number" min={1} value={d.maxConcurrentInstances} onChange={(e) => ts.updateScenario(d.id, { maxConcurrentInstances: num(e.target.value, 1) })} className={inp} /></Field>
                   <Field label="rescue incident"><IdSelect value={d.rescueIncidentId} onChange={(v) => ts.updateScenario(d.id, { rescueIncidentId: v })} options={rescueOptions} placeholder="(none)" /></Field>
                 </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <Field label="reward coins (×sev)"><input type="number" value={d.rewardCoins ?? ''} placeholder={`${d.severity * 10}`} onChange={(e) => ts.updateScenario(d.id, { rewardCoins: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>
+                  <Field label="req. rescues (license)"><input type="number" value={d.requiredLicense ?? ''} placeholder="0" onChange={(e) => ts.updateScenario(d.id, { requiredLicense: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>
+                  <Field label="onlookers (def=sev)"><input type="number" value={d.onlookerCount ?? ''} placeholder={`${d.severity}`} onChange={(e) => ts.updateScenario(d.id, { onlookerCount: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>
+                  <Field label="affects character"><input value={d.affectsCharacterId ?? ''} onChange={(e) => ts.updateScenario(d.id, { affectsCharacterId: e.target.value || undefined })} className={inp} placeholder="(none)" /></Field>
+                  <Field label="trust lost if missed"><input type="number" value={d.failTrust ?? ''} placeholder="1" onChange={(e) => ts.updateScenario(d.id, { failTrust: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>
+                </div>
 
                 <ActionList label="setup actions" actions={d.setupActions} onChange={(a) => ts.updateScenario(d.id, { setupActions: a })} />
 

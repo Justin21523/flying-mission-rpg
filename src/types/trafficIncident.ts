@@ -73,6 +73,13 @@ export interface IncidentScenarioDefinition {
 
   rescueIncidentId?: string;   // notifyRescue → spawn this existing rescue IncidentDefinition (by id)
 
+  // Consequences (G3/G4/G5) — all optional, additive.
+  rewardCoins?: number;        // base coins on player-resolve (default severity×10); ×speed bonus applied
+  requiredLicense?: number;    // director skips until this many rescues completed
+  onlookerCount?: number;      // NPC onlookers spawned to react (default = severity)
+  affectsCharacterId?: string; // whose trust changes on resolve / miss
+  failTrust?: number;          // trust lost on timeout-miss (default 1)
+
   setupActions: IncidentAction[];
   timeline: IncidentTimelineStep[];
   resolutionConditions: IncidentResolutionCondition[];

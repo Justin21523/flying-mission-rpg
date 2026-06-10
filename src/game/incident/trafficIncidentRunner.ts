@@ -4,6 +4,9 @@ import { useIncidentScenarioStore, countActive, type ScenarioInstance } from '..
 import { usePlayerStore } from '../../stores/playerStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { useWorldClockStore } from '../../stores/worldClockStore';
+import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
+import { useWalletStore } from '../../stores/walletStore';
+import { useRelationshipStore } from '../../stores/relationshipStore';
 import { getPaths } from '../../stores/editorPathStore';
 import { getCurve, samplePos } from '../path/pathCurve';
 import { setPathBlocked, removeBlocker } from '../path/pathBlocks';
@@ -75,33 +78,51 @@ export function startScenario(scenarioId: string, loc?: { pathId: string; pos: [
   notifyIncident('new', def.name);
 }
 
-function resolveInstance(inst: ScenarioInstance, def: IncidentScenarioDefinition | undefined): void {
+type ResolveCause = 'player' | 'timeout' | null;
+
+function resolveInstance(inst: ScenarioInstance, def: IncidentScenarioDefinition | undefined, cause: ResolveCause): void {
   const store = useIncidentScenarioStore.getState();
   const live = store.instances.find((x) => x.instanceId === inst.instanceId) ?? inst;
   if (def) for (const a of def.cleanupActions) runIncidentAction(a, live.instanceId);
-  // Cleanup: unregister spawned collidables, unblock roads, drop the scene blocker.
+  // Cleanup: unregister spawned collidables, unblock roads, drop the scene blocker, despawn scenario vehicles.
   for (const e of live.entities) unregisterCollision(e.id);
   for (const pid of live.blockedPaths) setPathBlocked(pid, false);
   removeBlocker(`${live.instanceId}#blk`);
-  useIncidentFollowerStore.getState().removeForInstance(live.instanceId); // despawn scenario vehicles
+  useIncidentFollowerStore.getState().removeForInstance(live.instanceId);
   store.end(live.instanceId);
   lastResolved.set(live.scenarioId, nowSec());
-  playSfx('rescueSuccess');
+
+  if (def && cause === 'player') {
+    // Success — severity-scaled coins + a speed bonus (faster response = more), optional trust ↑.
+    const elapsed = nowSec() - live.startTime;
+    const timeout = def.resolutionConditions.find((c) => c.type === 'timeout');
+    const window = timeout && timeout.type === 'timeout' ? timeout.seconds : 60;
+    const speed = Math.max(0, Math.min(1, 1 - elapsed / window));
+    const base = def.rewardCoins ?? def.severity * 10;
+    useWalletStore.getState().addCoins(Math.round(base * (1 + 0.5 * speed)));
+    if (def.affectsCharacterId) useRelationshipStore.getState().increaseTrust(def.affectsCharacterId, 1);
+    playSfx('rescueSuccess');
+    notifyIncident('resolved', def.name);
+  } else if (def) {
+    // Missed (timeout) — G5 adds the trust penalty + missed toast.
+    notifyIncident('missed', def.name);
+  }
 }
 
-function resolved(inst: ScenarioInstance, def: IncidentScenarioDefinition): boolean {
+function resolved(inst: ScenarioInstance, def: IncidentScenarioDefinition): ResolveCause {
   const t = nowSec();
   const elapsed = t - inst.startTime;
   for (const c of def.resolutionConditions) {
-    if (c.type === 'timeout' && elapsed >= c.seconds) return true;
-    if (c.type === 'flagSet' && useFlagStore.getState().hasFlag(c.flag)) return true;
-    if (c.type === 'victimRescued' && useFlagStore.getState().hasFlag(`traffic_resolved_${inst.scenarioId}`)) return true;
+    if (c.type === 'flagSet' && useFlagStore.getState().hasFlag(c.flag)) return 'player';
+    if (c.type === 'victimRescued' && useFlagStore.getState().hasFlag(`traffic_resolved_${inst.scenarioId}`)) return 'player';
     if (c.type === 'playerReached') {
       const p = usePlayerStore.getState().position;
-      if (p && Math.hypot(p.x - inst.position[0], p.z - inst.position[2]) <= c.radius) return true;
+      if (p && Math.hypot(p.x - inst.position[0], p.z - inst.position[2]) <= c.radius) return 'player';
     }
   }
-  return false;
+  // Timeout is the fallback (a miss) — checked last so a player-resolve always wins.
+  for (const c of def.resolutionConditions) if (c.type === 'timeout' && elapsed >= c.seconds) return 'timeout';
+  return null;
 }
 
 export function tick(): void {
@@ -113,7 +134,7 @@ export function tick(): void {
   // Advance + resolve active instances (snapshot first; resolveInstance mutates the store).
   for (const inst of [...store.instances]) {
     const def = scenarios.find((d) => d.id === inst.scenarioId);
-    if (!def) { resolveInstance(inst, undefined); continue; }
+    if (!def) { resolveInstance(inst, undefined, null); continue; }
     const elapsed = t - inst.startTime;
     let ran = inst.ranSteps;
     def.timeline.forEach((step, i) => {
@@ -123,7 +144,8 @@ export function tick(): void {
         store.update(inst.instanceId, { ranSteps: ran });
       }
     });
-    if (resolved(inst, def)) resolveInstance(inst, def);
+    const cause = resolved(inst, def);
+    if (cause) resolveInstance(inst, def, cause);
   }
 
   // Auto-spawn loop.
@@ -133,9 +155,11 @@ export function tick(): void {
   spawnTimer = 0;
   if (store.instances.length >= cfg.maxConcurrent) return;
 
+  const rescues = useRescueLicenseStore.getState().rescuesCompleted;
   const eligible = scenarios.filter((d) => d.enabled
     && countActive(d.id) < d.maxConcurrentInstances
     && t - (lastResolved.get(d.id) ?? -Infinity) >= d.cooldown
+    && rescues >= (d.requiredLicense ?? 0)
     && timeWeatherOk(d));
   if (eligible.length === 0) return;
   const total = eligible.reduce((s, d) => s + Math.max(0, d.weight), 0);
