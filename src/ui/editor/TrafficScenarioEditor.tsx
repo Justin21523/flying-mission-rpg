@@ -10,6 +10,7 @@ import { IncidentActionEditor } from './IncidentActionEditor';
 // 🚧 Traffic Scenarios — full in-UI authoring for the Traffic Incident Director: director config + per-scenario
 // fields, setup / timeline / cleanup action chains, and resolution conditions (no more JSON-only deep edits).
 const num = (v: string, d = 0) => { const n = parseFloat(v); return Number.isNaN(n) ? d : n; };
+const WEATHERS = ['clear', 'rain', 'fog', 'storm'];
 
 // Reusable list of IncidentActions with add / change / remove.
 const ActionList = ({ label, actions, onChange }: { label: string; actions: IncidentAction[]; onChange: (a: IncidentAction[]) => void }) => (
@@ -91,6 +92,19 @@ export const TrafficScenarioEditor = () => {
                   <Field label="affects character"><input value={d.affectsCharacterId ?? ''} onChange={(e) => ts.updateScenario(d.id, { affectsCharacterId: e.target.value || undefined })} className={inp} placeholder="(none)" /></Field>
                   <Field label="trust lost if missed"><input type="number" value={d.failTrust ?? ''} placeholder="1" onChange={(e) => ts.updateScenario(d.id, { failTrust: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>
                 </div>
+                {/* Spawn gating (the director honours these) — editable here, not just via JSON. */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="min world-time (min, 0–1440)"><input type="number" value={d.minWorldTime ?? ''} placeholder="(any)" onChange={(e) => ts.updateScenario(d.id, { minWorldTime: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>
+                  <Field label="max world-time (min, 0–1440)"><input type="number" value={d.maxWorldTime ?? ''} placeholder="(any)" onChange={(e) => ts.updateScenario(d.id, { maxWorldTime: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>
+                </div>
+                <Field label="weather (none = any)">
+                  <div className="flex flex-wrap gap-1">
+                    {WEATHERS.map((w) => {
+                      const on = (d.weatherConditions ?? []).includes(w);
+                      return <button key={w} onClick={() => ts.updateScenario(d.id, { weatherConditions: on ? (d.weatherConditions ?? []).filter((x) => x !== w) : [...(d.weatherConditions ?? []), w] })} className={`rounded px-1.5 py-0.5 text-[10px] ${on ? 'bg-sky-600/40 text-sky-100' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>{w}</button>;
+                    })}
+                  </div>
+                </Field>
 
                 <ActionList label="setup actions" actions={d.setupActions} onChange={(a) => ts.updateScenario(d.id, { setupActions: a })} />
 
