@@ -3,7 +3,17 @@ import { getEditorIncident } from '../stores/editorIncidentStore';
 import { useToolStore } from '../stores/toolStore';
 import { getEditorTool } from '../stores/editorToolStore';
 import { usePoll } from './usePoll';
+import { useTransformStore } from '../stores/transformStore';
 import { useT } from '../i18n/useT';
+
+// Vehicle⇄robot hint (K4c): robots wield rescue tools faster — nudge the player to transform (T).
+function FormHint() {
+  const form = useTransformStore((s) => s.form);
+  const t = useT();
+  return form === 'robot'
+    ? <div className="mt-1 text-xs font-semibold text-cyan-300">🤖 {t('robot_active')}</div>
+    : <div className="mt-1 text-xs font-semibold text-amber-300">🤖 {t('robot_faster')}</div>;
+}
 
 const nowSec = () => performance.now() / 1000;
 
@@ -126,6 +136,7 @@ export const RescueHud = () => {
                 ⏱ {Math.ceil(timeLeft)}s
               </div>
               <div className="mt-2 text-base text-white opacity-80">{t('pressEToAct')}</div>
+              <FormHint />
               <RescueToolBar />
             </>
           )}

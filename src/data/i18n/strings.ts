@@ -59,6 +59,7 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     shop_nothing: 'Nothing for sale.', shop_buy: 'Buy',
     save_title: 'Save / Load', save_slotName: 'slot name…', save_save: 'Save', save_none: 'No saves yet.', save_load: 'Load', save_saved: 'Saved', save_loaded: 'Loaded',
     inc_title: 'Incidents', inc_go: 'Go', inc_onScene: 'On scene', inc_new: 'New incident', inc_missed: 'Incident missed', inc_resolved: 'Incident resolved',
+    robot_faster: 'Robot form works tools faster (T)', robot_active: 'Robot form · tools +50%',
   },
   zh: {
     activeQuests: '進行中的任務',
@@ -109,5 +110,6 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     shop_nothing: '目前沒有商品。', shop_buy: '購買',
     save_title: '存檔 / 讀取', save_slotName: '存檔名稱…', save_save: '存檔', save_none: '尚無存檔。', save_load: '讀取', save_saved: '已儲存', save_loaded: '已讀取',
     inc_title: '事件', inc_go: '前往', inc_onScene: '在現場', inc_new: '新事件', inc_missed: '錯過事件', inc_resolved: '事件解決',
+    robot_faster: '機器人形操作工具更快(按 T)', robot_active: '機器人形 · 工具 +50%',
   },
 };

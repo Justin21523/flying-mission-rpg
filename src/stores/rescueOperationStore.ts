@@ -9,6 +9,7 @@ import { useToolStore } from './toolStore';
 import { getEditorTool } from './editorToolStore';
 import { useRescueLicenseStore } from './rescueLicenseStore';
 import { useJinResearchStore } from './jinResearchStore';
+import { useTransformStore } from './transformStore';
 import { playSfx } from '../game/audio/sfx';
 import type { RescuePipelineStep } from '../types/incident';
 import type { ToolId } from '../types/tool';
@@ -150,7 +151,9 @@ export const useRescueOperationStore = create<RescueOperationState>((set, get) =
     const stage = getStage(s.incidentId, s.stageIndex);
     if (!stage || stage.type !== 'action') return;
     const count = stage.actionCount ?? 1;
-    const next = Math.min(1, s.actionProgress + 1 / count + s.toolBonus.actionBonus);
+    // Vehicle⇄robot (K4c): robots wield the rescue tools, so acting in robot form is ~50% faster per press.
+    const formBonus = useTransformStore.getState().form === 'robot' ? (1 / count) * 0.5 : 0;
+    const next = Math.min(1, s.actionProgress + 1 / count + s.toolBonus.actionBonus + formBonus);
     set({ actionProgress: next });
     if (next >= 1) completeStage();
   },
