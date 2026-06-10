@@ -1,4 +1,3 @@
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useUiStore } from '../../../stores/uiStore';
 import { EditModeAmbience } from '../../edit/EditModeAmbience';
 import { WorldSkyAmbience } from './WorldSkyAmbience';
@@ -14,7 +13,7 @@ import { FlightEventPreview } from './FlightEventPreview';
 
 // WORLD_FLIGHT — the long-distance high-altitude leg (PDF §批次5). PLAY: the craft follows the route's
 // 航道 (RouteFollower) through a recycled cloud field + speed streaks, with the pooled flight-event
-// director spawning events ahead; FlightCamera + Bloom. EDIT: orbit camera + gizmo + the world route's
+// director spawning events ahead; FlightCamera. EDIT: orbit camera + gizmo + the world route's
 // node handles (PathDebugLayer area 'world') so the route is editable in the 🛣 Tracks tab — flight
 // suspended, fully synced with play.
 export const WorldFlightScene = () => {
@@ -41,12 +40,6 @@ export const WorldFlightScene = () => {
 
       {editMode ? <FollowCamera /> : <FlightCamera />}
       {editMode && <SceneEditorGizmo />}
-
-      {!editMode && (
-        <EffectComposer>
-          <Bloom intensity={0.8} luminanceThreshold={0.5} mipmapBlur />
-        </EffectComposer>
-      )}
     </>
   );
 };
