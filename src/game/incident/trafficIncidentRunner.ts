@@ -7,6 +7,7 @@ import { getPaths } from '../../stores/editorPathStore';
 import { getCurve, samplePos } from '../path/pathCurve';
 import { setPathBlocked, removeBlocker } from '../path/pathBlocks';
 import { unregisterCollision } from '../collision/collisionRegistry';
+import { useIncidentFollowerStore } from '../../stores/incidentFollowerStore';
 import { runIncidentAction } from './runIncidentAction';
 import { playSfx } from '../audio/sfx';
 import type { IncidentScenarioDefinition } from '../../types/trafficIncident';
@@ -56,6 +57,7 @@ function resolveInstance(inst: ScenarioInstance, def: IncidentScenarioDefinition
   for (const e of live.entities) unregisterCollision(e.id);
   for (const pid of live.blockedPaths) setPathBlocked(pid, false);
   removeBlocker(`${live.instanceId}#blk`);
+  useIncidentFollowerStore.getState().removeForInstance(live.instanceId); // despawn scenario vehicles
   store.end(live.instanceId);
   lastResolved.set(live.scenarioId, nowSec());
   playSfx('rescueSuccess');

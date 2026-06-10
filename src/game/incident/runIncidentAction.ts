@@ -4,6 +4,8 @@ import { useFlagStore } from '../../stores/flagStore';
 import { useIncidentStore } from '../../stores/incidentStore';
 import { getEditorIncidents } from '../../stores/editorIncidentStore';
 import { getScenarios } from '../../stores/editorTrafficScenarioStore';
+import { useIncidentFollowerStore, countIncidentFollowers } from '../../stores/incidentFollowerStore';
+import type { PathFollowerDef } from '../../types/pathFollower';
 import { setPathBlocked, addBlocker } from '../path/pathBlocks';
 import { registerCollision } from '../collision/collisionRegistry';
 import { emitGameEvent } from '../collision/gameEventBus';
@@ -31,6 +33,20 @@ export function runIncidentAction(action: IncidentAction, instanceId: string): v
 
   switch (action.type) {
     case 'spawnVehicle': {
+      // On a path → a REAL moving Phase E follower (it drives in; setVehicleState can stop it). Off-path →
+      // a static prop fallback.
+      const pid = action.pathId || inst.pathId;
+      if (pid) {
+        const n = countIncidentFollowers(instanceId);
+        const def: PathFollowerDef = {
+          id: `${instanceId}#v${n}`, name: action.vehicleType ?? 'vehicle', areaId: inst.areaId, kind: 'vehicle',
+          pathId: pid, count: 1, speed: 6, lookAhead: 6, minGap: 3, color: COLOR.vehicle, scale: 2.4,
+          size: [0.9, 1.2, 2.2], yieldToIncidents: false, canReroute: false, loop: true, enabled: true,
+        };
+        // Stagger participants slightly along the path around the scene midpoint.
+        useIncidentFollowerStore.getState().add(instanceId, def, 0.5 + n * 0.04);
+        return;
+      }
       const id = `${instanceId}#e${inst.entities.length}`;
       const e: SpawnedEntity = { id, kind: 'vehicle', position: spreadPos(inst.position, inst.entities.length), color: COLOR.vehicle, label: action.vehicleType ?? 'vehicle' };
       registerCollision({ objectId: id, objectType: 'vehicle', tags: ['incident', 'vehicle'], enabled: true });
@@ -45,10 +61,14 @@ export function runIncidentAction(action: IncidentAction, instanceId: string): v
       return;
     }
     case 'setVehicleState': {
-      // participant 'vN' → the Nth vehicle entity.
+      // participant 'vN' → the Nth vehicle. Prefer the real ephemeral follower (scales its speed: breakdown/
+      // stopped → 0); fall back to tagging a static prop entity.
       const n = parseInt(action.participant.replace(/\D/g, ''), 10) || 0;
-      const vehicles = inst.entities.filter((x) => x.kind === 'vehicle');
-      const target = vehicles[n];
+      if (countIncidentFollowers(instanceId) > 0) {
+        useIncidentFollowerStore.getState().setVehicleState(instanceId, n, action.state);
+        return;
+      }
+      const target = inst.entities.filter((x) => x.kind === 'vehicle')[n];
       if (target) {
         store.update(instanceId, {
           entities: inst.entities.map((x) => (x.id === target.id ? { ...x, state: action.state, color: action.state === 'normal' ? COLOR.vehicle : '#fbbf24' } : x)),

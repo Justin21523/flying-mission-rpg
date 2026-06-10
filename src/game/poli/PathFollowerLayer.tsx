@@ -5,6 +5,7 @@ import { Vector3, type Group } from 'three';
 import { useUiStore } from '../../stores/uiStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useEditorPathFollowerStore } from '../../stores/editorPathFollowerStore';
+import { useIncidentFollowerStore } from '../../stores/incidentFollowerStore';
 import { getPath } from '../../stores/editorPathStore';
 import { advanceFollower, followerPose } from '../path/pathFollowerAI';
 import { dropFollowerState } from '../path/followerRuntime';
@@ -118,6 +119,10 @@ const FollowerPreview = ({ def }: { def: PathFollowerDef }) => {
 export const PathFollowerLayer = ({ areaId }: { areaId: string }) => {
   const editMode = useUiStore((s) => s.editMode);
   const followers = useEditorPathFollowerStore((s) => s.followers).filter((f) => f.areaId === areaId);
-  if (followers.length === 0) return null;
-  return <>{followers.map((f) => (editMode ? <FollowerPreview key={f.id} def={f} /> : <FollowerEntity key={f.id} def={f} />))}</>;
+  // Scenario-spawned ephemeral followers (real moving vehicles) — play mode only.
+  const ephemeral = useIncidentFollowerStore((s) => s.followers).filter((f) => f.areaId === areaId);
+  if (editMode) return followers.length === 0 ? null : <>{followers.map((f) => <FollowerPreview key={f.id} def={f} />)}</>;
+  const all = [...followers, ...ephemeral];
+  if (all.length === 0) return null;
+  return <>{all.map((f) => <FollowerEntity key={f.id} def={f} />)}</>;
 };
