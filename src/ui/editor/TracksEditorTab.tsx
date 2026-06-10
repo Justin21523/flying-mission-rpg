@@ -223,6 +223,7 @@ const FollowersSection = () => {
           <div className="flex flex-wrap gap-3">
             <Check label="enabled" checked={f.enabled} onChange={(v) => st.updateFollower(f.id, { enabled: v })} />
             <Check label="yield to incidents" checked={f.yieldToIncidents} onChange={(v) => st.updateFollower(f.id, { yieldToIncidents: v })} />
+            <Check label="obey traffic" checked={f.obeyTraffic !== false} onChange={(v) => st.updateFollower(f.id, { obeyTraffic: v })} />
             <Check label="can reroute" checked={f.canReroute} onChange={(v) => st.updateFollower(f.id, { canReroute: v })} />
             <Check label="loop" checked={f.loop} onChange={(v) => st.updateFollower(f.id, { loop: v })} />
           </div>

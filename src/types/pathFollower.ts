@@ -20,6 +20,7 @@ export interface PathFollowerDef {
   scale?: number;
   size?: [number, number, number]; // capsule-fallback body extents (x used as radius, y as height)
   yieldToIncidents: boolean; // slow / stop near an active incident on the path
+  obeyTraffic?: boolean;     // stop at red signals + yield to crossing pedestrians (default true)
   canReroute: boolean;       // take a PathBranchRule when reaching a branch node / when blocked
   loop: boolean;             // wrap to the start at the path end (continuous traffic) vs hold at the end
   enabled: boolean;

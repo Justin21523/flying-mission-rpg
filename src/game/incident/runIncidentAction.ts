@@ -42,7 +42,7 @@ export function runIncidentAction(action: IncidentAction, instanceId: string): v
         const def: PathFollowerDef = {
           id: `${instanceId}#v${n}`, name: action.vehicleType ?? 'vehicle', areaId: inst.areaId, kind: 'vehicle',
           pathId: pid, count: 1, speed: 6, lookAhead: 6, minGap: 3, color: COLOR.vehicle, scale: 2.4,
-          size: [0.9, 1.2, 2.2], yieldToIncidents: false, canReroute: false, loop: true, enabled: true,
+          size: [0.9, 1.2, 2.2], yieldToIncidents: false, obeyTraffic: false, canReroute: false, loop: true, enabled: true,
         };
         // Stagger participants slightly along the path around the scene midpoint.
         useIncidentFollowerStore.getState().add(instanceId, def, 0.5 + n * 0.04);

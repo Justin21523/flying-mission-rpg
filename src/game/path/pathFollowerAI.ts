@@ -3,6 +3,8 @@ import type { PathFollowerDef } from '../../types/pathFollower';
 import type { PathDefinition } from '../../types/path';
 import { getPath } from '../../stores/editorPathStore';
 import { useIncidentStore } from '../../stores/incidentStore';
+import { getEditorSignals, getEditorCrosswalks } from '../../stores/editorTrafficStore';
+import { useTrafficStore } from '../../stores/trafficStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { getCurve, samplePos, sampleTangent } from './pathCurve';
@@ -85,6 +87,25 @@ export function advanceFollower(def: PathFollowerDef, i: number, dt: number): bo
       const d = blockerDist(sx, sz, tx, tz, bx, bz, def.lookAhead);
       if (d !== Infinity) { nearest = Math.min(nearest, d); incidentBlocked = true; }
     });
+  }
+
+  // Obey traffic: stop short of a non-green signal ahead, and yield to a pedestrian mid-crossing (a crosswalk
+  // whose linked signal is red, or an unsignalled crosswalk). Spatial — works for the curve path system even
+  // though signals/crosswalks belong to the old RoadPath layer. Incident participant vehicles set obeyTraffic=false.
+  if (def.obeyTraffic !== false) {
+    const traffic = useTrafficStore.getState();
+    for (const sig of getEditorSignals()) {
+      if (sig.areaId !== def.areaId || traffic.getSignalPhase(sig.id) === 'green') continue;
+      const d = blockerDist(sx, sz, tx, tz, sig.position[0], sig.position[2], def.lookAhead);
+      if (d !== Infinity) nearest = Math.min(nearest, d);
+    }
+    for (const cw of getEditorCrosswalks()) {
+      if (cw.areaId !== def.areaId) continue;
+      const crossing = !cw.linkedSignalId || traffic.getSignalPhase(cw.linkedSignalId) === 'red';
+      if (!crossing) continue;
+      const d = blockerDist(sx, sz, tx, tz, cw.position[0], cw.position[2], def.lookAhead);
+      if (d !== Infinity) nearest = Math.min(nearest, d);
+    }
   }
 
   // Blocker distance → target speed (linear brake; hard stop within STOP_DIST).
