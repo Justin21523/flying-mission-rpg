@@ -8,6 +8,7 @@ import { DataBackedPlacement } from '../edit/DataBackedPlacement';
 import { triggerDash } from '../combat/dashImpulse';
 import { enterPathFollow } from '../combat/pathFollow';
 import { playSfx } from '../audio/sfx';
+import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
 import type { BoostPadConfig } from '../../types/boostPad';
 
 // POLI (Phase B) — BoostPads. Play Mode: a Rapier sensor the player walks onto → a per-pad cooldown guards
@@ -20,6 +21,8 @@ const NO_RAYCAST = () => null;
 
 const PadVisual = ({ pad }: { pad: BoostPadConfig }) => {
   const color = pad.enabled ? '#22d3ee' : '#64748b';
+  // A linked model replaces the disc when set (the sensor still drives the boost).
+  if (pad.modelAssetId) return <NormalizedGlbModel assetId={pad.modelAssetId} target={pad.modelScale ?? 2} />;
   return (
     <group>
       {/* glowing pad disc */}

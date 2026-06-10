@@ -52,4 +52,11 @@ export interface PathDefinition {
   entryNodeIds: string[];
   exitNodeIds: string[];
   branchRules?: PathBranchRule[];
+  // Optional models tiled along the curve (like a road surface + roadside decor).
+  surfaceModelAssetId?: string;
+  surfaceSpacing?: number;   // world units between surface tiles (default 6)
+  surfaceScale?: number;     // normalised target size for the surface model (default 4)
+  decorModelAssetId?: string;
+  decorSpacing?: number;     // spacing between decor pieces (default 12)
+  decorOffset?: number;      // perpendicular offset to the side (default 4)
 }

@@ -70,6 +70,14 @@ const PathsSection = () => {
               <Field label="exit node"><IdSelect value={p.exitNodeIds[0]} onChange={(v) => st.updatePath(p.id, { exitNodeIds: v ? [v] : [] })} options={nodeOpts} placeholder="(none)" /></Field>
             </div>
             <Check label="closed loop" checked={p.closed} onChange={(v) => st.updatePath(p.id, { closed: v })} />
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="surface model (tiled)"><ModelPicker value={p.surfaceModelAssetId || undefined} onChange={(v) => st.updatePath(p.id, { surfaceModelAssetId: v ?? undefined })} allowNone noneLabel="(none)" /></Field>
+              <Field label="surface spacing"><input type="number" step={1} min={1} value={p.surfaceSpacing ?? 6} onChange={(e) => st.updatePath(p.id, { surfaceSpacing: num(e.target.value, 6) })} className={inp} /></Field>
+              <Field label="surface scale"><input type="number" step={0.5} value={p.surfaceScale ?? 4} onChange={(e) => st.updatePath(p.id, { surfaceScale: num(e.target.value, 4) })} className={inp} /></Field>
+              <Field label="roadside decor model"><ModelPicker value={p.decorModelAssetId || undefined} onChange={(v) => st.updatePath(p.id, { decorModelAssetId: v ?? undefined })} allowNone noneLabel="(none)" /></Field>
+              <Field label="decor spacing"><input type="number" step={1} min={1} value={p.decorSpacing ?? 12} onChange={(e) => st.updatePath(p.id, { decorSpacing: num(e.target.value, 12) })} className={inp} /></Field>
+              <Field label="decor side offset"><input type="number" step={0.5} value={p.decorOffset ?? 4} onChange={(e) => st.updatePath(p.id, { decorOffset: num(e.target.value, 4) })} className={inp} /></Field>
+            </div>
 
             <div className="rounded border border-slate-700/50 bg-slate-900/50 p-1.5">
               <div className="flex items-center justify-between"><span className={lbl}>nodes ({nodes.length})</span>
@@ -168,6 +176,10 @@ const BoostPadsSection = () => {
               </div>
             </Field>
           )}
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="model (empty = disc)"><ModelPicker value={p.modelAssetId || undefined} onChange={(v) => st.updatePad(p.id, { modelAssetId: v ?? undefined })} allowNone noneLabel="(disc)" /></Field>
+            <Field label="model scale"><input type="number" step={0.1} value={p.modelScale ?? 2} onChange={(e) => st.updatePad(p.id, { modelScale: num(e.target.value, 1) })} className={inp} /></Field>
+          </div>
           <Field label="tags (comma-separated)"><input value={csv(p.requiredTags)} onChange={(e) => st.updatePad(p.id, { requiredTags: parseCsv(e.target.value) })} className={inp} placeholder="(any)" /></Field>
         </div>
       ))}

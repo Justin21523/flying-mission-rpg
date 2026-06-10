@@ -26,6 +26,8 @@ export interface BoostPadConfig {
   blockedTags?: string[];
   activationAnimation?: string; // animation id (a Gameplay Event — pad never drives the mixer directly)
   activationSound?: string;
+  modelAssetId?: string;        // optional model rendered as the pad (else the glowing disc + arrow)
+  modelScale?: number;          // normalised target size for the model
   // Placement (Edit Mode): a BoostPad is a world object.
   areaId?: string;
   position?: Vec3Tuple;

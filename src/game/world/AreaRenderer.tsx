@@ -31,6 +31,7 @@ import { TrafficLayer } from '../poli/TrafficLayer';
 import { YokaiCombatLayer } from '../poli/YokaiCombatLayer';
 import { BoostPadLayer } from '../poli/BoostPadLayer';
 import { PathDebugLayer } from '../poli/PathDebugLayer';
+import { PathModelLayer } from '../poli/PathModelLayer';
 import { CollisionTestLayer } from '../poli/CollisionTestLayer';
 import { CollisionReactionFx } from '../poli/CollisionReactionFx';
 import { PathFollowerLayer } from '../poli/PathFollowerLayer';
@@ -106,6 +107,7 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <YokaiCombatLayer areaId={areaId} />
       {/* POLI Phase B: BoostPads (walk-on speed/path triggers) + curve-path debug rendering. */}
       <BoostPadLayer areaId={areaId} />
+      <PathModelLayer areaId={areaId} />
       <PathDebugLayer areaId={areaId} />
       {/* POLI Phase C: classified test collidables (sensors → collision events → reaction rules) + reaction FX. */}
       <CollisionTestLayer areaId={areaId} />
