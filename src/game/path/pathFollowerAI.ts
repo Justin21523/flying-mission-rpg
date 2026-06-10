@@ -7,6 +7,7 @@ import { useFlagStore } from '../../stores/flagStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { getCurve, samplePos, sampleTangent } from './pathCurve';
 import { getFollowerState, forEachOnPath } from './followerRuntime';
+import { isPathBlocked, forEachBlocker } from './pathBlocks';
 
 // Phase E — the path-follower AI core. Per copy, per frame: obstacle sensor (look-ahead) + spacing + incident
 // reaction + reroute, then advance arc-length progress. Module scratch vectors → zero per-frame allocation.
@@ -76,6 +77,14 @@ export function advanceFollower(def: PathFollowerDef, i: number, dt: number): bo
       const d = blockerDist(sx, sz, tx, tz, m[0], m[2], def.lookAhead);
       if (d !== Infinity) { nearest = Math.min(nearest, d); incidentBlocked = true; }
     }
+  }
+  // Phase F — staged traffic scenarios: a fully blocked path stops/reroutes everyone; scene blocker points slow us.
+  if (isPathBlocked(state.pathId[i])) { nearest = Math.min(nearest, STOP_DIST); incidentBlocked = true; }
+  if (def.yieldToIncidents) {
+    forEachBlocker(def.areaId, (bx, bz) => {
+      const d = blockerDist(sx, sz, tx, tz, bx, bz, def.lookAhead);
+      if (d !== Infinity) { nearest = Math.min(nearest, d); incidentBlocked = true; }
+    });
   }
 
   // Blocker distance → target speed (linear brake; hard stop within STOP_DIST).

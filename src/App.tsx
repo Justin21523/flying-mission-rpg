@@ -31,6 +31,7 @@ import { useActivityStore } from './stores/activityStore';
 import { PlayToolbar } from './ui/play/PlayToolbar';
 import { PoliSystemBoot } from './game/poli/PoliSystemBoot';
 import { IncidentDirector } from './game/incident/IncidentDirector';
+import { TrafficIncidentDirector } from './game/incident/TrafficIncidentDirector';
 import { YokaiDirector } from './game/poli/YokaiDirector';
 import { RescueHud } from './ui/RescueHud';
 import { ToolBeltHud } from './ui/ToolBeltHud';
@@ -148,6 +149,7 @@ export const App = () => {
       <QuestTrackerController />
       <PoliSystemBoot />
       <IncidentDirector />
+      <TrafficIncidentDirector />
       <YokaiDirector />
       <Dock />
       <WorldClockHUD />
