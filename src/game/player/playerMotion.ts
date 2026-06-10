@@ -8,4 +8,7 @@ export const playerMotion = {
   speed: 0,        // current horizontal speed (m/s)
   speedMult: 1,    // transient multiplier from the speed_boost ability (abilityEffects sets/resets it)
   superMult: 1,    // multiplier from super-boost mode (Part C); 1 when inactive
+  surfaceSpeedMult: 1, // current surface's max-speed multiplier (surfaceField sets it; 1 = default ground)
+  surfaceAccelMult: 1, // current surface's acceleration multiplier
+  surfaceBrakeMult: 1, // current surface's braking multiplier (lower = slidey, e.g. ice)
 };

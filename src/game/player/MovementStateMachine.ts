@@ -54,8 +54,8 @@ export function applyMovement(
   if (moving) headingRef.current = Math.atan2(_dir.x, _dir.z);
 
   const sprint = keys['ShiftLeft'] && moving ? SPRINT_MULT : 1;
-  // speedMult = speed_boost ability; superMult = super-boost mode (both default 1).
-  const speed = SPEED * sprint * playerMotion.speedMult * playerMotion.superMult;
+  // speedMult = speed_boost ability; superMult = super-boost mode; surfaceSpeedMult = ground surface (all 1 by default).
+  const speed = SPEED * sprint * playerMotion.speedMult * playerMotion.superMult * playerMotion.surfaceSpeedMult;
 
   if (flying) {
     // Shift+WASD = horizontal sprint (no descend); Shift ALONE (no move key) = descend; Space = ascend.
@@ -71,7 +71,8 @@ export function applyMovement(
     const targetX = _dir.x * speed;
     const targetZ = _dir.z * speed;
     const dt = 1 / 60;
-    const rate = moving ? VEHICLE_ACCEL : VEHICLE_DECEL;
+    // Surface modulates responsiveness: accel × surfaceAccelMult, decel × surfaceBrakeMult (low brake = slidey, e.g. ice).
+    const rate = (moving ? VEHICLE_ACCEL * playerMotion.surfaceAccelMult : VEHICLE_DECEL * playerMotion.surfaceBrakeMult);
     const nx = lerp(vel.x, targetX, rate * dt);
     const nz = lerp(vel.z, targetZ, rate * dt);
     b.setLinvel({ x: nx, y: vel.y, z: nz }, true);

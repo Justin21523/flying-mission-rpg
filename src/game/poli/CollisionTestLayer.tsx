@@ -8,6 +8,8 @@ import { useEditorCollisionStore } from '../../stores/editorCollisionStore';
 import { DataBackedPlacement } from '../edit/DataBackedPlacement';
 import { registerCollision, unregisterCollision } from '../collision/collisionRegistry';
 import { emitCollision } from '../collision/collisionBus';
+import { enterSurface, exitSurface } from '../path/surfaceField';
+import { getSurfaces } from '../../stores/editorSurfaceStore';
 import { playerMotion } from '../player/playerMotion';
 import type { CollisionObjectDef } from '../../types/collision';
 
@@ -40,16 +42,24 @@ const PlayObj = ({ o }: { o: CollisionObjectDef }) => {
   const [sx, sy, sz] = o.size;
   const hx = sx / 2, hy = sy / 2, hz = sz / 2;
 
-  // Register/unregister this object's semantic metadata in the central resolver.
+  // Register/unregister this object's semantic metadata in the central resolver (+ clear any surface on unmount).
   useEffect(() => {
     registerCollision({ objectId: o.id, objectType: o.objectType, tags: o.tags, surfaceType: o.surfaceType, enabled: o.enabled });
-    return () => unregisterCollision(o.id);
+    return () => { unregisterCollision(o.id); exitSurface(o.id); };
   }, [o]);
 
   const fire = (phase: 'enter' | 'exit', payload: { other: { rigidBody?: { userData?: unknown } } }) => {
     if (!o.enabled) return;
     const ud = payload.other.rigidBody?.userData as { isPlayer?: boolean } | undefined;
     if (!ud?.isPlayer) return; // only the player drives reactions in Phase C
+    // Surface zones: an object with a surfaceType applies its SurfaceDefinition's movement multipliers to the
+    // player while standing on it (most-recent wins; reverts on exit).
+    if (o.surfaceType) {
+      if (phase === 'enter') {
+        const def = getSurfaces().find((s) => s.surfaceType === o.surfaceType);
+        if (def) enterSurface(o.id, def);
+      } else exitSurface(o.id);
+    }
     const pp = usePlayerStore.getState().position;
     if (!pp) return;
     const spd = playerMotion.speed;

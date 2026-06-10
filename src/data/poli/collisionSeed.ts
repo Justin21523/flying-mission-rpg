@@ -13,6 +13,9 @@ export const COLLISION_OBJECT_SEED: CollisionObjectDef[] = [
   { id: 'col_hazard', areaId: AREA, objectType: 'hazard', position: [-8, 0, -4], size: [2, 1.5, 2], solid: false, tags: ['hazard'], color: '#ef4444', label: 'Hazard', enabled: true },
   { id: 'col_destructible', areaId: AREA, objectType: 'destructible', position: [-8, 0, -10], size: [1.6, 1.6, 1.6], solid: true, tags: ['breakable'], impactSpeed: 5, color: '#a16207', label: 'Crate', enabled: true },
   { id: 'col_guided', areaId: AREA, objectType: 'pathSurface', position: [4, 0, 12], size: [3, 0.2, 3], solid: false, tags: ['guided'], surfaceType: 'guidedRoad', pathId: 'path_test_curve', color: '#22d3ee', label: 'Guided', enabled: true },
+  // Surface zones (walk-through) — drive the player's movement multipliers (surfaceField → MovementStateMachine).
+  { id: 'col_ice', areaId: AREA, objectType: 'ice', position: [12, 0, 0], size: [8, 0.1, 8], solid: false, tags: ['surface'], surfaceType: 'ice', color: '#bae6fd', label: 'Ice', enabled: true },
+  { id: 'col_mud', areaId: AREA, objectType: 'mud', position: [12, 0, -10], size: [8, 0.1, 8], solid: false, tags: ['surface'], surfaceType: 'mud', color: '#92400e', label: 'Mud', enabled: true },
 ];
 
 // Helper to keep rules terse — the engine fills sensible defaults for omitted optional matchers.
