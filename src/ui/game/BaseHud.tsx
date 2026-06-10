@@ -12,9 +12,25 @@ export const BaseHud = () => {
   const liftPhase = useBaseRuntimeStore((s) => s.liftPhase);
   const countdown = useBaseRuntimeStore((s) => s.countdown);
 
+  const descending = phase === 'PLATFORM_ALIGNMENT' && liftPhase === 'descending';
+
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex flex-col items-center gap-2">
-      {phase === 'HANGAR' && (
+    <>
+      {/* Descent speed-streaks + vignette — amplifies the falling feel while the lift drops. */}
+      {descending && (
+        <div
+          className="pointer-events-none fixed inset-0 z-[55]"
+          style={{
+            background:
+              'repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0px, rgba(255,255,255,0) 3px, rgba(255,255,255,0) 60px), radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.45) 100%)',
+            backgroundSize: '100% 120px, 100% 100%',
+            animation: 'descentStreaks 0.35s linear infinite',
+          }}
+        />
+      )}
+
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex flex-col items-center gap-2">
+        {phase === 'HANGAR' && (
         <div className="rounded-full bg-slate-950/80 px-4 py-2 text-sm text-slate-200 backdrop-blur">
           {aligned
             ? 'Aligned — locking on… (press E)'
@@ -41,11 +57,12 @@ export const BaseHud = () => {
         </div>
       )}
 
-      {phase === 'LAUNCH_PREPARATION' && (
-        <div className="rounded-full bg-emerald-900/70 px-5 py-2 text-sm font-bold text-emerald-100 backdrop-blur">
-          Launch preparation complete — flight arrives in Batch 4
-        </div>
-      )}
-    </div>
+        {phase === 'LAUNCH_PREPARATION' && (
+          <div className="rounded-full bg-emerald-900/70 px-5 py-2 text-sm font-bold text-emerald-100 backdrop-blur">
+            Launch preparation complete — flight arrives in Batch 4
+          </div>
+        )}
+      </div>
+    </>
   );
 };
