@@ -70,6 +70,9 @@ export function advanceFollower(def: PathFollowerDef, i: number, dt: number): bo
     if (d !== Infinity) nearest = Math.min(nearest, Math.max(STOP_DIST, d - def.minGap + STOP_DIST));
   });
 
+  // Incident reaction (active rescue incidents + staged traffic scenarios). Followers that DON'T yield —
+  // e.g. a scenario's OWN participant vehicles — ignore all of this, so blockRoad doesn't freeze them before
+  // setVehicleState stalls them; they drive in normally.
   let incidentBlocked = false;
   if (def.yieldToIncidents) {
     for (const inc of useIncidentStore.getState().getActiveForArea(def.areaId)) {
@@ -77,10 +80,7 @@ export function advanceFollower(def: PathFollowerDef, i: number, dt: number): bo
       const d = blockerDist(sx, sz, tx, tz, m[0], m[2], def.lookAhead);
       if (d !== Infinity) { nearest = Math.min(nearest, d); incidentBlocked = true; }
     }
-  }
-  // Phase F — staged traffic scenarios: a fully blocked path stops/reroutes everyone; scene blocker points slow us.
-  if (isPathBlocked(state.pathId[i])) { nearest = Math.min(nearest, STOP_DIST); incidentBlocked = true; }
-  if (def.yieldToIncidents) {
+    if (isPathBlocked(state.pathId[i])) { nearest = Math.min(nearest, STOP_DIST); incidentBlocked = true; }
     forEachBlocker(def.areaId, (bx, bz) => {
       const d = blockerDist(sx, sz, tx, tz, bx, bz, def.lookAhead);
       if (d !== Infinity) { nearest = Math.min(nearest, d); incidentBlocked = true; }
