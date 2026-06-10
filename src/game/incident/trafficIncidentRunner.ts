@@ -106,7 +106,11 @@ function resolveInstance(inst: ScenarioInstance, def: IncidentScenarioDefinition
     playSfx('rescueSuccess');
     notifyIncident('resolved', def.name);
   } else if (def) {
-    // Missed (timeout) — G5 adds the trust penalty + missed toast.
+    // Missed (timeout) — recoverable: a small trust drop + a "missed" flag + toast. No permadeath; the scene
+    // simply cleared and can happen again (cooldown). "Not going" now has a (gentle) consequence.
+    if (def.affectsCharacterId) useRelationshipStore.getState().decreaseTrust(def.affectsCharacterId, def.failTrust ?? 1);
+    useFlagStore.getState().setFlag(`traffic_missed_${live.scenarioId}`);
+    playSfx('rescueFail');
     notifyIncident('missed', def.name);
   }
 }
