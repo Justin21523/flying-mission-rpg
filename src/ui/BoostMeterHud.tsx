@@ -1,11 +1,13 @@
 import { usePoll } from './usePoll';
 import { useBoostStore } from '../stores/boostStore';
 import { getBoostConfig } from '../stores/editorBoostStore';
+import { useT } from '../i18n/useT';
 
 // POLI — boost meter HUD (bottom-centre). Fills as you collect ground pickups; when full it glows
 // "READY — R" and pressing R launches super-boost mode (fast flight + afterimage). Polled, not subscribed.
 export const BoostMeterHud = () => {
   usePoll(120);
+  const t = useT();
   const s = useBoostStore.getState();
   const max = getBoostConfig().meterMax || 100;
   const pct = Math.max(0, Math.min(100, (s.meter / max) * 100));
@@ -14,8 +16,8 @@ export const BoostMeterHud = () => {
   return (
     <div className="pointer-events-none absolute bottom-6 left-1/2 z-[60] w-72 -translate-x-1/2 select-none">
       <div className="mb-1 flex items-center justify-between px-1 text-[11px] font-bold">
-        <span className={s.superActive ? 'text-cyan-200' : 'text-amber-200'}>{s.superActive ? '⚡ SUPER BOOST!' : '⭐ Boost'}</span>
-        {ready && <span className="animate-pulse rounded bg-cyan-500/30 px-1.5 text-cyan-100">READY — press R</span>}
+        <span className={s.superActive ? 'text-cyan-200' : 'text-amber-200'}>{s.superActive ? `⚡ ${t('superBoost')}` : `⭐ ${t('boost')}`}</span>
+        {ready && <span className="animate-pulse rounded bg-cyan-500/30 px-1.5 text-cyan-100">{t('boostReady')}</span>}
       </div>
       <div className="h-3 w-full overflow-hidden rounded-full border border-slate-600/70 bg-slate-900/70 shadow-inner">
         <div

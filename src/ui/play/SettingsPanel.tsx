@@ -1,6 +1,8 @@
 import { useGraphicsSettingsStore, CULL_RADIUS_MIN, CULL_RADIUS_MAX } from '../../stores/graphicsSettingsStore';
 import { QUALITY_LEVELS } from '../../game/render/renderSettings';
 import { PanelCard, closePanel } from './playShared';
+import { useLocaleStore, LOCALES } from '../../stores/localeStore';
+import { useT } from '../../i18n/useT';
 
 // Kit — play-mode ⚙ Settings: graphics quality ceiling, auto-adapt toggle, on-screen perf HUD, render distance.
 export const SettingsPanel = () => {
@@ -9,9 +11,17 @@ export const SettingsPanel = () => {
   const showPerfHud = useGraphicsSettingsStore((s) => s.showPerfHud);
   const cullEnabled = useGraphicsSettingsStore((s) => s.cullEnabled);
   const cullRadius = useGraphicsSettingsStore((s) => s.cullRadius);
+  const locale = useLocaleStore((s) => s.locale);
+  const t = useT();
   return (
     <PanelCard title="Settings" icon="⚙" onClose={closePanel} width="20rem">
       <div className="space-y-2 text-xs">
+        <label className="flex flex-col gap-1">
+          <span className="text-slate-400">{t('language')} / Language</span>
+          <select value={locale} onChange={(e) => useLocaleStore.getState().setLocale(e.target.value as typeof locale)} className="rounded bg-slate-800 px-2 py-1 text-slate-100">
+            {LOCALES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+          </select>
+        </label>
         <label className="flex flex-col gap-1">
           <span className="text-slate-400">Graphics quality</span>
           <select value={quality} onChange={(e) => useGraphicsSettingsStore.getState().setQuality(e.target.value as typeof quality)} className="rounded bg-slate-800 px-2 py-1 text-slate-100">

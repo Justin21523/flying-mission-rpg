@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { useQuestStore } from '../stores/questStore';
+import { useT } from '../i18n/useT';
 
 // Kit — top-right panel listing in-progress quests and their objectives (✓ when done).
 export const QuestTracker = () => {
   const quests = useQuestStore((s) => s.quests);
+  const t = useT();
   const activeQuests = useMemo(() => Object.values(quests).filter((q) => q.status === 'InProgress'), [quests]);
 
   if (activeQuests.length === 0) return null;
@@ -11,7 +13,7 @@ export const QuestTracker = () => {
   return (
     <div className="pointer-events-none absolute right-4 top-24 w-72 rounded-lg border border-yellow-500/70 bg-slate-900/85 p-4 text-white shadow-2xl backdrop-blur-md">
       <h2 className="mb-3 flex items-center gap-2 border-b border-yellow-600/50 pb-1 text-lg font-bold text-yellow-300">
-        <span>📜</span> Active Quests
+        <span>📜</span> {t('activeQuests')}
       </h2>
       <div className="space-y-4">
         {activeQuests.map((quest) => (

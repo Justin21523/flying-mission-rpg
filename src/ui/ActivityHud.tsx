@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useActivityStore } from '../stores/activityStore';
 import { ACTIVITY_TYPE_LABEL } from '../types/activity';
+import { useT } from '../i18n/useT';
 
 // Kit — DOM HUD layered over the 3D arena. Intro card (Start) → running HUD (timer / score / objective
 // progress) → result banner (win/lose + granted rewards). The in-world sim (ActivityRuntime, 7R-D) drives
@@ -13,6 +14,7 @@ export const ActivityHud = () => {
   const score = useActivityStore((s) => s.score);
   const objectives = useActivityStore((s) => s.objectives);
   const outcome = useActivityStore((s) => s.outcome);
+  const t = useT();
 
   // Fallback countdown (removed once ActivityRuntime drives tick from useFrame).
   useEffect(() => {
@@ -41,7 +43,7 @@ export const ActivityHud = () => {
           </div>
           {d.description && <p className="text-sm text-slate-300">{d.description}</p>}
           <div className="rounded-lg border border-slate-700/60 bg-slate-900/50 p-2 text-xs">
-            <div className="mb-1 font-semibold text-slate-400">Objectives</div>
+            <div className="mb-1 font-semibold text-slate-400">{t('objectives')}</div>
             <ul className="space-y-0.5 text-slate-200">
               {activity.objectives.map((o) => <li key={o.id}>• {o.description || o.objectiveType} {o.targetValue > 1 ? `(×${o.targetValue})` : ''}</li>)}
             </ul>
@@ -50,8 +52,8 @@ export const ActivityHud = () => {
             <span>⏱ {d.durationSeconds}s</span><span>· Lv {d.recommendedLevel}</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => useActivityStore.getState().begin()} className="flex-1 rounded-lg bg-teal-500 py-2 text-sm font-bold text-slate-950 hover:bg-teal-300">▶ Start</button>
-            <button onClick={() => useActivityStore.getState().close()} className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Cancel</button>
+            <button onClick={() => useActivityStore.getState().begin()} className="flex-1 rounded-lg bg-teal-500 py-2 text-sm font-bold text-slate-950 hover:bg-teal-300">▶ {t('start')}</button>
+            <button onClick={() => useActivityStore.getState().close()} className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">{t('cancel')}</button>
           </div>
         </div>
       )}
@@ -70,8 +72,8 @@ export const ActivityHud = () => {
             })}
           </div>
           <div className="flex gap-2 text-[11px]">
-            <button onClick={() => useActivityStore.getState().finish('win')} className="rounded border border-emerald-700/50 bg-emerald-700/20 px-2 py-0.5 text-emerald-100 hover:bg-emerald-700/30">✓ Complete</button>
-            <button onClick={() => useActivityStore.getState().finish('lose')} className="rounded border border-red-700/50 bg-red-700/20 px-2 py-0.5 text-red-200 hover:bg-red-700/30">✗ Forfeit</button>
+            <button onClick={() => useActivityStore.getState().finish('win')} className="rounded border border-emerald-700/50 bg-emerald-700/20 px-2 py-0.5 text-emerald-100 hover:bg-emerald-700/30">✓ {t('complete')}</button>
+            <button onClick={() => useActivityStore.getState().finish('lose')} className="rounded border border-red-700/50 bg-red-700/20 px-2 py-0.5 text-red-200 hover:bg-red-700/30">✗ {t('forfeit')}</button>
           </div>
         </div>
       )}
@@ -79,11 +81,11 @@ export const ActivityHud = () => {
       {phase === 'result' && (
         // Non-blocking banner that fades itself away (auto-close ~3.5s) — no confirm button.
         <div className="pointer-events-none mt-20 flex flex-col items-center gap-1 rounded-2xl border border-violet-600/50 bg-slate-950/85 px-8 py-4 backdrop-blur">
-          <span className={`text-2xl font-bold ${outcome === 'win' ? 'text-emerald-300' : 'text-red-300'}`}>{outcome === 'win' ? '🏆 Cleared!' : '✗ Failed'}</span>
-          <span className="text-sm text-slate-300">Defeated {score}</span>
+          <span className={`text-2xl font-bold ${outcome === 'win' ? 'text-emerald-300' : 'text-red-300'}`}>{outcome === 'win' ? `🏆 ${t('cleared')}` : `✗ ${t('failed')}`}</span>
+          <span className="text-sm text-slate-300">{t('defeated')} {score}</span>
           {outcome === 'win' && activity.rewards.length > 0 && (
             <div className="text-center text-xs text-amber-200">
-              Rewards: {activity.rewards.map((r) => r.rewardType === 'exp' ? `${r.exp} EXP` : r.rewardType === 'item' ? `${r.itemId} ×${r.quantity}` : `flag ${r.unlockFlag}`).join(' · ')}
+              {t('rewards')}: {activity.rewards.map((r) => r.rewardType === 'exp' ? `${r.exp} EXP` : r.rewardType === 'item' ? `${r.itemId} ×${r.quantity}` : `flag ${r.unlockFlag}`).join(' · ')}
             </div>
           )}
         </div>

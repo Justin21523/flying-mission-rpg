@@ -3,6 +3,7 @@ import { getEditorIncident } from '../stores/editorIncidentStore';
 import { useToolStore } from '../stores/toolStore';
 import { getEditorTool } from '../stores/editorToolStore';
 import { usePoll } from './usePoll';
+import { useT } from '../i18n/useT';
 
 const nowSec = () => performance.now() / 1000;
 
@@ -93,6 +94,7 @@ function ProgressRing({ progress }: { progress: number }) {
 export const RescueHud = () => {
   const { isActive, incidentId, stageIndex, step, actionProgress, waypointsFound, timeLeft,
     retryCount, confirmSuccess, dismissDebrief, retryStage } = useRescueOperationStore();
+  const t = useT();
 
   if (!isActive || !incidentId) return null;
 
@@ -112,7 +114,7 @@ export const RescueHud = () => {
         >
           <ToolFxFlash />
           <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#f97316' }}>
-            🚒 RESCUE IN PROGRESS{def.stages.length > 1 ? ` · STAGE ${stageIndex + 1}/${def.stages.length}` : ''}
+            🚒 {t('rescueInProgress')}{def.stages.length > 1 ? ` · ${t('stage')} ${stageIndex + 1}/${def.stages.length}` : ''}
           </div>
           <div className="text-2xl font-bold text-white mb-1">{stage.title}</div>
           <div className="text-sm mb-4" style={{ color: '#d1d5db' }}>{stage.description}</div>
@@ -123,7 +125,7 @@ export const RescueHud = () => {
               <div className="mt-3 text-lg font-bold" style={{ color: timeLeft <= 5 ? '#ef4444' : '#fbbf24' }}>
                 ⏱ {Math.ceil(timeLeft)}s
               </div>
-              <div className="mt-2 text-base text-white opacity-80">Press [E] to act!</div>
+              <div className="mt-2 text-base text-white opacity-80">{t('pressEToAct')}</div>
               <RescueToolBar />
             </>
           )}
@@ -132,9 +134,9 @@ export const RescueHud = () => {
             <>
               <div className="text-4xl my-3">🔍</div>
               <div className="text-xl font-bold text-white">
-                {foundCount} / {totalWaypoints} locations found
+                {foundCount} / {totalWaypoints} {t('locationsFound')}
               </div>
-              <div className="mt-2 text-sm" style={{ color: '#d1d5db' }}>Walk to the yellow markers</div>
+              <div className="mt-2 text-sm" style={{ color: '#d1d5db' }}>{t('walkToMarkers')}</div>
             </>
           )}
         </div>
@@ -151,7 +153,7 @@ export const RescueHud = () => {
           style={{ background: 'rgba(5,30,10,0.97)', border: '2px solid #22c55e', minWidth: 300 }}
         >
           <div className="text-5xl mb-2">✓</div>
-          <div className="text-2xl font-bold text-white mb-3">Rescue Complete!</div>
+          <div className="text-2xl font-bold text-white mb-3">{t('rescueComplete')}</div>
           <StarRating retryCount={retryCount} />
           <div className="mt-2 text-sm mb-5" style={{ color: '#86efac' }}>+{def.reward.exp} EXP</div>
           <button
@@ -159,7 +161,7 @@ export const RescueHud = () => {
             style={{ background: '#16a34a', cursor: 'pointer' }}
             onClick={confirmSuccess}
           >
-            Continue
+            {t('continue')}
           </button>
         </div>
       </div>
@@ -176,7 +178,7 @@ export const RescueHud = () => {
         >
           <div className="text-3xl mb-2">💡</div>
           <div className="text-xs font-bold tracking-widest mb-2" style={{ color: '#fbbf24' }}>
-            SAFETY TIP
+            {t('safetyTip')}
           </div>
           <div className="text-xl font-bold text-white mb-3">{def.safetyLesson.title}</div>
           <div className="text-base leading-relaxed mb-6" style={{ color: '#fef3c7' }}>
@@ -187,7 +189,7 @@ export const RescueHud = () => {
             style={{ background: '#d97706', cursor: 'pointer' }}
             onClick={dismissDebrief}
           >
-            Done
+            {t('done')}
           </button>
         </div>
       </div>
@@ -203,7 +205,7 @@ export const RescueHud = () => {
           style={{ background: 'rgba(30,10,0,0.97)', border: '2px solid #f97316', minWidth: 300 }}
         >
           <div className="text-3xl mb-2">⚠</div>
-          <div className="text-xl font-bold text-white mb-3">Try Again!</div>
+          <div className="text-xl font-bold text-white mb-3">{t('tryAgain')}</div>
           <div className="text-base mb-6" style={{ color: '#fdba74' }}>
             {stage.retryHint}
           </div>
@@ -212,7 +214,7 @@ export const RescueHud = () => {
             style={{ background: '#ea580c', cursor: 'pointer' }}
             onClick={retryStage}
           >
-            Retry
+            {t('retry')}
           </button>
         </div>
       </div>
