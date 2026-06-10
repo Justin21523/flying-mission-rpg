@@ -18,6 +18,8 @@ import { useEditorCollectibleStore } from '../../stores/editorCollectibleStore';
 import { useEditorPortalStore } from '../../stores/editorPortalStore';
 import { useEditorPathStore } from '../../stores/editorPathStore';
 import { useEditorBoostPadStore } from '../../stores/editorBoostPadStore';
+import { useEditorCollisionStore } from '../../stores/editorCollisionStore';
+import { useEditorAnimationStore } from '../../stores/editorAnimationStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -40,6 +42,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorLandmarkStore, useEditorIncidentStore, useEditorRandomEventStore, useEditorTrafficStore,
   useEditorToolStore, useEditorWorldStore, useEditorLayoutStore, useEditorCollectibleStore, useEditorPortalStore,
   useEditorBoostStore, useJinResearchStore, useEditorPathStore, useEditorBoostPadStore,
+  useEditorCollisionStore, useEditorAnimationStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -198,6 +201,22 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorBoostPadStore.getState().importState(data as never); },
     clear: () => useEditorBoostPadStore.getState().reset(),
     summary: () => `${useEditorBoostPadStore.getState().pads.length} boost pads`,
+  },
+  {
+    id: 'editorCollision',
+    label: 'Collision Rules',
+    serialize: () => { const s = useEditorCollisionStore.getState(); return { objects: s.objects, rules: s.rules }; },
+    deserialize: (data) => { if (isObj(data)) useEditorCollisionStore.getState().importState(data as never); },
+    clear: () => useEditorCollisionStore.getState().reset(),
+    summary: () => { const s = useEditorCollisionStore.getState(); return `${s.objects.length} objects · ${s.rules.length} rules`; },
+  },
+  {
+    id: 'editorAnimation',
+    label: 'Animations',
+    serialize: () => { const s = useEditorAnimationStore.getState(); return { definitions: s.definitions, profiles: s.profiles }; },
+    deserialize: (data) => { if (isObj(data)) useEditorAnimationStore.getState().importState(data as never); },
+    clear: () => useEditorAnimationStore.getState().reset(),
+    summary: () => `${useEditorAnimationStore.getState().definitions.length} animations`,
   },
   {
     id: 'editorCollectible',

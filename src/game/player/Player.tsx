@@ -354,7 +354,7 @@ export const Player = () => {
 
   return (
     <>
-      <RigidBody ref={body} type="dynamic" colliders={false} lockRotations canSleep={false} position={INITIAL_POS}>
+      <RigidBody ref={body} type="dynamic" colliders={false} lockRotations canSleep={false} position={INITIAL_POS} userData={{ isPlayer: true }}>
         {/* Pivot at the FEET: the capsule (half-height 0.5 + radius 0.5, total ±1.0) is raised by 1.0 so
             it spans 0..2 ABOVE the body origin. The body origin therefore sits at the capsule bottom =
             the feet, so when the player object is at y=0 the feet rest exactly on the ground (y=0).

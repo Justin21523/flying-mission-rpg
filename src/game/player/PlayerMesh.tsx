@@ -11,6 +11,7 @@ import { playerMotion } from './playerMotion';
 import { playerKeysDown } from './playerInput';
 import { HelicopterRotor } from './HelicopterRotor';
 import { ruleMatches, pickLoopRule } from '../anim/animRunner';
+import { reactionAnim } from '../anim/reactionAnim';
 import type { AnimRule } from '../../types/character';
 
 // The player is one of the main characters (cycle with C), each with two forms (toggle with T). Both form
@@ -67,13 +68,30 @@ const ModelView =({ path, height, yOffset, visible, rules, active, form }: {
   }, [animations, path]);
   useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
 
-  const st = useRef({ action: null as AnimationAction | null, lastAbility: 0, abilityUntil: 0, lastCelebrate: 0, celebrateUntil: 0, oneShotUntil: 0, prevOnce: new Set<string>() });
+  const st = useRef({ action: null as AnimationAction | null, lastAbility: 0, abilityUntil: 0, lastCelebrate: 0, celebrateUntil: 0, oneShotUntil: 0, lastReaction: 0, prevOnce: new Set<string>() });
 
   useFrame((_, dt) => {
     mixer.update(dt);
     if (!active) return; // only the visible form drives selection
     const S = st.current;
     const tnow = performance.now() / 1000;
+
+    // Collision reaction one-shot (Phase C): play the requested reaction clip once on a rising fireId (only if
+    // this model actually has that clip — otherwise the CollisionReactionFx overlay still shows the result).
+    if (reactionAnim.player.fireId !== S.lastReaction) {
+      S.lastReaction = reactionAnim.player.fireId;
+      const rc = reactionAnim.player.clip;
+      const ra = rc ? actions.get(rc) : undefined;
+      if (ra) {
+        const ts = reactionAnim.player.speed || 1;
+        ra.reset(); ra.setLoop(LoopOnce, 1); ra.clampWhenFinished = true; ra.setEffectiveTimeScale(ts);
+        ra.fadeIn(reactionAnim.player.fadeIn).play();
+        S.oneShotUntil = tnow + ra.getClip().duration / ts;
+        if (S.action) S.action.fadeOut(reactionAnim.player.fadeIn);
+        S.action = null;
+      }
+    }
+
     const tf = useTransformStore.getState();
     // 'ability' trigger stays active for ~0.8s after each ability use.
     if (tf.abilityPulseId !== S.lastAbility) { S.lastAbility = tf.abilityPulseId; S.abilityUntil = tnow + 0.8; }

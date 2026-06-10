@@ -31,6 +31,8 @@ import { TrafficLayer } from '../poli/TrafficLayer';
 import { YokaiCombatLayer } from '../poli/YokaiCombatLayer';
 import { BoostPadLayer } from '../poli/BoostPadLayer';
 import { PathDebugLayer } from '../poli/PathDebugLayer';
+import { CollisionTestLayer } from '../poli/CollisionTestLayer';
+import { CollisionReactionFx } from '../poli/CollisionReactionFx';
 import { NpcPathGizmoLayer } from './NpcPathGizmoLayer';
 import { POLI_SANDBOX } from '../../data/poli/sandboxConfig';
 import { useUiStore } from '../../stores/uiStore';
@@ -101,6 +103,9 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       {/* POLI Phase B: BoostPads (walk-on speed/path triggers) + curve-path debug rendering. */}
       <BoostPadLayer areaId={areaId} />
       <PathDebugLayer areaId={areaId} />
+      {/* POLI Phase C: classified test collidables (sensors → collision events → reaction rules) + reaction FX. */}
+      <CollisionTestLayer areaId={areaId} />
+      <CollisionReactionFx />
       {/* POLI seam #1c: traffic layer — editable NPC vehicles + traffic signals (always rendered;
           edit them in the 🚦 Traffic tab). */}
       <TrafficLayer areaId={areaId} />

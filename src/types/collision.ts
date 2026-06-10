@@ -62,6 +62,25 @@ export type ReactionAction =
   | { type: 'modifyRelationship'; characterId: string; amount: number }
   | { type: 'emitGameEvent'; event: string };
 
+// A placeable collidable (test/authored) that produces CollisionMetadata + an in-world visual. The
+// CollisionTestLayer registers each one in the resolver and gives it a sensor (and a solid collider when
+// `solid`). Phase D adds a full authoring tab; Phase C seeds a handful.
+export interface CollisionObjectDef {
+  id: string;
+  areaId: string;
+  objectType: CollisionObjectType;
+  position: Vec3Tuple;
+  size: Vec3Tuple;            // full box extents (x,y,z)
+  solid: boolean;            // true = solid collider (player physically bumps); false = sensor-only
+  tags: string[];
+  surfaceType?: SurfaceType;
+  impactSpeed?: number;      // relativeSpeed at/above which the 'impact' phase fires (default 4)
+  pathId?: string;           // for guidedSurface → enterPathFollow target
+  color?: string;
+  label?: string;
+  enabled: boolean;
+}
+
 export interface CollisionReactionRule {
   id: string;
   name: string;
