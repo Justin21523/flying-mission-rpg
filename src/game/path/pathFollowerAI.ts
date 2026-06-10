@@ -5,6 +5,7 @@ import { getPath } from '../../stores/editorPathStore';
 import { useIncidentStore } from '../../stores/incidentStore';
 import { getEditorSignals, getEditorCrosswalks } from '../../stores/editorTrafficStore';
 import { useTrafficStore } from '../../stores/trafficStore';
+import { getSurfaceZones, getSurface } from '../../stores/editorSurfaceStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { getCurve, samplePos, sampleTangent } from './pathCurve';
@@ -57,7 +58,15 @@ export function advanceFollower(def: PathFollowerDef, i: number, dt: number): bo
   // Desired speed scaled by the nearest node's local multiplier.
   const nodes = path.nodes ?? [];
   const nodeIdx = nodes.length > 1 ? Math.min(nodes.length - 1, Math.max(0, Math.round(u * (nodes.length - 1)))) : 0;
-  const desired = def.speed * (nodes[nodeIdx]?.speedMultiplier ?? 1);
+  let desired = def.speed * (nodes[nodeIdx]?.speedMultiplier ?? 1);
+  // Surface zone under the follower scales its speed (mud slows, boost speeds up).
+  for (const z of getSurfaceZones()) {
+    if (z.areaId !== def.areaId || !z.enabled) continue;
+    if (Math.abs(sx - z.position[0]) <= z.size[0] / 2 && Math.abs(sz - z.position[2]) <= z.size[1] / 2) {
+      desired *= getSurface(z.surfaceId)?.maxSpeedMultiplier ?? 1;
+      break;
+    }
+  }
 
   // ── Nearest blocker ahead = min over player / other followers on this path / active incidents. ──
   let nearest = Infinity;

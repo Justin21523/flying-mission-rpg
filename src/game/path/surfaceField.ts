@@ -7,12 +7,16 @@ import { playerMotion } from '../player/playerMotion';
 // applyMovement). Default (no surface) = 1×. Module-level, no React, no per-frame allocation.
 const active = new Map<string, SurfaceDefinition>(); // objectId → surface (insertion order = recency)
 
+// The player's current surface (most-recently entered), exposed for VFX (SurfaceFxLayer). '' = default ground.
+export const surfaceField = { currentType: '' as string };
+
 function recompute(): void {
   let def: SurfaceDefinition | undefined;
   for (const d of active.values()) def = d; // last (most-recent) wins
   playerMotion.surfaceSpeedMult = def?.maxSpeedMultiplier ?? 1;
   playerMotion.surfaceAccelMult = def?.accelerationMultiplier ?? 1;
   playerMotion.surfaceBrakeMult = def?.brakingMultiplier ?? 1;
+  surfaceField.currentType = def?.surfaceType ?? '';
 }
 
 export function enterSurface(objectId: string, def: SurfaceDefinition): void {
