@@ -1,5 +1,6 @@
 import type { Vec3Tuple } from './path';
 import type { SurfaceType } from './surface';
+import type { SourceConfidence } from './character';
 
 // Phase A (data model) — richer, process-driven traffic incidents (breakdown / cargo-drop / controlled
 // collision / signal failure …) that the Incident Director stages over a TIMELINE on the road network. This is
@@ -72,6 +73,7 @@ export interface IncidentScenarioDefinition {
   weight: number;
 
   rescueIncidentId?: string;   // notifyRescue → spawn this existing rescue IncidentDefinition (by id)
+  sourceConfidence?: SourceConfidence; // provenance tag (never present GameAdaptation as official canon)
 
   // Consequences (G3/G4/G5) — all optional, additive.
   rewardCoins?: number;        // base coins on player-resolve (default severity×10); ×speed bonus applied

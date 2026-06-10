@@ -6,7 +6,8 @@ import type { IncidentScenarioDefinition } from '../../types/trafficIncident';
 // always cleaning up (entities removed, road unblocked). No crashes-with-harm; severity ≤ 3.
 export const TRAFFIC_SCENARIO_SEED: IncidentScenarioDefinition[] = [
   {
-    id: 'scn_breakdown', name: 'Vehicle Breakdown', enabled: true, category: 'breakdown', severity: 1,
+    id: 'scn_breakdown', name: '拋錨小車', enabled: true, category: 'breakdown', severity: 1,
+    sourceConfidence: 'GameAdaptation',
     requiredLocationTags: [], minParticipants: 1, maxParticipants: 1,
     cooldown: 30, globalCooldown: 10, maxConcurrentInstances: 1, triggerMode: 'randomWeighted', weight: 1,
     setupActions: [
@@ -22,7 +23,8 @@ export const TRAFFIC_SCENARIO_SEED: IncidentScenarioDefinition[] = [
     cleanupActions: [{ type: 'emitEvent', event: 'breakdown_cleared' }],
   },
   {
-    id: 'scn_cargo', name: 'Cargo Drop', enabled: true, category: 'cargoDrop', severity: 2,
+    id: 'scn_cargo', name: '貨物散落', enabled: true, category: 'cargoDrop', severity: 2,
+    sourceConfidence: 'GameAdaptation',
     requiredLocationTags: [], minParticipants: 1, maxParticipants: 1,
     cooldown: 40, globalCooldown: 10, maxConcurrentInstances: 1, triggerMode: 'randomWeighted', weight: 1,
     setupActions: [
@@ -39,7 +41,8 @@ export const TRAFFIC_SCENARIO_SEED: IncidentScenarioDefinition[] = [
     cleanupActions: [{ type: 'emitEvent', event: 'cargo_cleared' }],
   },
   {
-    id: 'scn_bump', name: 'Controlled Minor Collision', enabled: true, category: 'collision', severity: 3,
+    id: 'scn_bump', name: '輕微擦撞', enabled: true, category: 'collision', severity: 3,
+    sourceConfidence: 'GameAdaptation',
     requiredLocationTags: [], minParticipants: 2, maxParticipants: 2,
     cooldown: 50, globalCooldown: 15, maxConcurrentInstances: 1, triggerMode: 'randomWeighted', weight: 1,
     rescueIncidentId: 'incident_harbor_brake', // notifyRescue spawns this real rescue incident

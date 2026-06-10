@@ -25,10 +25,19 @@ const CURVE_NODES: PathNodeData[] = [
   node('curve_4', [52, 0.3, 16]),
 ];
 
+// Brooms Town — 中央大道 (Central Avenue): a gently winding street through main_road that vehicle convoys drive.
+const MAIN_ROAD_NODES: PathNodeData[] = [
+  node('mainroad_0', [0, 0.3, -28]),
+  node('mainroad_1', [6, 0.3, -12]),
+  node('mainroad_2', [-4, 0.3, 4]),
+  node('mainroad_3', [4, 0.3, 20]),
+  node('mainroad_4', [0, 0.3, 30]),
+];
+
 export const PATH_SEED: PathDefinition[] = [
   {
     id: 'path_test_straight',
-    name: 'Test Straight',
+    name: 'HQ 演練直線道',
     areaId: AREA,
     nodeIds: STRAIGHT_NODES.map((n) => n.id),
     nodes: STRAIGHT_NODES,
@@ -42,7 +51,7 @@ export const PATH_SEED: PathDefinition[] = [
   },
   {
     id: 'path_test_curve',
-    name: 'Test Curve',
+    name: 'HQ 演練彎道',
     areaId: AREA,
     nodeIds: CURVE_NODES.map((n) => n.id),
     nodes: CURVE_NODES,
@@ -53,6 +62,20 @@ export const PATH_SEED: PathDefinition[] = [
     directionMode: 'oneWay',
     entryNodeIds: ['curve_0'],
     exitNodeIds: ['curve_4'],
+  },
+  {
+    id: 'path_main_road',
+    name: '中央大道',
+    areaId: 'main_road',
+    nodeIds: MAIN_ROAD_NODES.map((n) => n.id),
+    nodes: MAIN_ROAD_NODES,
+    curveType: 'catmullRom',
+    closed: false,
+    defaultSpeed: 10,
+    laneWidth: 3,
+    directionMode: 'twoWay',
+    entryNodeIds: ['mainroad_0'],
+    exitNodeIds: ['mainroad_4'],
   },
 ];
 

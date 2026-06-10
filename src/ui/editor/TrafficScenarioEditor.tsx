@@ -3,6 +3,7 @@ import { useEditorTrafficScenarioStore } from '../../stores/editorTrafficScenari
 import { useEditorIncidentStore } from '../../stores/editorIncidentStore';
 import { startScenario } from '../../game/incident/trafficIncidentRunner';
 import { INCIDENT_CATEGORIES, type IncidentCategory, type IncidentAction, type IncidentResolutionCondition, type IncidentTimelineStep } from '../../types/trafficIncident';
+import { SOURCE_CONFIDENCES, type SourceConfidence } from '../../types/character';
 import { Field, inp, lbl } from './editorShared';
 import { IdSelect } from './idPickers';
 import { IncidentActionEditor } from './IncidentActionEditor';
@@ -84,6 +85,7 @@ export const TrafficScenarioEditor = () => {
                   <Field label="cooldown (s)"><input type="number" value={d.cooldown} onChange={(e) => ts.updateScenario(d.id, { cooldown: num(e.target.value) })} className={inp} /></Field>
                   <Field label="max instances"><input type="number" min={1} value={d.maxConcurrentInstances} onChange={(e) => ts.updateScenario(d.id, { maxConcurrentInstances: num(e.target.value, 1) })} className={inp} /></Field>
                   <Field label="rescue incident"><IdSelect value={d.rescueIncidentId} onChange={(v) => ts.updateScenario(d.id, { rescueIncidentId: v })} options={rescueOptions} placeholder="(none)" /></Field>
+                  <Field label="source confidence"><select value={d.sourceConfidence ?? 'GameAdaptation'} onChange={(e) => ts.updateScenario(d.id, { sourceConfidence: e.target.value as SourceConfidence })} className={inp}>{SOURCE_CONFIDENCES.map((s) => <option key={s} value={s}>{s}</option>)}</select></Field>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <Field label="reward coins (×sev)"><input type="number" value={d.rewardCoins ?? ''} placeholder={`${d.severity * 10}`} onChange={(e) => ts.updateScenario(d.id, { rewardCoins: e.target.value === '' ? undefined : num(e.target.value) })} className={inp} /></Field>

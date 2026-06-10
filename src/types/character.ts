@@ -6,6 +6,9 @@ export type SourceConfidence =
   | 'FanCompiled'
   | 'Unverified'
   | 'GameAdaptation';
+export const SOURCE_CONFIDENCES: SourceConfidence[] = [
+  'OfficialConfirmed', 'EpisodeObserved', 'CrossSourceConfirmed', 'SecondarySource', 'FanCompiled', 'Unverified', 'GameAdaptation',
+];
 
 // Built-in, child-friendly rescue abilities (no combat). speed_boost is a self speed buff; the others are
 // radial "pulses" (FX + gameplay hook: attract pickups, refill the boost meter, or reveal on the radar).
