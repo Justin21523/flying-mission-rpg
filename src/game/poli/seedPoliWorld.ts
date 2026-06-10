@@ -22,6 +22,34 @@ function homePosition(charId: string, areaId: string): Vec3 {
   return (sched?.positions[areaId] as Vec3 | undefined) ?? [0, 0, 3];
 }
 
+// Build a per-phase routine WITHIN the resident's home area (the runtime moves NPCs inside one area): the
+// authored home-area spot when the slot is at home, else an "out" corner spot (they went to work/errands).
+// Cross-area NPC travel is out of scope; this still makes the town visibly come alive by time-of-day.
+function scheduleFor(charId: string, homeAreaId: string): Record<'dawn' | 'day' | 'evening' | 'night', Vec3> | null {
+  const sch = BROOMS_TOWN_SCHEDULES.find((s) => s.characterId === charId);
+  if (!sch) return null;
+  const home = (sch.positions[homeAreaId] as Vec3 | undefined) ?? [0, 0, 3];
+  const out: Vec3 = [home[0] + 6, 0, home[2] + 6];
+  const at = (slot: 'dawn' | 'day' | 'evening' | 'night'): Vec3 => (sch.slots[slot] === homeAreaId ? ((sch.positions[homeAreaId] as Vec3 | undefined) ?? home) : out);
+  return { dawn: at('dawn'), day: at('day'), evening: at('evening'), night: at('night') };
+}
+
+// Upgrade untouched (still-static, no schedule) resident NPCs to their authored time-of-day routine. Runs every
+// boot (outside the one-time SEED_FLAG) so existing saves come alive too — without clobbering customised NPCs.
+function seedResidentSchedules(): void {
+  const npcStore = useEditorNpcStore.getState();
+  for (const r of RESIDENTS) {
+    const sched = scheduleFor(r.id, r.homeAreaId);
+    if (!sched) continue;
+    const npc = npcStore.addedNpcs.find((n) => n.displayName === r.name);
+    if (!npc) continue;
+    const hasSchedule = npc.schedulePositions && Object.keys(npc.schedulePositions).length > 0;
+    if ((npc.movement ?? 'static') === 'static' && !hasSchedule) {
+      useEditorNpcStore.getState().updateNpc(npc.id, { movement: 'schedule', schedulePositions: sched, moveSpeed: npc.moveSpeed ?? 1.6 });
+    }
+  }
+}
+
 export function seedPoliWorld(): void {
   // Always-run, fully idempotent content seeds (safe for existing saves that already passed SEED_FLAG):
   //   • merge any incident definitions added to the data file but missing from the editor store
@@ -29,6 +57,7 @@ export function seedPoliWorld(): void {
   useEditorIncidentStore.getState().mergeMissingFromSeed();
   seedSideQuests();
   seedResidentModels();
+  seedResidentSchedules(); // bring residents to life by time-of-day (upgrades untouched ones on existing saves)
 
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
@@ -40,6 +69,7 @@ export function seedPoliWorld(): void {
   for (const r of RESIDENTS) {
     if (existingNames.has(r.name)) continue;
     const pos = homePosition(r.id, r.homeAreaId);
+    const sched = scheduleFor(r.id, r.homeAreaId);
     const id = useEditorNpcStore.getState().addNpc(r.homeAreaId, pos);
     useEditorNpcStore.getState().updateNpc(id, {
       displayName: r.name,
@@ -48,7 +78,8 @@ export function seedPoliWorld(): void {
       color: r.color,
       interactionLabel: `Talk to ${r.name}`,
       dialogueTreeId: r.dialogueTreeId || null, // existing POLI dialogue (merged at runtime)
-      movement: 'static',
+      movement: sched ? 'schedule' : 'static',
+      schedulePositions: sched ?? {},
       moveSpeed: 1.6,
     });
   }
