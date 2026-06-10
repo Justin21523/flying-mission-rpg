@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { useUiStore, type PanelId } from '../../stores/uiStore';
 import { useSaveStore } from '../../stores/saveStore';
+import { useT } from '../../i18n/useT';
 import { MiniMapHUD } from './MiniMapHUD';
 import { MapPanel } from './MapPanel';
 import { QuestsPanel } from './QuestsPanel';
@@ -51,12 +52,16 @@ const IconAction = ({ label, icon, active, onClick }: { label: string; icon: Rea
 );
 const Divider = () => <span className="mx-1 h-7 w-px shrink-0 bg-white/10" />;
 
+// id → i18n key for the localizable core/system labels (dev items keep their English label).
+const NAV_KEY: Record<string, string> = { map: 'nav_map', quests: 'nav_quests', inventory: 'nav_items', stats: 'nav_stats', graphics: 'nav_settings' };
+
 export const PlayToolbar = () => {
   const active = useUiStore((s) => s.activePanel);
   const togglePanel = useUiStore((s) => s.togglePanel);
   const hintsVisible = useUiStore((s) => s.hintsVisible);
   const toggleHints = useUiStore((s) => s.toggleHints);
-  const renderGroup = (items: DockItem[]) => items.map((it) => <DockButton key={it.id} item={it} active={active === it.id} onClick={() => togglePanel(it.id)} />);
+  const t = useT();
+  const renderGroup = (items: DockItem[]) => items.map((it) => <DockButton key={it.id} item={NAV_KEY[it.id] ? { ...it, label: t(NAV_KEY[it.id]) } : it} active={active === it.id} onClick={() => togglePanel(it.id)} />);
 
   return (
     <>
@@ -77,9 +82,9 @@ export const PlayToolbar = () => {
           {renderGroup(CORE)}
           <Divider />
           {renderGroup(SYSTEM)}
-          <IconAction label="Quick Save" icon={<Save className="h-5 w-5" />} onClick={() => useSaveStore.getState().quickSave()} />
-          <IconAction label="Saves" active={active === 'saveSlots'} icon={<Download className="h-5 w-5" />} onClick={() => togglePanel('saveSlots')} />
-          <IconAction label="Hints" active={hintsVisible} icon={<HelpCircle className="h-5 w-5" />} onClick={toggleHints} />
+          <IconAction label={t('nav_quickSave')} icon={<Save className="h-5 w-5" />} onClick={() => useSaveStore.getState().quickSave()} />
+          <IconAction label={t('nav_saves')} active={active === 'saveSlots'} icon={<Download className="h-5 w-5" />} onClick={() => togglePanel('saveSlots')} />
+          <IconAction label={t('nav_hints')} active={hintsVisible} icon={<HelpCircle className="h-5 w-5" />} onClick={toggleHints} />
           {isDev && (<><Divider />{renderGroup(DEV)}</>)}
         </div>
       </div>

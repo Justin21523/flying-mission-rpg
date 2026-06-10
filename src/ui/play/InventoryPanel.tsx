@@ -1,15 +1,17 @@
 import { useInventoryStore } from '../../stores/inventoryStore';
 import { getItem } from '../../data/items';
 import { PanelCard, closePanel } from './playShared';
+import { useT } from '../../i18n/useT';
 
 // Kit — play-mode 🎒 Inventory: lists held items (id → quantity) with icon/name from the item registry.
 export const InventoryPanel = () => {
   const items = useInventoryStore((s) => s.items);
+  const t = useT();
   const entries = Object.entries(items).filter(([, q]) => q > 0);
   return (
-    <PanelCard title="Inventory" icon="🎒" onClose={closePanel}>
+    <PanelCard title={t('panel_inventory')} icon="🎒" onClose={closePanel}>
       {entries.length === 0 ? (
-        <p className="text-xs text-slate-500">Empty. Pick up items in the world (▢E) or via quest rewards.</p>
+        <p className="text-xs text-slate-500">{t('inv_empty')}</p>
       ) : (
         <ul className="space-y-1">
           {entries.map(([id, qty]) => {

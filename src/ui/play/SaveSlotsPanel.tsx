@@ -1,23 +1,25 @@
 import { useState } from 'react';
 import { useSaveStore } from '../../stores/saveStore';
 import { PanelCard, closePanel } from './playShared';
+import { useT } from '../../i18n/useT';
 
 // Kit — play-mode 💾 Save / Load: named slots persisted to localStorage. Save (new / overwrite), load,
 // delete. Snapshots player/progression/inventory/flags/quests via saveStore.
 export const SaveSlotsPanel = () => {
   const slots = useSaveStore((s) => s.slots);
+  const t = useT();
   const [name, setName] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
-  const save = () => { const n = name.trim() || `Save ${slots.length + 1}`; useSaveStore.getState().saveToSlot(n); setName(''); setMsg(`Saved "${n}".`); };
+  const save = () => { const n = name.trim() || `Save ${slots.length + 1}`; useSaveStore.getState().saveToSlot(n); setName(''); setMsg(`${t('save_saved')} "${n}"`); };
   return (
-    <PanelCard title="Save / Load" icon="💾" onClose={closePanel} width="24rem">
+    <PanelCard title={t('save_title')} icon="💾" onClose={closePanel} width="24rem">
       <div className="mb-2 flex gap-1">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="slot name…" className="flex-1 rounded bg-slate-800 px-2 py-1 text-xs text-slate-100" />
-        <button onClick={save} className="rounded bg-emerald-600/80 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500">💾 Save</button>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('save_slotName')} className="flex-1 rounded bg-slate-800 px-2 py-1 text-xs text-slate-100" />
+        <button onClick={save} className="rounded bg-emerald-600/80 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500">💾 {t('save_save')}</button>
       </div>
       {msg && <p className="mb-2 text-[11px] text-emerald-300">{msg}</p>}
       {slots.length === 0 ? (
-        <p className="text-xs text-slate-500">No saves yet.</p>
+        <p className="text-xs text-slate-500">{t('save_none')}</p>
       ) : (
         <ul className="space-y-1">
           {slots.map((s) => (

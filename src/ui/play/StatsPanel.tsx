@@ -3,6 +3,7 @@ import { useInventoryStore } from '../../stores/inventoryStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import { PanelCard, closePanel } from './playShared';
+import { useT } from '../../i18n/useT';
 
 // Kit — play-mode 📊 Stats: player level / exp (level curve = level×100) + distance travelled + item count.
 const Row = ({ k, v }: { k: string; v: string }) => (
@@ -17,17 +18,18 @@ export const StatsPanel = () => {
   const coins = useWalletStore((s) => s.coins);
   const needed = level * 100;
   const pct = Math.min(100, Math.round((exp / needed) * 100));
+  const t = useT();
   return (
-    <PanelCard title="Stats" icon="📊" onClose={closePanel} width="20rem">
+    <PanelCard title={t('panel_stats')} icon="📊" onClose={closePanel} width="20rem">
       <div className="space-y-1">
-        <Row k="Level" v={`${level}`} />
+        <Row k={t('stats_level')} v={`${level}`} />
         <div className="rounded bg-slate-900/60 px-2 py-1 text-xs">
           <div className="mb-1 flex justify-between text-slate-400"><span>EXP</span><span className="font-mono text-slate-100">{exp} / {needed}</span></div>
           <div className="h-1.5 overflow-hidden rounded bg-slate-800"><div className="h-full bg-cyan-400" style={{ width: `${pct}%` }} /></div>
         </div>
-        <Row k="🪙 Coins" v={`${coins}`} />
-        <Row k="Distance travelled" v={`${distance.toFixed(0)} m`} />
-        <Row k="Items held" v={`${itemCount}`} />
+        <Row k={`🪙 ${t('stats_coins')}`} v={`${coins}`} />
+        <Row k={t('stats_distance')} v={`${distance.toFixed(0)} m`} />
+        <Row k={t('stats_items')} v={`${itemCount}`} />
       </div>
     </PanelCard>
   );

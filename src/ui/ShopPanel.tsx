@@ -3,6 +3,7 @@ import { useWalletStore } from '../stores/walletStore';
 import { useInventoryStore } from '../stores/inventoryStore';
 import { useItemOptions } from './editor/editorShared';
 import { playSfx } from '../game/audio/sfx';
+import { useT } from '../i18n/useT';
 
 // POLI — vendor shop. Opened by interacting with a vendor NPC; buy items with coins (walletStore →
 // inventoryStore). Closes with ✕ or Esc-equivalent button.
@@ -12,6 +13,7 @@ export const ShopPanel = () => {
   const items = useShopStore((s) => s.items);
   const coins = useWalletStore((s) => s.coins);
   const itemOptions = useItemOptions();
+  const t = useT();
   if (!open) return null;
   const labelOf = (id: string) => itemOptions.find((o) => o.id === id)?.label ?? id;
 
@@ -29,7 +31,7 @@ export const ShopPanel = () => {
         <button onClick={() => useShopStore.getState().close()} className="rounded px-1.5 text-slate-300 hover:bg-slate-800">✕</button>
       </div>
       <div className="space-y-1">
-        {items.length === 0 && <div className="text-[11px] text-slate-500">Nothing for sale.</div>}
+        {items.length === 0 && <div className="text-[11px] text-slate-500">{t('shop_nothing')}</div>}
         {items.map((it, i) => {
           const afford = coins >= it.price;
           return (
@@ -37,7 +39,7 @@ export const ShopPanel = () => {
               <span className="flex-1 truncate text-slate-100">{labelOf(it.itemId)}</span>
               <span className="font-mono text-amber-200">🪙 {it.price}</span>
               <button disabled={!afford} onClick={() => buy(it.itemId, it.price)}
-                className={`rounded px-2 py-0.5 text-[11px] font-semibold ${afford ? 'bg-emerald-600/40 text-emerald-100 hover:bg-emerald-600/60' : 'cursor-not-allowed bg-slate-800 text-slate-500'}`}>Buy</button>
+                className={`rounded px-2 py-0.5 text-[11px] font-semibold ${afford ? 'bg-emerald-600/40 text-emerald-100 hover:bg-emerald-600/60' : 'cursor-not-allowed bg-slate-800 text-slate-500'}`}>{t('shop_buy')}</button>
             </div>
           );
         })}

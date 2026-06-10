@@ -5,6 +5,7 @@ import { resolveAreaTheme } from '../../game/environment/areaBiome';
 import type { EdgeDir, WorldArea } from '../../types/world';
 import { MAP_POINT_ICON } from '../../types/world';
 import { PanelCard, closePanel } from './playShared';
+import { useT } from '../../i18n/useT';
 
 // POLI — 🗺 World Map: a clickable GRID laid out from each area's edge links (east=+col, west=-col,
 // south=+row, north=-row) so the spatial relationship between areas is visible at a glance. The current
@@ -50,6 +51,7 @@ function buildGrid(areas: WorldArea[]): { cells: Cell[]; cols: number; rows: num
 
 export const MapPanel = () => {
   const current = usePlayerStore((s) => s.currentAreaId);
+  const t = useT();
   const areas = getWorldAreas();
   const { cells, cols, rows } = buildGrid(areas);
   const travel = (id: string) => {
@@ -58,7 +60,7 @@ export const MapPanel = () => {
     closePanel();
   };
   return (
-    <PanelCard title="World Map" icon="🗺" onClose={closePanel} width="32rem">
+    <PanelCard title={t('panel_map')} icon="🗺" onClose={closePanel} width="32rem">
       <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, 3.5rem)` }}>
         {cells.map(({ area, c, r }) => {
           const here = area.id === current;
@@ -82,7 +84,7 @@ export const MapPanel = () => {
           );
         })}
       </div>
-      <p className="mt-2 text-[10px] text-slate-400">Grid position = relative direction (from edge links). Click a tile to fast-travel.</p>
+      <p className="mt-2 text-[10px] text-slate-400">{t('map_footer')}</p>
     </PanelCard>
   );
 };
