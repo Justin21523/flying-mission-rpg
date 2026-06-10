@@ -1,4 +1,4 @@
-import { Line } from '@react-three/drei';
+import { Line, Text } from '@react-three/drei';
 import { useUiStore } from '../../stores/uiStore';
 import { useEditorPathStore } from '../../stores/editorPathStore';
 import { debugPoints } from '../path/pathCurve';
@@ -22,9 +22,10 @@ const PathNodes = ({ def }: { def: PathDefinition }) => {
   const nodes = def.nodes ?? [];
   return (
     <>
-      {nodes.map((n) => {
+      {nodes.map((n, i) => {
         const isEntry = def.entryNodeIds.includes(n.id);
-        const color = isEntry ? '#34d399' : '#22d3ee';
+        const isExit = def.exitNodeIds.includes(n.id);
+        const color = isEntry ? '#34d399' : isExit ? '#f97316' : '#22d3ee';
         return (
           <DataBackedPlacement
             key={`${def.id}#${n.id}`}
@@ -37,6 +38,10 @@ const PathNodes = ({ def }: { def: PathDefinition }) => {
               <sphereGeometry args={[0.32, 12, 10]} />
               <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
             </mesh>
+            {/* numbered handle (1-based) like the road editor, so the order is obvious */}
+            <Text position={[0, 1.0, 0]} fontSize={0.4} color={color} anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#000" raycast={() => null} depthOffset={-10}>
+              {`${i + 1}`}
+            </Text>
           </DataBackedPlacement>
         );
       })}

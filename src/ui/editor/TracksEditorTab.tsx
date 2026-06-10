@@ -74,17 +74,26 @@ const PathsSection = () => {
             <div className="rounded border border-slate-700/50 bg-slate-900/50 p-1.5">
               <div className="flex items-center justify-between"><span className={lbl}>nodes ({nodes.length})</span>
                 <button onClick={() => st.addNode(p.id)} className="rounded bg-sky-700/30 px-1.5 text-[11px] text-sky-100 hover:bg-sky-700/50">➕ node</button></div>
-              {nodes.map((n) => (
-                <div key={n.id} className="mt-1 flex items-center gap-1">
-                  {([0, 1, 2] as const).map((a) => (
-                    <input key={a} type="number" step={0.5} value={Math.round(n.position[a] * 100) / 100} className={inp + ' w-0 flex-1'} onChange={(e) => {
-                      const next = [...n.position] as [number, number, number]; next[a] = num(e.target.value); st.updateNode(p.id, n.id, { position: next });
-                    }} />
-                  ))}
-                  <input type="number" step={0.1} title="width" value={n.width} className={inp + ' w-14'} onChange={(e) => st.updateNode(p.id, n.id, { width: num(e.target.value, 1) })} />
-                  <input type="number" step={0.1} title="speed×" value={n.speedMultiplier} className={inp + ' w-14'} onChange={(e) => st.updateNode(p.id, n.id, { speedMultiplier: num(e.target.value, 1) })} />
-                  <button onClick={() => focus(`${p.id}#node#${n.id}`)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
-                  <button onClick={() => st.removeNode(p.id, n.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+              {nodes.map((n, i) => (
+                <div key={n.id} className="mt-1 rounded border border-slate-700/40 p-1">
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 shrink-0 text-center text-[11px] font-bold text-sky-300" title="node #">{i + 1}</span>
+                    {([0, 1, 2] as const).map((a) => (
+                      <input key={a} type="number" step={0.5} title={['x', 'y', 'z'][a]} value={Math.round(n.position[a] * 100) / 100} className={inp + ' w-0 flex-1'} onChange={(e) => {
+                        const next = [...n.position] as [number, number, number]; next[a] = num(e.target.value); st.updateNode(p.id, n.id, { position: next });
+                      }} />
+                    ))}
+                    <button onClick={() => focus(`${p.id}#node#${n.id}`)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+                    <button onClick={() => st.removeNode(p.id, n.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1">
+                    <input type="number" step={0.1} title="lane width" value={n.width} className={inp + ' w-0 flex-1'} onChange={(e) => st.updateNode(p.id, n.id, { width: num(e.target.value, 1) })} />
+                    <input type="number" step={0.1} title="speed ×" value={n.speedMultiplier} className={inp + ' w-0 flex-1'} onChange={(e) => st.updateNode(p.id, n.id, { speedMultiplier: num(e.target.value, 1) })} />
+                    <select title="tangent" value={n.tangentMode} onChange={(e) => st.updateNode(p.id, n.id, { tangentMode: e.target.value as typeof n.tangentMode })} className={inp + ' w-0 flex-1'}>
+                      {(['automatic', 'linear', 'custom'] as const).map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <input type="number" step={0.5} title="wait (s)" placeholder="wait" value={n.waitTime ?? ''} className={inp + ' w-14'} onChange={(e) => st.updateNode(p.id, n.id, { waitTime: e.target.value === '' ? undefined : num(e.target.value) })} />
+                  </div>
                 </div>
               ))}
               <div className="mt-0.5 text-[9px] text-slate-500">x / y / z · width · speed×. Drag the 🎯 handle in 3D — the line follows live.</div>
