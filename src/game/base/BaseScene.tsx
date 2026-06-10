@@ -9,6 +9,7 @@ import { FollowCamera } from '../camera/FollowCamera';
 import { BaseLayoutLayer } from './BaseLayoutLayer';
 import { BaseVehicle } from './BaseVehicle';
 import { LiftPlatform } from './LiftPlatform';
+import { LiftCinematicCamera } from './LiftCinematicCamera';
 import { BASE_HALF_EXTENT, BASE_GROUND_Y, BASE_CEILING_Y } from '../../data/game/baseLayout';
 
 // The enclosed 3D home base (hangar interior). Reuses the kit's ambience + Rapier <Physics> + FollowCamera
@@ -106,6 +107,8 @@ export const BaseScene = () => {
       </Physics>
 
       <FollowCamera />
+      {/* After FollowCamera so it overrides the camera during the lift descent only. */}
+      {!editMode && <LiftCinematicCamera />}
       {editMode && <SceneEditorGizmo />}
     </>
   );
