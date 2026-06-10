@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { Box3, Vector3, AnimationMixer, LoopOnce, LoopRepeat, type AnimationAction } from 'three';
+import { Box3, Vector3, AnimationMixer, LoopOnce, LoopRepeat, type AnimationAction, type Group } from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { useEditorPoliCharacterStore } from '../../stores/editorPoliCharacterStore';
 import { useTransformStore, POLI_ROSTER, type PoliForm } from '../../stores/transformStore';
@@ -12,6 +12,7 @@ import { playerKeysDown } from './playerInput';
 import { HelicopterRotor } from './HelicopterRotor';
 import { ruleMatches, pickLoopRule } from '../anim/animRunner';
 import { reactionAnim } from '../anim/reactionAnim';
+import { proceduralReaction } from '../anim/proceduralReaction';
 import type { AnimRule } from '../../types/character';
 
 // The player is one of the main characters (cycle with C), each with two forms (toggle with T). Both form
@@ -68,13 +69,24 @@ const ModelView =({ path, height, yOffset, visible, rules, active, form }: {
   }, [animations, path]);
   useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
 
-  const st = useRef({ action: null as AnimationAction | null, lastAbility: 0, abilityUntil: 0, lastCelebrate: 0, celebrateUntil: 0, oneShotUntil: 0, lastReaction: 0, prevOnce: new Set<string>() });
+  const st = useRef({ action: null as AnimationAction | null, lastAbility: 0, abilityUntil: 0, lastCelebrate: 0, celebrateUntil: 0, oneShotUntil: 0, lastReaction: 0, lastProc: 0, procT: 0, prevOnce: new Set<string>() });
+  const procRef = useRef<Group>(null);
 
   useFrame((_, dt) => {
     mixer.update(dt);
     if (!active) return; // only the visible form drives selection
     const S = st.current;
     const tnow = performance.now() / 1000;
+
+    // Procedural reaction (H3): a brief squash-bounce on every reaction, so feedback is guaranteed even when the
+    // model has no matching reaction clip. Runs every frame for the active model (independent of the mixer).
+    if (proceduralReaction.fireId !== S.lastProc) { S.lastProc = proceduralReaction.fireId; S.procT = 0.0001; }
+    if (procRef.current && S.procT > 0) {
+      S.procT += dt;
+      const k = S.procT / 0.32;
+      if (k >= 1) { S.procT = 0; procRef.current.scale.set(1, 1, 1); }
+      else { const s = Math.sin(k * Math.PI); procRef.current.scale.set(1 + s * 0.22, 1 - s * 0.28, 1 + s * 0.22); }
+    }
 
     // Collision reaction one-shot (Phase C): play the requested reaction clip once on a rising fireId (only if
     // this model actually has that clip — otherwise the CollisionReactionFx overlay still shows the result).
@@ -138,7 +150,7 @@ const ModelView =({ path, height, yOffset, visible, rules, active, form }: {
     }
   });
 
-  return <primitive object={clone} scale={scale} position={offset} visible={visible} />;
+  return <group ref={procRef}><primitive object={clone} scale={scale} position={offset} visible={visible} /></group>;
 };
 
 const BothForms = ({ carPath, robotPath, form, carH, robotH, yOff, rules }: { carPath: string; robotPath: string; form: PoliForm; carH: number; robotH: number; yOff: number; rules: AnimRule[] }) => (

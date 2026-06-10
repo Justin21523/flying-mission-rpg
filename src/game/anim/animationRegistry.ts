@@ -1,5 +1,6 @@
 import { getAnimationDef } from '../../stores/editorAnimationStore';
 import { requestPlayerReaction } from './reactionAnim';
+import { fireProceduralReaction } from './proceduralReaction';
 import { emitGameEvent } from '../collision/gameEventBus';
 
 // Phase C — resolve an AnimationDefinition id and play it as a reaction. For the player target, the clip is
@@ -12,5 +13,6 @@ export function playReaction(targetTag: 'source' | 'target', animationId: string
   if (def && targetTag === 'source') {
     requestPlayerReaction(def.clipName, def.speed, def.fadeIn);
   }
+  if (targetTag === 'source') fireProceduralReaction(); // guaranteed squash even if the clip is missing
   emitGameEvent({ kind: 'reaction', payload: def?.displayName ?? animationId, on: targetTag, x: anchor?.x, y: anchor?.y, z: anchor?.z });
 }
