@@ -1,4 +1,4 @@
-import type { SurfaceDefinition } from '../../types/surface';
+import type { SurfaceDefinition, SurfaceZoneDef } from '../../types/surface';
 
 // Phase D — a starter set of surface definitions (authoring data for the 🛣 Tracks → Surfaces editor). Runtime
 // application of these multipliers to movement is a later task; these exist so they can be authored/exported now.
@@ -18,4 +18,10 @@ export const SURFACE_SEED: SurfaceDefinition[] = [
   surface('surf_mud', 'Mud', { surfaceType: 'mud', friction: 1.4, accelerationMultiplier: 0.5, maxSpeedMultiplier: 0.6, tags: ['offroad', 'slow'] }),
   surface('surf_boost', 'Boost Surface', { surfaceType: 'boostSurface', maxSpeedMultiplier: 1.6, accelerationMultiplier: 1.4, tags: ['boost'] }),
   surface('surf_guided', 'Guided Road', { surfaceType: 'guidedRoad', pathAssistStrength: 1, enterPathFollow: true, tags: ['guided'] }),
+];
+
+// Placed surface zones (rescue_hq) — first-class, gizmo-movable pads that apply a surface to the player.
+export const SURFACE_ZONE_SEED: SurfaceZoneDef[] = [
+  { id: 'szone_boost', areaId: 'rescue_hq', surfaceId: 'surf_boost', position: [-14, 0, 0], size: [8, 6], enabled: true },
+  { id: 'szone_ice', areaId: 'rescue_hq', surfaceId: 'surf_ice', position: [-14, 0, -10], size: [8, 8], enabled: true },
 ];

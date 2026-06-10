@@ -35,6 +35,7 @@ import { CollisionTestLayer } from '../poli/CollisionTestLayer';
 import { CollisionReactionFx } from '../poli/CollisionReactionFx';
 import { PathFollowerLayer } from '../poli/PathFollowerLayer';
 import { TrafficIncidentLayer } from '../poli/TrafficIncidentLayer';
+import { SurfaceZoneLayer } from '../poli/SurfaceZoneLayer';
 import { NpcPathGizmoLayer } from './NpcPathGizmoLayer';
 import { POLI_SANDBOX } from '../../data/poli/sandboxConfig';
 import { useUiStore } from '../../stores/uiStore';
@@ -112,6 +113,8 @@ export const AreaRenderer = ({ areaId }: { areaId: string }) => {
       <PathFollowerLayer areaId={areaId} />
       {/* POLI Phase F: staged traffic-incident scenarios (stalled vehicle / cargo / blocked road). */}
       <TrafficIncidentLayer areaId={areaId} />
+      {/* POLI: placed surface zones that modulate player movement (ice/mud/boost…). */}
+      <SurfaceZoneLayer areaId={areaId} />
       {/* POLI seam #1c: traffic layer — editable NPC vehicles + traffic signals (always rendered;
           edit them in the 🚦 Traffic tab). */}
       <TrafficLayer areaId={areaId} />

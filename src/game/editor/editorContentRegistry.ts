@@ -225,7 +225,7 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
   {
     id: 'editorSurface',
     label: 'Surfaces',
-    serialize: () => ({ surfaces: useEditorSurfaceStore.getState().surfaces }),
+    serialize: () => { const s = useEditorSurfaceStore.getState(); return { surfaces: s.surfaces, zones: s.zones }; },
     deserialize: (data) => { if (isObj(data)) useEditorSurfaceStore.getState().importState(data as never); },
     clear: () => useEditorSurfaceStore.getState().reset(),
     summary: () => `${useEditorSurfaceStore.getState().surfaces.length} surfaces`,

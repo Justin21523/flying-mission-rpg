@@ -136,9 +136,12 @@ const BoostPadsSection = () => {
 
 // ── Surfaces ─────────────────────────────────────────────────────────────────
 const SurfacesSection = () => {
+  const areaId = usePlayerStore((s) => s.currentAreaId);
   const surfaces = useEditorSurfaceStore((s) => s.surfaces);
+  const zones = useEditorSurfaceStore((s) => s.zones);
   const st = useEditorSurfaceStore.getState();
   const pathOpts = usePathOptions();
+  const surfaceOpts = surfaces.map((s) => ({ id: s.id, label: s.name || s.id }));
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
@@ -165,7 +168,26 @@ const SurfacesSection = () => {
           <Field label="tags (comma-separated)"><input value={csv(s.tags)} onChange={(e) => st.updateSurface(s.id, { tags: parseCsv(e.target.value) })} className={inp} /></Field>
         </div>
       ))}
-      <div className="text-[9px] text-slate-500">Surface multipliers are authoring data; runtime application to movement is a later phase.</div>
+
+      <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
+        <span className={lbl}>🟦 Surface Zones ({zones.length})</span>
+        <button onClick={() => st.addZone(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ at cam</button>
+      </div>
+      {zones.map((z) => (
+        <div key={z.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
+          <div className="flex items-center gap-1.5">
+            <div className="flex-1"><IdSelect value={z.surfaceId} onChange={(v) => st.updateZone(z.id, { surfaceId: v ?? '' })} options={surfaceOpts} placeholder="(surface)" /></div>
+            <button onClick={() => focus(`${z.id}#surfzone`)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+            <button onClick={() => st.removeZone(z.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="size x"><input type="number" step={0.5} value={z.size[0]} onChange={(e) => st.updateZone(z.id, { size: [num(e.target.value, 1), z.size[1]] })} className={inp} /></Field>
+            <Field label="size z"><input type="number" step={0.5} value={z.size[1]} onChange={(e) => st.updateZone(z.id, { size: [z.size[0], num(e.target.value, 1)] })} className={inp} /></Field>
+            <Field label="enabled"><div className="pt-1"><Check label="" checked={z.enabled} onChange={(v) => st.updateZone(z.id, { enabled: v })} /></div></Field>
+          </div>
+        </div>
+      ))}
+      <div className="text-[9px] text-slate-500">Surface zones apply their surface's multipliers to the player while standing on them (drag the 🎯 pad in 3D). Speed/accel/braking already affect movement.</div>
     </div>
   );
 };

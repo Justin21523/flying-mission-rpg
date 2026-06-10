@@ -22,6 +22,17 @@ export const SURFACE_TYPES: SurfaceType[] = [
   'water', 'ice', 'boostSurface', 'guidedRoad', 'custom',
 ];
 
+// A placed surface zone: a flat area that applies a SurfaceDefinition's movement multipliers to the player
+// while they stand on it (sensor enter/exit → surfaceField). Authored/dragged in the 🛣 Tracks → Surfaces tab.
+export interface SurfaceZoneDef {
+  id: string;
+  areaId: string;
+  surfaceId: string;                 // → SurfaceDefinition.id
+  position: [number, number, number];
+  size: [number, number];            // x / z extents (flat pad)
+  enabled: boolean;
+}
+
 export interface SurfaceDefinition {
   id: string;
   name: string;
