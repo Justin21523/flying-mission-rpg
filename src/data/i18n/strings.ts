@@ -29,6 +29,23 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     defeated: 'Defeated',
     rewards: 'Rewards',
     language: 'Language',
+    // WorldClock
+    tod_dawn: 'dawn', tod_day: 'day', tod_evening: 'evening', tod_night: 'night',
+    wx_clear: 'clear', wx_rain: 'rain', wx_fog: 'fog', wx_storm: 'storm',
+    fxOn: 'FX on', fxOff: 'FX off',
+    // License
+    rescuesWord: 'rescues', nextLabel: 'next', maxTier: 'max tier',
+    // Resource / Boost
+    ready: 'READY',
+    // Tool belt
+    empty: 'empty', toolBelt: 'Tool Belt', selectTool: 'Select Tool', close: 'Close',
+    noToolsTitle: 'No tools unlocked yet.', noToolsHint: 'Talk to Jin to unlock tools.', clickToUnequip: 'Click to unequip',
+    // Dialogue
+    dialogue: 'Dialogue', activeQuestsShort: 'Active quests', typing: 'Typing', choose: 'Choose', skip: 'Skip',
+    noResponse: 'No available response right now.', selectResponse: 'Select a response', clickToContinue: 'Click, Enter, Space, or E to continue',
+    // Research
+    jinStation: "Jin's Research Station", researchStation: 'Research Station', pts: 'pts', research: 'Research',
+    researched: 'researched', needsPrereq: 'needs prereq', unlockedToolsHint: 'Unlocked tools equip in the Tool Belt (top-right).',
   },
   zh: {
     activeQuests: '進行中的任務',
@@ -56,5 +73,16 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     defeated: '擊敗',
     rewards: '獎勵',
     language: '語言',
+    tod_dawn: '黎明', tod_day: '白天', tod_evening: '傍晚', tod_night: '夜晚',
+    wx_clear: '晴朗', wx_rain: '下雨', wx_fog: '起霧', wx_storm: '暴風雨',
+    fxOn: '特效開', fxOff: '特效關',
+    rescuesWord: '次救援', nextLabel: '下一級', maxTier: '最高等級',
+    ready: '就緒',
+    empty: '空', toolBelt: '工具帶', selectTool: '選擇工具', close: '關閉',
+    noToolsTitle: '尚未解鎖工具。', noToolsHint: '找 Jin 解鎖工具。', clickToUnequip: '點擊卸下',
+    dialogue: '對話', activeQuestsShort: '進行中任務', typing: '輸入中', choose: '選擇', skip: '跳過',
+    noResponse: '目前沒有可用的回應。', selectResponse: '選擇一個回應', clickToContinue: '點擊、Enter、空白鍵或 E 繼續',
+    jinStation: 'Jin 的研究站', researchStation: '研究站', pts: '點', research: '研究',
+    researched: '已研究', needsPrereq: '需先決條件', unlockedToolsHint: '已解鎖的工具可在右上工具帶裝備。',
   },
 };

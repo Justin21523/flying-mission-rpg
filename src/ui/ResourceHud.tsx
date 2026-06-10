@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { usePoll } from './usePoll';
+import { useT } from '../i18n/useT';
 import { useResourceStore } from '../stores/resourceStore';
 import { getResourceDefs } from '../stores/editorCollectibleStore';
 
@@ -11,6 +12,7 @@ const keyLabel = (code?: string) => (code ? code.replace(/^Key/, '').replace(/^D
 
 export const ResourceHud = () => {
   usePoll(120);
+  const t = useT();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -44,7 +46,7 @@ export const ResourceHud = () => {
             <div className="mb-0.5 flex items-center justify-between px-0.5 text-[10px] font-bold">
               <span style={{ color: r.color }}>{r.name}</span>
               {ready
-                ? <span className="animate-pulse rounded px-1" style={{ background: `${r.color}33`, color: r.color }}>READY — {keyLabel(r.key)}</span>
+                ? <span className="animate-pulse rounded px-1" style={{ background: `${r.color}33`, color: r.color }}>{t('ready')} — {keyLabel(r.key)}</span>
                 : <span className="tabular-nums text-slate-400">{Math.round(cur)}/{r.threshold}</span>}
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full border border-slate-600/70 bg-slate-900/70 shadow-inner">

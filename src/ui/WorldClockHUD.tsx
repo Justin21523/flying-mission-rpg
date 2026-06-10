@@ -5,6 +5,7 @@ import type { Weather } from '../stores/worldClockStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { getKitArea } from '../data/areas';
 import { usePoll } from './usePoll';
+import { useT } from '../i18n/useT';
 
 const TIME_ICON: Record<TimeOfDay, string> = { dawn: '🌅', day: '☀️', evening: '🌆', night: '🌙' };
 const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️', fog: '🌫️', storm: '⛈️' };
@@ -14,6 +15,7 @@ const WEATHER_ICON: Record<Weather, string> = { clear: '☀️', rain: '🌧️'
 // it (a 60 Hz React re-render here janks the editor panels). timeOfDay/weather change rarely → keep reactive.
 export const WorldClockHUD = () => {
   usePoll(250);
+  const t = useT();
   const { timeMinutes, timeOfDay, weather } = useWorldClockStore.getState();
   const particlesEnabled = useAudioStore((s) => s.particlesEnabled);
   const areaId = usePlayerStore((s) => s.currentAreaId);
@@ -26,12 +28,12 @@ export const WorldClockHUD = () => {
         <span className="text-slate-500">·</span>
         <span className="flex items-center gap-1 tabular-nums">{TIME_ICON[timeOfDay]} {formatClock(timeMinutes)}</span>
         <span className="text-slate-500">·</span>
-        <span className="capitalize">{timeOfDay}</span>
+        <span>{t('tod_' + timeOfDay)}</span>
         <span className="text-slate-500">·</span>
-        <span className="flex items-center gap-1 capitalize">{WEATHER_ICON[weather]} {weather}</span>
+        <span className="flex items-center gap-1">{WEATHER_ICON[weather]} {t('wx_' + weather)}</span>
       </div>
       <div className="rounded-md border border-slate-500/60 bg-slate-800/80 px-2.5 py-1 text-xs font-medium text-slate-100 shadow-xl backdrop-blur-md">
-        {particlesEnabled ? '✨ FX on' : '◦ FX off'}
+        {particlesEnabled ? `✨ ${t('fxOn')}` : `◦ ${t('fxOff')}`}
       </div>
     </div>
   );

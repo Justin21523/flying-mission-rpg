@@ -11,6 +11,7 @@ import { useRelationshipStore } from '../stores/relationshipStore';
 import { useToolStore } from '../stores/toolStore';
 import { useTransformStore } from '../stores/transformStore';
 import type { DialogueChoice, DialogueEmotion } from '../types/dialogue';
+import { useT } from '../i18n/useT';
 
 // Emoji shown on the portrait avatar per emotion.
 const EMOTION_EMOJI: Record<DialogueEmotion, string> = {
@@ -32,6 +33,7 @@ const EMOTION_TINT: Record<DialogueEmotion, string> = {
 export const DialogueBox = () => {
   const { isActive, currentTreeId, currentNodeId, tempTrees, selectChoice, advanceDialogue, endDialogue } =
     useDialogueStore();
+  const t = useT();
   const hasItem = useInventoryStore((s) => s.hasItem);
   const quests = useQuestStore((s) => s.quests);
   const isDoorUnlocked = useDoorStore((s) => s.isUnlocked);
@@ -126,12 +128,12 @@ export const DialogueBox = () => {
         <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-4 py-2 text-xs text-slate-300">
           <div className="flex min-w-0 items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.9)]" />
-            <span className="truncate font-semibold uppercase tracking-wide">Dialogue</span>
+            <span className="truncate font-semibold uppercase tracking-wide">{t('dialogue')}</span>
           </div>
           <div className="flex items-center gap-3 tabular-nums">
             <span>{progressLabel}</span>
             <span className="h-3 w-px bg-white/15" />
-            <span>Active quests {activeQuestCount}</span>
+            <span>{t('activeQuestsShort')} {activeQuestCount}</span>
           </div>
         </div>
 
@@ -149,7 +151,7 @@ export const DialogueBox = () => {
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-bold text-cyan-200 sm:text-xl">{node.speaker}</h3>
               <span className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300">
-                {!isComplete ? 'Typing' : hasMultipleChoices ? 'Choose' : 'Continue'}
+                {!isComplete ? t('typing') : hasMultipleChoices ? t('choose') : t('continue')}
               </span>
             </div>
             <p className="min-h-[5rem] whitespace-pre-wrap text-base leading-7 text-slate-100 sm:text-lg">
@@ -174,20 +176,20 @@ export const DialogueBox = () => {
 
             {isComplete && node.choices && node.choices.length > 0 && availableChoices.length === 0 && (
               <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
-                No available response right now.
+                {t('noResponse')}
               </div>
             )}
           </div>
         </div>
 
         <div className="flex items-center justify-between border-t border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-300">
-          <span>{hasMultipleChoices ? 'Select a response' : 'Click, Enter, Space, or E to continue'}</span>
+          <span>{hasMultipleChoices ? t('selectResponse') : t('clickToContinue')}</span>
           {!hasMultipleChoices && (
             <button
               onClick={(e) => { e.stopPropagation(); continueDialogue(); }}
               className="rounded-md bg-cyan-500 px-4 py-2 font-semibold text-slate-950 transition-colors hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200"
             >
-              {isComplete ? 'Continue' : 'Skip'}
+              {isComplete ? t('continue') : t('skip')}
             </button>
           )}
         </div>
