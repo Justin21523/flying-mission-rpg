@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { SurfaceDefinition, SurfaceZoneDef } from '../types/surface';
 import { SURFACE_SEED, SURFACE_ZONE_SEED } from '../data/poli/surfaceSeed';
 import { editorSpawn } from './sceneEditStore';
+import { useWorldSelectStore } from './worldSelectStore';
+import { focusCameraOn } from '../game/edit/cameraFocus';
 
 // POLI (Phase D/F+) — authorable surface definitions + placed surface zones (🛣 Tracks → Surfaces). A zone
 // applies its SurfaceDefinition's movement multipliers to the player while standing on it (SurfaceZoneLayer +
@@ -62,6 +64,7 @@ export const useEditorSurfaceStore = create<EditorSurfaceState>((set, get) => {
         size: [6, 6], enabled: true,
       };
       set({ zones: [...get().zones, z] }); save();
+      useWorldSelectStore.getState().select(`${id}#surfzone`); focusCameraOn(z.position[0], z.position[1], z.position[2]);
       return id;
     },
     updateZone: (id, patch) => { set({ zones: get().zones.map((z) => (z.id === id ? { ...z, ...patch } : z)) }); save(); },

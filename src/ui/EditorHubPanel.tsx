@@ -148,9 +148,9 @@ export const EditorHubPanel = () => {
         transform: pos ? `scale(${scale})` : `translate(-50%, -50%) scale(${scale})`,
         transformOrigin: pos ? 'top left' : 'center',
       }}
-      className="pointer-events-auto absolute z-[80] flex h-[80vh] max-h-[96vh] min-h-[18rem] w-[48rem] min-w-[22rem] max-w-[98vw] resize overflow-hidden rounded-2xl border border-violet-700/50 bg-slate-950/75 text-slate-100 shadow-2xl backdrop-blur-md"
+      className="pointer-events-auto absolute z-[80] flex h-[86vh] max-h-[97vh] min-h-[18rem] w-[58rem] min-w-[26rem] max-w-[98vw] resize overflow-hidden rounded-2xl border border-violet-700/50 bg-slate-950/75 text-slate-100 shadow-2xl backdrop-blur-md"
     >
-      <div className="flex w-44 shrink-0 flex-col border-r border-slate-800/60 bg-slate-900/40 p-2">
+      <div className="flex w-48 shrink-0 flex-col border-r border-slate-800/60 bg-slate-900/40 p-2">
         <div className="mb-2 flex items-center justify-between gap-1">
           <span onPointerDown={onHeaderDown} className="cursor-move select-none px-1 pt-1 text-sm font-bold text-violet-100" title="Drag to move">⚙ Hub <span className="text-[9px] font-normal text-slate-500">⠿</span></span>
           <div className="flex items-center gap-0.5 text-slate-400">
@@ -159,10 +159,13 @@ export const EditorHubPanel = () => {
             <button onClick={() => setScale((s) => Math.min(2, Math.round((s + 0.1) * 100) / 100))} title="Bigger" className="rounded px-1 text-sm hover:bg-slate-800">+</button>
           </div>
         </div>
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`mb-0.5 rounded-lg px-3 py-2 text-left text-xs font-semibold ${tab === t.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.label}</button>
-        ))}
-        <div className="mt-auto px-1 pt-2 text-[10px] leading-relaxed text-slate-600">Assets palette is at the left · Inspector top-left. Drop assets into src/assets/ or public/.</div>
+        {/* Scrollable tab list — so every tab is reachable however many there are / however small the hub. */}
+        <div className="-mr-1 flex-1 overflow-y-auto pr-1">
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)} className={`mb-0.5 block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold ${tab === t.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.label}</button>
+          ))}
+        </div>
+        <div className="shrink-0 px-1 pt-2 text-[10px] leading-relaxed text-slate-600">Assets palette is at the left · Inspector top-left. Drop assets into src/assets/ or public/.</div>
       </div>
       <div className="relative min-w-0 flex-1 overflow-auto p-4 pr-10">
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>

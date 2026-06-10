@@ -2,13 +2,15 @@ import { create } from 'zustand';
 import type { PathDefinition, PathNodeData } from '../types/path';
 import { PATH_SEED } from '../data/poli/boostPathsSeed';
 import { editorSpawn } from './sceneEditStore';
+import { useWorldSelectStore } from './worldSelectStore';
+import { focusCameraOn } from '../game/edit/cameraFocus';
 
 // POLI (Phase B) — curve-based guided paths (Test Straight / Test Curve seeded; more via the Phase-D editor).
 // Auto-persisted; imported/exported through the editor content registry (domain 'editorPath') and tracked for
 // Undo. Node drags in the PathDebugLayer write back here via updatePathNode → the cached curve rebuilds live.
 interface EditorPathState {
   paths: PathDefinition[];
-  addPath: () => string;
+  addPath: (areaId: string) => string;
   updatePath: (id: string, patch: Partial<PathDefinition>) => void;
   updatePathNode: (pathId: string, nodeId: string, position: [number, number, number]) => void;
   updateNode: (pathId: string, nodeId: string, patch: Partial<PathNodeData>) => void;
@@ -39,17 +41,19 @@ export const useEditorPathStore = create<EditorPathState>((set, get) => {
   const save = () => persist(get().paths);
   return {
     paths: load(),
-    addPath: () => {
+    addPath: (areaId) => {
       const id = uid('path');
       const c = camPos();
       const n0: PathNodeData = { id: uid('node'), position: [c[0] - 4, c[1], c[2]], tangentMode: 'automatic', speedMultiplier: 1, width: 2 };
       const n1: PathNodeData = { id: uid('node'), position: [c[0] + 4, c[1], c[2]], tangentMode: 'automatic', speedMultiplier: 1, width: 2 };
       const path: PathDefinition = {
-        id, name: 'New Path', areaId: 'rescue_hq', nodeIds: [n0.id, n1.id], nodes: [n0, n1],
+        id, name: 'New Path', areaId, nodeIds: [n0.id, n1.id], nodes: [n0, n1],
         curveType: 'catmullRom', closed: false, defaultSpeed: 12, laneWidth: 2, directionMode: 'oneWay',
         entryNodeIds: [n0.id], exitNodeIds: [n1.id],
       };
       set({ paths: [...get().paths, path] }); save();
+      useWorldSelectStore.getState().select(`${id}#node#${n0.id}`); // show the gizmo on the first node immediately
+      focusCameraOn(c[0], c[1], c[2]);
       return id;
     },
     updatePath: (id, patch) => { set({ paths: get().paths.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); save(); },
@@ -66,17 +70,21 @@ export const useEditorPathStore = create<EditorPathState>((set, get) => {
       save();
     },
     addNode: (pathId) => {
+      let newId = ''; let pos: [number, number, number] = camPos();
       set({
         paths: get().paths.map((p) => {
           if (p.id !== pathId) return p;
           const nodes = p.nodes ?? [];
           const last = nodes[nodes.length - 1]?.position ?? camPos();
-          const node: PathNodeData = { id: uid('node'), position: [last[0] + 3, last[1], last[2]], tangentMode: 'automatic', speedMultiplier: 1, width: p.laneWidth };
+          pos = [last[0] + 3, last[1], last[2]];
+          const node: PathNodeData = { id: uid('node'), position: pos, tangentMode: 'automatic', speedMultiplier: 1, width: p.laneWidth };
+          newId = node.id;
           const nextNodes = [...nodes, node];
           return { ...p, nodes: nextNodes, nodeIds: nextNodes.map((n) => n.id) };
         }),
       });
       save();
+      if (newId) { useWorldSelectStore.getState().select(`${pathId}#node#${newId}`); focusCameraOn(pos[0], pos[1], pos[2]); }
     },
     removeNode: (pathId, nodeId) => {
       set({

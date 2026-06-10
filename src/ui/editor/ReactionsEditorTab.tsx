@@ -6,14 +6,22 @@ import { useEditorAnimationStore } from '../../stores/editorAnimationStore';
 import { COLLISION_OBJECT_TYPES, type CollisionObjectType, type CollisionPhase, type ReactionAction } from '../../types/collision';
 import { ANIMATION_LAYERS, type AnimationLayer } from '../../types/animationDef';
 import { SURFACE_TYPES, type SurfaceType } from '../../types/surface';
-import { Field, inp, lbl, Check, csv, parseCsv, usePathOptions, useAnimationOptions } from './editorShared';
+import { Field, inp, lbl, Check, csv, parseCsv, usePathOptions, useAnimationOptions, useAreaOptions } from './editorShared';
+import { focusCameraOn } from '../../game/edit/cameraFocus';
 import { IdSelect } from './idPickers';
 import { ActionEditor } from './ActionEditor';
 
 // 💥 Reactions tab — authoring for the collision-reaction systems (Rules · Objects · Animation mapping). Pure
 // data editing; the reaction engine + CollisionTestLayer read the same stores. 🎯 focuses an object's 3D handle.
 type Section = 'rules' | 'objects' | 'animations';
-const focus = (key: string) => useWorldSelectStore.getState().select(key);
+const focus = (key: string, pos?: [number, number, number]) => {
+  useWorldSelectStore.getState().select(key);
+  if (pos) focusCameraOn(pos[0], pos[1], pos[2]);
+};
+const AreaSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const areas = useAreaOptions();
+  return <select value={value} onChange={(e) => onChange(e.target.value)} className={inp}>{areas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}</select>;
+};
 const PHASES: CollisionPhase[] = ['enter', 'stay', 'exit', 'impact'];
 const num = (v: string, d = 0) => { const n = parseFloat(v); return Number.isNaN(n) ? d : n; };
 const numU = (v: string) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
@@ -116,10 +124,11 @@ const ObjectsSection = () => {
           <div className="flex items-center gap-1.5">
             <input type="color" value={o.color ?? '#94a3b8'} onChange={(e) => st.updateObject(o.id, { color: e.target.value })} className="h-6 w-7 shrink-0 rounded bg-slate-800" />
             <input value={o.label ?? ''} onChange={(e) => st.updateObject(o.id, { label: e.target.value })} className={inp + ' flex-1'} placeholder="label" />
-            <button onClick={() => focus(`${o.id}#collobj`)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+            <button onClick={() => focus(`${o.id}#collobj`, o.position)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
             <button onClick={() => st.removeObject(o.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
+            <Field label="map area"><AreaSelect value={o.areaId} onChange={(v) => st.updateObject(o.id, { areaId: v })} /></Field>
             <Field label="object type"><select value={o.objectType} onChange={(e) => st.updateObject(o.id, { objectType: e.target.value as CollisionObjectType })} className={inp}>{COLLISION_OBJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
             <Field label="surface type"><select value={o.surfaceType ?? ''} onChange={(e) => st.updateObject(o.id, { surfaceType: (e.target.value || undefined) as SurfaceType | undefined })} className={inp}><option value="">(none)</option>{SURFACE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
           </div>

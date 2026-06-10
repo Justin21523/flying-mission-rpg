@@ -9,15 +9,24 @@ import { PATH_FOLLOWER_KINDS, type PathFollowerKind } from '../../types/pathFoll
 import { PATH_CONTROL_MODES, type PathControlMode, type PathCurveType, type PathDirectionMode } from '../../types/path';
 import { BOOST_MODES, BOOST_EXIT_BEHAVIORS, type BoostMode, type BoostExitBehavior } from '../../types/boostPad';
 import { SURFACE_TYPES, type SurfaceType } from '../../types/surface';
-import { Field, inp, lbl, Check, csv, parseCsv, usePathOptions } from './editorShared';
+import { Field, inp, lbl, Check, csv, parseCsv, usePathOptions, useAreaOptions } from './editorShared';
 import { IdSelect } from './idPickers';
 import { ModelPicker } from './ModelPicker';
+import { focusCameraOn } from '../../game/edit/cameraFocus';
 
-// 🛣 Tracks tab — authoring for the movement systems (Paths · Boost Pads · Surfaces). Pure data editing; the
-// in-scene gizmos (PathDebugLayer / BoostPadLayer) read the same stores, so edits and drags stay in sync. 🎯
-// focuses the matching 3D handle (worldSelectStore key).
+// 🛣 Tracks tab — authoring for the movement systems (Paths · Boost Pads · Surfaces · Followers). Pure data
+// editing; the in-scene gizmos read the same stores, so edits and drags stay in sync. 🎯 selects the matching
+// 3D handle AND jumps the edit camera to it (so even far-off / existing items come into view).
 type Section = 'paths' | 'pads' | 'surfaces' | 'followers';
-const focus = (key: string) => useWorldSelectStore.getState().select(key);
+const focus = (key: string, pos?: [number, number, number]) => {
+  useWorldSelectStore.getState().select(key);
+  if (pos) focusCameraOn(pos[0], pos[1], pos[2]);
+};
+// Per-item map-area selector (every Tracks item shows + can change which area it belongs to).
+const AreaSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const areas = useAreaOptions();
+  return <select value={value} onChange={(e) => onChange(e.target.value)} className={inp}>{areas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}</select>;
+};
 const CURVE_TYPES: PathCurveType[] = ['catmullRom', 'bezier', 'linear'];
 const DIRECTIONS: PathDirectionMode[] = ['oneWay', 'twoWay'];
 const num = (v: string, d = 0) => { const n = parseFloat(v); return Number.isNaN(n) ? d : n; };
@@ -40,13 +49,14 @@ export const TracksEditorTab = () => {
 
 // ── Paths ──────────────────────────────────────────────────────────────────────
 const PathsSection = () => {
+  const areaId = usePlayerStore((s) => s.currentAreaId);
   const paths = useEditorPathStore((s) => s.paths);
   const st = useEditorPathStore.getState();
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
         <span className={lbl}>🛤 Paths ({paths.length})</span>
-        <button onClick={() => st.addPath()} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ path</button>
+        <button onClick={() => st.addPath(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ in this area</button>
       </div>
       {paths.length === 0 && <div className="text-[11px] text-slate-500">No paths yet.</div>}
       {paths.map((p) => {
@@ -59,9 +69,11 @@ const PathsSection = () => {
           <div key={p.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
             <div className="flex items-center gap-1.5">
               <input value={p.name} onChange={(e) => st.updatePath(p.id, { name: e.target.value })} className={inp + ' flex-1'} placeholder="path name" />
+              <button onClick={() => { const n0 = nodes[0]; if (n0) focus(`${p.id}#node#${n0.id}`, n0.position); }} title="Jump camera to this path" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
               <button onClick={() => st.removePath(p.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
+              <Field label="map area"><AreaSelect value={p.areaId ?? areaId} onChange={(v) => st.updatePath(p.id, { areaId: v })} /></Field>
               <Field label="curve type"><select value={p.curveType} onChange={(e) => st.updatePath(p.id, { curveType: e.target.value as PathCurveType })} className={inp}>{CURVE_TYPES.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
               <Field label="direction"><select value={p.directionMode} onChange={(e) => st.updatePath(p.id, { directionMode: e.target.value as PathDirectionMode })} className={inp}>{DIRECTIONS.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
               <Field label="default speed"><input type="number" step={0.5} value={p.defaultSpeed} onChange={(e) => st.updatePath(p.id, { defaultSpeed: num(e.target.value) })} className={inp} /></Field>
@@ -91,7 +103,7 @@ const PathsSection = () => {
                         const next = [...n.position] as [number, number, number]; next[a] = num(e.target.value); st.updateNode(p.id, n.id, { position: next });
                       }} />
                     ))}
-                    <button onClick={() => focus(`${p.id}#node#${n.id}`)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+                    <button onClick={() => focus(`${p.id}#node#${n.id}`, n.position)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
                     <button onClick={() => st.removeNode(p.id, n.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
                   </div>
                   <div className="mt-1 flex items-center gap-1">
@@ -146,10 +158,11 @@ const BoostPadsSection = () => {
           <div className="flex items-center gap-1.5">
             <Check label="enabled" checked={p.enabled} onChange={(v) => st.updatePad(p.id, { enabled: v })} />
             <span className="flex-1 text-[11px] text-slate-400">{p.id}</span>
-            <button onClick={() => focus(`${p.id}#pad`)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+            <button onClick={() => focus(`${p.id}#pad`, p.position)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
             <button onClick={() => st.removePad(p.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
+            <Field label="map area"><AreaSelect value={p.areaId ?? areaId} onChange={(v) => st.updatePad(p.id, { areaId: v })} /></Field>
             <Field label="boost mode"><select value={p.boostMode} onChange={(e) => st.updatePad(p.id, { boostMode: e.target.value as BoostMode })} className={inp}>{BOOST_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></Field>
             <Field label="exit behavior"><select value={p.exitBehavior} onChange={(e) => st.updatePad(p.id, { exitBehavior: e.target.value as BoostExitBehavior })} className={inp}>{BOOST_EXIT_BEHAVIORS.map((m) => <option key={m} value={m}>{m}</option>)}</select></Field>
             <Field label="boost speed"><input type="number" step={0.5} value={p.boostSpeed} onChange={(e) => st.updatePad(p.id, { boostSpeed: num(e.target.value) })} className={inp} /></Field>
@@ -230,9 +243,10 @@ const SurfacesSection = () => {
         <div key={z.id} className="space-y-1.5 rounded-lg border border-slate-700/60 bg-slate-900/40 p-2">
           <div className="flex items-center gap-1.5">
             <div className="flex-1"><IdSelect value={z.surfaceId} onChange={(v) => st.updateZone(z.id, { surfaceId: v ?? '' })} options={surfaceOpts} placeholder="(surface)" /></div>
-            <button onClick={() => focus(`${z.id}#surfzone`)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
+            <button onClick={() => focus(`${z.id}#surfzone`, z.position)} title="Select gizmo in 3D" className="rounded px-1 text-[11px] text-sky-300 hover:bg-slate-800">🎯</button>
             <button onClick={() => st.removeZone(z.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
           </div>
+          <Field label="map area"><AreaSelect value={z.areaId} onChange={(v) => st.updateZone(z.id, { areaId: v })} /></Field>
           <div className="grid grid-cols-3 gap-2">
             <Field label="size x"><input type="number" step={0.5} value={z.size[0]} onChange={(e) => st.updateZone(z.id, { size: [num(e.target.value, 1), z.size[1]] })} className={inp} /></Field>
             <Field label="size z"><input type="number" step={0.5} value={z.size[1]} onChange={(e) => st.updateZone(z.id, { size: [z.size[0], num(e.target.value, 1)] })} className={inp} /></Field>
@@ -265,6 +279,7 @@ const FollowersSection = () => {
             <button onClick={() => st.removeFollower(f.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
+            <Field label="map area"><AreaSelect value={f.areaId} onChange={(v) => st.updateFollower(f.id, { areaId: v })} /></Field>
             <Field label="kind"><select value={f.kind} onChange={(e) => st.updateFollower(f.id, { kind: e.target.value as PathFollowerKind })} className={inp}>{PATH_FOLLOWER_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select></Field>
             <Field label="path"><IdSelect value={f.pathId} onChange={(v) => st.updateFollower(f.id, { pathId: v ?? '' })} options={pathOpts} placeholder="(path)" /></Field>
             <Field label="count (convoy)"><input type="number" step={1} min={1} value={f.count} onChange={(e) => st.updateFollower(f.id, { count: Math.max(1, Math.round(num(e.target.value, 1))) })} className={inp} /></Field>

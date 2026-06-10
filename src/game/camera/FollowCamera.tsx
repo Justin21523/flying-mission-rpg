@@ -7,6 +7,9 @@ import { usePlayerStore } from '../../stores/playerStore';
 import { useUiStore } from '../../stores/uiStore';
 import { useTerrainBrushStore } from '../../stores/terrainBrushStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
+import { cameraFocus } from '../edit/cameraFocus';
+
+const _focusOff = new Vector3();
 
 // Rebuilt simple third-person follow camera.
 //
@@ -55,6 +58,7 @@ export const FollowCamera = () => {
   const distTarget = useRef(9);
   const dragging = useRef(false);
   const target = useRef(new Vector3());
+  const lastFocus = useRef(0); // last consumed cameraFocus.fireId (edit-mode "jump to object")
 
   // NOTE: the orbit angle is NOT reset on travel — yaw/pitch are persistent refs (this component never
   // remounts), so the camera facing carries over UNCHANGED across area changes / portals / teleports. The
@@ -90,9 +94,19 @@ export const FollowCamera = () => {
 
   useFrame((state, delta) => {
     if (editMode) {
-      // OrbitControls owns the camera; just mirror its focus for the Add-Model palette.
+      // OrbitControls owns the camera; mirror its focus for the Add-Model palette + honour 🎯 focus requests.
       const c = controlsRef.current;
-      if (c) { editorSpawn.x = c.target.x; editorSpawn.y = c.target.y; editorSpawn.z = c.target.z; }
+      if (c) {
+        // Editor "jump to object": pan the target (and camera, keeping the same view offset) to the request.
+        if (cameraFocus.fireId !== lastFocus.current) {
+          lastFocus.current = cameraFocus.fireId;
+          _focusOff.copy(state.camera.position).sub(c.target);
+          c.target.set(cameraFocus.x, cameraFocus.y, cameraFocus.z);
+          state.camera.position.copy(c.target).add(_focusOff);
+          c.update();
+        }
+        editorSpawn.x = c.target.x; editorSpawn.y = c.target.y; editorSpawn.z = c.target.z;
+      }
       return;
     }
     const playerPosition = usePlayerStore.getState().position;

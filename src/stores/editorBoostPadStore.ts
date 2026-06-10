@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { BoostPadConfig } from '../types/boostPad';
 import { BOOST_PAD_SEED } from '../data/poli/boostPathsSeed';
 import { editorSpawn } from './sceneEditStore';
+import { useWorldSelectStore } from './worldSelectStore';
+import { focusCameraOn } from '../game/edit/cameraFocus';
 
 // POLI (Phase B) — BoostPads: pads the player auto-triggers by walking onto them (sensor + per-pad cooldown in
 // BoostPadLayer) for a speed burst and/or a PathFollow along a linked path. Distinct from editorBoostStore
@@ -43,6 +45,8 @@ export const useEditorBoostPadStore = create<EditorBoostPadState>((set, get) => 
         position: [Math.round(editorSpawn.x * 100) / 100, 0.3, Math.round(editorSpawn.z * 100) / 100], rotation: [0, 0, 0],
       };
       set({ pads: [...get().pads, pad] }); save();
+      const pp = pad.position ?? [0, 0, 0];
+      useWorldSelectStore.getState().select(`${id}#pad`); focusCameraOn(pp[0], pp[1], pp[2]);
       return id;
     },
     updatePad: (id, patch) => { set({ pads: get().pads.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); save(); },

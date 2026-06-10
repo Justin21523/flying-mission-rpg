@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { CollisionObjectDef, CollisionReactionRule } from '../types/collision';
 import { COLLISION_OBJECT_SEED, COLLISION_RULE_SEED } from '../data/poli/collisionSeed';
 import { editorSpawn } from './sceneEditStore';
+import { useWorldSelectStore } from './worldSelectStore';
+import { focusCameraOn } from '../game/edit/cameraFocus';
 
 // POLI (Phase C) — classified collidables + data-driven collision reaction rules. Auto-persisted; round-trips
 // via the editor content registry (domain 'editorCollision') and is tracked for Undo. Object drags in Edit
@@ -49,6 +51,7 @@ export const useEditorCollisionStore = create<EditorCollisionState>((set, get) =
         size: [2, 2, 2], solid: true, tags: [], color: '#94a3b8', label: 'Object', enabled: true,
       };
       set({ objects: [...get().objects, o] }); save();
+      useWorldSelectStore.getState().select(`${id}#collobj`); focusCameraOn(o.position[0], o.position[1], o.position[2]);
       return id;
     },
     updateObject: (id, patch) => { set({ objects: get().objects.map((o) => (o.id === id ? { ...o, ...patch } : o)) }); save(); },
