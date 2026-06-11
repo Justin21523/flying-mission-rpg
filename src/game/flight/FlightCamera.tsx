@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, Euler, Quaternion, type PerspectiveCamera } from 'three';
 import { getFlightTuning } from '../../stores/game/editorFlightStore';
 import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
+import { useGameStore } from '../../stores/game/useGameStore';
 import { flightHandle } from './flightHandle';
 
 // Third-person flight camera: follows behind+above, FOV widens with speed, pulls back under throttle,
@@ -43,7 +44,12 @@ export const FlightCamera = () => {
     // speedNorm (0..1) is the normalized "speed feel" — raw flightHandle.speed can be huge on long routes
     // (distance/duration), which would peg the FOV at max and visually shrink the craft.
     const pull = tuning.camPullback * Math.min(1, flightHandle.speedNorm);
-    _off.set(0, tuning.camHeight, tuning.camDistance + pull).applyQuaternion(_q).add(flightHandle.pos);
+    // WORLD_FLIGHT uses its own (very close) framing so the character reads BIG during the long flight;
+    // the launch/fly-around phases keep the regular pair. Both editable in 🛩 Flight.
+    const world = useGameStore.getState().phase === 'WORLD_FLIGHT';
+    const dist = world ? tuning.worldCamDistance : tuning.camDistance;
+    const height = world ? tuning.worldCamHeight : tuning.camHeight;
+    _off.set(0, height, dist + pull).applyQuaternion(_q).add(flightHandle.pos);
     cam.position.lerp(_off, k);
 
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);

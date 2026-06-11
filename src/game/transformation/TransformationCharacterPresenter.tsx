@@ -63,7 +63,7 @@ export const TransformationCharacterPresenter = ({ def, charModelId }: { def: Tr
   const clip = txFrame.snapshot?.activeClip ?? undefined;
   const extraRef = txFrame.snapshot?.activeModelRef ?? undefined;
   return (
-    <group ref={root}>
+    <group ref={root} scale={def.modelScale ?? 1}>
       {(def.parts ?? []).map((p) => (
         <PartMesh key={p.key} part={p} color={p.color ?? color} />
       ))}

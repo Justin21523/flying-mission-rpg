@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { nanoid } from 'nanoid';
 import { useEditorTransformationStore } from '../../../stores/game/editorTransformationStore';
+import { useEditorCharacterStore } from '../../../stores/game/editorCharacterStore';
 import { useTransformationPreviewStore } from '../../../stores/game/transformationPreviewStore';
+import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { validateTimeline } from '../../../game/transformation/transformationValidation';
+import { transformPartKey } from '../../../game/transformation/transformPartKey';
+import { getModelAsset } from '../../../data/modelLibrary';
+import { useGltfClipNames } from '../useGltfClipNames';
 import {
-  FORM_STRATEGIES, TRANSFORMATION_STAGE_TYPES, TRANSFORMATION_PART_KEYS, MODEL_SLOTS, EASINGS,
+  FORM_STRATEGIES, TRANSFORMATION_STAGE_TYPES, TRANSFORMATION_PART_KEYS, PART_GEOMETRY_KINDS, MODEL_SLOTS, EASINGS,
   CAMERA_SHOT_TYPES, EFFECT_TYPES, TRANSFORMATION_MODES,
 } from '../../../types/game/transformation';
 import type {
-  TransformationDefinition, TransformationStage, TransformationCameraShot, TransformationEffectTrack,
+  TransformationDefinition, TransformationStage, TransformationCameraShot, TransformationEffectTrack, TransformationPart,
 } from '../../../types/game/transformation';
 import { Field, inp, lbl, Check } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
@@ -52,8 +57,85 @@ const Vec3 = ({ label, value, onChange }: { label: string; value: [number, numbe
   </Field>
 );
 
+// The model whose GLB clips drive the timeline's animation-clip stages: shared → robot → the bound
+// character's model (so clip dropdowns list REAL clip names instead of free text).
+function timelineClipModelId(def: TransformationDefinition): string | undefined {
+  if (def.sharedModelRef) return def.sharedModelRef;
+  if (def.robotModelRef) return def.robotModelRef;
+  const ch = def.characterId ? useEditorCharacterStore.getState().items.find((c) => c.id === def.characterId) : undefined;
+  return ch?.modelAssetId;
+}
+
+const ClipSelect = ({ def, value, onChange }: { def: TransformationDefinition; value?: string; onChange: (v?: string) => void }) => {
+  const modelId = timelineClipModelId(def);
+  const asset = modelId ? getModelAsset(modelId) : undefined;
+  const clips = useGltfClipNames(asset?.path);
+  if (clips.length === 0) return <TextRow label="Clip name (type — no model clips found)" value={value ?? ''} onChange={(v) => onChange(v || undefined)} />;
+  return (
+    <SelectRow
+      label="Clip"
+      value={value ?? ''}
+      options={[{ value: '', label: '(none)' }, ...clips.map((c) => ({ value: c, label: c }))]}
+      onChange={(v) => onChange(v || undefined)}
+    />
+  );
+};
+
+// ── parts (the unfold anchors) — numeric form synced with the draggable 3D gizmo anchors ──
+const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
+  const overrides = useSceneEditStore((s) => s.overrides);
+  const parts = def.parts ?? [];
+  const patch = (key: string, p: Partial<TransformationPart>) => update({ parts: parts.map((x) => (x.key === key ? { ...x, ...p } : x)) });
+  const remove = (key: string) => update({ parts: parts.filter((x) => x.key !== key) });
+  const unused = TRANSFORMATION_PART_KEYS.filter((k) => !parts.some((p) => p.key === k));
+  const add = () => {
+    const key = unused[0];
+    if (key) update({ parts: [...parts, { key, geometry: 'limb', basePosition: [0, 0, 0], baseRotation: [0, 0, 0], baseScale: 1 }] });
+  };
+  const livePos = (p: TransformationPart): [number, number, number] =>
+    (overrides[transformPartKey(def.id, p.key)]?.position as [number, number, number]) ?? p.basePosition;
+  const editPos = (p: TransformationPart, axis: number, v: number) => {
+    const next = [...livePos(p)] as [number, number, number];
+    next[axis] = v;
+    patch(p.key, { basePosition: next });
+    useSceneEditStore.getState().setOverride(transformPartKey(def.id, p.key), { position: undefined });
+  };
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div className={lbl}>Parts · {parts.length}</div>
+        <button onClick={add} disabled={unused.length === 0} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50 disabled:opacity-40">➕ Part</button>
+      </div>
+      <p className="mt-0.5 text-[10px] text-slate-500">Drag the blue anchors in 3D (jump to TRANSFORMATION) — positions here follow live.</p>
+      <div className="mt-1 space-y-1.5">
+        {parts.map((p) => (
+          <div key={p.key} className="rounded bg-slate-900/60 p-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <Field label="Part"><span className="text-[11px] font-semibold text-sky-200">{p.key}</span></Field>
+              <SelectRow label="Geometry" value={p.geometry} options={PART_GEOMETRY_KINDS.map((g) => ({ value: g, label: g }))} onChange={(v) => patch(p.key, { geometry: v as TransformationPart['geometry'] })} />
+            </div>
+            <Field label="Base position (x / y / z) — live with the gizmo">
+              <div className="flex gap-1">
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={0.1} value={Math.round(livePos(p)[a] * 100) / 100} onChange={(e) => editPos(p, a, parseFloat(e.target.value) || 0)} className={inp + ' w-0 flex-1 text-center'} />
+                ))}
+              </div>
+            </Field>
+            <Vec3 label="Base rotation°" value={p.baseRotation} onChange={(v) => patch(p.key, { baseRotation: v })} />
+            <div className="grid grid-cols-2 gap-1.5">
+              <NumRow label="Base scale" value={p.baseScale} step={0.1} min={0.1} onChange={(v) => patch(p.key, { baseScale: v })} />
+              <ColorRow label="Colour (empty = theme)" value={p.color ?? def.particleColor} onChange={(v) => patch(p.key, { color: v })} />
+            </div>
+            <button onClick={() => remove(p.key)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ── stage params (type-aware) ──
-const StageParams = ({ s, patch }: { s: TransformationStage; patch: (p: Partial<TransformationStage['params']>) => void }) => {
+const StageParams = ({ s, def, patch }: { s: TransformationStage; def: TransformationDefinition; patch: (p: Partial<TransformationStage['params']>) => void }) => {
   const p = s.params;
   switch (s.type) {
     case 'part-transform':
@@ -81,7 +163,7 @@ const StageParams = ({ s, patch }: { s: TransformationStage; patch: (p: Partial<
     case 'animation-clip':
       return (
         <>
-          <TextRow label="Clip name" value={p.clipName ?? ''} onChange={(v) => patch({ clipName: v })} />
+          <ClipSelect def={def} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
           <NumRow label="Clip speed" value={p.clipSpeed ?? 1} step={0.1} onChange={(v) => patch({ clipSpeed: v })} />
           <Check label="Hold final frame" checked={p.holdFinal ?? false} onChange={(v) => patch({ holdFinal: v })} />
         </>
@@ -133,7 +215,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
               <Check label="Enabled" checked={s.enabled} onChange={(v) => patch(s.id, { enabled: v })} />
               <Check label="Essential (quick)" checked={s.essential ?? false} onChange={(v) => patch(s.id, { essential: v })} />
             </div>
-            <div className="mt-1"><StageParams s={s} patch={(pp) => patchParams(s.id, pp)} /></div>
+            <div className="mt-1"><StageParams s={s} def={def} patch={(pp) => patchParams(s.id, pp)} /></div>
             <button onClick={() => remove(s.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
           </div>
         ))}
@@ -215,7 +297,7 @@ const PreviewControls = ({ def }: { def: TransformationDefinition }) => {
   );
 };
 
-type Sub = 'timeline' | 'camera' | 'effects' | 'preview';
+type Sub = 'timeline' | 'parts' | 'camera' | 'effects' | 'preview';
 
 // ✨ Transform — sub-tabbed timeline editor (Timeline · Camera · Effects · Preview). Reuses the
 // editorTransformationStore collection; selecting a timeline wires it to the Edit-Mode preview.
@@ -251,7 +333,7 @@ export const TransformationEditorTab = () => {
           {def ? (
             <>
               <div className="flex gap-1">
-                {(['timeline', 'camera', 'effects', 'preview'] as Sub[]).map((s) => (
+                {(['timeline', 'parts', 'camera', 'effects', 'preview'] as Sub[]).map((s) => (
                   <button key={s} onClick={() => setSub(s)} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${sub === s ? 'bg-violet-600/30 text-violet-100' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'}`}>{s}</button>
                 ))}
               </div>
@@ -270,9 +352,14 @@ export const TransformationEditorTab = () => {
                   </div>
                   <ColorRow label="Backdrop colour" value={def.backdropColor} onChange={(v) => upd({ backdropColor: v })} />
                   <ColorRow label="Particle colour" value={def.particleColor} onChange={(v) => upd({ particleColor: v })} />
+                  <NumRow label="Performance scale ×" value={def.modelScale ?? 1} step={0.1} min={0.1} onChange={(v) => upd({ modelScale: v })} />
+                  <Field label="Plane model (slot)"><ModelPicker value={def.planeModelRef} onChange={(v) => upd({ planeModelRef: v })} noneLabel="(none)" /></Field>
+                  <Field label="Robot model (slot — empty = character's)"><ModelPicker value={def.robotModelRef} onChange={(v) => upd({ robotModelRef: v })} noneLabel="(character's)" /></Field>
+                  <Field label="Shared model (slot)"><ModelPicker value={def.sharedModelRef} onChange={(v) => upd({ sharedModelRef: v })} noneLabel="(none)" /></Field>
                   <StagesEditor def={def} update={upd} />
                 </>
               )}
+              {sub === 'parts' && <PartsEditor def={def} update={upd} />}
               {sub === 'camera' && <CameraEditor def={def} update={upd} />}
               {sub === 'effects' && <EffectsEditor def={def} update={upd} />}
               {sub === 'preview' && <PreviewControls def={def} />}

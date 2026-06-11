@@ -33,6 +33,8 @@ const FIELDS: { key: keyof FlightTuning; label: string; step: number }[] = [
   { key: 'launchDurationSec', label: 'Launch sprint (sec)', step: 0.5 },
   { key: 'launchTunnelLength', label: 'Launch tunnel length', step: 4 },
   { key: 'worldCraftScale', label: 'Craft size × (flight)', step: 0.1 },
+  { key: 'worldCamDistance', label: 'World-flight cam distance', step: 0.25 },
+  { key: 'worldCamHeight', label: 'World-flight cam height', step: 0.25 },
   { key: 'worldSteerRange', label: 'Steer max range (A/D)', step: 10 },
   { key: 'worldVertRange', label: 'Vertical max range (↑/↓)', step: 10 },
   { key: 'worldSteerSmooth', label: 'Bank smoothing', step: 0.5 },

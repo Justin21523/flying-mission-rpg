@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
 import { useUiStore } from '../../stores/uiStore';
+import { useSceneEditStore } from '../../stores/sceneEditStore';
+import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
+import { transformPartKey } from './transformPartKey';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { useEditorTransformationStore, getEditorTransformations } from '../../stores/game/editorTransformationStore';
@@ -40,6 +43,19 @@ export const TransformationStage = () => {
     charModelId = character?.modelAssetId;
   }
 
+  // EDIT: merge the gizmo-dragged part-anchor overrides into the def so the preview + tab follow the drag
+  // live (the Parts sub-tab bakes them into the store, like the other layout tabs).
+  const overrides = useSceneEditStore((s) => s.overrides);
+  if (editMode && def) {
+    def = {
+      ...def,
+      parts: (def.parts ?? []).map((p) => {
+        const ov = overrides[transformPartKey(def!.id, p.key)]?.position as [number, number, number] | undefined;
+        return ov ? { ...p, basePosition: ov } : p;
+      }),
+    };
+  }
+
   useEffect(() => {
     txFrame.charModelId = charModelId;
   }, [charModelId]);
@@ -56,6 +72,7 @@ export const TransformationStage = () => {
         <>
           <TransformationPreviewController def={def} />
           <TransformationDebugGizmos def={def} />
+          <SceneEditorGizmo />
         </>
       ) : (
         <TransformationDirector />

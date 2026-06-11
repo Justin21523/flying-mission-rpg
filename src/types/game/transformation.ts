@@ -166,6 +166,7 @@ export interface TransformationDefinition {
   planeModelRef?: string; // model-library id
   robotModelRef?: string;
   sharedModelRef?: string;
+  modelScale?: number; // overall presenter scale (parts + models) — editable size of the whole performance
   backdropColor: string; // hex — echoes (but contrasts) the character colour
   particleColor: string; // hex
   parts: TransformationPart[];

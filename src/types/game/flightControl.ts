@@ -37,4 +37,6 @@ export interface FlightTuning {
   launchDurationSec: number; // launch tunnel: sprint duration before BASE_FLY_AROUND
   launchTunnelLength: number; // launch tunnel: visual tunnel length (matches the sprint distance)
   worldCraftScale: number; // extra craft scale during flight (on top of the Model Studio scale)
+  worldCamDistance: number; // WORLD_FLIGHT-only camera distance (very close → the craft reads big)
+  worldCamHeight: number; // WORLD_FLIGHT-only camera height
 }
