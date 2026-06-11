@@ -9,6 +9,7 @@ import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { getExteriorByKind } from '../../stores/game/editorExteriorStore';
 import { getPath } from '../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../path/pathCurve';
+import { sampleNodeParams } from './pathNodeParams';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { characterModelForForm } from '../destination/characterModel';
@@ -44,8 +45,8 @@ export const FlightController = () => {
   const prevPhase = useRef('');
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
-  const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
-  const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
+  const craftYaw = useEditorFlightStore((s) => s.tuning.flyAroundCraftYawDeg);
+  const craftScale = useEditorFlightStore((s) => s.tuning.flyAroundCraftScale);
   // Live anim state for character rules (reuse pickLoopRule) — a single mutated object (no per-frame alloc).
   const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0 });
   const getAnimState = useCallback(() => { animState.current.speed = flightHandle.speedNorm; return animState.current; }, []);
@@ -138,8 +139,9 @@ export const FlightController = () => {
       const cc = def ? getCurve(def) : null;
       if (cc) {
         const kk = keys.current;
+        const np = sampleNodeParams(def, pathU.current); // per-node authored speed/bank (gentle, opt-in)
         const fwd = kk['KeyW'] ? 1 : kk['KeyS'] ? -0.6 : 0.2; // hold forward → advance; idle drifts slowly
-        const pathSpeed = tuning.cruiseSpeed * speedMult * (kk['KeyW'] ? 1.4 : 1);
+        const pathSpeed = tuning.cruiseSpeed * speedMult * (kk['KeyW'] ? 1.4 : 1) * np.speedMul;
         pathU.current = clamp(pathU.current + (fwd * pathSpeed * dt) / Math.max(1, cc.length), 0, 1);
         samplePos(cc.curve, pathU.current, _pos);
         sampleTangent(cc.curve, pathU.current, _tan);
@@ -156,6 +158,7 @@ export const FlightController = () => {
         craft.position.copy(_pos);
         _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
         craft.lookAt(_look);
+        if (np.bankDeg) craft.rotateZ((np.bankDeg * Math.PI) / 180); // per-node bank bias (0 = none)
         flightHandle.quat.copy(craft.quaternion);
         flightHandle.speed = pathSpeed * Math.abs(fwd);
         flightHandle.speedNorm = kk['KeyW'] ? 0.9 : kk['KeyS'] ? 0.1 : 0.35; // camera feel (boost-based)

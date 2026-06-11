@@ -26,6 +26,7 @@ export interface PathNodeData {
   speedMultiplier: number;   // local speed scale at this node (default 1)
   width: number;             // lane half-width at this node (steeringAssist / drivable width)
   waitTime?: number;         // seconds a follower pauses on arrival
+  bankDeg?: number;          // flight: extra roll (bank) bias the craft adopts near this node (default 0)
   tags?: string[];
   actions?: PathNodeAction[];
 }

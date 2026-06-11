@@ -1,6 +1,8 @@
 import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
 import type { FlightTuning } from '../../../types/game/flightControl';
 import { Field, inp, lbl } from '../editorShared';
+import { PathNodesEditor } from './worldTools/PathNodesEditor';
+import { FLIGHT_PATH_ID } from '../../../data/game/flightPath';
 
 // 🛩 Flight — live-editable flight handling. Takes effect immediately so the feel can be tuned without
 // code (per-character flightSpeed/agility further scale speed/turn at runtime).
@@ -33,9 +35,13 @@ const FIELDS: { key: NumKey; label: string; step: number }[] = [
   { key: 'worldFlightDurationSec', label: 'Flight time (sec)', step: 5 },
   { key: 'launchDurationSec', label: 'Launch sprint (sec)', step: 0.5 },
   { key: 'launchTunnelLength', label: 'Launch tunnel length', step: 4 },
-  { key: 'worldCraftScale', label: 'Craft size × (flight)', step: 0.1 },
+  { key: 'worldCraftScale', label: 'World craft size ×', step: 0.1 },
   { key: 'worldCamDistance', label: 'World-flight cam distance', step: 0.25 },
   { key: 'worldCamHeight', label: 'World-flight cam height', step: 0.25 },
+  { key: 'flyAroundCamDistance', label: 'Base-loop cam distance', step: 0.25 },
+  { key: 'flyAroundCamHeight', label: 'Base-loop cam height', step: 0.25 },
+  { key: 'flyAroundCraftScale', label: 'Base-loop craft size ×', step: 0.1 },
+  { key: 'flyAroundCraftYawDeg', label: 'Base-loop craft yaw (deg)', step: 15 },
   { key: 'worldSteerRange', label: 'Steer max range (A/D)', step: 10 },
   { key: 'worldVertRange', label: 'Vertical max range (↑/↓)', step: 10 },
   { key: 'worldSteerSmooth', label: 'Bank smoothing', step: 0.5 },
@@ -65,7 +71,7 @@ export const FlightEditorTab = () => {
           </Field>
         ))}
       </div>
-      <Field label="Craft offset from route start (x / y / z) — gizmo-draggable in WORLD_FLIGHT edit">
+      <Field label="World craft offset from route start (x / y / z) — gizmo-draggable in WORLD_FLIGHT edit">
         <div className="flex gap-1">
           {([0, 1, 2] as const).map((a) => (
             <input
@@ -83,7 +89,29 @@ export const FlightEditorTab = () => {
           ))}
         </div>
       </Field>
-      <p className="text-[10px] text-slate-500">Live. Character flightSpeed/agility scale speed/turn on top of these. The craft is selectable in WORLD_FLIGHT Edit Mode (gizmo → facing/scale/offset).</p>
+      <Field label="Base-loop craft offset from path start (x / y / z) — gizmo-draggable in BASE_FLY_AROUND edit">
+        <div className="flex gap-1">
+          {([0, 1, 2] as const).map((a) => (
+            <input
+              key={a}
+              type="number"
+              step={0.5}
+              value={tuning.flyAroundCraftOffset[a]}
+              onChange={(e) => {
+                const next = [...tuning.flyAroundCraftOffset] as [number, number, number];
+                next[a] = parseFloat(e.target.value) || 0;
+                update({ flyAroundCraftOffset: next });
+              }}
+              className={inp + ' w-0 flex-1 text-center'}
+            />
+          ))}
+        </div>
+      </Field>
+      <p className="text-[10px] text-slate-500">Live. Character flightSpeed/agility scale speed/turn on top of these. The craft is selectable in WORLD/BASE flight Edit Mode (gizmo → facing/scale/offset).</p>
+
+      <div className={lbl}>Base fly-around loop — path nodes</div>
+      <p className="text-[10px] text-slate-500">Drag the nodes in 3D (BASE_FLY_AROUND edit) — per-node Speed× / Bank° shape the loop. The world route nodes live in 🛫 Aero World.</p>
+      <PathNodesEditor pathId={FLIGHT_PATH_ID} />
     </div>
   );
 };

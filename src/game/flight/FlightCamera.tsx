@@ -47,8 +47,8 @@ export const FlightCamera = () => {
     // the launch/fly-around phases keep the regular pair. Both editable in 🛩 Flight.
     const world = useGameStore.getState().phase === 'WORLD_FLIGHT';
     const pull = world ? 0 : tuning.camPullback * Math.min(1, flightHandle.speedNorm);
-    const dist = world ? tuning.worldCamDistance : tuning.camDistance;
-    const height = world ? tuning.worldCamHeight : tuning.camHeight;
+    const dist = world ? tuning.worldCamDistance : tuning.flyAroundCamDistance;
+    const height = world ? tuning.worldCamHeight : tuning.flyAroundCamHeight;
     _off.set(0, height, dist + pull).applyQuaternion(_q).add(flightHandle.pos);
     cam.position.lerp(_off, k);
 

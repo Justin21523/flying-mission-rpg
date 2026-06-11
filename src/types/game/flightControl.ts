@@ -40,4 +40,10 @@ export interface FlightTuning {
   worldCraftOffset: [number, number, number]; // craft placement offset from the route start (edit-authored)
   worldCamDistance: number; // WORLD_FLIGHT-only camera distance (very close → the craft reads big)
   worldCamHeight: number; // WORLD_FLIGHT-only camera height
+  // ── BASE fly-around (LAUNCH_TUNNEL / BASE_FLY_AROUND / CLOUD_ASCENT) — independent of the world leg ──
+  flyAroundCamDistance: number; // base-loop camera distance
+  flyAroundCamHeight: number; // base-loop camera height
+  flyAroundCraftScale: number; // base-loop craft scale
+  flyAroundCraftYawDeg: number; // base-loop craft facing offset
+  flyAroundCraftOffset: [number, number, number]; // base-loop craft placement offset from the path start
 }

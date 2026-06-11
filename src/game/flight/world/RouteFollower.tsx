@@ -6,6 +6,7 @@ import { getEditorCharacter } from '../../../stores/game/editorCharacterStore';
 import { getFlightTuning, useEditorFlightStore } from '../../../stores/game/editorFlightStore';
 import { getPath } from '../../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../../path/pathCurve';
+import { sampleNodeParams } from '../pathNodeParams';
 import { getActivePathId } from './worldRoute';
 import { worldFlightDev } from './worldFlightDev';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
@@ -79,8 +80,9 @@ export const RouteFollower = () => {
     // Always cruise forward — W boosts, S eases off (never reverses). Flight time is UNIFIED: a route takes
     // worldFlightDurationSec end-to-end regardless of its path length (so all routes are ~2 min by default).
     const boost = k['KeyW'] ? 1.7 : k['KeyS'] ? 0.45 : 1;
+    const np = sampleNodeParams(def, u.current); // per-node authored speed/bank (gentle, opt-in)
     const dur = Math.max(5, tuning.worldFlightDurationSec);
-    u.current = Math.min(1, u.current + (dt / dur) * boost);
+    u.current = Math.min(1, u.current + (dt / dur) * boost * np.speedMul);
     const pathSpeed = (cc.length / dur) * boost; // for HUD display only
     // Dev jumps (WorldFlightDebugPanel): snap / advance route progress.
     if (worldFlightDev.jumpU >= 0) { u.current = Math.min(1, worldFlightDev.jumpU); worldFlightDev.jumpU = -1; }
@@ -98,7 +100,7 @@ export const RouteFollower = () => {
     const vr = tuning.worldVertRange;
     lateral.current = clamp(lateral.current + steerIn * tuning.worldSteerSpeed * dt, -sr, sr);
     vert.current = clamp(vert.current + vertIn * tuning.worldVertSpeed * dt, -vr, vr);
-    bank.current = lerp(bank.current, -steerIn * tuning.worldBankDeg * DEG2RAD, tuning.worldSteerSmooth * 1.5 * dt);
+    bank.current = lerp(bank.current, (-steerIn * tuning.worldBankDeg + np.bankDeg) * DEG2RAD, tuning.worldSteerSmooth * 1.5 * dt);
 
     _right.set(-_tan.z, 0, _tan.x).normalize(); // horizontal right of travel
     _pos.addScaledVector(_right, lateral.current);
