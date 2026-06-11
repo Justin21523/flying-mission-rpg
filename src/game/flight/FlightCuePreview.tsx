@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, Vector3 } from 'three';
+import { Color, Object3D, Quaternion, Vector3 } from 'three';
 import { Html } from '@react-three/drei';
 import { useEditorFlightCueStore, getFlightCues } from '../../stores/game/editorFlightCueStore';
 import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import { getPath } from '../../stores/editorPathStore';
-import { getCurve, samplePos } from '../path/pathCurve';
+import { getCurve, samplePos, sampleTangent } from '../path/pathCurve';
 import { resolveFlightCues } from './flightCueRunner';
 import { flightCueHandle } from './flightCueHandle';
 import { getModelAsset } from '../../data/modelLibrary';
@@ -18,6 +18,50 @@ import type { FlightCue } from '../../types/game/flightCue';
 // also renders draggable event-cue markers along the route. Mounted in the flight scenes (edit). When not
 // previewing it clears the camera override so the normal flight framing returns. Never affects play.
 const _scratch = new Vector3();
+const DEG = Math.PI / 180;
+// temps for resolving the craft transform at a cue's u (matching the controllers' lookAt(pos − tangent)).
+const _ctObj = new Object3D();
+const _ctPos = new Vector3();
+const _ctTan = new Vector3();
+const _ctLook = new Vector3();
+const _ctLocal = new Vector3();
+const _ctQuatInv = new Quaternion();
+
+interface CraftXform { pos: Vector3; quat: Quaternion }
+function craftXformAt(curve: Parameters<typeof samplePos>[0], u: number): CraftXform {
+  const uu = Math.max(0, Math.min(1, u));
+  samplePos(curve, uu, _ctPos);
+  sampleTangent(curve, uu, _ctTan);
+  _ctObj.position.copy(_ctPos);
+  _ctObj.lookAt(_ctLook.copy(_ctPos).sub(_ctTan)); // +Z → (pos−tan) ⇒ −Z = forward (same as the craft)
+  return { pos: _ctPos.clone(), quat: _ctObj.quaternion.clone() };
+}
+
+// Draggable eye anchor for a camera cue: sits at the framing's eye relative to the craft at that u; dragging
+// re-derives distance / height / orbit-angle (inverse of FlightCamera's offset) and bakes them into the cue.
+const CameraAnchor = ({ pathId, cue, xform }: { pathId: string; cue: FlightCue; xform: CraftXform }) => {
+  const dist = cue.camDistance ?? 12;
+  const height = cue.camHeight ?? 4;
+  const a = (cue.camAngleDeg ?? 0) * DEG;
+  const eye = new Vector3(dist * Math.sin(a), height, dist * Math.cos(a)).applyQuaternion(xform.quat).add(xform.pos);
+  const onMove = (p: [number, number, number]) => {
+    _ctLocal.set(p[0] - xform.pos.x, p[1] - xform.pos.y, p[2] - xform.pos.z).applyQuaternion(_ctQuatInv.copy(xform.quat).invert());
+    const r = (n: number) => Math.round(n * 100) / 100;
+    useEditorFlightCueStore.getState().update(pathId, cue.id, {
+      camDistance: r(Math.hypot(_ctLocal.x, _ctLocal.z)),
+      camHeight: r(_ctLocal.y),
+      camAngleDeg: r(Math.atan2(_ctLocal.x, _ctLocal.z) / DEG),
+    });
+  };
+  return (
+    <DataBackedPlacement objKey={`${pathId}#camcue#${cue.id}`} position={[eye.x, eye.y, eye.z]} onMove={onMove} color="#a855f7">
+      <mesh><boxGeometry args={[0.5, 0.4, 0.7]} /><meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.5} /></mesh>
+      <Html center distanceFactor={14} position={[0, 0.7, 0]}>
+        <div className="pointer-events-none whitespace-nowrap rounded bg-slate-950/80 px-1 text-[9px] text-violet-200">{cue.label || 'camera'} · u{Math.round(cue.atU * 100)}</div>
+      </Html>
+    </DataBackedPlacement>
+  );
+};
 
 const EventMarker = ({ pathId, cue, base }: { pathId: string; cue: FlightCue; base: [number, number, number] }) => {
   const off = cue.eventOffset ?? [0, 0, 0];
@@ -74,15 +118,22 @@ export const FlightCuePreview = ({ pathId }: { pathId: string }) => {
     else if (prevBg.current !== undefined) { state.scene.background = prevBg.current; }
   });
 
-  const markers = useMemo(() => {
+  const { markers, camAnchors } = useMemo(() => {
     const def = getPath(pathId);
     const cc = def ? getCurve(def) : null;
-    if (!cc || !cues) return [];
-    return cues.filter((c) => c.type === 'event').map((c) => {
+    if (!cc || !cues) return { markers: [], camAnchors: [] as { cue: FlightCue; xform: CraftXform }[] };
+    const markers = cues.filter((c) => c.type === 'event').map((c) => {
       samplePos(cc.curve, Math.max(0, Math.min(1, c.atU)), _scratch);
       return { cue: c, base: [_scratch.x, _scratch.y, _scratch.z] as [number, number, number] };
     });
+    const camAnchors = cues.filter((c) => c.type === 'camera').map((c) => ({ cue: c, xform: craftXformAt(cc.curve, c.atU) }));
+    return { markers, camAnchors };
   }, [pathId, cues]);
 
-  return <>{markers.map(({ cue, base }) => <EventMarker key={cue.id} pathId={pathId} cue={cue} base={base} />)}</>;
+  return (
+    <>
+      {markers.map(({ cue, base }) => <EventMarker key={cue.id} pathId={pathId} cue={cue} base={base} />)}
+      {camAnchors.map(({ cue, xform }) => <CameraAnchor key={cue.id} pathId={pathId} cue={cue} xform={xform} />)}
+    </>
+  );
 };

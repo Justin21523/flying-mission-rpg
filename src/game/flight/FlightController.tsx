@@ -13,6 +13,7 @@ import { sampleNodeParams } from './pathNodeParams';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { characterModelForForm } from '../destination/characterModel';
+import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import type { AnimState } from '../anim/animRunner';
 import { flightHandle } from './flightHandle';
 import { nextSpeed, isStalling } from './flightModel';
@@ -50,6 +51,7 @@ export const FlightController = () => {
   // Live anim state for character rules (reuse pickLoopRule) — a single mutated object (no per-frame alloc).
   const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0 });
   const getAnimState = useCallback(() => { animState.current.speed = flightHandle.speedNorm; return animState.current; }, []);
+  const cueClip = useFlightPreviewStore((s) => s.activeCueClip); // an animation cue (FlightCuePlayController) forces this clip
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -164,6 +166,7 @@ export const FlightController = () => {
         flightHandle.speedNorm = kk['KeyW'] ? 0.9 : kk['KeyS'] ? 0.1 : 0.35; // camera feel (boost-based)
         flightHandle.throttle = kk['KeyW'] ? 1 : kk['KeyS'] ? -1 : 0;
         flightHandle.altitude = _pos.y;
+        flightHandle.routeU = pathU.current; // expose base-loop progress for the cue timeline (camera/events)
         if (phase === 'BASE_FLY_AROUND' && _pos.y > 40) useGameStore.getState().requestTransition('CLOUD_ASCENT');
         // Reaching the end of the ascent path (the Sky Gate) hands off to the long-distance world flight.
         if (phase === 'CLOUD_ASCENT' && pathU.current >= 0.985) useGameStore.getState().requestTransition('WORLD_FLIGHT');
@@ -237,9 +240,9 @@ export const FlightController = () => {
         {characterModelForForm(character, 'plane') ? (
           <AnimatedGlbModel
             assetId={characterModelForForm(character, 'plane')!}
-            animation={character?.flightAnimation}
-            rules={character?.animationRules}
-            getAnimState={getAnimState}
+            animation={cueClip || character?.flightAnimation}
+            rules={cueClip ? undefined : character?.animationRules}
+            getAnimState={cueClip ? undefined : getAnimState}
             noCull
             fallback={
               <mesh castShadow>

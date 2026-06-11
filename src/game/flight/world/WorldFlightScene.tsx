@@ -20,6 +20,7 @@ import { WorldFlightCraftEditable } from './WorldFlightCraftEditable';
 import { WORLD_CRAFT_KEY, routeStartNode } from './worldCraftKey';
 import { FlightPreviewController } from '../FlightPreviewController';
 import { FlightCuePreview } from '../FlightCuePreview';
+import { FlightCuePlayController } from '../FlightCuePlayController';
 import { getActivePathId } from './worldRoute';
 import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
 import { worldFlightSceneLayers } from './worldFlightSceneLayers';
@@ -69,6 +70,7 @@ export const WorldFlightScene = () => {
       {layers.pathDebug && <PathDebugLayer areaId="world" />}
 
       {layers.routeFollower && <RouteFollower />}
+      {!editMode && <FlightCuePlayController pathId={getActivePathId()} />}
       {layers.clouds && <CloudField />}
       {layers.speed && <SpeedField />}
       {layers.events && (

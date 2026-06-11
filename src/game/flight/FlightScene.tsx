@@ -19,6 +19,7 @@ import { BaseFlightCraftEditable } from './BaseFlightCraftEditable';
 import { BASE_CRAFT_KEY, baseLoopStartNode } from './baseCraftKey';
 import { FlightPreviewController } from './FlightPreviewController';
 import { FlightCuePreview } from './FlightCuePreview';
+import { FlightCuePlayController } from './FlightCuePlayController';
 import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 
@@ -60,6 +61,7 @@ export const FlightScene = () => {
       {editMode && <FlightCuePreview pathId={FLIGHT_PATH_ID} />}
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
+      {!editMode && <FlightCuePlayController pathId={FLIGHT_PATH_ID} />}
 
       {/* EDIT: orbit camera, unless previewing with Camera = Flight (then show the real flight framing so the
           authored cam distance/height + craft scale are visible live). PLAY: always the flight camera. */}

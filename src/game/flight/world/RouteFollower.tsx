@@ -13,6 +13,7 @@ import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRunt
 import { useGameStore } from '../../../stores/game/useGameStore';
 import { AnimatedGlbModel } from '../../world/AnimatedGlbModel';
 import { characterModelForForm } from '../../destination/characterModel';
+import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
 import type { AnimState } from '../../anim/animRunner';
 import { flightHandle } from '../flightHandle';
 
@@ -38,6 +39,7 @@ export const RouteFollower = () => {
   const bank = useRef(0); // bank-into-turn roll
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
+  const cueClip = useFlightPreviewStore((s) => s.activeCueClip); // an animation cue forces this clip in play
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
   const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
   const pathId = getActivePathId();
@@ -136,7 +138,7 @@ export const RouteFollower = () => {
     <group ref={craft}>
       {/* editable facing offset + extra flight size (🛩 Flight → Craft yaw / Craft size). */}
       <group rotation={[0, craftYaw * DEG2RAD, 0]} scale={craftScale}>
-        {characterModelForForm(character, 'plane') ? <AnimatedGlbModel assetId={characterModelForForm(character, 'plane')!} animation={character?.flightAnimation} rules={character?.animationRules} getAnimState={getAnimState} fallback={fallback} noCull /> : fallback}
+        {characterModelForForm(character, 'plane') ? <AnimatedGlbModel assetId={characterModelForForm(character, 'plane')!} animation={cueClip || character?.flightAnimation} rules={cueClip ? undefined : character?.animationRules} getAnimState={cueClip ? undefined : getAnimState} fallback={fallback} noCull /> : fallback}
       </group>
     </group>
   );
