@@ -9,6 +9,7 @@ interface MissionStore {
   runtime: MissionRuntime | null;
   selectMission: (id: string | null) => void;
   beginMission: (def: MissionDefinition) => void;
+  clearRuntime: () => void;
   setObjective: (objectiveId: string, done: boolean, count?: number) => void;
   completeMission: () => void;
   failMission: () => void;
@@ -32,6 +33,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
       runtime: { missionId: def.id, status: 'active', objectiveProgress, startedAtMs: Date.now(), usedSupportCount: 0 },
     });
   },
+
+  clearRuntime: () => set({ runtime: null }),
 
   setObjective: (objectiveId, done, count) => {
     const rt = get().runtime;

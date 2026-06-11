@@ -16,7 +16,7 @@ interface GameStore extends GameState {
   requestTransition: (to: GamePhase) => boolean; // validated; false (+ console warn) on illegal move
   pause: () => void;
   resume: () => void;
-  jumpTo: (to: GamePhase) => void; // dev console only — bypasses validation
+  jumpTo: (to: GamePhase, previousPhase?: GamePhase | null) => void; // dev console only — bypasses validation
   failTo: (reason: string) => void;
   reset: () => void;
 }
@@ -55,9 +55,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  jumpTo: (to) => {
+  jumpTo: (to, previousPhase) => {
     const from = get().phase;
-    set(devJump(snapshot(get()), to));
+    set(devJump(snapshot(get()), to, previousPhase));
     gameEventBus.emit('phase:changed', { from, to });
   },
 

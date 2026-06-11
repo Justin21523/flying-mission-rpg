@@ -1,4 +1,5 @@
 import { useMissionStore } from '../../../stores/game/useMissionStore';
+import { useFlightStore } from '../../../stores/game/useFlightStore';
 import { getEditorMission } from '../../../stores/game/editorMissionStore';
 import { getEditorRoute, getEditorRoutes } from '../../../stores/game/editorRouteStore';
 import { getFlightEvents } from '../../../stores/game/editorFlightEventStore';
@@ -9,6 +10,9 @@ import type { FlightEventDef } from '../../../types/game/flightEvent';
 // The route the world-flight runtime is currently flying: the active mission's route, else the first
 // authored route. Shared by RouteFollower, the event director, and the HUDs so they all agree.
 export function getActiveRoute(): FlightRoute | undefined {
+  const overrideId = useFlightStore.getState().currentRouteId;
+  const override = overrideId ? getEditorRoute(overrideId) : undefined;
+  if (override) return override;
   const mId = useMissionStore.getState().currentMissionId;
   const m = mId ? getEditorMission(mId) : undefined;
   const r = m?.routeId ? getEditorRoute(m.routeId) : undefined;

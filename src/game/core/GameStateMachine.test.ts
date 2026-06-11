@@ -64,6 +64,12 @@ describe('GameStateMachine', () => {
     expect(s.previousPhase).toBe('BOOT');
   });
 
+  it('devJump can record an explicit previous phase for scenario testing', () => {
+    const s = devJump(at('BOOT'), 'MISSION_GAMEPLAY', 'NPC_GREETING');
+    expect(s.phase).toBe('MISSION_GAMEPLAY');
+    expect(s.previousPhase).toBe('NPC_GREETING');
+  });
+
   it('can walk the full canonical loop back to MISSION_CONTROL', () => {
     let state = at('MISSION_CONTROL');
     const path: GamePhase[] = [

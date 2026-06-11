@@ -75,7 +75,8 @@ export function fail(state: GameState, reason: string): GameState {
   return { ...state, previousPhase: state.phase, phase: 'ERROR', error: reason, paused: false };
 }
 
-// Dev-only: jump to any phase, bypassing validation (still records previousPhase). For the debug console.
-export function devJump(state: GameState, to: GamePhase): GameState {
-  return { ...state, previousPhase: state.phase, phase: to, paused: false, error: null };
+// Dev-only: jump to any phase, bypassing validation. The debug scenario console may provide a previous
+// phase override so resume/history testing can start from a realistic state.
+export function devJump(state: GameState, to: GamePhase, previousPhase?: GamePhase | null): GameState {
+  return { ...state, previousPhase: previousPhase ?? state.phase, phase: to, paused: false, error: null };
 }
