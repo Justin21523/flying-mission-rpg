@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useMissionStore } from '../../stores/game/useMissionStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
@@ -25,6 +25,19 @@ import { devJumpU } from '../../game/flight/world/worldFlightDev';
 import type { TransformationMode } from '../../types/game/transformation';
 
 const AUTO_VALUE = '__auto__';
+const PANEL_STORAGE_KEY = 'aero-gamestate-console-v1';
+
+interface PanelLayout { collapsed: boolean; width?: number; height?: number }
+function loadPanelLayout(): PanelLayout {
+  try {
+    const raw = localStorage.getItem(PANEL_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as PanelLayout;
+  } catch { /* ignore */ }
+  return { collapsed: false };
+}
+function savePanelLayout(layout: PanelLayout): void {
+  try { localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(layout)); } catch { /* ignore */ }
+}
 const TRANSFORMATION_MODES: readonly TransformationMode[] = ['full', 'interactive', 'quick'];
 const RUNTIME_MODES: readonly DevMissionRuntimeMode[] = ['auto', 'none', 'active', 'complete', 'failed'];
 const FLY_AROUND = new Set<GamePhase>(['LAUNCH_TUNNEL', 'BASE_FLY_AROUND', 'CLOUD_ASCENT']);
@@ -129,6 +142,35 @@ export const GameStateDebugPanel = () => {
 
   useEffect(() => gameEventBus.on('phase:blocked', (p) => setBlocked(p.reason)), []);
 
+  // Resizable + collapsible console (persisted) so it never blocks the editor inspector / gizmos.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [layout] = useState<PanelLayout>(loadPanelLayout);
+  const [collapsed, setCollapsed] = useState<boolean>(layout.collapsed);
+  const collapsedRef = useRef(collapsed);
+  useEffect(() => { collapsedRef.current = collapsed; }, [collapsed]);
+
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    if (layout.width) el.style.width = `${layout.width}px`;
+    if (layout.height && !collapsed) el.style.height = `${layout.height}px`;
+    const ro = new ResizeObserver(() => {
+      if (collapsedRef.current) return; // don't persist the collapsed (header-only) size
+      savePanelLayout({ collapsed: collapsedRef.current, width: el.offsetWidth, height: el.offsetHeight });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [layout.width, layout.height, collapsed]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      const el = panelRef.current;
+      savePanelLayout({ collapsed: next, width: el?.offsetWidth, height: next ? layout.height : el?.offsetHeight });
+      return next;
+    });
+  };
+
   const makeInput = (): DevScenarioInput => ({
     characterId: valueOrNull(characterChoice),
     missionId: valueOrNull(missionChoice),
@@ -167,13 +209,21 @@ export const GameStateDebugPanel = () => {
   };
 
   return (
-    <div className="pointer-events-auto fixed bottom-2 right-2 z-[90] max-h-[82vh] w-[28rem] overflow-y-auto rounded-lg border border-sky-800/60 bg-slate-950/90 p-3 text-xs text-slate-200 shadow-xl backdrop-blur">
-      <div className="mb-2 flex items-center justify-between gap-2">
+    <div
+      ref={panelRef}
+      style={{ resize: collapsed ? 'none' : 'both', overflow: 'auto', width: '28rem', maxWidth: '96vw', maxHeight: '85vh' }}
+      className="pointer-events-auto fixed bottom-2 right-2 z-[70] min-w-[18rem] rounded-lg border border-sky-800/60 bg-slate-950/90 p-3 text-xs text-slate-200 shadow-xl backdrop-blur"
+    >
+      <div className="flex items-center justify-between gap-2">
         <div className="font-bold text-sky-300">Game State Scenario Console</div>
-        <div className="font-mono text-[10px] text-emerald-300">{phase}{paused ? ' paused' : ''}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-mono text-[10px] text-emerald-300">{phase}{paused ? ' paused' : ''}</div>
+          <button onClick={toggleCollapsed} aria-label={collapsed ? 'Expand' : 'Collapse'} className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">{collapsed ? '▢' : '—'}</button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 rounded bg-slate-900/60 p-2 text-[10px]">
+      {collapsed ? null : <>
+      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 rounded bg-slate-900/60 p-2 text-[10px]">
         <Row label="Previous" value={previousPhase ?? '-'} />
         <Row label="Character" value={selectedCharacterId ?? '-'} />
         <Row label="Mission" value={currentMissionId ?? '-'} />
@@ -312,6 +362,7 @@ export const GameStateDebugPanel = () => {
       </div>
 
       {blocked && <div className="mt-2 rounded bg-rose-900/40 px-2 py-1 text-[10px] text-rose-200">{blocked}</div>}
+      </>}
     </div>
   );
 };

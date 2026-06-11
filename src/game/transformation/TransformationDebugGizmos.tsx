@@ -1,10 +1,9 @@
 import { Html } from '@react-three/drei';
 import { EditableObject } from '../edit/EditableObject';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey } from './transformPartKey';
-import { MODEL_SLOTS, type ModelSlot, type TransformationDefinition, type TransformationTransformOffset } from '../../types/game/transformation';
+import { transformPartKey, transformStageModelKey } from './transformPartKey';
+import type { TransformationDefinition, TransformationTransformOffset } from '../../types/game/transformation';
 
 const DEG = Math.PI / 180;
-const SLOT_COLORS: Record<ModelSlot, string> = { plane: '#fb923c', robot: '#a855f7', shared: '#22c55e' };
 const DEFAULT_OFFSET: TransformationTransformOffset = { position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 };
 
 const Label = ({ text }: { text: string }) => (
@@ -30,8 +29,10 @@ const ModelAnchor = ({ objKey, label, color, offset }: { objKey: string; label: 
   </EditableObject>
 );
 
-// Edit-only anchors — parts, model slots, and model-swap refs all use the shared SceneEditorGizmo:
-// click → gizmo, W/E/R, Ctrl+Z. The Transform tab shows the live merged values and bakes edits into data.
+// Edit-only anchors — PART anchors + model-swap stage refs use the shared SceneEditorGizmo (click → gizmo,
+// W/E/R, Ctrl+Z). The robot/plane/shared MODEL SLOTS are NOT anchored here: the real models (rendered by
+// TransformationCharacterPresenter via EditableModelGroup with the same keys) are the selectable gizmo
+// targets, so clicking the actual character model edits it — no duplicate proxy. The tab shows live values.
 export const TransformationDebugGizmos = ({ def }: { def: TransformationDefinition }) => (
   <>
     {(def.parts ?? []).map((p) => (
@@ -48,9 +49,6 @@ export const TransformationDebugGizmos = ({ def }: { def: TransformationDefiniti
           <Label text={p.key} />
         </group>
       </EditableObject>
-    ))}
-    {MODEL_SLOTS.map((slot) => (
-      <ModelAnchor key={slot} objKey={transformModelSlotKey(def.id, slot)} label={`${slot} slot`} color={SLOT_COLORS[slot]} offset={def.modelSlotOffsets?.[slot]} />
     ))}
     {def.stages.filter((s) => s.type === 'model-swap' && !!s.params.modelRef).map((s) => (
       <ModelAnchor key={s.id} objKey={transformStageModelKey(def.id, s.id)} label={s.label ?? s.id} color="#facc15" offset={s.params.modelOffset} />

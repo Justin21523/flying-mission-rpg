@@ -5,7 +5,7 @@ import { useEditorCharacterStore } from '../../../stores/game/editorCharacterSto
 import { useTransformationPreviewStore } from '../../../stores/game/transformationPreviewStore';
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { validateTimeline } from '../../../game/transformation/transformationValidation';
-import { asScaleVec, type EditOverride, type Vec3 as EditVec3 } from '../../../game/edit/sceneEditMerge';
+import { liveOffset, scaleNumber, radiansToDegrees, resolveStageClipModelId } from '../../../game/transformation/transformationOverrides';
 import { transformModelSlotKey, transformPartKey, transformStageModelKey } from '../../../game/transformation/transformPartKey';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
@@ -23,29 +23,7 @@ import { TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
 
 const num = (v: string) => parseFloat(v) || 0;
 const opts = (xs: readonly string[]) => xs.map((x) => ({ value: x, label: x }));
-const RAD2DEG = 180 / Math.PI;
-const DEFAULT_OFFSET: TransformationTransformOffset = { position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 };
 const round = (n: number) => Math.round(n * 100) / 100;
-
-function scaleNumber(scale: EditOverride['scale']): number | undefined {
-  if (scale === undefined) return undefined;
-  if (typeof scale === 'number') return scale;
-  const v = asScaleVec(scale);
-  return (v[0] + v[1] + v[2]) / 3;
-}
-
-function radiansToDegrees(rotation: EditVec3): TransformationVec3 {
-  return [rotation[0] * RAD2DEG, rotation[1] * RAD2DEG, rotation[2] * RAD2DEG];
-}
-
-function liveOffset(base: TransformationTransformOffset | undefined, override: EditOverride | undefined): TransformationTransformOffset {
-  const src = base ?? DEFAULT_OFFSET;
-  return {
-    position: override?.position ?? src.position,
-    rotation: override?.rotation ? radiansToDegrees(override.rotation) : src.rotation,
-    scale: scaleNumber(override?.scale) ?? src.scale,
-  };
-}
 
 function clearOverrideField(key: string, field: 'position' | 'rotation' | 'scale'): void {
   useSceneEditStore.getState().setOverride(key, { [field]: undefined });
@@ -93,24 +71,8 @@ function modelIdForSlot(def: TransformationDefinition, slot: ModelSlot): string 
   return def.robotModelRef ?? ch?.modelAssetId;
 }
 
-function fallbackClipModelId(def: TransformationDefinition): string | undefined {
-  return def.sharedModelRef ?? modelIdForSlot(def, 'robot');
-}
-
-function resolveStageClipModelId(def: TransformationDefinition, stage: TransformationStage): string | undefined {
-  if (stage.params.modelRef) return stage.params.modelRef;
-  if (stage.params.modelSlot) return modelIdForSlot(def, stage.params.modelSlot);
-  const prior = def.stages
-    .filter((s) => (s.type === 'model-swap' || s.type === 'model-visibility') && s.startTime <= stage.startTime)
-    .sort((a, b) => a.startTime - b.startTime);
-  for (let i = prior.length - 1; i >= 0; i -= 1) {
-    const st = prior[i];
-    if (!st) continue;
-    if (st.params.modelRef) return st.params.modelRef;
-    if (st.params.modelSlot) return modelIdForSlot(def, st.params.modelSlot);
-  }
-  return fallbackClipModelId(def);
-}
+const stageClipModelId = (def: TransformationDefinition, stage: TransformationStage): string | undefined =>
+  resolveStageClipModelId(def, stage, (slot) => modelIdForSlot(def, slot));
 
 const ClipSelect = ({ modelId, value, onChange }: { modelId?: string; value?: string; onChange: (v?: string) => void }) => {
   const asset = modelId ? getModelAsset(modelId) : undefined;
@@ -323,7 +285,7 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
           <Field label="Target model override">
             <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v, clipName: undefined })} noneLabel="(use slot/auto)" />
           </Field>
-          <ClipSelect modelId={resolveStageClipModelId(def, s)} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
+          <ClipSelect modelId={stageClipModelId(def, s)} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
           <NumRow label="Clip speed" value={p.clipSpeed ?? 1} step={0.1} onChange={(v) => patch({ clipSpeed: v })} />
           <Check label="Loop" checked={p.loop ?? false} onChange={(v) => patch({ loop: v })} />
           <Check label="Hold final frame" checked={p.holdFinal ?? false} onChange={(v) => patch({ holdFinal: v })} />

@@ -116,11 +116,13 @@ export const TransformationCharacterPresenter = ({
   def,
   editDef,
   editMode = false,
+  previewPlaying = false,
   charModelId,
 }: {
   def: TransformationDefinition;
   editDef?: TransformationDefinition;
   editMode?: boolean;
+  previewPlaying?: boolean;
   charModelId?: string;
 }) => {
   const root = useRef<Group>(null);
@@ -131,10 +133,22 @@ export const TransformationCharacterPresenter = ({
   // Re-render when the active extra model / clip changes (sparse — bumped by the director/preview driver),
   // so multi-model sequences (any number of model-swap stages) and animation-clip switches mount live.
   useTxVersion((s) => s.v);
+  // Edit-AT-REST authoring view: show the real model slots that HAVE a model so they're visible + clickable,
+  // and keep the root static so the gizmo target doesn't drift. Play / preview-playback follow the snapshot.
+  const editRest = editMode && !previewPlaying;
+  const hasRobot = !!(def.robotModelRef ?? charModelId);
+  const hasPlane = !!def.planeModelRef;
+  const hasShared = !!def.sharedModelRef;
   useFrame(() => {
     if (root.current) {
-      root.current.rotation.y = txFrame.showcaseYaw;
-      root.current.position.y = -(txFrame.snapshot?.rootYOffset ?? 0); // slow exit descent
+      root.current.rotation.y = editRest ? 0 : txFrame.showcaseYaw;
+      root.current.position.y = editRest ? 0 : -(txFrame.snapshot?.rootYOffset ?? 0); // slow exit descent
+    }
+    if (editRest) {
+      if (robot.current) robot.current.visible = hasRobot;
+      if (plane.current) plane.current.visible = hasPlane;
+      if (shared.current) shared.current.visible = hasShared;
+      return;
     }
     const vis = txFrame.snapshot?.modelVisible;
     if (robot.current) robot.current.visible = vis?.robot ?? false;

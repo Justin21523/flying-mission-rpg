@@ -103,32 +103,14 @@ export function EditableObject({ objKey, base, assetId, children }: EditableObje
       onPointerDown={handleSelect}
     >
       {children}
-      {/* Always-present invisible grab box so EVERY placement is reliably clickable —
-          even async GLBs (placed yokai) that haven't streamed in or are tiny. Invisible
-          meshes are skipped by the raycaster, so this stays visible with opacity 0. */}
-      <mesh position={[0, 0.8, 0]}>
-        <boxGeometry args={[1.2, 1.8, 1.2]} />
+      {/* Small invisible grab proxy so async/tiny GLBs are still clickable — kept compact and centred so it
+          no longer blocks the view or steals clicks from neighbouring objects. Once a child mesh has streamed
+          in, that mesh is clickable directly (events bubble to this group). Selection is shown by the
+          per-mesh tint above + the gizmo on the primary, so no obstructive wireframe box / axis cross. */}
+      <mesh position={[0, 0.3, 0]}>
+        <boxGeometry args={[0.5, 0.6, 0.5]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      {/* Selection marker: a bright wireframe box + a gizmo-style axis cross so EVERY
-          selected object is clearly tagged (the real draggable gizmo sits on the primary
-          and moves the whole batch). Primary = violet, batch-selected extras = cyan. */}
-      {selected && (
-        <group position={[0, 0.8, 0]}>
-          <mesh userData={{ __editHelper: true }}>
-            <boxGeometry args={[1.25, 1.85, 1.25]} />
-            <meshBasicMaterial color={isPrimary ? '#a855f7' : '#06b6d4'} wireframe transparent opacity={0.85} depthTest={false} />
-          </mesh>
-          {/* gizmo-style axis cross (drawn on top so it reads as a marker on each object) */}
-          <axesHelper args={[1.1]} renderOrder={999} onUpdate={(self) => { const m = self.material; if (Array.isArray(m)) m.forEach((mm) => (mm.depthTest = false)); else m.depthTest = false; }} />
-          {!isPrimary && (
-            <mesh userData={{ __editHelper: true }} position={[0, 1.25, 0]}>
-              <sphereGeometry args={[0.12, 12, 12]} />
-              <meshBasicMaterial color="#06b6d4" depthTest={false} />
-            </mesh>
-          )}
-        </group>
-      )}
     </group>
   );
 }

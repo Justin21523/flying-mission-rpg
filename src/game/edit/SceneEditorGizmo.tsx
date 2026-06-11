@@ -14,7 +14,9 @@ interface Snap { pos: Vec3; rot: Vec3; scale: Vec3 }
 const snap = (o: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number; y: number; z: number } }): Snap =>
   ({ pos: [o.position.x, o.position.y, o.position.z], rot: [o.rotation.x, o.rotation.y, o.rotation.z], scale: [o.scale.x, o.scale.y, o.scale.z] });
 
-export function SceneEditorGizmo() {
+// onCommit (optional) fires when a drag finishes (pointer up) with the current selected key — lets a host
+// bake the resulting sceneEditStore override into its own authored data (e.g. the transformation timeline).
+export function SceneEditorGizmo({ onCommit }: { onCommit?: (key: string) => void } = {}) {
   const selectedObject = useSceneEditStore((s) => s.selectedObject);
   const selectedKey = useSceneEditStore((s) => s.selectedKey);
   const mode = useSceneEditStore((s) => s.mode);
@@ -33,6 +35,11 @@ export function SceneEditorGizmo() {
       };
     }
   }, []);
+
+  const onMouseUp = useCallback(() => {
+    const key = useSceneEditStore.getState().selectedKey;
+    if (key) onCommit?.(key);
+  }, [onCommit]);
 
   const onObjectChange = useCallback(() => {
     const s = useSceneEditStore.getState();
@@ -66,5 +73,5 @@ export function SceneEditorGizmo() {
   if (!selectedObject || !selectedKey) return null;
 
   // Register the controls so selection handlers can tell when the pointer is over a gizmo handle.
-  return <TransformControls ref={(c) => { gizmoState.controls = (c as unknown as TransformControlsImpl) ?? null; }} object={selectedObject} mode={mode} onMouseDown={onMouseDown} onObjectChange={onObjectChange} />;
+  return <TransformControls ref={(c) => { gizmoState.controls = (c as unknown as TransformControlsImpl) ?? null; }} object={selectedObject} mode={mode} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onObjectChange={onObjectChange} />;
 }
