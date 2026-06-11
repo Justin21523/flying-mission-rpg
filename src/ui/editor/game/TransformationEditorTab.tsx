@@ -196,8 +196,10 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <Field label="Part"><span className="text-[11px] font-semibold text-sky-200">{p.key}</span></Field>
-              <SelectRow label="Geometry" value={p.geometry} options={PART_GEOMETRY_KINDS.map((g) => ({ value: g, label: g }))} onChange={(v) => patch(p.key, { geometry: v as TransformationPart['geometry'] })} />
+              <SelectRow label="Geometry (if no model)" value={p.geometry} options={PART_GEOMETRY_KINDS.map((g) => ({ value: g, label: g }))} onChange={(v) => patch(p.key, { geometry: v as TransformationPart['geometry'] })} />
             </div>
+            <Field label="Model (empty = primitive)"><ModelPicker value={p.assetId} onChange={(v) => patch(p.key, { assetId: v })} noneLabel="(primitive)" /></Field>
+            {p.assetId && <NumRow label="Model size" value={p.modelTarget ?? 1.2} step={0.1} min={0.1} onChange={(v) => patch(p.key, { modelTarget: v })} />}
             <Field label="Base position (x / y / z) — live with the gizmo">
               <div className="flex gap-1">
                 {([0, 1, 2] as const).map((a) => (

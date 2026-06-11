@@ -27,6 +27,8 @@ export interface TransformationPart {
   baseRotation: [number, number, number]; // degrees
   baseScale: number;
   color?: string;
+  assetId?: string; // optional GLB model for this part (empty = the procedural primitive `geometry`)
+  modelTarget?: number; // normalized model size when assetId set (default 1.2)
 }
 
 export type Easing = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut';

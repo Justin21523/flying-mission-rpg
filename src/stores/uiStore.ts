@@ -19,6 +19,7 @@ interface UiState {
   activePanel: PanelId | null;
   editMode: boolean;        // F1 — in-game Edit Mode (free-pan camera + transform gizmos)
   editorHubOpen: boolean;   // the tabbed Editor Hub
+  editorHubTab: string;     // active Hub tab id (in the store so a 3D selection can switch it)
   hintsVisible: boolean;
   togglePanel: (id: PanelId) => void;
   openPanel: (id: PanelId) => void;
@@ -26,6 +27,7 @@ interface UiState {
   toggleEditMode: () => void;
   setEditMode: (on: boolean) => void;
   toggleEditorHub: () => void;
+  setEditorHubTab: (id: string) => void;
   toggleHints: () => void;
 }
 
@@ -33,6 +35,7 @@ export const useUiStore = create<UiState>((set) => ({
   activePanel: null,
   editMode: false,
   editorHubOpen: false,
+  editorHubTab: 'gchar',
   hintsVisible: false,
   togglePanel: (id) => set((s) => ({ activePanel: s.activePanel === id ? null : id })),
   openPanel: (id) => set({ activePanel: id }),
@@ -45,5 +48,6 @@ export const useUiStore = create<UiState>((set) => ({
     }),
   setEditMode: (on) => set({ editMode: on }),
   toggleEditorHub: () => set((s) => ({ editorHubOpen: !s.editorHubOpen })),
+  setEditorHubTab: (editorHubTab) => set({ editorHubTab }),
   toggleHints: () => set((s) => ({ hintsVisible: !s.hintsVisible })),
 }));

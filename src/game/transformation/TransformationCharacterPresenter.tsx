@@ -2,6 +2,8 @@ import { useRef, type ReactNode, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
+import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
+import { getModelAsset } from '../../data/modelLibrary';
 import { EditableObject } from '../edit/EditableObject';
 import { txFrame, useTxVersion } from './transformationRuntime';
 import { transformModelSlotKey, transformStageModelKey } from './transformPartKey';
@@ -68,10 +70,14 @@ const PartMesh = ({ part, color }: { part: TransformationPart; color: string }) 
   });
   return (
     <group ref={g} position={part.basePosition}>
-      <mesh castShadow>
-        <GeomFor kind={part.geometry} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.25} metalness={0.3} roughness={0.5} />
-      </mesh>
+      {part.assetId && getModelAsset(part.assetId) ? (
+        <NormalizedGlbModel assetId={part.assetId} target={part.modelTarget && part.modelTarget > 0 ? part.modelTarget : 1.2} />
+      ) : (
+        <mesh castShadow>
+          <GeomFor kind={part.geometry} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.25} metalness={0.3} roughness={0.5} />
+        </mesh>
+      )}
     </group>
   );
 };

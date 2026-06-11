@@ -42,6 +42,7 @@ import { Dock } from './ui/Dock';
 import { EditorHubPanel } from './ui/EditorHubPanel';
 import { EditAssetPalette } from './ui/EditAssetPalette';
 import { EditModeInspector } from './ui/EditModeInspector';
+import { SelectionTabSync } from './ui/SelectionTabSync';
 import { TerrainBrushHud } from './ui/TerrainBrushHud';
 import { InteractionPrompt } from './ui/InteractionPrompt';
 import { WorldClockHUD } from './ui/WorldClockHUD';
@@ -252,6 +253,7 @@ export const App = () => {
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}
       {editMode && <EditModeInspector />}
+      {editMode && <SelectionTabSync />}
       {editMode && <TerrainBrushHud />}
       {editMode && editorHubOpen && <EditorHubPanel />}
       <ScreenFade />

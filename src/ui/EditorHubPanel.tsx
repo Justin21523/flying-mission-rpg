@@ -39,6 +39,12 @@ import { DomainFileRow } from './editor/DomainFileRow';
 import { getDomain } from '../game/editor/editorContentRegistry';
 import { useSceneEditStore } from '../stores/sceneEditStore';
 import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore';
+import { useEditorRouteStore } from '../stores/game/editorRouteStore';
+import { useEditorTransformationStore } from '../stores/game/editorTransformationStore';
+import { useEditorDestinationStore } from '../stores/game/editorDestinationStore';
+import { useEditorGameNpcStore } from '../stores/game/editorGameNpcStore';
+import { useEditorMissionStore } from '../stores/game/editorMissionStore';
+import { computeTabWarnings } from '../game/editor/tabWarnings';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
 type Tab = 'gchar' | 'gloc' | 'gworld' | 'gmission' | 'gnpc' | 'gxform' | 'gbase' | 'gflight' | 'gexterior' | 'gevent' | 'gdest' | 'gcam' | 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save';
@@ -83,6 +89,7 @@ const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[
 // Remembered hub navigation (last tab / category / Show-Legacy) so the Hub reopens where you left it.
 const HUB_PREFS_KEY = 'aero-editor-hub-v1';
 interface HubPrefs { userTab: Tab; category: TabCategory; showLegacy: boolean }
+let hubTabRestored = false; // restore the last tab into uiStore once per session (then selection/user drive it)
 function loadHubPrefs(): HubPrefs {
   try {
     const raw = localStorage.getItem(HUB_PREFS_KEY);
@@ -159,10 +166,12 @@ const TabJsonStrip = ({ tab }: { tab: Tab }) => {
 export const EditorHubPanel = () => {
   const close = useUiStore((s) => s.toggleEditorHub);
   const [prefs] = useState(loadHubPrefs);
-  const [userTab, setUserTab] = useState<Tab>(prefs.userTab);
+  const userTab = useUiStore((s) => s.editorHubTab) as Tab; // in the store so a 3D selection can switch it
+  const setUserTab = useUiStore((s) => s.setEditorHubTab);
   const [category, setCategory] = useState<TabCategory>(prefs.category);
   const [showLegacy, setShowLegacy] = useState(prefs.showLegacy);
   const [search, setSearch] = useState('');
+  useEffect(() => { if (!hubTabRestored) { hubTabRestored = true; setUserTab(prefs.userTab); } }, [prefs.userTab, setUserTab]); // restore last tab once
   useEffect(() => { try { localStorage.setItem(HUB_PREFS_KEY, JSON.stringify({ userTab, category, showLegacy })); } catch { /* ignore */ } }, [userTab, category, showLegacy]);
   // Snap to the POLI tab ONLY for the player handle (key '…#npc#poli') or a character picked in the
   // POLI panel — NOT for generic editor NPCs (those belong to the 🧑 NPC tab, which manages its own
@@ -172,6 +181,15 @@ export const EditorHubPanel = () => {
   const selectedIsPlayer = !!selectedKey && selectedKey.endsWith('#npc#poli');
   const tab: Tab = selectedIsPlayer || poliSelectedId ? 'poli' : userTab;
   const activeTab = TABS.find((t) => t.id === tab);
+  // Validation badges — subscribe to the validated stores so counts refresh on edit, then aggregate.
+  useEditorRouteStore((s) => s.items);
+  useEditorTransformationStore((s) => s.items);
+  useEditorDestinationStore((s) => s.items);
+  useEditorGameNpcStore((s) => s.items);
+  useEditorMissionStore((s) => s.items);
+  const warnings = computeTabWarnings();
+  const catWarnings = (c: TabCategory) => TABS.filter((t) => t.category === c).reduce((n, t) => n + (warnings[t.id] ?? 0), 0);
+
   const visibleCategories = showLegacy ? CATEGORIES : CATEGORIES.filter((c) => c !== 'Legacy');
   const searching = search.trim().length > 0;
   const searchResults = filterEditorTabs(TABS, search, showLegacy);
@@ -241,9 +259,10 @@ export const EditorHubPanel = () => {
                 const first = TABS.find((t) => t.category === c && (showLegacy || !t.legacy));
                 if (first) setTab(first.id);
               }}
-              className={`rounded px-2 py-1 text-left text-[10px] font-bold ${category === c || activeTab?.category === c ? 'bg-sky-600/25 text-sky-100' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'}`}
+              className={`flex items-center justify-between rounded px-2 py-1 text-left text-[10px] font-bold ${category === c || activeTab?.category === c ? 'bg-sky-600/25 text-sky-100' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'}`}
             >
-              {c}
+              <span>{c}</span>
+              {catWarnings(c) > 0 && <span className="ml-1 rounded-full bg-rose-600/80 px-1.5 text-[9px] font-bold text-white">{catWarnings(c)}</span>}
             </button>
           ))}
         </div>}
@@ -254,7 +273,10 @@ export const EditorHubPanel = () => {
         {/* Scrollable tab list — so every tab is reachable however many there are / however small the hub. */}
         <div className="-mr-1 flex-1 overflow-y-auto pr-1">
           {visibleTabs.map((t) => (
-            <button key={t.id} onClick={() => { setTab(t.id); setSearch(''); }} className={`mb-0.5 block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold ${tab === t.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.label}{searching ? <span className="ml-1 text-[9px] text-slate-500">{t.category}</span> : null}</button>
+            <button key={t.id} onClick={() => { setTab(t.id); setSearch(''); }} className={`mb-0.5 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold ${tab === t.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>
+              <span className="truncate">{t.label}{searching ? <span className="ml-1 text-[9px] text-slate-500">{t.category}</span> : null}</span>
+              {(warnings[t.id] ?? 0) > 0 && <span className="ml-1 shrink-0 rounded-full bg-rose-600/80 px-1.5 text-[9px] font-bold text-white" title={`${warnings[t.id]} validation warning(s)`}>{warnings[t.id]}</span>}
+            </button>
           ))}
           {searching && visibleTabs.length === 0 && <div className="px-2 py-1 text-[11px] text-slate-500">No tabs match “{search}”.</div>}
         </div>
