@@ -106,6 +106,8 @@ export const RouteFollower = () => {
     c.rotateZ(bank.current); // roll around the forward axis → bank into the turn
     flightHandle.quat.copy(c.quaternion);
     flightHandle.speed = pathSpeed;
+    // boost-based feel for the camera (raw pathSpeed = distance/duration would peg the FOV at max)
+    flightHandle.speedNorm = k['KeyW'] ? 1 : k['KeyS'] ? 0.1 : 0.35;
     flightHandle.altitude = _pos.y;
     flightHandle.routeU = u.current;
     flightHandle.throttle = k['KeyW'] ? 1 : k['KeyS'] ? -1 : 0;

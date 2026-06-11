@@ -94,6 +94,30 @@ export const FlightController = () => {
       prevPhase.current = phase;
     }
 
+    // LAUNCH_TUNNEL — parametric in-tunnel sprint: the craft accelerates through the FULL (editable)
+    // tunnel length over the FULL (editable) duration and pops out exactly at the end — the whole launch
+    // happens INSIDE the tunnel (no after-exit wait before the fly-around).
+    if (phase === 'LAUNCH_TUNNEL') {
+      const sp = getExteriorByKind('flight_spawn');
+      const p = sp ? sp.position : [0, 26, 60];
+      const dur = Math.max(0.5, tuning.launchDurationSec);
+      launchT.current += dt;
+      const t = clamp(launchT.current / dur, 0, 1);
+      const ease = t * t; // accelerating sprint
+      flightHandle.pos.set(p[0], p[1], p[2] + tuning.launchTunnelLength * (1 - ease));
+      _euler.set(0, 0, 0);
+      flightHandle.quat.setFromEuler(_euler);
+      flightHandle.speed = (2 * t * tuning.launchTunnelLength) / dur; // d/dt of the eased distance
+      flightHandle.speedNorm = t; // camera FOV/pullback ramps with the sprint
+      flightHandle.throttle = 1;
+      flightHandle.altitude = flightHandle.pos.y;
+      craft.position.copy(flightHandle.pos);
+      craft.quaternion.copy(flightHandle.quat);
+      speed.current = Math.max(tuning.cruiseSpeed * speedMult, flightHandle.speed * 0.5); // hand-off speed
+      if (t >= 1) useGameStore.getState().requestTransition('BASE_FLY_AROUND');
+      return;
+    }
+
     // Guided fly-around + ascent — auto-follow the editable flight path (hold W to advance; reuses POLI's
     // CatmullRom path). Locked to the curve + faces the tangent; the 3rd-person FlightCamera follows.
     if (phase === 'BASE_FLY_AROUND' || phase === 'CLOUD_ASCENT') {
@@ -112,6 +136,7 @@ export const FlightController = () => {
         craft.lookAt(_look);
         flightHandle.quat.copy(craft.quaternion);
         flightHandle.speed = pathSpeed * Math.abs(fwd);
+        flightHandle.speedNorm = kk['KeyW'] ? 0.9 : kk['KeyS'] ? 0.1 : 0.35; // camera feel (boost-based)
         flightHandle.throttle = kk['KeyW'] ? 1 : kk['KeyS'] ? -1 : 0;
         flightHandle.altitude = _pos.y;
         if (phase === 'BASE_FLY_AROUND' && _pos.y > 40) useGameStore.getState().requestTransition('CLOUD_ASCENT');
@@ -121,12 +146,11 @@ export const FlightController = () => {
       }
     }
 
-    // ── input ──
+    // ── input ── (free flight — the tunnel is handled parametrically above)
     const k = keys.current;
-    const tunnel = phase === 'LAUNCH_TUNNEL';
-    const throttle = tunnel ? 1 : k['KeyW'] ? 1 : k['KeyS'] ? -1 : 0;
-    const pitchIn = tunnel ? 0 : (k['ArrowUp'] || k['Space'] ? 1 : 0) - (k['ArrowDown'] || k['ShiftLeft'] ? 1 : 0);
-    const turnIn = tunnel ? 0 : (k['KeyA'] || k['ArrowLeft'] ? 1 : 0) - (k['KeyD'] || k['ArrowRight'] ? 1 : 0);
+    const throttle = k['KeyW'] ? 1 : k['KeyS'] ? -1 : 0;
+    const pitchIn = (k['ArrowUp'] || k['Space'] ? 1 : 0) - (k['ArrowDown'] || k['ShiftLeft'] ? 1 : 0);
+    const turnIn = (k['KeyA'] || k['ArrowLeft'] ? 1 : 0) - (k['KeyD'] || k['ArrowRight'] ? 1 : 0);
     const rollIn = mode === 'advanced' ? (k['KeyQ'] ? 1 : 0) - (k['KeyE'] ? 1 : 0) : 0;
 
     // ── speed ──
@@ -174,16 +198,11 @@ export const FlightController = () => {
     }
 
     flightHandle.speed = speed.current;
+    flightHandle.speedNorm = clamp(speed.current / Math.max(1, tuning.maxSpeed * speedMult), 0, 1);
     flightHandle.throttle = throttle;
     flightHandle.altitude = flightHandle.pos.y;
     craft.position.copy(flightHandle.pos);
     craft.quaternion.copy(flightHandle.quat);
-
-    // ── phase progression ── (tunnel auto-launch; fly-around/ascent handled by the path-follow branch)
-    if (tunnel) {
-      launchT.current += dt;
-      if (launchT.current > getFlightTuning().launchDurationSec) useGameStore.getState().requestTransition('BASE_FLY_AROUND');
-    }
   });
 
   return (

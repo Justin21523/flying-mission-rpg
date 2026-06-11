@@ -40,7 +40,9 @@ export const FlightCamera = () => {
     _e.set(_e.x * 0.5, _e.y, _e.z * rollFollow);
     _q.setFromEuler(_e);
 
-    const pull = tuning.camPullback * Math.min(1, flightHandle.speed / Math.max(1, tuning.maxSpeed));
+    // speedNorm (0..1) is the normalized "speed feel" — raw flightHandle.speed can be huge on long routes
+    // (distance/duration), which would peg the FOV at max and visually shrink the craft.
+    const pull = tuning.camPullback * Math.min(1, flightHandle.speedNorm);
     _off.set(0, tuning.camHeight, tuning.camDistance + pull).applyQuaternion(_q).add(flightHandle.pos);
     cam.position.lerp(_off, k);
 
@@ -51,7 +53,7 @@ export const FlightCamera = () => {
     cam.lookAt(_look);
 
     const fovMax = comfort ? tuning.fovBase + (tuning.fovMax - tuning.fovBase) * 0.5 : tuning.fovMax;
-    const targetFov = tuning.fovBase + (fovMax - tuning.fovBase) * Math.min(1, flightHandle.speed / Math.max(1, tuning.maxSpeed));
+    const targetFov = tuning.fovBase + (fovMax - tuning.fovBase) * Math.min(1, flightHandle.speedNorm);
     cam.fov = lerp(cam.fov, targetFov, k);
     cam.updateProjectionMatrix();
   });

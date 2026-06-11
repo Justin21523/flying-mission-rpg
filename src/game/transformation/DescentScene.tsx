@@ -1,4 +1,5 @@
 import { OrbitControls } from '@react-three/drei';
+import { Physics } from '@react-three/rapier';
 import { WorldSkyAmbience } from '../flight/world/WorldSkyAmbience';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
@@ -20,8 +21,11 @@ export const DescentScene = () => {
   return (
     <>
       <WorldSkyAmbience top="#3f7fd0" bottom="#cfe3ff" />
-      {/* POLI editable landing ground — 🌤 Environment / 🗺 World / terrain-sculpt / PBR tools edit this area. */}
-      <EditableGround areaId="aero_destination" />
+      {/* POLI editable landing ground — 🌤 Environment / 🗺 World / terrain-sculpt / PBR tools edit this
+          area. Its ZoneFloor/HeightfieldGround contain RigidBody, so it MUST live inside <Physics>. */}
+      <Physics gravity={[0, -9.81, 0]}>
+        <EditableGround areaId="aero_destination" />
+      </Physics>
       <group position={[0, 2, 0]} scale={1.4}>
         {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
       </group>
