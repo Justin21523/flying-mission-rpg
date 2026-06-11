@@ -158,7 +158,8 @@ export const TransformationCharacterPresenter = ({
   useFrame(() => {
     const snap = txFrame.snapshot;
     if (root.current) {
-      root.current.rotation.y = editRest ? 0 : txFrame.showcaseYaw;
+      const baseYaw = (def.baseYawDeg ?? 0) * DEG; // authored whole-character facing (always applied)
+      root.current.rotation.y = baseYaw + (editRest ? 0 : txFrame.showcaseYaw);
       root.current.position.y = editRest ? 0 : -(snap?.rootYOffset ?? 0); // slow exit descent
       const exit = editRest ? 1 : (snap?.exitScaleMul ?? 1); // shrink fly-out
       root.current.scale.setScalar((def.modelScale ?? 1) * exit);

@@ -180,6 +180,7 @@ export interface TransformationDefinition {
   robotModelRef?: string;
   sharedModelRef?: string;
   modelScale?: number; // overall presenter scale (parts + models) — editable size of the whole performance
+  baseYawDeg?: number; // the whole performance's facing (Y°) — applied to the root; the showcase spins on top
   modelSlotOffsets?: Partial<Record<ModelSlot, TransformationTransformOffset>>;
   backdropColor: string; // hex — echoes (but contrasts) the character colour
   particleColor: string; // hex

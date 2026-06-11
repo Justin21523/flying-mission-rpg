@@ -1,5 +1,5 @@
 import { asScaleVec, type EditOverride, type Vec3 } from '../edit/sceneEditMerge';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey } from './transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey } from './transformPartKey';
 import { MODEL_SLOTS, type ModelSlot, type TransformationDefinition, type TransformationStage, type TransformationTransformOffset, type TransformationVec3 } from '../../types/game/transformation';
 
 // Pure transformation edit-merge helpers (no React / no R3F → unit-testable). Shared by TransformationStage
@@ -74,8 +74,33 @@ export function bakeOverrideToDef(def: TransformationDefinition, key: string, ov
     if (s.type === 'model-swap' && key === transformStageModelKey(def.id, s.id)) {
       return { stages: def.stages.map((x) => (x.id === s.id ? { ...x, params: { ...x.params, modelOffset: liveOffset(x.params.modelOffset, override) } } : x)) };
     }
+    if (s.type === 'model-move' && key === transformStageMoveKey(def.id, s.id)) {
+      const o = liveOffset({ position: s.params.toPosition ?? [0, 0, 0], rotation: s.params.toRotation ?? [0, 0, 0], scale: s.params.toScale ?? 1 }, override);
+      return { stages: def.stages.map((x) => (x.id === s.id ? { ...x, params: { ...x.params, toPosition: o.position, toRotation: o.rotation, toScale: o.scale } } : x)) };
+    }
+  }
+  for (const fx of def.effectTracks ?? []) {
+    if (key === transformEffectKey(def.id, fx.id) && override.position) {
+      return { effectTracks: def.effectTracks.map((x) => (x.id === fx.id ? { ...x, spawnOffset: override.position } : x)) };
+    }
+  }
+  for (const sh of def.cameraShots ?? []) {
+    if (key === transformCameraShotKey(def.id, sh.id) && override.position) {
+      const [x, , z] = override.position;
+      return {
+        cameraShots: def.cameraShots.map((c) => (c.id === sh.id
+          ? { ...c, distance: Math.round(Math.hypot(x, z) * 100) / 100, angle: Math.round(Math.atan2(x, z) * RAD2DEG * 100) / 100, height: Math.round(override.position![1] * 100) / 100 }
+          : c)),
+      };
+    }
   }
   return null;
+}
+
+// World position of a camera shot's orbit anchor (mirror of TransformationCameraController's orbit math).
+export function cameraShotAnchor(distance: number, height: number, angleDeg: number): [number, number, number] {
+  const a = angleDeg * (Math.PI / 180);
+  return [Math.sin(a) * distance, height, Math.cos(a) * distance];
 }
 
 // Resolve which model a stage's animation clip targets: explicit modelRef → explicit slot → the nearest

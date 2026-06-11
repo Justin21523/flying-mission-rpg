@@ -117,6 +117,7 @@ export const MissionEditorTab = () => {
       store={useEditorMissionStore}
       makeNew={makeNew}
       getLabel={(m) => m.name}
+      getFocus={(m) => { const loc = locations.find((l) => l.id === m.locationId); return loc ? { position: [loc.coordinate.x, loc.coordinate.y, loc.coordinate.z] as [number, number, number] } : undefined; }}
       renderFields={(m, update) => (
         <>
           <TextRow label="Name" value={m.name} onChange={(v) => update({ name: v })} />

@@ -234,7 +234,23 @@ const CharacterQuickControls = ({ def, update }: { def: TransformationDefinition
   return (
     <div className="grid grid-cols-2 gap-2">
       <NumRow label="Character size ×" value={round(live.scale)} step={0.1} min={0.05} onChange={(v) => { setRobot({ scale: v }); clearOverrideField(key, 'scale'); }} />
-      <NumRow label="Character facing° (Y)" value={round(live.rotation[1])} step={5} onChange={(v) => { const r = [...live.rotation] as TransformationVec3; r[1] = v; setRobot({ rotation: r }); clearOverrideField(key, 'rotation'); }} />
+      <NumRow label="Character facing° (Y) — whole show" value={round(def.baseYawDeg ?? 0)} step={5} onChange={(v) => update({ baseYawDeg: v })} />
+    </div>
+  );
+};
+
+// Interactive-showcase / spin settings — how much the character spins during the showcase + pose labels.
+const ShowcaseSettings = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
+  const sc = def.interactionShowcase;
+  const patch = (p: Partial<typeof sc>) => update({ interactionShowcase: { ...sc, ...p } });
+  return (
+    <div className="rounded border border-slate-800 bg-slate-900/45 p-1.5">
+      <div className={lbl}>Showcase / spin</div>
+      <div className="mt-1 flex items-center gap-3">
+        <Check label="Enabled" checked={sc.enabled} onChange={(v) => patch({ enabled: v })} />
+        <div className="flex-1"><NumRow label="Spin speed °/s" value={sc.rotateSpeedDeg} step={10} onChange={(v) => patch({ rotateSpeedDeg: v })} /></div>
+      </div>
+      <TextRow label="Pose labels (csv, keys 1/2/3)" value={sc.poses.join(', ')} onChange={(v) => patch({ poses: v.split(',').map((s) => s.trim()).filter(Boolean) })} />
     </div>
   );
 };
@@ -533,6 +549,7 @@ export const TransformationEditorTab = () => {
                   <Field label="Plane model (slot)"><ModelPicker value={def.planeModelRef} onChange={(v) => upd({ planeModelRef: v })} noneLabel="(none)" /></Field>
                   <Field label="Robot model (slot — empty = character's)"><ModelPicker value={def.robotModelRef} onChange={(v) => upd({ robotModelRef: v })} noneLabel="(character's)" /></Field>
                   <Field label="Shared model (slot)"><ModelPicker value={def.sharedModelRef} onChange={(v) => upd({ sharedModelRef: v })} noneLabel="(none)" /></Field>
+                  <ShowcaseSettings def={def} update={upd} />
                   <ModelSlotsEditor def={def} update={upd} />
                   <StagesEditor def={def} update={upd} />
                 </>

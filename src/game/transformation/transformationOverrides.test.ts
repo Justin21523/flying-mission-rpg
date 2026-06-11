@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mergeTransformationOverrides, bakeOverrideToDef, resolveStageClipModelId, composeModelScale, liveOffset } from './transformationOverrides';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey } from './transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformStageMoveKey, transformEffectKey, transformCameraShotKey } from './transformPartKey';
 import type { EditOverride } from '../edit/sceneEditMerge';
 import type { TransformationDefinition } from '../../types/game/transformation';
 
@@ -81,6 +81,24 @@ describe('bakeOverrideToDef', () => {
   it('bakes a stage-model override into params.modelOffset', () => {
     const patch = bakeOverrideToDef(def(), transformStageModelKey('xf1', 'sw'), { position: [0, 9, 0] });
     expect(patch?.stages?.find((s) => s.id === 'sw')?.params.modelOffset?.position).toEqual([0, 9, 0]);
+  });
+  it('bakes a model-move stage override into toPosition', () => {
+    const d = def({ stages: [{ id: 'mv', type: 'model-move', startTime: 0, duration: 1, enabled: true, params: { modelSlot: 'robot' } }] });
+    const patch = bakeOverrideToDef(d, transformStageMoveKey('xf1', 'mv'), { position: [0, 3, 0] });
+    expect(patch?.stages?.find((s) => s.id === 'mv')?.params.toPosition).toEqual([0, 3, 0]);
+  });
+  it('bakes an effect override into spawnOffset', () => {
+    const d = def({ effectTracks: [{ id: 'fx1', type: 'energy-ring', startTime: 0, duration: 1 }] });
+    const patch = bakeOverrideToDef(d, transformEffectKey('xf1', 'fx1'), { position: [1, 1, 1] });
+    expect(patch?.effectTracks?.[0].spawnOffset).toEqual([1, 1, 1]);
+  });
+  it('bakes a camera-shot override into distance/angle/height', () => {
+    const d = def({ cameraShots: [{ id: 'cs1', type: 'orbit', startTime: 0, duration: 1, distance: 5, height: 2, angle: 0, fov: 50 }] });
+    const patch = bakeOverrideToDef(d, transformCameraShotKey('xf1', 'cs1'), { position: [0, 4, 8] });
+    const cs = patch?.cameraShots?.[0];
+    expect(cs?.distance).toBeCloseTo(8, 1);
+    expect(cs?.height).toBeCloseTo(4, 1);
+    expect(cs?.angle).toBeCloseTo(0, 1); // (0,_,8) → atan2(0,8)=0
   });
   it('returns null for an unrelated key', () => {
     expect(bakeOverrideToDef(def(), 'base#structure#whatever', { position: [0, 0, 0] })).toBeNull();

@@ -1,6 +1,7 @@
 import { Html } from '@react-three/drei';
 import { EditableObject } from '../edit/EditableObject';
-import { transformPartKey, transformStageModelKey } from './transformPartKey';
+import { transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey } from './transformPartKey';
+import { cameraShotAnchor } from './transformationOverrides';
 import type { TransformationDefinition, TransformationTransformOffset } from '../../types/game/transformation';
 
 const DEG = Math.PI / 180;
@@ -52,6 +53,40 @@ export const TransformationDebugGizmos = ({ def }: { def: TransformationDefiniti
     ))}
     {def.stages.filter((s) => s.type === 'model-swap' && !!s.params.modelRef).map((s) => (
       <ModelAnchor key={s.id} objKey={transformStageModelKey(def.id, s.id)} label={s.label ?? s.id} color="#facc15" offset={s.params.modelOffset} />
+    ))}
+    {/* model-move stage targets — drag/rotate/scale the move destination. */}
+    {def.stages.filter((s) => s.type === 'model-move').map((s) => (
+      <ModelAnchor
+        key={s.id}
+        objKey={transformStageMoveKey(def.id, s.id)}
+        label={`move ${s.label ?? s.id}`}
+        color="#34d399"
+        offset={{ position: s.params.toPosition ?? [0, 0, 0], rotation: s.params.toRotation ?? [0, 0, 0], scale: s.params.toScale ?? 1 }}
+      />
+    ))}
+    {/* effect-track spawn points. */}
+    {(def.effectTracks ?? []).map((fx) => (
+      <EditableObject key={fx.id} objKey={transformEffectKey(def.id, fx.id)} base={{ position: fx.spawnOffset ?? [0, 0, 0], rotation: [0, 0, 0], scale: 1 }}>
+        <group>
+          <mesh rotation={[0, Math.PI / 4, 0]}>
+            <octahedronGeometry args={[0.18, 0]} />
+            <meshStandardMaterial color={fx.color ?? '#f472b6'} emissive={fx.color ?? '#f472b6'} emissiveIntensity={0.6} />
+          </mesh>
+          <Label text={`fx ${fx.type}`} />
+        </group>
+      </EditableObject>
+    ))}
+    {/* camera-shot orbit anchors — drag to set distance/height/angle. */}
+    {(def.cameraShots ?? []).map((sh) => (
+      <EditableObject key={sh.id} objKey={transformCameraShotKey(def.id, sh.id)} base={{ position: cameraShotAnchor(sh.distance, sh.height, sh.angle), rotation: [0, 0, 0], scale: 1 }}>
+        <group>
+          <mesh>
+            <coneGeometry args={[0.16, 0.34, 8]} />
+            <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.6} />
+          </mesh>
+          <Label text={`cam ${sh.type}`} />
+        </group>
+      </EditableObject>
     ))}
   </>
 );

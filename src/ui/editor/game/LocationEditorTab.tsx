@@ -26,6 +26,7 @@ export const LocationEditorTab = () => (
     store={useEditorLocationStore}
     makeNew={makeNew}
     getLabel={(l) => `${l.name}${l.isBase ? ' ★' : ''}`}
+    getFocus={(l) => ({ position: [l.coordinate.x, l.coordinate.y, l.coordinate.z] })}
     renderFields={(l, update) => (
       <>
         <TextRow label="Codename" value={l.codename} onChange={(v) => update({ codename: v })} />

@@ -8,3 +8,8 @@ export const transformPartKey = (timelineId: string, partKey: string) => objKey(
 export const transformModelSlotKey = (timelineId: string, slot: ModelSlot) => objKey('transform', 'structure', `${timelineId}__model_slot__${slot}`);
 
 export const transformStageModelKey = (timelineId: string, stageId: string) => objKey('transform', 'structure', `${timelineId}__stage_model__${stageId}`);
+
+// Gizmo anchors for the virtual / time-series items (effect spawn points, model-move targets, camera shots).
+export const transformEffectKey = (timelineId: string, fxId: string) => objKey('transform', 'structure', `${timelineId}__effect__${fxId}`);
+export const transformStageMoveKey = (timelineId: string, stageId: string) => objKey('transform', 'structure', `${timelineId}__stage_move__${stageId}`);
+export const transformCameraShotKey = (timelineId: string, shotId: string) => objKey('transform', 'structure', `${timelineId}__camera_shot__${shotId}`);
