@@ -1,6 +1,10 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Vector3 } from 'three';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { OrbitControls } from '@react-three/drei';
 import { useUiStore } from '../../stores/uiStore';
+import { cameraFocus } from '../edit/cameraFocus';
 import { useSceneEditStore } from '../../stores/sceneEditStore';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
@@ -25,9 +29,23 @@ function findTimeline(timelines: TransformationDefinition[], characterId: string
   return (transformationId && timelines.find((t) => t.id === transformationId)) || timelines.find((t) => t.characterId === characterId) || timelines[0];
 }
 
-const TransformationEditOrbitCamera = () => (
-  <OrbitControls makeDefault target={[0, 0.7, 0]} enablePan enableZoom minDistance={0.5} maxDistance={80} enableDamping dampingFactor={0.1} />
-);
+const _focusOff = new Vector3();
+// Orbit camera for transformation edit — also consumes the focusCameraOn bus so the tab's 🎯 Focus buttons
+// pan to a part/model anchor (keeping the current view offset), like FollowCamera does in the other scenes.
+const TransformationEditOrbitCamera = () => {
+  const ref = useRef<OrbitControlsImpl>(null);
+  const lastFocus = useRef(cameraFocus.fireId);
+  useFrame((state) => {
+    const c = ref.current;
+    if (!c || cameraFocus.fireId === lastFocus.current) return;
+    lastFocus.current = cameraFocus.fireId;
+    _focusOff.copy(state.camera.position).sub(c.target);
+    c.target.set(cameraFocus.x, cameraFocus.y, cameraFocus.z);
+    state.camera.position.copy(c.target).add(_focusOff);
+    c.update();
+  });
+  return <OrbitControls ref={ref} makeDefault target={[0, 0.7, 0]} enablePan enableZoom minDistance={0.5} maxDistance={80} enableDamping dampingFactor={0.1} />;
+};
 
 export const TransformationStage = () => {
   const editMode = useUiStore((s) => s.editMode);

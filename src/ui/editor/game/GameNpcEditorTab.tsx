@@ -9,7 +9,11 @@ import { listDialogueTreeIds } from '../../../game/dialogue/dialogueRegistry';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
 import { ModelPicker } from '../ModelPicker';
 import { DialogueTreeEditor } from '../DialogueTreeEditor';
-import { Field, inp, lbl } from '../editorShared';
+import { Field, inp, lbl, FocusButton } from '../editorShared';
+import { objKey } from '../../../game/edit/sceneEditMerge';
+
+// Matches DestinationNpcLayer's placement key (area 'destination', kind 'npc').
+const npcPlacementKey = (id: string) => objKey('destination', 'npc', id);
 
 // Inline dialogue authoring for a game NPC — reuses the POLI DialogueTreeEditor + editorNpcStore.dialogueTrees
 // (where getDialogueTree already reads). Create an editable tree, or duplicate a seed tree to edit it.
@@ -84,6 +88,10 @@ export const GameNpcEditorTab = () => {
           />
           <NpcDialogueAuthoring npc={n} update={update} />
           <SelectRow label="Initial state" value={n.initialState ?? 'idle'} options={NPC_INITIAL_STATES.map((s) => ({ value: s, label: s }))} onChange={(v) => update({ initialState: v as NPCDefinition['initialState'] })} />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] uppercase tracking-wide text-slate-400">Placement</span>
+            <FocusButton position={(n.position ?? [0, 0, 0]) as [number, number, number]} objKey={npcPlacementKey(n.id)} />
+          </div>
           <Field label="Destination position (x / y / z) — gizmo-draggable in 3D">
             <div className="flex gap-1">
               {([0, 1, 2] as const).map((a) => (

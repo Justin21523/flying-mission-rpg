@@ -17,7 +17,8 @@ import type {
   ModelSlot, TransformationDefinition, TransformationStage, TransformationCameraShot,
   TransformationEffectTrack, TransformationPart, TransformationTransformOffset, TransformationVec3,
 } from '../../../types/game/transformation';
-import { Field, inp, lbl, Check } from '../editorShared';
+import { Field, inp, lbl, Check, FocusButton, MoveButtons } from '../editorShared';
+import { moveItem } from '../../../game/editor/arrayMove';
 import { ModelPicker } from '../ModelPicker';
 import { TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
 
@@ -117,7 +118,10 @@ const TransformOffsetFields = ({
     <div className={`rounded border p-1.5 ${selectedKey === objKey ? 'border-violet-500/70 bg-violet-950/30' : 'border-slate-800 bg-slate-900/45'}`}>
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="truncate text-[11px] font-semibold text-slate-200">{title}</span>
-        <button onClick={select} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+        <div className="flex gap-1">
+          <FocusButton position={live.position} objKey={objKey} />
+          <button onClick={select} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+        </div>
       </div>
       <Field label="Position (x / y / z) — live with the gizmo">
         <div className="flex gap-1">
@@ -185,7 +189,10 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
           <div key={p.key} className={`rounded border p-1.5 ${selectedKey === transformPartKey(def.id, p.key) ? 'border-violet-500/70 bg-violet-950/30' : 'border-slate-800 bg-slate-900/60'}`}>
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="truncate text-[11px] font-semibold text-sky-200">{p.key}</span>
-              <button onClick={() => useSceneEditStore.getState().requestSelect(transformPartKey(def.id, p.key))} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+              <div className="flex gap-1">
+                <FocusButton position={livePos(p)} objKey={transformPartKey(def.id, p.key)} />
+                <button onClick={() => useSceneEditStore.getState().requestSelect(transformPartKey(def.id, p.key))} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <Field label="Part"><span className="text-[11px] font-semibold text-sky-200">{p.key}</span></Field>
@@ -213,6 +220,21 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+// Direct, prominent character size + facing — maps to the ROBOT slot offset (the character model), applied
+// immediately in edit + play (the presenter reads modelSlotOffsets.robot). The full per-slot editor is below.
+const CharacterQuickControls = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
+  const key = transformModelSlotKey(def.id, 'robot');
+  const override = useSceneEditStore((s) => s.overrides[key]);
+  const live = liveOffset(def.modelSlotOffsets?.robot, override);
+  const setRobot = (patch: Partial<TransformationTransformOffset>) => update({ modelSlotOffsets: { ...(def.modelSlotOffsets ?? {}), robot: { ...live, ...patch } } });
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <NumRow label="Character size ×" value={round(live.scale)} step={0.1} min={0.05} onChange={(v) => { setRobot({ scale: v }); clearOverrideField(key, 'scale'); }} />
+      <NumRow label="Character facing° (Y)" value={round(live.rotation[1])} step={5} onChange={(v) => { const r = [...live.rotation] as TransformationVec3; r[1] = v; setRobot({ rotation: r }); clearOverrideField(key, 'rotation'); }} />
     </div>
   );
 };
@@ -336,7 +358,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Stages · {def.stages.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Stage</button></div>
       <div className="mt-1 space-y-1.5">
-        {def.stages.map((s) => (
+        {def.stages.map((s, i) => (
           <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <SelectRow label="Type" value={s.type} options={opts(TRANSFORMATION_STAGE_TYPES)} onChange={(v) => patch(s.id, { type: v as TransformationStage['type'] })} />
@@ -350,7 +372,10 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
               <Check label="Essential (quick)" checked={s.essential ?? false} onChange={(v) => patch(s.id, { essential: v })} />
             </div>
             <div className="mt-1"><StageParams s={s} def={def} patch={(pp) => patchParams(s.id, pp)} /></div>
-            <button onClick={() => remove(s.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            <div className="mt-1 flex items-center gap-1.5">
+              <MoveButtons index={i} count={def.stages.length} onMove={(d) => update({ stages: moveItem(def.stages, i, d) })} />
+              <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            </div>
           </div>
         ))}
       </div>
@@ -366,7 +391,7 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Camera shots · {def.cameraShots.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Shot</button></div>
       <div className="mt-1 space-y-1.5">
-        {def.cameraShots.map((s) => (
+        {def.cameraShots.map((s, i) => (
           <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <SelectRow label="Type" value={s.type} options={opts(CAMERA_SHOT_TYPES)} onChange={(v) => patch(s.id, { type: v as TransformationCameraShot['type'] })} />
@@ -379,7 +404,10 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
               <NumRow label="FOV" value={s.fov} step={1} onChange={(v) => patch(s.id, { fov: v })} />
               <NumRow label="Shake" value={s.shakeIntensity ?? 0} step={0.05} min={0} onChange={(v) => patch(s.id, { shakeIntensity: v })} />
             </div>
-            <button onClick={() => remove(s.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            <div className="mt-1 flex items-center gap-1.5">
+              <MoveButtons index={i} count={def.cameraShots.length} onMove={(d) => update({ cameraShots: moveItem(def.cameraShots, i, d) })} />
+              <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            </div>
           </div>
         ))}
       </div>
@@ -395,7 +423,7 @@ const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update:
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Effect tracks · {def.effectTracks.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Effect</button></div>
       <div className="mt-1 space-y-1.5">
-        {def.effectTracks.map((s) => (
+        {def.effectTracks.map((s, i) => (
           <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <SelectRow label="Type" value={s.type} options={opts(EFFECT_TYPES)} onChange={(v) => patch(s.id, { type: v as TransformationEffectTrack['type'] })} />
@@ -413,7 +441,10 @@ const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update:
                 <div className="col-span-2"><Check label="Persist until track ends" checked={s.ghostPersist ?? true} onChange={(v) => patch(s.id, { ghostPersist: v })} /></div>
               </div>
             )}
-            <button onClick={() => remove(s.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            <div className="mt-1 flex items-center gap-1.5">
+              <MoveButtons index={i} count={def.effectTracks.length} onMove={(d) => update({ effectTracks: moveItem(def.effectTracks, i, d) })} />
+              <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            </div>
           </div>
         ))}
       </div>
@@ -493,7 +524,8 @@ export const TransformationEditorTab = () => {
                   </div>
                   <ColorRow label="Backdrop colour" value={def.backdropColor} onChange={(v) => upd({ backdropColor: v })} />
                   <ColorRow label="Particle colour" value={def.particleColor} onChange={(v) => upd({ particleColor: v })} />
-                  <NumRow label="Performance scale ×" value={def.modelScale ?? 1} step={0.1} min={0.1} onChange={(v) => upd({ modelScale: v })} />
+                  <NumRow label="Performance scale × (whole show)" value={def.modelScale ?? 1} step={0.1} min={0.1} onChange={(v) => upd({ modelScale: v })} />
+                  <CharacterQuickControls def={def} update={upd} />
                   <Field label="Plane model (slot)"><ModelPicker value={def.planeModelRef} onChange={(v) => upd({ planeModelRef: v })} noneLabel="(none)" /></Field>
                   <Field label="Robot model (slot — empty = character's)"><ModelPicker value={def.robotModelRef} onChange={(v) => upd({ robotModelRef: v })} noneLabel="(character's)" /></Field>
                   <Field label="Shared model (slot)"><ModelPicker value={def.sharedModelRef} onChange={(v) => upd({ sharedModelRef: v })} noneLabel="(none)" /></Field>

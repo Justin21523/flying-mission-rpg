@@ -7,7 +7,8 @@ import { ANIM_TRIGGERS } from '../../../types/character';
 import type { AnimRule } from '../../../types/character';
 import { WEATHER_KINDS } from '../../../types/game/flight';
 import { getModelAsset } from '../../../data/modelLibrary';
-import { csv, parseCsv, Field, inp, lbl, Check } from '../editorShared';
+import { csv, parseCsv, Field, inp, lbl, Check, MoveButtons } from '../editorShared';
+import { moveItem } from '../../../game/editor/arrayMove';
 import { ModelPicker } from '../ModelPicker';
 import { useGltfClipNames } from '../useGltfClipNames';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
@@ -67,7 +68,7 @@ const AnimationRulesEditor = ({ rules, modelAssetId, onChange }: { rules: AnimRu
       </div>
       <p className="mt-0.5 text-[10px] text-slate-500">Highest-priority matching rule plays. Triggers: idle/moving/flying/vehicle/robot/ability/celebrate/key. Empty list = use the single clips above.</p>
       <div className="mt-1 space-y-1.5">
-        {rules.map((r) => (
+        {rules.map((r, i) => (
           <div key={r.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <TextRow label="Label" value={r.name ?? ''} onChange={(v) => patch(r.id, { name: v || undefined })} />
@@ -88,6 +89,7 @@ const AnimationRulesEditor = ({ rules, modelAssetId, onChange }: { rules: AnimRu
               </div>
             </div>
             <div className="mt-1 flex gap-1.5">
+              <MoveButtons index={i} count={rules.length} onMove={(d) => onChange(moveItem(rules, i, d))} />
               <button onClick={() => dup(r.id)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
               <button onClick={() => remove(r.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>

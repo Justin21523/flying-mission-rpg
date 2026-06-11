@@ -12,6 +12,8 @@ import { useEditorPathStore } from '../../stores/editorPathStore';
 import { useEditorAnimationStore } from '../../stores/editorAnimationStore';
 import { useEditorSurfaceStore } from '../../stores/editorSurfaceStore';
 import { listDialogueTreeIds } from '../../game/dialogue/dialogueRegistry';
+import { focusCameraOn } from '../../game/edit/cameraFocus';
+import { useSceneEditStore } from '../../stores/sceneEditStore';
 import type { IdOption } from './idPickers';
 
 // Kit — shared form bits for the editor sub-panels (keeps each editor small). Ported from the original
@@ -27,6 +29,26 @@ export const Check = ({ label, checked, onChange }: { label: string; checked: bo
   <label className="flex items-center gap-1.5 text-xs text-slate-300">
     <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-sky-500" /> {label}
   </label>
+);
+
+// Jump the edit camera to a 3D object (and optionally select it). Uses the focusCameraOn bus consumed by
+// FollowCamera (and the transformation orbit cam). Put on any object row that has a world position.
+export const FocusButton = ({ position, objKey, title = 'Focus the camera on this object' }: { position: [number, number, number]; objKey?: string; title?: string }) => (
+  <button
+    title={title}
+    onClick={() => { focusCameraOn(position[0], position[1], position[2]); if (objKey) useSceneEditStore.getState().requestSelect(objKey); }}
+    className="rounded bg-sky-700/30 px-2 py-0.5 text-[10px] text-sky-100 hover:bg-sky-700/50"
+  >
+    🎯 Focus
+  </button>
+);
+
+// Up/down reorder buttons for an ordered list item (disabled at the ends).
+export const MoveButtons = ({ index, count, onMove }: { index: number; count: number; onMove: (dir: -1 | 1) => void }) => (
+  <span className="inline-flex gap-0.5">
+    <button onClick={() => onMove(-1)} disabled={index <= 0} title="Move up" className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700 disabled:opacity-30">▲</button>
+    <button onClick={() => onMove(1)} disabled={index >= count - 1} title="Move down" className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700 disabled:opacity-30">▼</button>
+  </span>
 );
 
 export const csv = (a?: string[]) => (a ?? []).join(', ');

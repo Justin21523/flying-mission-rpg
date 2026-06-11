@@ -4,7 +4,7 @@ import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { EXTERIOR_KINDS } from '../../../types/game/exterior';
 import type { ExteriorPart, ExteriorCollision } from '../../../types/game/exterior';
 import { exteriorPartKey } from '../../../game/flight/exteriorPartKey';
-import { Field, inp, lbl, Check } from '../editorShared';
+import { Field, inp, lbl, Check, FocusButton } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
 
 const COLLISIONS: ExteriorCollision[] = ['none', 'cuboid', 'hull', 'trimesh'];
@@ -74,6 +74,10 @@ export const ExteriorEditorTab = () => {
         <div className="min-w-0 flex-1 space-y-2">
           {sel ? (
             <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[11px] font-semibold text-slate-200">{sel.label}</span>
+                <FocusButton position={livePos(sel)} objKey={exteriorPartKey(sel.id)} />
+              </div>
               <Field label="Label"><input value={sel.label} onChange={(e) => update(sel.id, { label: e.target.value })} className={inp} /></Field>
               <Field label="Kind">
                 <select value={sel.kind} onChange={(e) => update(sel.id, { kind: e.target.value as ExteriorPart['kind'] })} className={inp}>

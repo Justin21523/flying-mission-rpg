@@ -4,7 +4,7 @@ import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { DESTINATION_PART_KINDS } from '../../../types/game/destination';
 import type { DestinationPart } from '../../../types/game/destination';
 import { destinationPartKey } from '../../../game/destination/destinationPartKey';
-import { Field, inp, lbl, Check } from '../editorShared';
+import { Field, inp, lbl, Check, FocusButton } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
 
 // 🏙 Destination — edit the destination layout (landing/safe zones, buildings, road, mission objects,
@@ -72,6 +72,10 @@ export const DestinationEditorTab = () => {
         <div className="min-w-0 flex-1 space-y-2">
           {sel ? (
             <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[11px] font-semibold text-slate-200">{sel.label} · {sel.kind}</span>
+                <FocusButton position={livePos(sel)} objKey={destinationPartKey(sel.id)} />
+              </div>
               <Field label="Label"><input value={sel.label} onChange={(e) => update(sel.id, { label: e.target.value })} className={inp} /></Field>
               <Field label="Kind">
                 <select value={sel.kind} onChange={(e) => update(sel.id, { kind: e.target.value as DestinationPart['kind'] })} className={inp}>

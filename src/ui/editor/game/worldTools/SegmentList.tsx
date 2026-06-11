@@ -3,7 +3,8 @@ import { WEATHER_KINDS, ROUTE_SEGMENT_KINDS } from '../../../../types/game/fligh
 import type { RouteSegment } from '../../../../types/game/flight';
 import { updateSegment, duplicateSegment, removeSegment } from '../../../../game/flight/world/routeSegments';
 import { NumRow, SelectRow } from '../CollectionEditor';
-import { lbl } from '../../editorShared';
+import { lbl, MoveButtons } from '../../editorShared';
+import { moveItem } from '../../../../game/editor/arrayMove';
 import { KindMulti } from './EventPoolPicker';
 
 // The route's flavour bands (0..1 along it) — type, weather, clouds, allowed events, density, altitude.
@@ -20,7 +21,7 @@ export const SegmentList = ({ segments, onChange }: { segments: RouteSegment[]; 
         <button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Segment</button>
       </div>
       <div className="mt-1 space-y-1.5">
-        {segments.map((s) => (
+        {segments.map((s, i) => (
           <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <SelectRow label="Kind" value={s.kind} options={ROUTE_SEGMENT_KINDS.map((k) => ({ value: k, label: k }))} onChange={(v) => patch(s.id, { kind: v as RouteSegment['kind'] })} />
@@ -34,6 +35,7 @@ export const SegmentList = ({ segments, onChange }: { segments: RouteSegment[]; 
             </div>
             <div className="mt-1"><KindMulti selected={s.allowedEventKinds ?? []} onChange={(k) => patch(s.id, { allowedEventKinds: k })} /></div>
             <div className="mt-1 flex gap-1.5">
+              <MoveButtons index={i} count={segments.length} onMove={(d) => onChange(moveItem(segments, i, d))} />
               <button onClick={() => dup(s.id)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>

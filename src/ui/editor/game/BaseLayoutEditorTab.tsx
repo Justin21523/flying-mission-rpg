@@ -4,7 +4,7 @@ import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { BASE_PART_KINDS, BASE_COLLISIONS } from '../../../types/game/base';
 import type { BasePart } from '../../../types/game/base';
 import { basePartKey } from '../../../game/base/basePartKey';
-import { Field, inp, lbl } from '../editorShared';
+import { Field, inp, lbl, FocusButton } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
 
 // 🏗 Base — edit the home-base layout, synced with the 3D gizmo: selecting a row selects the part in 3D
@@ -95,6 +95,10 @@ export const BaseLayoutEditorTab = () => {
         <div className="min-w-0 flex-1 space-y-2">
           {sel ? (
             <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[11px] font-semibold text-slate-200">{sel.label}</span>
+                <FocusButton position={livePos(sel)} objKey={basePartKey(sel.id)} />
+              </div>
               <Field label="Label">
                 <input value={sel.label} onChange={(e) => update(sel.id, { label: e.target.value })} className={inp} />
               </Field>
