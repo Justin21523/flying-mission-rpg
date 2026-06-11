@@ -36,6 +36,9 @@ export const FlightController = () => {
   const speed = useRef(0);
   const launchT = useRef(0);
   const pathU = useRef(0);
+  const blendT = useRef(1); // tunnel→fly-around shoot-out blend (1 = not blending)
+  const carry = useRef(new Vector3()); // straight-ahead carry position during the shoot-out
+  const carrySpeed = useRef(0);
   const prevPhase = useRef('');
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
@@ -90,6 +93,10 @@ export const FlightController = () => {
         speed.current = tuning.cruiseSpeed * speedMult * 0.5;
       } else if (phase === 'BASE_FLY_AROUND') {
         pathU.current = 0; // start of the guided flight path
+        // Shoot-out: keep flying straight out of the tunnel at exit speed, blending onto the path.
+        blendT.current = prevPhase.current === 'LAUNCH_TUNNEL' ? 0 : 1;
+        carry.current.copy(flightHandle.pos);
+        carrySpeed.current = Math.max(flightHandle.speed, tuning.cruiseSpeed * speedMult);
       }
       prevPhase.current = phase;
     }
@@ -130,6 +137,15 @@ export const FlightController = () => {
         pathU.current = clamp(pathU.current + (fwd * pathSpeed * dt) / Math.max(1, cc.length), 0, 1);
         samplePos(cc.curve, pathU.current, _pos);
         sampleTangent(cc.curve, pathU.current, _tan);
+        // Shoot-out blend: continue straight out of the tunnel (nose −z) and smooth-step onto the path,
+        // so the craft visibly bursts out before banking into the circle.
+        if (blendT.current < 1) {
+          blendT.current = Math.min(1, blendT.current + dt / 1.2);
+          const bk = blendT.current * blendT.current * (3 - 2 * blendT.current);
+          carry.current.z -= carrySpeed.current * dt;
+          carrySpeed.current = lerp(carrySpeed.current, pathSpeed, 1.2 * dt);
+          _pos.multiplyScalar(bk).addScaledVector(carry.current, 1 - bk);
+        }
         flightHandle.pos.copy(_pos);
         craft.position.copy(_pos);
         _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward

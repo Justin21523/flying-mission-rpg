@@ -23,10 +23,12 @@ export interface RunnerSnapshot {
   activeStageLabel: string;
   parts: Map<TransformationPartKey, PartState>;
   modelVisible: Record<ModelSlot, boolean>;
+  activeModelRef: string | null; // arbitrary extra model shown by a model-swap stage with params.modelRef
   activeClip: string | null;
   activeCameraShot: TransformationCameraShot | null;
   activeEffects: TransformationEffectTrack[];
   backdropIntensity: number;
+  rootYOffset: number; // slow exit descent — how far the character root has sunk (world units)
 }
 
 const ESSENTIAL_TYPES = new Set(['model-swap', 'model-visibility', 'finish-pose', 'exit-stage']);
@@ -124,12 +126,22 @@ export class TransformationTimelineRunner {
       parts.set(part.key, cur);
     }
 
-    // model visibility — start from the strategy base, apply visibility/swap stages in order
+    // model visibility — start from the strategy base, apply visibility/swap stages in order. A model-swap
+    // stage may target a slot (plane/robot/shared) OR an arbitrary modelRef (multi-model sequences — any
+    // number of different models can be chained across the timeline).
     const modelVisible = baseModelVisible(this.def.formStrategy);
+    let activeModelRef: string | null = null;
     for (const st of this.stages.filter((s) => (s.type === 'model-visibility' || s.type === 'model-swap') && s.startTime <= t).sort((a, b) => a.startTime - b.startTime)) {
       const slot = st.params.modelSlot;
-      if (st.type === 'model-swap' && slot) { modelVisible.plane = false; modelVisible.robot = false; modelVisible.shared = false; modelVisible[slot] = true; }
-      else if (slot) modelVisible[slot] = st.params.visible ?? true;
+      if (st.type === 'model-swap' && st.params.modelRef) {
+        modelVisible.plane = false; modelVisible.robot = false; modelVisible.shared = false;
+        activeModelRef = st.params.modelRef;
+      } else if (st.type === 'model-swap' && slot) {
+        modelVisible.plane = false; modelVisible.robot = false; modelVisible.shared = false; modelVisible[slot] = true;
+        activeModelRef = null;
+      } else if (slot) {
+        modelVisible[slot] = st.params.visible ?? true;
+      }
     }
 
     // active animation clip — latest clip stage started (holds final if holdFinal)
@@ -145,10 +157,19 @@ export class TransformationTimelineRunner {
     // active effect tracks
     const activeEffects = (this.def.effectTracks ?? []).filter((fx) => t >= fx.startTime && t < fx.startTime + fx.duration);
 
-    // backdrop intensity — latest backdrop-shift target, else 1 while playing
+    // backdrop intensity — interpolate toward each backdrop-shift target (so a final shift to 0 FADES out)
     let backdropIntensity = 1;
     for (const st of this.stages.filter((s) => s.type === 'backdrop-shift' && s.startTime <= t).sort((a, b) => a.startTime - b.startTime)) {
-      backdropIntensity = st.params.backdropIntensity ?? st.params.intensity ?? backdropIntensity;
+      const target = st.params.backdropIntensity ?? st.params.intensity ?? backdropIntensity;
+      const k = st.duration > 0 ? ease(st.easing, (t - st.startTime) / st.duration) : 1;
+      backdropIntensity = lerp(backdropIntensity, target, k);
+    }
+
+    // slow exit descent — during the exit-stage the character root sinks by params.intensity units
+    let rootYOffset = 0;
+    for (const st of this.stages.filter((s) => s.type === 'exit-stage' && s.startTime <= t)) {
+      const k = st.duration > 0 ? ease('easeInOut', (t - st.startTime) / st.duration) : 1;
+      rootYOffset += (st.params.intensity ?? 6) * Math.min(1, k);
     }
 
     const active = this.stages.find((s) => t >= s.startTime && t < s.startTime + s.duration);
@@ -160,10 +181,12 @@ export class TransformationTimelineRunner {
       activeStageLabel: active?.label ?? active?.type ?? (this.phase === 'showcase' ? 'showcase' : this.phase === 'done' ? 'complete' : '—'),
       parts,
       modelVisible,
+      activeModelRef,
       activeClip,
       activeCameraShot,
       activeEffects,
       backdropIntensity,
+      rootYOffset,
     };
   }
 }

@@ -53,6 +53,7 @@ export interface StageParams {
   toScale?: number;
   visible?: boolean;
   modelSlot?: ModelSlot;
+  modelRef?: string; // model-swap: arbitrary model-library id (overrides the slot — chain any number of swaps)
   clipName?: string;
   clipSpeed?: number;
   loop?: boolean;
@@ -96,8 +97,8 @@ export interface TransformationCameraShot {
   lookAtOffset?: [number, number, number];
 }
 
-export type EffectType = 'particle-burst' | 'energy-ring' | 'glow-pulse' | 'white-flash' | 'outline' | 'speed-line-burst' | 'thruster-flare' | 'sparkle';
-export const EFFECT_TYPES: readonly EffectType[] = ['particle-burst', 'energy-ring', 'glow-pulse', 'white-flash', 'outline', 'speed-line-burst', 'thruster-flare', 'sparkle'];
+export type EffectType = 'particle-burst' | 'energy-ring' | 'glow-pulse' | 'white-flash' | 'outline' | 'speed-line-burst' | 'thruster-flare' | 'sparkle' | 'ghost-burst';
+export const EFFECT_TYPES: readonly EffectType[] = ['particle-burst', 'energy-ring', 'glow-pulse', 'white-flash', 'outline', 'speed-line-burst', 'thruster-flare', 'sparkle', 'ghost-burst'];
 
 export interface TransformationEffectTrack {
   id: string;

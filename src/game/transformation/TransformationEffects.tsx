@@ -74,11 +74,50 @@ const Sparkle = ({ fx }: { fx: TransformationEffectTrack }) => {
   );
 };
 
+// Translucent same-colour "ghost clones" bursting outward from the body centre — staggered capsule
+// silhouettes that drift radially, scale up and fade (the big-transform beauty shot). `repeat` = ghost
+// count; colour follows the character's particleColor via the track colour.
+const GhostBurst = ({ fx }: { fx: TransformationEffectTrack }) => {
+  const g = useRef<Group>(null);
+  const t = useRef(0);
+  const count = Math.max(3, Math.round(fx.repeat ?? 6));
+  useFrame((_, dt) => {
+    t.current += dt;
+    const grp = g.current;
+    if (!grp) return;
+    const stagger = (fx.duration * 0.35) / count;
+    for (let i = 0; i < grp.children.length; i++) {
+      const ghost = grp.children[i];
+      const life = Math.max(0, Math.min(1, (t.current - i * stagger) / (fx.duration * 0.65)));
+      const ang = (i / count) * Math.PI * 2;
+      const dist = life * 2.2 * (fx.scale ?? 1.6);
+      ghost.position.set(Math.cos(ang) * dist, 0.4 + life * 0.6, Math.sin(ang) * dist);
+      ghost.scale.setScalar((0.9 + life * 1.6) * (fx.scale ?? 1.6));
+      ghost.visible = life > 0 && life < 1;
+      const mesh = ghost.children[0] as Mesh | undefined;
+      if (mesh) (mesh.material as MeshBasicMaterial).opacity = 0.4 * (1 - life) * (fx.intensity ?? 1);
+    }
+  });
+  return (
+    <group ref={g}>
+      {Array.from({ length: count }, (_, i) => (
+        <group key={i} visible={false}>
+          <mesh>
+            <capsuleGeometry args={[0.45, 0.9, 4, 12]} />
+            <meshBasicMaterial color={fx.color ?? '#7fd0ff'} toneMapped={false} transparent opacity={0.4} depthWrite={false} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+};
+
 const EffectViz = ({ fx }: { fx: TransformationEffectTrack }) => {
   switch (fx.type) {
     case 'energy-ring': return <EnergyRing fx={fx} />;
     case 'white-flash': return <WhiteFlash fx={fx} />;
     case 'sparkle': return <Sparkle fx={fx} />;
+    case 'ghost-burst': return <GhostBurst fx={fx} />;
     case 'speed-line-burst': return null; // handled by the backdrop
     default: return <GlowPulse fx={fx} />; // glow-pulse / particle-burst / thruster-flare / outline
   }

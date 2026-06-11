@@ -11,6 +11,7 @@ import type {
   TransformationDefinition, TransformationStage, TransformationCameraShot, TransformationEffectTrack,
 } from '../../../types/game/transformation';
 import { Field, inp, lbl, Check } from '../editorShared';
+import { ModelPicker } from '../ModelPicker';
 import { TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
 
 const num = (v: string) => parseFloat(v) || 0;
@@ -69,6 +70,11 @@ const StageParams = ({ s, patch }: { s: TransformationStage; patch: (p: Partial<
       return (
         <>
           <SelectRow label="Model slot" value={p.modelSlot ?? 'robot'} options={opts(MODEL_SLOTS)} onChange={(v) => patch({ modelSlot: v as typeof p.modelSlot })} />
+          {s.type === 'model-swap' && (
+            <Field label="Arbitrary model (overrides slot — chain any number of swaps)">
+              <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v })} noneLabel="(use slot)" />
+            </Field>
+          )}
           <Check label="Visible" checked={p.visible ?? true} onChange={(v) => patch({ visible: v })} />
         </>
       );
@@ -94,7 +100,12 @@ const StageParams = ({ s, patch }: { s: TransformationStage; patch: (p: Partial<
     case 'voice-cue':
       return <TextRow label="Text" value={p.text ?? ''} onChange={(v) => patch({ text: v })} />;
     case 'exit-stage':
-      return <TextRow label="Target phase" value={p.targetPhase ?? 'DESCENT'} onChange={(v) => patch({ targetPhase: v })} />;
+      return (
+        <>
+          <TextRow label="Target phase" value={p.targetPhase ?? 'DESCENT'} onChange={(v) => patch({ targetPhase: v })} />
+          <NumRow label="Descent distance (slow sink)" value={p.intensity ?? 6} step={1} min={0} onChange={(v) => patch({ intensity: v })} />
+        </>
+      );
     default:
       return null;
   }

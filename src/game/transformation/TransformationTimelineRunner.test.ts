@@ -47,6 +47,27 @@ describe('TransformationTimelineRunner', () => {
     expect(r.time).toBeCloseTo(r.duration);
   });
 
+  it('sinks the root during the exit-stage (slow descent)', () => {
+    const r = new TransformationTimelineRunner(makeTimeline(), 'full');
+    r.seek(3.7); // before the exit-stage (3.8..4.0)
+    expect(r.getSnapshot().rootYOffset).toBe(0);
+    r.seek(4.0); // exit complete → full descent distance (default 6)
+    expect(r.getSnapshot().rootYOffset).toBeCloseTo(6);
+  });
+
+  it('supports arbitrary model-swap refs (multi-model sequences)', () => {
+    const tl = makeTimeline();
+    tl.stages.push({ id: 'ms', type: 'model-swap', startTime: 1.0, duration: 0.1, enabled: true, params: { modelRef: 'm_alt' } });
+    const r = new TransformationTimelineRunner(tl, 'full');
+    r.seek(0.5);
+    expect(r.getSnapshot().activeModelRef).toBeNull();
+    r.seek(1.2);
+    expect(r.getSnapshot().activeModelRef).toBe('m_alt');
+    // a later slot-based stage (s2 at 2.6) returns control to the robot slot
+    r.seek(2.8);
+    expect(r.getSnapshot().modelVisible.robot).toBe(true);
+  });
+
   it('interactive mode holds at showcase until confirm', () => {
     const r = new TransformationTimelineRunner(makeTimeline(), 'interactive');
     r.tick(10); // past the end

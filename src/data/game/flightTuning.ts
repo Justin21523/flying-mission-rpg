@@ -14,8 +14,8 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   autoLevel: 1.6,
   fovBase: 60,
   fovMax: 88,
-  camDistance: 4,
-  camHeight: 1.6,
+  camDistance: 9,
+  camHeight: 2.8,
   camPullback: 3,
   rollFollow: 0.45,
   boundaryRadius: 240,
@@ -32,5 +32,5 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   worldCloudScale: 2,
   worldFlightDurationSec: 15,
   launchDurationSec: 5.5,
-  launchTunnelLength: 72,
+  launchTunnelLength: 260,
 };

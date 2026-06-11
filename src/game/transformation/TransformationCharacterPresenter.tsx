@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
-import { txFrame } from './transformationRuntime';
+import { txFrame, useTxVersion } from './transformationRuntime';
 import type { TransformationDefinition, TransformationPart, PartGeometryKind } from '../../types/game/transformation';
 
 // Renders the transforming character: procedural primitive parts (driven each frame by the runner's resolved
@@ -44,20 +44,41 @@ const GeomFor = ({ kind }: { kind: PartGeometryKind }) => {
 export const TransformationCharacterPresenter = ({ def, charModelId }: { def: TransformationDefinition; charModelId?: string }) => {
   const root = useRef<Group>(null);
   const robot = useRef<Group>(null);
+  const plane = useRef<Group>(null);
+  const shared = useRef<Group>(null);
+  // Re-render when the active extra model / clip changes (sparse — bumped by the director/preview driver),
+  // so multi-model sequences (any number of model-swap stages) and animation-clip switches mount live.
+  useTxVersion((s) => s.v);
   useFrame(() => {
-    if (root.current) root.current.rotation.y = txFrame.showcaseYaw;
-    if (robot.current) robot.current.visible = txFrame.snapshot?.modelVisible.robot ?? false;
+    if (root.current) {
+      root.current.rotation.y = txFrame.showcaseYaw;
+      root.current.position.y = -(txFrame.snapshot?.rootYOffset ?? 0); // slow exit descent
+    }
+    const vis = txFrame.snapshot?.modelVisible;
+    if (robot.current) robot.current.visible = vis?.robot ?? false;
+    if (plane.current) plane.current.visible = vis?.plane ?? false;
+    if (shared.current) shared.current.visible = vis?.shared ?? false;
   });
   const color = def.particleColor;
+  const clip = txFrame.snapshot?.activeClip ?? undefined;
+  const extraRef = txFrame.snapshot?.activeModelRef ?? undefined;
   return (
     <group ref={root}>
       {(def.parts ?? []).map((p) => (
         <PartMesh key={p.key} part={p} color={p.color ?? color} />
       ))}
-      {/* the real character model revealed at the finish */}
+      {/* model slots — robot defaults to the character's GLB; plane/shared from the timeline refs */}
       <group ref={robot} visible={false}>
-        {charModelId && <AnimatedGlbModel assetId={charModelId} noCull />}
+        {(def.robotModelRef ?? charModelId) && <AnimatedGlbModel assetId={(def.robotModelRef ?? charModelId)!} animation={clip} noCull />}
       </group>
+      <group ref={plane} visible={false}>
+        {def.planeModelRef && <AnimatedGlbModel assetId={def.planeModelRef} animation={clip} noCull />}
+      </group>
+      <group ref={shared} visible={false}>
+        {def.sharedModelRef && <AnimatedGlbModel assetId={def.sharedModelRef} animation={clip} noCull />}
+      </group>
+      {/* arbitrary extra model (model-swap stage with a modelRef — supports chained multi-model sequences) */}
+      {extraRef && <AnimatedGlbModel assetId={extraRef} animation={clip} noCull />}
     </group>
   );
 };
