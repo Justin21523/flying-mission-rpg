@@ -9,6 +9,7 @@ import { useMissionStore } from '../../stores/game/useMissionStore';
 import { useFlagStore } from '../../stores/flagStore';
 import { isMissionAvailable } from '../../game/missions/missionAvailability';
 import { isLocationUnlocked } from '../../game/game/regionGrouping';
+import { isMissionComplete } from '../../game/missions/completedMissions';
 import { evaluateCondition } from '../../game/evaluateCondition';
 import type { WorldLocation } from '../../types/game/world';
 import type { DialogueCondition } from '../../types/dialogue';
@@ -109,8 +110,8 @@ export const MissionControlScreen = () => {
                   className={`rounded-xl border p-3 ${featured ? 'border-amber-400/60 bg-amber-500/5' : 'border-slate-700 bg-slate-900/50'}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-bold text-slate-100">{m.name}</span>
-                    <span className={`${chip} border-slate-600 text-slate-300`}>{m.type}</span>
+                    <span className="text-sm font-bold text-slate-100">{m.name}{isMissionComplete(flags, m.id) ? ' ✓' : ''}</span>
+                    <span className={`${chip} ${isMissionComplete(flags, m.id) ? 'border-emerald-500/60 text-emerald-300' : 'border-slate-600 text-slate-300'}`}>{isMissionComplete(flags, m.id) ? 'done' : m.type}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-slate-400">
                     <span>📍 {loc?.name ?? m.locationId}</span>
