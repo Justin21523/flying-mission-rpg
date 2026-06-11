@@ -1,6 +1,7 @@
 import type { SourceConfidence } from '../sourceConfidence';
 import type { FlightDifficulty, WeatherKind } from './flight';
 import type { AbilityKind } from './character';
+import type { DestinationPartKind } from './destination';
 import type { DialogueCondition, DialogueEffect } from '../dialogue'; // reuse the POLI condition/effect engine
 
 // Child-friendly, non-combat mission archetypes (PDF Batch 7: carry an item / find a lost thing /
@@ -68,6 +69,29 @@ export interface MissionDefinition {
   nextMissionIds?: string[]; // missions this one leads into (shown in the flow preview; unlocked via done flag)
   rewards?: MissionReward[]; // structured rewards applied on completion
   completionEffects?: DialogueEffect[]; // advanced: raw effects fired once when the mission completes
+}
+
+// ── Batch 10: rule-based generator templates (generation RULES, not authored missions) ──
+export interface MissionObjectiveRecipe {
+  kind: MissionObjectiveKind;
+  partKind?: DestinationPartKind; // destination-part kind this objective binds to (carry_item / lost_item / repair_device …)
+  needsDropoff?: boolean; // carry: also bind a dropoff_zone part
+  needsMiniGame?: boolean; // activate/repair: require a valid mini-game id
+  countRange: [number, number]; // inclusive targetCount range
+  optional?: boolean;
+}
+
+export interface MissionTemplate {
+  id: string;
+  type: MissionType;
+  weight: number; // selection weight among templates of the chosen type pool
+  namePatterns: string[]; // "{place} Parcel Run" — {place} = destination name
+  summaryPatterns: string[];
+  difficultyWeights: Partial<Record<FlightDifficulty, number>>;
+  weatherWeights: Partial<Record<WeatherKind, number>>;
+  objectives: MissionObjectiveRecipe[];
+  coinsBase: number; // base reward coins (scaled by difficulty)
+  extraReward?: { type: MissionRewardType; amount?: number; targetId?: string }; // optional bonus reward row
 }
 
 export type MissionStatus = 'pending' | 'active' | 'complete' | 'failed';

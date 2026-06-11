@@ -1,9 +1,9 @@
 import type { MissionDefinition } from '../../types/game/mission';
 import type { CharacterDefinition } from '../../types/game/character';
 
-// Pure helpers for Mission Control (kept out of components so they're unit-testable). The Batch 10
-// rule-based generator will replace pickTestMissionId with a real pipeline; for now it just samples the
-// existing authored pool.
+// Pure helpers for Mission Control (kept out of components so they're unit-testable). Procedural missions now
+// come from the Batch 10 rule-based generator (game/missions/missionGenerator.ts, surfaced via the 🎲 Mission
+// Generator tab + Mission Control's "Generate dispatches"); pickTestMissionId remains the quick dev sampler.
 export function pickTestMissionId(missions: MissionDefinition[], excludeId?: string): string | null {
   if (missions.length === 0) return null;
   const pool = excludeId ? missions.filter((m) => m.id !== excludeId) : missions;

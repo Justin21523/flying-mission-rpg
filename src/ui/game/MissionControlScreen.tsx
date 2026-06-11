@@ -14,6 +14,9 @@ import { evaluateCondition } from '../../game/evaluateCondition';
 import type { WorldLocation } from '../../types/game/world';
 import type { DialogueCondition } from '../../types/dialogue';
 import { pickTestMissionId } from '../../game/game/missionSelection';
+import { generateMissions } from '../../game/missions/missionGenerator';
+import { collectMissionPools } from '../../game/missions/missionPools';
+import { MISSION_TEMPLATES } from '../../data/game/missionTemplates';
 import { playUiSound } from '../../game/audio/uiSound';
 
 // MISSION_CONTROL — hi-tech console: world map (left) + mission notifications (right). Selecting a
@@ -60,6 +63,18 @@ export const MissionControlScreen = () => {
     playUiSound('select');
   };
 
+  // Procedurally generate today's dispatches (rule-based generator, daily fixed seed → reproducible per day),
+  // adding the validated missions into the editable store so they appear in the notification list.
+  const generateDispatches = () => {
+    const seed = `daily-${new Date().toISOString().slice(0, 10)}`;
+    const { missions: generated } = generateMissions({ seed, count: 3 }, MISSION_TEMPLATES, collectMissionPools());
+    const store = useEditorMissionStore.getState();
+    for (const m of generated) store.upsert(m);
+    const first = generated[0];
+    if (first) { setFeaturedId(first.id); setActiveLocationId(first.locationId); }
+    playUiSound('select');
+  };
+
   // Enter accepts the featured mission (keyboard flow). Calls the store directly to avoid a closure dep.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -94,9 +109,10 @@ export const MissionControlScreen = () => {
               Mission Notifications
               {activeLocationId && <span className="text-slate-400"> · {getEditorLocation(activeLocationId)?.name ?? ''}</span>}
             </h2>
-            <Btn tone="ghost" onClick={regenerate}>
-              🎲 Regenerate test mission
-            </Btn>
+            <div className="flex gap-1">
+              <Btn tone="primary" onClick={generateDispatches}>🎲 Generate dispatches</Btn>
+              <Btn tone="ghost" onClick={regenerate}>🎲 Test</Btn>
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
