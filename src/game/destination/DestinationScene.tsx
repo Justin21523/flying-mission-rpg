@@ -6,6 +6,7 @@ import { EditModeAmbience } from '../edit/EditModeAmbience';
 import { WorldSkyAmbience } from '../flight/world/WorldSkyAmbience';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
+import { PhaseCameraGizmo } from '../camera/PhaseCameraGizmo';
 import { EditableGround } from '../world/EditableGround';
 import { DestinationLayoutLayer } from './DestinationLayoutLayer';
 import { DestinationNpcLayer } from './DestinationNpcLayer';
@@ -59,6 +60,7 @@ export const DestinationScene = () => {
 
       <FollowCamera />
       {editMode && <SceneEditorGizmo />}
+      {editMode && <PhaseCameraGizmo />}
     </>
   );
 };

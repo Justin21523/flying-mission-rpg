@@ -37,6 +37,7 @@ export const WorldFlightScene = () => {
   const layers = worldFlightSceneLayers(editMode);
   const tuning = useEditorFlightStore((s) => s.tuning);
   const preview = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
+  const previewFlightCam = useFlightPreviewStore((s) => (s.playing || s.u > 0.001) && s.cameraMode === 'flight');
 
   useEffect(() => {
     return () => {
@@ -80,7 +81,9 @@ export const WorldFlightScene = () => {
       {layers.editableCraft && !preview && <WorldFlightCraftEditable />}
       {editMode && <FlightPreviewController pathId={getActivePathId()} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} />}
 
-      {editMode ? <FollowCamera /> : <FlightCamera />}
+      {/* EDIT: orbit camera, unless previewing with Camera = Flight (shows the authored worldCam* framing +
+          craft scale live). PLAY: the flight camera. */}
+      {!editMode ? <FlightCamera /> : previewFlightCam ? <FlightCamera /> : <FollowCamera />}
       {layers.sceneGizmo && <SceneEditorGizmo onCommit={bakeCraft} />}
     </>
   );

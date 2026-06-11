@@ -32,6 +32,7 @@ export const FlightScene = () => {
   const phase = useGameStore((s) => s.phase);
   const tuning = useEditorFlightStore((s) => s.tuning);
   const preview = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
+  const previewFlightCam = useFlightPreviewStore((s) => (s.playing || s.u > 0.001) && s.cameraMode === 'flight');
 
   const bakeCraft = useCallback((key: string) => {
     if (key !== BASE_CRAFT_KEY) return;
@@ -58,7 +59,9 @@ export const FlightScene = () => {
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
 
-      {editMode ? <FollowCamera /> : <FlightCamera />}
+      {/* EDIT: orbit camera, unless previewing with Camera = Flight (then show the real flight framing so the
+          authored cam distance/height + craft scale are visible live). PLAY: always the flight camera. */}
+      {!editMode ? <FlightCamera /> : previewFlightCam ? <FlightCamera /> : <FollowCamera />}
       {editMode && <SceneEditorGizmo onCommit={bakeCraft} />}
 
       {!editMode && (

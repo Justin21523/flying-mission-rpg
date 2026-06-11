@@ -3,17 +3,23 @@ import { create } from 'zustand';
 // Edit-Mode flight TIMELINE preview (🛩 Flight → Flight Preview). The flight "timeline" is route progress
 // u∈[0,1]; FlightPreviewController drives a preview craft along the active scene's path from this store.
 // Edit-only — never touches the play controllers or the FSM. Mirrors the transformation preview pattern.
+// 'flight' makes the preview drive the real third-person FlightCamera (so the authored worldCam*/flyAroundCam*
+// distance/height + craft scale are visible LIVE while you tune them); 'orbit' keeps the free user-orbit view.
+export type FlightPreviewCameraMode = 'flight' | 'orbit';
+
 interface FlightPreviewState {
   u: number; // 0..1 along the path
   playing: boolean;
   speed: number; // u per second (≈ 1/seconds end-to-end)
   follow: boolean; // orbit target rides the craft (still user-rotatable)
+  cameraMode: FlightPreviewCameraMode;
   play: () => void;
   pause: () => void;
   stop: () => void;
   scrub: (u: number) => void;
   setSpeed: (s: number) => void;
   toggleFollow: () => void;
+  setCameraMode: (m: FlightPreviewCameraMode) => void;
   advance: (dt: number) => void;
 }
 
@@ -24,12 +30,14 @@ export const useFlightPreviewStore = create<FlightPreviewState>((set) => ({
   playing: false,
   speed: 0.12,
   follow: true,
+  cameraMode: 'flight',
   play: () => set({ playing: true }),
   pause: () => set({ playing: false }),
   stop: () => set({ playing: false, u: 0 }),
   scrub: (u) => set({ u: clamp01(u), playing: false }),
   setSpeed: (speed) => set({ speed: Math.max(0.01, speed) }),
   toggleFollow: () => set((s) => ({ follow: !s.follow })),
+  setCameraMode: (cameraMode) => set({ cameraMode }),
   advance: (dt) =>
     set((s) => {
       if (!s.playing) return s;

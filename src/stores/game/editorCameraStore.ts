@@ -20,16 +20,20 @@ function load(): CamMap {
 
 interface EditorCameraState {
   byPhase: CamMap;
+  editingPhase: GamePhase | null; // the phase whose orbit-gizmo camera proxy is shown (🎮 in the Camera tab)
   setPhase: (phase: GamePhase, cfg: PhaseCameraConfig) => void;
   clearPhase: (phase: GamePhase) => void;
+  setEditingPhase: (phase: GamePhase | null) => void;
   importState: (data: { byPhase?: CamMap }) => void;
   reset: () => void;
 }
 
 export const useEditorCameraStore = create<EditorCameraState>((set, get) => ({
   byPhase: load(),
+  editingPhase: null,
   setPhase: (phase, cfg) => { const byPhase = { ...get().byPhase, [phase]: cfg }; set({ byPhase }); persist(byPhase); },
   clearPhase: (phase) => { const byPhase = { ...get().byPhase }; delete byPhase[phase]; set({ byPhase }); persist(byPhase); },
+  setEditingPhase: (editingPhase) => set({ editingPhase }), // transient (not persisted/exported)
   importState: (data) => { const byPhase = (data.byPhase && typeof data.byPhase === 'object') ? data.byPhase : {}; set({ byPhase }); persist(byPhase); },
   reset: () => { set({ byPhase: {} }); persist({}); },
 }));

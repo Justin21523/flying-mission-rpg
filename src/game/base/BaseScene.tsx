@@ -6,6 +6,7 @@ import { DynamicAmbience } from '../world/DynamicAmbience';
 import { EditModeAmbience } from '../edit/EditModeAmbience';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
+import { PhaseCameraGizmo } from '../camera/PhaseCameraGizmo';
 import { EditableGround } from '../world/EditableGround';
 import { BaseLayoutLayer } from './BaseLayoutLayer';
 import { BaseVehicle } from './BaseVehicle';
@@ -104,6 +105,7 @@ export const BaseScene = () => {
           shaft during/after the descent. Runs after FollowCamera so it clamps its result. */}
       {!editMode && <BaseCameraClamp />}
       {editMode && <SceneEditorGizmo />}
+      {editMode && <PhaseCameraGizmo />}
     </>
   );
 };

@@ -7,6 +7,7 @@ import { getPath } from '../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../path/pathCurve';
 import { sampleNodeParams } from './pathNodeParams';
 import { useFlightPreviewStore, flightPreviewHandle } from '../../stores/game/flightPreviewStore';
+import { flightHandle } from './flightHandle';
 import { focusCameraOn } from '../edit/cameraFocus';
 import { characterModelForForm } from '../destination/characterModel';
 import type { AnimState } from '../anim/animRunner';
@@ -46,6 +47,12 @@ export const FlightPreviewController = ({ pathId, craftScale, craftYaw }: { path
     flightPreviewHandle.u = u;
     flightPreviewHandle.altitude = _pos.y;
     flightPreviewHandle.pathSpeed = (cc.length || 0) * useFlightPreviewStore.getState().speed;
+    // Publish the previewed craft transform so FlightCamera (Camera = Flight) frames it with the authored
+    // worldCam*/flyAroundCam* distance/height. speedNorm = 0 keeps the framing at the calm base (no FOV/
+    // pullback ramp) so the authored distance is shown directly while tuning.
+    flightHandle.pos.copy(c.position);
+    flightHandle.quat.copy(c.quaternion);
+    flightHandle.speedNorm = 0;
     if (useFlightPreviewStore.getState().follow) focusCameraOn(_pos.x, _pos.y, _pos.z);
   });
 

@@ -18,6 +18,7 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
   const paths = useEditorPathStore((s) => s.paths);
   const path = paths.find((p) => p.id === pathId);
   const selectedKey = useWorldSelectStore((s) => s.selectedKey);
+  const extraKeys = useWorldSelectStore((s) => s.extraKeys);
   const store = useEditorPathStore.getState();
 
   // Seek the flight preview to a node's progress (u ≈ index/(count-1)) so an edit there is visible at that point.
@@ -60,8 +61,13 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
         <NumRow label="Lane width" value={path.laneWidth} step={0.5} min={0.1} onChange={(v) => store.updatePath(path.id, { laneWidth: v })} />
       </div>
       <div className="space-y-1">
-        {nodes.map((node, index) => (
-          <div key={node.id} className={`rounded border p-1.5 ${selectedKey === `${path.id}#node#${node.id}` ? 'border-violet-500/70 bg-violet-950/30' : 'border-slate-800 bg-slate-900/55'}`}>
+        {nodes.map((node, index) => {
+          const key = `${path.id}#node#${node.id}`;
+          const isPrimary = selectedKey === key;
+          const isExtra = extraKeys.includes(key);
+          const rowCls = isPrimary ? 'border-violet-500/70 bg-violet-950/30' : isExtra ? 'border-cyan-500/60 bg-cyan-950/25' : 'border-slate-800 bg-slate-900/55';
+          return (
+          <div key={node.id} className={`rounded border p-1.5 ${rowCls}`}>
             <div className="mb-1 flex items-center gap-1">
               <span className="w-6 text-center text-[11px] font-bold text-sky-200">{index + 1}</span>
               <button onClick={() => selectNode(path.id, node)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-sky-200 hover:bg-slate-700">Focus</button>
@@ -100,8 +106,10 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
               </select>
             </Field>
           </div>
-        ))}
+          );
+        })}
       </div>
+      <p className="text-[10px] text-slate-500">Tip: Shift/Ctrl-click nodes in the 3D view to multi-select (cyan), then drag one to move them all together.</p>
     </div>
   );
 };
