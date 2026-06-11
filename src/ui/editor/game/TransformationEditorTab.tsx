@@ -479,6 +479,7 @@ export const TransformationEditorTab = () => {
   const update = useEditorTransformationStore((s) => s.update);
   const duplicate = useEditorTransformationStore((s) => s.duplicate);
   const remove = useEditorTransformationStore((s) => s.remove);
+  const reorder = useEditorTransformationStore((s) => s.reorder);
   const setPreview = useTransformationPreviewStore((s) => s.setTimeline);
   const [selId, setSelId] = useState<string | null>(null);
   const [sub, setSub] = useState<Sub>('timeline');
@@ -494,9 +495,12 @@ export const TransformationEditorTab = () => {
         <button onClick={() => { const it = makeNew(); upsert(it); select(it.id); }} className="rounded bg-emerald-700/30 px-2 py-1 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Add</button>
       </div>
       <div className="flex gap-3">
-        <div className="max-h-[60vh] w-36 shrink-0 space-y-1 overflow-y-auto pr-1">
-          {items.map((t) => (
-            <button key={t.id} onClick={() => select(t.id)} className={`block w-full truncate rounded px-2 py-1 text-left ${t.id === def?.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.name}</button>
+        <div className="max-h-[60vh] w-48 shrink-0 space-y-1 overflow-y-auto pr-1">
+          {items.map((t, i) => (
+            <div key={t.id} className={`flex items-center gap-1 rounded ${t.id === def?.id ? 'bg-violet-600/20' : ''}`}>
+              <button onClick={() => select(t.id)} className={`min-w-0 flex-1 truncate rounded px-2 py-1 text-left ${t.id === def?.id ? 'text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.name}</button>
+              <MoveButtons index={i} count={items.length} onMove={(d) => reorder(t.id, d)} />
+            </div>
           ))}
           {items.length === 0 && <div className="text-slate-500">None yet.</div>}
         </div>

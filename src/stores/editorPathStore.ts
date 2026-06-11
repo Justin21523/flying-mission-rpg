@@ -16,6 +16,7 @@ interface EditorPathState {
   updateNode: (pathId: string, nodeId: string, patch: Partial<PathNodeData>) => void;
   addNode: (pathId: string) => void;
   removeNode: (pathId: string, nodeId: string) => void;
+  reorderNode: (pathId: string, nodeId: string, dir: -1 | 1) => void;
   removePath: (id: string) => void;
   mergeMissingFromSeed: () => void;
   importState: (data: { paths?: PathDefinition[] }) => void;
@@ -97,6 +98,21 @@ export const useEditorPathStore = create<EditorPathState>((set, get) => {
             entryNodeIds: p.entryNodeIds.filter((x) => x !== nodeId),
             exitNodeIds: p.exitNodeIds.filter((x) => x !== nodeId),
           };
+        }),
+      });
+      save();
+    },
+    reorderNode: (pathId, nodeId, dir) => {
+      set({
+        paths: get().paths.map((p) => {
+          if (p.id !== pathId) return p;
+          const nodes = p.nodes ?? [];
+          const i = nodes.findIndex((n) => n.id === nodeId);
+          const j = i + dir;
+          if (i < 0 || j < 0 || j >= nodes.length) return p;
+          const next = nodes.slice();
+          [next[i], next[j]] = [next[j], next[i]];
+          return { ...p, nodes: next, nodeIds: next.map((n) => n.id) };
         }),
       });
       save();

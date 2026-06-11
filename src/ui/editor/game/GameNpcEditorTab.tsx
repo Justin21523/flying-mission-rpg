@@ -70,6 +70,7 @@ export const GameNpcEditorTab = () => {
       store={useEditorGameNpcStore}
       makeNew={makeNew}
       getLabel={(n) => n.name}
+      getFocus={(n) => (n.position ? { position: n.position, objKey: npcPlacementKey(n.id) } : undefined)}
       renderFields={(n, update) => (
         <>
           <TextRow label="Codename" value={n.codename} onChange={(v) => update({ codename: v })} />

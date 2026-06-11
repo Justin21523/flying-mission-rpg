@@ -3,7 +3,7 @@ import { useWorldSelectStore } from '../../../../stores/worldSelectStore';
 import { focusCameraOn } from '../../../../game/edit/cameraFocus';
 import type { PathCurveType, PathDirectionMode, PathNodeData } from '../../../../types/path';
 import { TextRow, NumRow, SelectRow } from '../CollectionEditor';
-import { Field, inp, lbl } from '../../editorShared';
+import { Field, inp, lbl, MoveButtons } from '../../editorShared';
 
 // Reusable path-node editor for ANY editorPathStore path (the world route path AND the base fly-around loop).
 // The 3D node handles (PathDebugLayer) drag → updatePathNode live; this mirrors them (position + rich per-node
@@ -57,6 +57,7 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
             <div className="mb-1 flex items-center gap-1">
               <span className="w-6 text-center text-[11px] font-bold text-sky-200">{index + 1}</span>
               <button onClick={() => selectNode(path.id, node)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-sky-200 hover:bg-slate-700">Focus</button>
+              <MoveButtons index={index} count={nodes.length} onMove={(d) => store.reorderNode(path.id, node.id, d)} />
               <button onClick={() => store.removeNode(path.id, node.id)} className="ml-auto rounded bg-rose-700/20 px-2 py-0.5 text-[10px] text-rose-300 hover:bg-rose-700/30">Remove</button>
             </div>
             <Field label="Position (x / y / z) — live with the 3D node handle">

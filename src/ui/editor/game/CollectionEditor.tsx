@@ -3,16 +3,18 @@ import type { ReactNode } from 'react';
 import type { EditorCollectionStore } from '../../../stores/game/createEditorCollection';
 import type { SourceConfidence } from '../../../types/sourceConfidence';
 import { SOURCE_CONFIDENCES } from '../../../types/sourceConfidence';
-import { Field, inp, lbl } from '../editorShared';
+import { Field, inp, lbl, FocusButton, MoveButtons } from '../editorShared';
 
 // Reusable Edit-Mode editor for any `{ id }` collection store: list (left) + add / duplicate / delete +
 // an entity-specific field form (right, via renderFields). Each game data domain becomes a ~15-line tab.
+// Every list row has ▲▼ reorder; rows for placed objects can show a 🎯 Focus button via getFocus.
 interface CollectionEditorProps<T extends { id: string }> {
   title: string;
   store: EditorCollectionStore<T>;
   makeNew: () => T;
   getLabel: (item: T) => string;
   renderFields: (item: T, update: (patch: Partial<T>) => void) => ReactNode;
+  getFocus?: (item: T) => { position: [number, number, number]; objKey?: string } | undefined;
 }
 
 export function CollectionEditor<T extends { id: string }>({
@@ -21,12 +23,14 @@ export function CollectionEditor<T extends { id: string }>({
   makeNew,
   getLabel,
   renderFields,
+  getFocus,
 }: CollectionEditorProps<T>) {
   const items = store((s) => s.items);
   const upsert = store((s) => s.upsert);
   const update = store((s) => s.update);
   const duplicate = store((s) => s.duplicate);
   const remove = store((s) => s.remove);
+  const reorder = store((s) => s.reorder);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selected = items.find((i) => i.id === selectedId) ?? items[0] ?? null;
@@ -51,18 +55,24 @@ export function CollectionEditor<T extends { id: string }>({
       </div>
 
       <div className="flex gap-3">
-        <div className="max-h-[60vh] w-40 shrink-0 space-y-1 overflow-y-auto pr-1">
-          {items.map((it) => (
-            <button
-              key={it.id}
-              onClick={() => setSelectedId(it.id)}
-              className={`block w-full truncate rounded px-2 py-1 text-left ${
-                it.id === activeId ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              {getLabel(it)}
-            </button>
-          ))}
+        <div className="max-h-[60vh] w-48 shrink-0 space-y-1 overflow-y-auto pr-1">
+          {items.map((it, i) => {
+            const focus = getFocus?.(it);
+            return (
+              <div key={it.id} className={`flex items-center gap-1 rounded ${it.id === activeId ? 'bg-violet-600/20' : ''}`}>
+                <button
+                  onClick={() => setSelectedId(it.id)}
+                  className={`min-w-0 flex-1 truncate rounded px-2 py-1 text-left ${
+                    it.id === activeId ? 'text-violet-100' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  {getLabel(it)}
+                </button>
+                {focus && <FocusButton position={focus.position} objKey={focus.objKey} />}
+                <MoveButtons index={i} count={items.length} onMove={(d) => reorder(it.id, d)} />
+              </div>
+            );
+          })}
           {items.length === 0 && <div className="text-slate-500">None yet.</div>}
         </div>
 

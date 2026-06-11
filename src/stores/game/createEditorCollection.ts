@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { StoreApi, UseBoundStore } from 'zustand';
+import { moveItem } from '../../game/editor/arrayMove';
 
 // Shared Edit-Mode authoring store for any `{ id }` collection. Mirrors the inherited editor paradigm
 // (localStorage-backed, tolerant load, importState / reset / mergeMissingFromSeed) so each new data
@@ -12,6 +13,7 @@ export interface EditorCollectionState<T extends { id: string }> {
   update: (id: string, patch: Partial<T>) => void;
   duplicate: (id: string) => string | null;
   remove: (id: string) => void;
+  reorder: (id: string, dir: -1 | 1) => void; // move an item up/down in the list (order is authored)
   importState: (data: { items?: T[]; seeded?: boolean }) => void;
   mergeMissingFromSeed: () => void;
   reset: () => void;
@@ -80,6 +82,16 @@ export function createEditorCollection<T extends { id: string }>(
 
     remove: (id) => {
       const items = get().items.filter((i) => i.id !== id);
+      set({ items });
+      persist(items, get().seeded);
+    },
+
+    reorder: (id, dir) => {
+      const cur = get().items;
+      const i = cur.findIndex((it) => it.id === id);
+      if (i < 0) return;
+      const items = moveItem(cur, i, dir);
+      if (items === cur) return; // bounds no-op
       set({ items });
       persist(items, get().seeded);
     },

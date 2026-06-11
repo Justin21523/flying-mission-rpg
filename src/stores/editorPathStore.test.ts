@@ -20,6 +20,19 @@ describe('editorPathStore node editing', () => {
     expect(getPath('tp')?.nodes?.find((n) => n.id === 'n1')?.position).toEqual([7, 3, -2]);
   });
 
+  it('reorderNode swaps node order + keeps nodeIds in sync', () => {
+    const p = path();
+    p.nodes!.push({ id: 'n2', position: [8, 0, 0], tangentMode: 'automatic', speedMultiplier: 1, width: 2 });
+    p.nodeIds.push('n2');
+    useEditorPathStore.getState().importState({ paths: [p] });
+    useEditorPathStore.getState().reorderNode('tp', 'n0', 1);
+    expect(getPath('tp')?.nodes?.map((n) => n.id)).toEqual(['n1', 'n0', 'n2']);
+    expect(getPath('tp')?.nodeIds).toEqual(['n1', 'n0', 'n2']);
+    // bounds no-op
+    useEditorPathStore.getState().reorderNode('tp', 'n1', -1);
+    expect(getPath('tp')?.nodes?.map((n) => n.id)).toEqual(['n1', 'n0', 'n2']);
+  });
+
   it('updateNode patches arbitrary node fields', () => {
     useEditorPathStore.getState().importState({ paths: [path()] });
     useEditorPathStore.getState().updateNode('tp', 'n0', { width: 5, speedMultiplier: 2 });

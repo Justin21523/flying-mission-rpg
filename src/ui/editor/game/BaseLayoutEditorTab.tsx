@@ -4,7 +4,7 @@ import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { BASE_PART_KINDS, BASE_COLLISIONS } from '../../../types/game/base';
 import type { BasePart } from '../../../types/game/base';
 import { basePartKey } from '../../../game/base/basePartKey';
-import { Field, inp, lbl, FocusButton } from '../editorShared';
+import { Field, inp, lbl, FocusButton, MoveButtons } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
 
 // 🏗 Base — edit the home-base layout, synced with the 3D gizmo: selecting a row selects the part in 3D
@@ -33,6 +33,7 @@ export const BaseLayoutEditorTab = () => {
   const update = useEditorBaseLayoutStore((s) => s.update);
   const duplicate = useEditorBaseLayoutStore((s) => s.duplicate);
   const remove = useEditorBaseLayoutStore((s) => s.remove);
+  const reorder = useEditorBaseLayoutStore((s) => s.reorder);
   const selectedKey = useSceneEditStore((s) => s.selectedKey);
   const overrides = useSceneEditStore((s) => s.overrides); // live gizmo transforms
 
@@ -79,15 +80,15 @@ export const BaseLayoutEditorTab = () => {
       </div>
 
       <div className="flex gap-3">
-        <div className="max-h-[60vh] w-40 shrink-0 space-y-1 overflow-y-auto pr-1">
-          {parts.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => selectPart(p.id)}
-              className={`block w-full truncate rounded px-2 py-1 text-left ${p.id === selId ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}
-            >
-              {p.label} · {p.kind}
-            </button>
+        <div className="max-h-[60vh] w-52 shrink-0 space-y-1 overflow-y-auto pr-1">
+          {parts.map((p, i) => (
+            <div key={p.id} className={`flex items-center gap-1 rounded ${p.id === selId ? 'bg-violet-600/20' : ''}`}>
+              <button onClick={() => selectPart(p.id)} className={`min-w-0 flex-1 truncate rounded px-2 py-1 text-left ${p.id === selId ? 'text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>
+                {p.label} · {p.kind}
+              </button>
+              <FocusButton position={livePos(p)} objKey={basePartKey(p.id)} />
+              <MoveButtons index={i} count={parts.length} onMove={(d) => reorder(p.id, d)} />
+            </div>
           ))}
           {parts.length === 0 && <div className="text-slate-500">None yet.</div>}
         </div>

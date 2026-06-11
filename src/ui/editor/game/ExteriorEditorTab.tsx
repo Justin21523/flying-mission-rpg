@@ -4,7 +4,7 @@ import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { EXTERIOR_KINDS } from '../../../types/game/exterior';
 import type { ExteriorPart, ExteriorCollision } from '../../../types/game/exterior';
 import { exteriorPartKey } from '../../../game/flight/exteriorPartKey';
-import { Field, inp, lbl, Check, FocusButton } from '../editorShared';
+import { Field, inp, lbl, Check, FocusButton, MoveButtons } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
 
 const COLLISIONS: ExteriorCollision[] = ['none', 'cuboid', 'hull', 'trimesh'];
@@ -33,6 +33,7 @@ export const ExteriorEditorTab = () => {
   const update = useEditorExteriorStore((s) => s.update);
   const duplicate = useEditorExteriorStore((s) => s.duplicate);
   const remove = useEditorExteriorStore((s) => s.remove);
+  const reorder = useEditorExteriorStore((s) => s.reorder);
   const selectedKey = useSceneEditStore((s) => s.selectedKey);
   const overrides = useSceneEditStore((s) => s.overrides);
 
@@ -63,11 +64,15 @@ export const ExteriorEditorTab = () => {
         <button onClick={() => { const it = makeNew(); upsert(it); selectPart(it.id); }} className="rounded bg-emerald-700/30 px-2 py-1 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Add</button>
       </div>
       <div className="flex gap-3">
-        <div className="max-h-[60vh] w-40 shrink-0 space-y-1 overflow-y-auto pr-1">
-          {parts.map((p) => (
-            <button key={p.id} onClick={() => selectPart(p.id)} className={`block w-full truncate rounded px-2 py-1 text-left ${p.id === selId ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>
-              {p.label} · {p.kind}
-            </button>
+        <div className="max-h-[60vh] w-52 shrink-0 space-y-1 overflow-y-auto pr-1">
+          {parts.map((p, i) => (
+            <div key={p.id} className={`flex items-center gap-1 rounded ${p.id === selId ? 'bg-violet-600/20' : ''}`}>
+              <button onClick={() => selectPart(p.id)} className={`min-w-0 flex-1 truncate rounded px-2 py-1 text-left ${p.id === selId ? 'text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>
+                {p.label} · {p.kind}
+              </button>
+              <FocusButton position={livePos(p)} objKey={exteriorPartKey(p.id)} />
+              <MoveButtons index={i} count={parts.length} onMove={(d) => reorder(p.id, d)} />
+            </div>
           ))}
           {parts.length === 0 && <div className="text-slate-500">None yet.</div>}
         </div>
