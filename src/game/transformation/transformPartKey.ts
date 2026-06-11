@@ -13,3 +13,5 @@ export const transformStageModelKey = (timelineId: string, stageId: string) => o
 export const transformEffectKey = (timelineId: string, fxId: string) => objKey('transform', 'structure', `${timelineId}__effect__${fxId}`);
 export const transformStageMoveKey = (timelineId: string, stageId: string) => objKey('transform', 'structure', `${timelineId}__stage_move__${stageId}`);
 export const transformCameraShotKey = (timelineId: string, shotId: string) => objKey('transform', 'structure', `${timelineId}__camera_shot__${shotId}`);
+export const transformStagePartMoveKey = (timelineId: string, stageId: string) => objKey('transform', 'structure', `${timelineId}__part_move__${stageId}`);
+export const transformCameraLookKey = (timelineId: string, shotId: string) => objKey('transform', 'structure', `${timelineId}__camera_look__${shotId}`);

@@ -1,5 +1,5 @@
 import { asScaleVec, type EditOverride, type Vec3 } from '../edit/sceneEditMerge';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey } from './transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
 import { MODEL_SLOTS, type ModelSlot, type TransformationDefinition, type TransformationStage, type TransformationTransformOffset, type TransformationVec3 } from '../../types/game/transformation';
 
 // Pure transformation edit-merge helpers (no React / no R3F → unit-testable). Shared by TransformationStage
@@ -78,6 +78,10 @@ export function bakeOverrideToDef(def: TransformationDefinition, key: string, ov
       const o = liveOffset({ position: s.params.toPosition ?? [0, 0, 0], rotation: s.params.toRotation ?? [0, 0, 0], scale: s.params.toScale ?? 1 }, override);
       return { stages: def.stages.map((x) => (x.id === s.id ? { ...x, params: { ...x.params, toPosition: o.position, toRotation: o.rotation, toScale: o.scale } } : x)) };
     }
+    if (s.type === 'part-transform' && key === transformStagePartMoveKey(def.id, s.id)) {
+      const o = liveOffset({ position: s.params.toPosition ?? [0, 0, 0], rotation: s.params.toRotation ?? [0, 0, 0], scale: s.params.toScale ?? 1 }, override);
+      return { stages: def.stages.map((x) => (x.id === s.id ? { ...x, params: { ...x.params, toPosition: o.position, toRotation: o.rotation, toScale: o.scale } } : x)) };
+    }
   }
   for (const fx of def.effectTracks ?? []) {
     if (key === transformEffectKey(def.id, fx.id) && override.position) {
@@ -92,6 +96,9 @@ export function bakeOverrideToDef(def: TransformationDefinition, key: string, ov
           ? { ...c, distance: Math.round(Math.hypot(x, z) * 100) / 100, angle: Math.round(Math.atan2(x, z) * RAD2DEG * 100) / 100, height: Math.round(override.position![1] * 100) / 100 }
           : c)),
       };
+    }
+    if (key === transformCameraLookKey(def.id, sh.id) && override.position) {
+      return { cameraShots: def.cameraShots.map((c) => (c.id === sh.id ? { ...c, lookAtOffset: override.position } : c)) };
     }
   }
   return null;

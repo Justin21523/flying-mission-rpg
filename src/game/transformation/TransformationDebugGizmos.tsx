@@ -1,6 +1,6 @@
 import { Html } from '@react-three/drei';
 import { EditableObject } from '../edit/EditableObject';
-import { transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey } from './transformPartKey';
+import { transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
 import { cameraShotAnchor } from './transformationOverrides';
 import type { TransformationDefinition, TransformationTransformOffset } from '../../types/game/transformation';
 
@@ -64,6 +64,16 @@ export const TransformationDebugGizmos = ({ def }: { def: TransformationDefiniti
         offset={{ position: s.params.toPosition ?? [0, 0, 0], rotation: s.params.toRotation ?? [0, 0, 0], scale: s.params.toScale ?? 1 }}
       />
     ))}
+    {/* part-transform destinations — drag/rotate/scale where the part animates to. */}
+    {def.stages.filter((s) => s.type === 'part-transform').map((s) => (
+      <ModelAnchor
+        key={s.id}
+        objKey={transformStagePartMoveKey(def.id, s.id)}
+        label={`→ ${s.params.partKey ?? s.label ?? s.id}`}
+        color="#22d3ee"
+        offset={{ position: s.params.toPosition ?? [0, 0, 0], rotation: s.params.toRotation ?? [0, 0, 0], scale: s.params.toScale ?? 1 }}
+      />
+    ))}
     {/* effect-track spawn points. */}
     {(def.effectTracks ?? []).map((fx) => (
       <EditableObject key={fx.id} objKey={transformEffectKey(def.id, fx.id)} base={{ position: fx.spawnOffset ?? [0, 0, 0], rotation: [0, 0, 0], scale: 1 }}>
@@ -85,6 +95,18 @@ export const TransformationDebugGizmos = ({ def }: { def: TransformationDefiniti
             <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.6} />
           </mesh>
           <Label text={`cam ${sh.type}`} />
+        </group>
+      </EditableObject>
+    ))}
+    {/* camera-shot look-at targets — drag the point the camera aims at. */}
+    {(def.cameraShots ?? []).map((sh) => (
+      <EditableObject key={sh.id} objKey={transformCameraLookKey(def.id, sh.id)} base={{ position: sh.lookAtOffset ?? [0, 0.4, 0], rotation: [0, 0, 0], scale: 1 }}>
+        <group>
+          <mesh>
+            <sphereGeometry args={[0.12, 10, 10]} />
+            <meshStandardMaterial color="#c084fc" emissive="#c084fc" emissiveIntensity={0.5} />
+          </mesh>
+          <Label text={`look ${sh.type}`} />
         </group>
       </EditableObject>
     ))}

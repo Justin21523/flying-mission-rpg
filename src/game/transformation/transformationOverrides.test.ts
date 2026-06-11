@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mergeTransformationOverrides, bakeOverrideToDef, resolveStageClipModelId, composeModelScale, liveOffset } from './transformationOverrides';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformStageMoveKey, transformEffectKey, transformCameraShotKey } from './transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformStageMoveKey, transformEffectKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
 import type { EditOverride } from '../edit/sceneEditMerge';
 import type { TransformationDefinition } from '../../types/game/transformation';
 
@@ -86,6 +86,16 @@ describe('bakeOverrideToDef', () => {
     const d = def({ stages: [{ id: 'mv', type: 'model-move', startTime: 0, duration: 1, enabled: true, params: { modelSlot: 'robot' } }] });
     const patch = bakeOverrideToDef(d, transformStageMoveKey('xf1', 'mv'), { position: [0, 3, 0] });
     expect(patch?.stages?.find((s) => s.id === 'mv')?.params.toPosition).toEqual([0, 3, 0]);
+  });
+  it('bakes a part-transform destination override into toPosition', () => {
+    const d = def({ stages: [{ id: 'pt', type: 'part-transform', startTime: 0, duration: 1, enabled: true, params: { partKey: 'wing_left' } }] });
+    const patch = bakeOverrideToDef(d, transformStagePartMoveKey('xf1', 'pt'), { position: [2, 0, 0] });
+    expect(patch?.stages?.find((s) => s.id === 'pt')?.params.toPosition).toEqual([2, 0, 0]);
+  });
+  it('bakes a camera look-at override into lookAtOffset', () => {
+    const d = def({ cameraShots: [{ id: 'cs1', type: 'orbit', startTime: 0, duration: 1, distance: 5, height: 2, angle: 0, fov: 50 }] });
+    const patch = bakeOverrideToDef(d, transformCameraLookKey('xf1', 'cs1'), { position: [0, 1.5, 0] });
+    expect(patch?.cameraShots?.[0].lookAtOffset).toEqual([0, 1.5, 0]);
   });
   it('bakes an effect override into spawnOffset', () => {
     const d = def({ effectTracks: [{ id: 'fx1', type: 'energy-ring', startTime: 0, duration: 1 }] });
