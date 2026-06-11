@@ -2,6 +2,7 @@ import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
 import type { FlightTuning } from '../../../types/game/flightControl';
 import { Field, inp, lbl } from '../editorShared';
 import { PathNodesEditor } from './worldTools/PathNodesEditor';
+import { FlightPreviewPanel } from './FlightPreviewPanel';
 import { FLIGHT_PATH_ID } from '../../../data/game/flightPath';
 
 // 🛩 Flight — live-editable flight handling. Takes effect immediately so the feel can be tuned without
@@ -108,6 +109,8 @@ export const FlightEditorTab = () => {
         </div>
       </Field>
       <p className="text-[10px] text-slate-500">Live. Character flightSpeed/agility scale speed/turn on top of these. The craft is selectable in WORLD/BASE flight Edit Mode (gizmo → facing/scale/offset).</p>
+
+      <FlightPreviewPanel />
 
       <div className={lbl}>Base fly-around loop — path nodes</div>
       <p className="text-[10px] text-slate-500">Drag the nodes in 3D (BASE_FLY_AROUND edit) — per-node Speed× / Bank° shape the loop. The world route nodes live in 🛫 Aero World.</p>

@@ -367,8 +367,9 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
 
 const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const add = () => update({ stages: [...def.stages, { id: `s_${nanoid(4)}`, type: 'part-transform', startTime: 0, duration: 0.5, enabled: true, params: {} }] });
-  const patch = (id: string, p: Partial<TransformationStage>) => update({ stages: def.stages.map((s) => (s.id === id ? { ...s, ...p } : s)) });
-  const patchParams = (id: string, pp: Partial<TransformationStage['params']>) => update({ stages: def.stages.map((s) => (s.id === id ? { ...s, params: { ...s.params, ...pp } } : s)) });
+  const seekStage = (id: string, override?: number) => { const st = def.stages.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(override ?? st?.startTime ?? 0); };
+  const patch = (id: string, p: Partial<TransformationStage>) => { update({ stages: def.stages.map((s) => (s.id === id ? { ...s, ...p } : s)) }); seekStage(id, p.startTime); };
+  const patchParams = (id: string, pp: Partial<TransformationStage['params']>) => { update({ stages: def.stages.map((s) => (s.id === id ? { ...s, params: { ...s.params, ...pp } } : s)) }); seekStage(id); };
   const remove = (id: string) => update({ stages: def.stages.filter((s) => s.id !== id) });
   return (
     <div>
@@ -401,7 +402,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
 
 const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const add = () => update({ cameraShots: [...def.cameraShots, { id: `c_${nanoid(4)}`, type: 'orbit', startTime: 0, duration: 1, distance: 6, height: 2, angle: 0, fov: 50 }] });
-  const patch = (id: string, p: Partial<TransformationCameraShot>) => update({ cameraShots: def.cameraShots.map((s) => (s.id === id ? { ...s, ...p } : s)) });
+  const patch = (id: string, p: Partial<TransformationCameraShot>) => { update({ cameraShots: def.cameraShots.map((s) => (s.id === id ? { ...s, ...p } : s)) }); const sh = def.cameraShots.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(p.startTime ?? sh?.startTime ?? 0); };
   const remove = (id: string) => update({ cameraShots: def.cameraShots.filter((s) => s.id !== id) });
   return (
     <div>
@@ -433,7 +434,7 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
 
 const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const add = () => update({ effectTracks: [...def.effectTracks, { id: `e_${nanoid(4)}`, type: 'glow-pulse', startTime: 0, duration: 1 }] });
-  const patch = (id: string, p: Partial<TransformationEffectTrack>) => update({ effectTracks: def.effectTracks.map((s) => (s.id === id ? { ...s, ...p } : s)) });
+  const patch = (id: string, p: Partial<TransformationEffectTrack>) => { update({ effectTracks: def.effectTracks.map((s) => (s.id === id ? { ...s, ...p } : s)) }); const fx = def.effectTracks.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(p.startTime ?? fx?.startTime ?? 0); };
   const remove = (id: string) => update({ effectTracks: def.effectTracks.filter((s) => s.id !== id) });
   return (
     <div>

@@ -4,6 +4,7 @@ import { focusCameraOn } from '../../../../game/edit/cameraFocus';
 import type { PathCurveType, PathDirectionMode, PathNodeData } from '../../../../types/path';
 import { TextRow, NumRow, SelectRow } from '../CollectionEditor';
 import { Field, inp, lbl, MoveButtons } from '../../editorShared';
+import { useFlightPreviewStore } from '../../../../stores/game/flightPreviewStore';
 
 // Reusable path-node editor for ANY editorPathStore path (the world route path AND the base fly-around loop).
 // The 3D node handles (PathDebugLayer) drag → updatePathNode live; this mirrors them (position + rich per-node
@@ -19,9 +20,16 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
   const selectedKey = useWorldSelectStore((s) => s.selectedKey);
   const store = useEditorPathStore.getState();
 
+  // Seek the flight preview to a node's progress (u ≈ index/(count-1)) so an edit there is visible at that point.
+  const seekToNode = (nodeId: string) => {
+    const ns = path?.nodes ?? [];
+    const i = ns.findIndex((n) => n.id === nodeId);
+    if (i >= 0 && ns.length > 1) useFlightPreviewStore.getState().scrub(i / (ns.length - 1));
+  };
   const selectNode = (pid: string, node: PathNodeData) => {
     useWorldSelectStore.getState().select(`${pid}#node#${node.id}`);
     focusCameraOn(node.position[0], node.position[1], node.position[2]);
+    seekToNode(node.id);
   };
 
   if (!path) {
@@ -34,7 +42,7 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
     );
   }
   const nodes = path.nodes ?? [];
-  const patchNode = (nodeId: string, patch: Partial<PathNodeData>) => store.updateNode(path.id, nodeId, patch);
+  const patchNode = (nodeId: string, patch: Partial<PathNodeData>) => { store.updateNode(path.id, nodeId, patch); seekToNode(nodeId); };
   return (
     <div className="space-y-1.5 rounded border border-sky-700/40 bg-sky-950/15 p-2">
       <div className="flex items-center justify-between gap-2">

@@ -17,6 +17,9 @@ import { FlightController } from './FlightController';
 import { FlightCamera } from './FlightCamera';
 import { BaseFlightCraftEditable } from './BaseFlightCraftEditable';
 import { BASE_CRAFT_KEY, baseLoopStartNode } from './baseCraftKey';
+import { FlightPreviewController } from './FlightPreviewController';
+import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
+import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 
 const RAD2DEG = 180 / Math.PI;
 
@@ -27,6 +30,8 @@ const RAD2DEG = 180 / Math.PI;
 export const FlightScene = () => {
   const editMode = useUiStore((s) => s.editMode);
   const phase = useGameStore((s) => s.phase);
+  const tuning = useEditorFlightStore((s) => s.tuning);
+  const preview = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
 
   const bakeCraft = useCallback((key: string) => {
     if (key !== BASE_CRAFT_KEY) return;
@@ -48,7 +53,8 @@ export const FlightScene = () => {
       <ExteriorLayer />
       {/* Flight route line + draggable node handles are EDIT-ONLY (no coloured guide line during play). */}
       {editMode && <PathDebugLayer areaId="exterior" />}
-      {editMode && <BaseFlightCraftEditable />}
+      {editMode && !preview && <BaseFlightCraftEditable />}
+      {editMode && <FlightPreviewController pathId={FLIGHT_PATH_ID} craftScale={tuning.flyAroundCraftScale} craftYaw={tuning.flyAroundCraftYawDeg} />}
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
 

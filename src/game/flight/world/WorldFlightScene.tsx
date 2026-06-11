@@ -18,6 +18,9 @@ import { FlightEventRenderer } from './FlightEventRenderer';
 import { WorldFlightDebugGizmos } from './WorldFlightDebugGizmos';
 import { WorldFlightCraftEditable } from './WorldFlightCraftEditable';
 import { WORLD_CRAFT_KEY, routeStartNode } from './worldCraftKey';
+import { FlightPreviewController } from '../FlightPreviewController';
+import { getActivePathId } from './worldRoute';
+import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
 import { worldFlightSceneLayers } from './worldFlightSceneLayers';
 import { clearActiveFlightEvents } from './flightEventRuntime';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
@@ -32,6 +35,8 @@ const RAD2DEG = 180 / Math.PI;
 export const WorldFlightScene = () => {
   const editMode = useUiStore((s) => s.editMode);
   const layers = worldFlightSceneLayers(editMode);
+  const tuning = useEditorFlightStore((s) => s.tuning);
+  const preview = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
 
   useEffect(() => {
     return () => {
@@ -72,7 +77,8 @@ export const WorldFlightScene = () => {
       )}
 
       {layers.segmentGizmos && <WorldFlightDebugGizmos />}
-      {layers.editableCraft && <WorldFlightCraftEditable />}
+      {layers.editableCraft && !preview && <WorldFlightCraftEditable />}
+      {editMode && <FlightPreviewController pathId={getActivePathId()} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} />}
 
       {editMode ? <FollowCamera /> : <FlightCamera />}
       {layers.sceneGizmo && <SceneEditorGizmo onCommit={bakeCraft} />}
