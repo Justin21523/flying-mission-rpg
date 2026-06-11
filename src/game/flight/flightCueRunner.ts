@@ -1,4 +1,5 @@
 import type { FlightCue } from '../../types/game/flightCue';
+import type { Easing } from '../../types/game/transformation';
 
 // Pure resolver for the flight cue timeline — given the cues (any order) and the current progress u∈[0,1],
 // returns the active camera frame (interpolated between camera cues), the active animation/action, the active
@@ -20,6 +21,17 @@ export const EVENT_WINDOW = 0.03; // ± progress around a cue where its event is
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+// Shared easing (same shapes as the transformation runner) for the camera move between cues.
+function ease(e: Easing | undefined, t: number): number {
+  const x = t < 0 ? 0 : t > 1 ? 1 : t;
+  switch (e) {
+    case 'easeIn': return x * x;
+    case 'easeOut': return 1 - (1 - x) * (1 - x);
+    case 'easeInOut': return x * x * (3 - 2 * x);
+    default: return x;
+  }
+}
+
 // last cue with atU ≤ u (cues assumed/forced sorted by atU)
 function lastBefore(cues: FlightCue[], u: number): FlightCue | null {
   let found: FlightCue | null = null;
@@ -37,7 +49,7 @@ function resolveCamera(cams: FlightCue[], u: number): ResolvedFlightCamera | nul
   for (const c of cams) { if (c.atU <= u) prev = c; else { next = c; break; } }
   if (prev && next) {
     const span = next.atU - prev.atU;
-    const t = span > 1e-6 ? (u - prev.atU) / span : 0;
+    const t = ease(next.easing, span > 1e-6 ? (u - prev.atU) / span : 0); // the destination cue's curve
     const a = frame(prev); const b = frame(next);
     return { distance: lerp(a.distance, b.distance, t), height: lerp(a.height, b.height, t), angleDeg: lerp(a.angleDeg, b.angleDeg, t), fov: lerp(a.fov, b.fov, t) };
   }

@@ -17,6 +17,15 @@ describe('resolveFlightCues', () => {
     expect(mid.fov).toBeCloseTo(60);
   });
 
+  it('eases the camera move into the destination cue', () => {
+    const cues = [
+      cue({ id: 'a', type: 'camera', atU: 0, camDistance: 0 }),
+      cue({ id: 'b', type: 'camera', atU: 1, camDistance: 10, easing: 'easeIn' }),
+    ];
+    // easeIn(0.5) = 0.25 → distance = 2.5 (vs 5 for linear)
+    expect(resolveFlightCues(cues, 0.5).camera!.distance).toBeCloseTo(2.5);
+  });
+
   it('holds the nearest camera before the first / after the last cue', () => {
     const cues = [cue({ id: 'a', type: 'camera', atU: 0.4, camDistance: 8 })];
     expect(resolveFlightCues(cues, 0).camera!.distance).toBe(8);

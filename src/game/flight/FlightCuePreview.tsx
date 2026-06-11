@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, Object3D, Quaternion, Vector3 } from 'three';
+import { Object3D, Quaternion, Vector3 } from 'three';
 import { Html } from '@react-three/drei';
 import { useEditorFlightCueStore, getFlightCues } from '../../stores/game/editorFlightCueStore';
 import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
@@ -89,16 +89,13 @@ const EventMarker = ({ pathId, cue, base }: { pathId: string; cue: FlightCue; ba
 
 export const FlightCuePreview = ({ pathId }: { pathId: string }) => {
   const cues = useEditorFlightCueStore((s) => s.byPath[pathId]);
-  const bg = useRef(new Color());
-  const prevBg = useRef<Color | null | undefined>(undefined);
 
-  // Restore the original scene background on unmount (we may override it for environment cues).
-  useEffect(() => () => { flightCueHandle.camActive = false; }, []);
+  useEffect(() => () => { flightCueHandle.camActive = false; useFlightPreviewStore.getState().setActiveEnv(null); }, []);
 
-  useFrame((state) => {
+  useFrame(() => {
     const ps = useFlightPreviewStore.getState();
     const previewing = ps.playing || ps.u > 0.001;
-    if (!previewing) { flightCueHandle.camActive = false; flightCueHandle.animClip = ''; ps.setActiveCueClip(''); return; }
+    if (!previewing) { flightCueHandle.camActive = false; flightCueHandle.animClip = ''; ps.setActiveCueClip(''); ps.setActiveEnv(null); return; }
     const r = resolveFlightCues(getFlightCues(pathId), ps.u);
     if (r.camera) {
       flightCueHandle.camActive = true;
@@ -112,10 +109,7 @@ export const FlightCuePreview = ({ pathId }: { pathId: string }) => {
     if (r.animation) { flightCueHandle.animClip = r.animation.clipName; flightCueHandle.animSpeed = r.animation.clipSpeed; flightCueHandle.bankDeg = r.animation.bankDeg; }
     else { flightCueHandle.animClip = ''; }
     ps.setActiveCueClip(r.animation?.clipName ?? '');
-    // environment tint — solid background colour from the active environment cue (a clear "it changed here").
-    if (prevBg.current === undefined) prevBg.current = (state.scene.background as Color | null) ?? null;
-    if (r.environment?.skyTop) { bg.current.set(r.environment.skyTop); state.scene.background = bg.current; }
-    else if (prevBg.current !== undefined) { state.scene.background = prevBg.current; }
+    ps.setActiveEnv(r.environment); // real sky + cloud density (WorldSkyAmbience / CloudField read this)
   });
 
   const { markers, camAnchors } = useMemo(() => {

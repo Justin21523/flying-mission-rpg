@@ -4,10 +4,12 @@ import { useWorldSelectStore } from '../../../stores/worldSelectStore';
 import { useGameStore } from '../../../stores/game/useGameStore';
 import { FLIGHT_CUE_TYPES } from '../../../types/game/flightCue';
 import type { FlightCue, FlightCueType } from '../../../types/game/flightCue';
+import { EASINGS } from '../../../types/game/transformation';
+import type { Easing } from '../../../types/game/transformation';
 import { FLIGHT_PATH_ID } from '../../../data/game/flightPath';
 import { getActivePathId } from '../../../game/flight/world/worldRoute';
 import { Field, lbl } from '../editorShared';
-import { NumRow, TextRow, ColorRow } from './CollectionEditor';
+import { NumRow, TextRow, ColorRow, SelectRow } from './CollectionEditor';
 import { ModelPicker } from '../ModelPicker';
 
 // 🛩 Flight → cue timeline editor. Authors camera / animation / event / environment cues along the active
@@ -20,12 +22,16 @@ const CueFields = ({ pathId, c }: { pathId: string; c: FlightCue }) => {
   switch (c.type) {
     case 'camera':
       return (
-        <div className="grid grid-cols-2 gap-1.5">
-          <NumRow label="Distance" value={c.camDistance ?? 12} step={0.5} min={0.5} onChange={(v) => patch({ camDistance: v })} />
-          <NumRow label="Height" value={c.camHeight ?? 4} step={0.5} onChange={(v) => patch({ camHeight: v })} />
-          <NumRow label="Orbit angle°" value={c.camAngleDeg ?? 0} step={5} onChange={(v) => patch({ camAngleDeg: v })} />
-          <NumRow label="FOV" value={c.camFov ?? 55} step={1} min={20} max={120} onChange={(v) => patch({ camFov: v })} />
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-1.5">
+            <NumRow label="Distance" value={c.camDistance ?? 12} step={0.5} min={0.5} onChange={(v) => patch({ camDistance: v })} />
+            <NumRow label="Height" value={c.camHeight ?? 4} step={0.5} onChange={(v) => patch({ camHeight: v })} />
+            <NumRow label="Orbit angle°" value={c.camAngleDeg ?? 0} step={5} onChange={(v) => patch({ camAngleDeg: v })} />
+            <NumRow label="FOV" value={c.camFov ?? 55} step={1} min={20} max={120} onChange={(v) => patch({ camFov: v })} />
+          </div>
+          <SelectRow label="Ease in (from previous cue)" value={c.easing ?? 'easeInOut'} options={EASINGS.map((e) => ({ value: e, label: e }))} onChange={(v) => patch({ easing: v as Easing })} />
+          <p className="text-[10px] text-slate-500">Drag the purple camera anchor in 3D to set distance/height/angle.</p>
+        </>
       );
     case 'animation':
       return (

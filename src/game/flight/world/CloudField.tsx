@@ -4,6 +4,7 @@ import { Vector3, Object3D, type InstancedMesh, type Mesh } from 'three';
 import { flightHandle } from '../flightHandle';
 import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
 import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
+import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
 import { getActiveRoute } from './worldRoute';
 
 // Recycled cloud carpet — a FIXED instanced pool of big soft puffs forming a dense floor WELL BELOW the
@@ -84,8 +85,11 @@ export const CloudField = () => {
   useEditorRouteStore((s) => s.items); // reactive: 🌦 cloud-density edits re-resolve the count
   const base = useEditorFlightStore((s) => s.tuning.worldCloudCount);
   const scale = useEditorFlightStore((s) => Math.max(0.25, s.tuning.worldCloudScale));
+  const cueHint = useFlightPreviewStore((s) => s.activeEnv?.cloudHint); // environment cue cloud intent (0..1)
   const density = getActiveRoute()?.editorEnvironment?.cloudDensity ?? 1;
-  const count = Math.min(MAX_CLOUDS, Math.max(8, Math.round(base * density)));
+  // A cue's cloud intent scales the count (0 → sparse 0.2×, 1 → heavy ~1.9×) so weather changes along the route.
+  const cueMul = cueHint != null ? 0.2 + cueHint * 1.7 : 1;
+  const count = Math.min(MAX_CLOUDS, Math.max(8, Math.round(base * density * cueMul)));
   // Key by count+scale so changing either (Flight tab / route density) rebuilds the instanced pool cleanly.
   return <CloudFieldInner key={`${count}-${scale}`} count={count} scale={scale} />;
 };

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { useEditorFlightCueStore, getFlightCues } from '../../stores/game/editorFlightCueStore';
 import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import { getPath } from '../../stores/editorPathStore';
@@ -23,12 +23,10 @@ const _scratch = new Vector3();
 
 export const FlightCuePlayController = ({ pathId }: { pathId: string }) => {
   const cues = useEditorFlightCueStore((s) => s.byPath[pathId]);
-  const bg = useRef(new Color());
-  const prevBg = useRef<Color | null | undefined>(undefined);
 
-  useEffect(() => () => { flightCueHandle.camActive = false; useFlightPreviewStore.getState().setActiveCueClip(''); }, []);
+  useEffect(() => () => { flightCueHandle.camActive = false; const ps = useFlightPreviewStore.getState(); ps.setActiveCueClip(''); ps.setActiveEnv(null); }, []);
 
-  useFrame((state) => {
+  useFrame(() => {
     const r = resolveFlightCues(getFlightCues(pathId), flightHandle.routeU);
     if (r.camera) {
       flightCueHandle.camActive = true;
@@ -39,10 +37,9 @@ export const FlightCuePlayController = ({ pathId }: { pathId: string }) => {
     } else {
       flightCueHandle.camActive = false;
     }
-    useFlightPreviewStore.getState().setActiveCueClip(r.animation?.clipName ?? '');
-    if (prevBg.current === undefined) prevBg.current = (state.scene.background as Color | null) ?? null;
-    if (r.environment?.skyTop) { bg.current.set(r.environment.skyTop); state.scene.background = bg.current; }
-    else if (prevBg.current !== undefined) { state.scene.background = prevBg.current; }
+    const ps = useFlightPreviewStore.getState();
+    ps.setActiveCueClip(r.animation?.clipName ?? '');
+    ps.setActiveEnv(r.environment); // real sky + cloud density (WorldSkyAmbience / CloudField read this)
   });
 
   const props = useMemo(() => {

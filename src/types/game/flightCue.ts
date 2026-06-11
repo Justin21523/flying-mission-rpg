@@ -4,6 +4,8 @@
 // frame, a character action/animation, an event/prop appearance, or an environment/property change.
 // Edit/preview-only — it never touches the play flight controllers or the FSM (flight feel is a core pillar).
 
+import type { Easing } from './transformation';
+
 export type FlightCueType = 'camera' | 'animation' | 'event' | 'environment';
 export const FLIGHT_CUE_TYPES: readonly FlightCueType[] = ['camera', 'animation', 'event', 'environment'];
 
@@ -18,6 +20,7 @@ export interface FlightCue {
   camHeight?: number;
   camAngleDeg?: number; // orbit yaw offset around the craft (0 = straight behind)
   camFov?: number;
+  easing?: Easing; // curve of the move INTO this camera cue (from the previous one)
 
   // ── animation / action (applied from this u until the next animation cue) ──
   clipName?: string; // animation clip to play on the craft
@@ -38,7 +41,7 @@ export interface FlightCue {
 }
 
 export const DEFAULT_FLIGHT_CUE: Record<FlightCueType, Partial<FlightCue>> = {
-  camera: { camDistance: 12, camHeight: 4, camAngleDeg: 0, camFov: 55 },
+  camera: { camDistance: 12, camHeight: 4, camAngleDeg: 0, camFov: 55, easing: 'easeInOut' },
   animation: { clipName: '', clipSpeed: 1, bankDeg: 0, speedMul: 1 },
   event: { eventOffset: [0, 0, 0], eventScale: 1 },
   environment: { skyTop: '#4a90d9', skyBottom: '#d6ecff', fogDensity: 0, cloudHint: 0.4 },

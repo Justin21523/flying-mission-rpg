@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { ResolvedFlightEnv } from '../../game/flight/flightCueRunner';
 
 // Edit-Mode flight TIMELINE preview (🛩 Flight → Flight Preview). The flight "timeline" is route progress
 // u∈[0,1]; FlightPreviewController drives a preview craft along the active scene's path from this store.
@@ -14,6 +15,7 @@ interface FlightPreviewState {
   follow: boolean; // orbit target rides the craft (still user-rotatable)
   cameraMode: FlightPreviewCameraMode;
   activeCueClip: string; // animation-cue clip currently active ('' = none) — drives the preview craft's clip
+  activeEnv: ResolvedFlightEnv | null; // active environment cue → drives the real sky + cloud density
   play: () => void;
   pause: () => void;
   stop: () => void;
@@ -22,7 +24,14 @@ interface FlightPreviewState {
   toggleFollow: () => void;
   setCameraMode: (m: FlightPreviewCameraMode) => void;
   setActiveCueClip: (c: string) => void;
+  setActiveEnv: (e: ResolvedFlightEnv | null) => void;
   advance: (dt: number) => void;
+}
+
+function envEq(a: ResolvedFlightEnv | null, b: ResolvedFlightEnv | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.skyTop === b.skyTop && a.skyBottom === b.skyBottom && a.fogDensity === b.fogDensity && a.cloudHint === b.cloudHint;
 }
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -34,14 +43,16 @@ export const useFlightPreviewStore = create<FlightPreviewState>((set) => ({
   follow: true,
   cameraMode: 'flight',
   activeCueClip: '',
+  activeEnv: null,
   play: () => set({ playing: true }),
   pause: () => set({ playing: false }),
-  stop: () => set({ playing: false, u: 0, activeCueClip: '' }),
+  stop: () => set({ playing: false, u: 0, activeCueClip: '', activeEnv: null }),
   scrub: (u) => set({ u: clamp01(u), playing: false }),
   setSpeed: (speed) => set({ speed: Math.max(0.01, speed) }),
   toggleFollow: () => set((s) => ({ follow: !s.follow })),
   setCameraMode: (cameraMode) => set({ cameraMode }),
   setActiveCueClip: (c) => { if (useFlightPreviewStore.getState().activeCueClip !== c) set({ activeCueClip: c }); },
+  setActiveEnv: (e) => { if (!envEq(useFlightPreviewStore.getState().activeEnv, e)) set({ activeEnv: e }); },
   advance: (dt) =>
     set((s) => {
       if (!s.playing) return s;
