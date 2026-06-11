@@ -6,27 +6,31 @@ import { useFlightScoreStore } from '../../stores/game/flightScoreStore';
 
 const GRADE_COLOR: Record<string, string> = { S: '#fde68a', A: '#86efac', B: '#7dd3fc', C: '#cbd5e1' };
 
-// DESTINATION_APPROACH — arrival banner (+ a flight performance summary) + the Transform prompt.
+// DESTINATION_APPROACH / BASE_APPROACH — arrival banner (+ flight performance summary) + the next-step prompt.
+// Outbound: approach the destination → Transform (T). Homebound (return leg): approach home base → Dock (T).
 export const DestinationApproachHud = () => {
+  const phase = useGameStore((s) => s.phase);
+  const homebound = phase === 'BASE_APPROACH';
   const route = getActiveRoute();
-  const dest = route ? getEditorLocation(route.toLocationId)?.name ?? 'Destination' : 'Destination';
+  const dest = homebound ? 'Home Base' : route ? getEditorLocation(route.toLocationId)?.name ?? 'Destination' : 'Destination';
   const result = useFlightScoreStore((s) => s.lastResult);
+  const nextPhase = homebound ? 'HANGAR_RETURN' : 'TRANSFORMATION';
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (document.activeElement?.tagName ?? '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-      if (e.code === 'KeyT') useGameStore.getState().requestTransition('TRANSFORMATION');
+      if (e.code === 'KeyT') useGameStore.getState().requestTransition(nextPhase);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [nextPhase]);
 
   return (
     <div className="fixed inset-x-0 top-20 z-[60] flex flex-col items-center gap-2">
       <div className="pointer-events-none rounded-2xl border border-emerald-700/50 bg-slate-950/80 px-6 py-3 text-center backdrop-blur">
         <div className="text-base font-bold text-emerald-200">Approaching {dest}</div>
-        <div className="mt-0.5 text-[11px] text-slate-400">Begin the transformation to descend.</div>
+        <div className="mt-0.5 text-[11px] text-slate-400">{homebound ? 'Dock in the hangar to debrief.' : 'Begin the transformation to descend.'}</div>
       </div>
       {result && (
         <div className="pointer-events-none rounded-2xl border border-amber-700/50 bg-slate-950/80 px-6 py-3 text-center backdrop-blur">
@@ -41,10 +45,10 @@ export const DestinationApproachHud = () => {
         </div>
       )}
       <button
-        onClick={() => useGameStore.getState().requestTransition('TRANSFORMATION')}
+        onClick={() => useGameStore.getState().requestTransition(nextPhase)}
         className="pointer-events-auto rounded-full border border-fuchsia-500/60 bg-fuchsia-700/40 px-6 py-2 text-sm font-bold text-fuchsia-50 backdrop-blur hover:bg-fuchsia-600/50"
       >
-        ✨ Transform (T)
+        {homebound ? '🛬 Dock (T)' : '✨ Transform (T)'}
       </button>
     </div>
   );

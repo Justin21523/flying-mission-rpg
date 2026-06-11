@@ -32,14 +32,20 @@ export const TransformationDirector = () => {
   const done = useRef(false);
   const entrySpeed = useRef(0);
   const charId = useCharacterStore((s) => s.selectedCharacterId);
+  // RETURN_TRANSFORMATION plays the SAME authored timeline in REVERSE (robot folds back to vehicle) and hands
+  // off to the return flight instead of the descent. The runner snapshot is a pure function of time, so a
+  // descending playhead (seek) reverses the visuals; the form ends in plane via switchToPlaneForm().
+  const reverse = useGameStore((s) => s.phase === 'RETURN_TRANSFORMATION');
+  const revT = useRef(0); // reverse playhead (counts down from duration → 0)
+  const revDur = useRef(1);
 
   useEffect(() => {
     const character = charId ? getEditorCharacter(charId) : undefined;
     const def = findTimeline(charId, character?.transformationId);
     done.current = false;
     if (!def || validateTimeline(def).length > 0) {
-      // invalid / missing → skip straight to descent (never crash)
-      useGameStore.getState().requestTransition('DESCENT');
+      // invalid / missing → skip straight to the next phase for this direction (never crash)
+      useGameStore.getState().requestTransition(reverse ? 'RETURN_FLIGHT' : 'DESCENT');
       return;
     }
     const mode = getGameSettings().transformMode;
@@ -47,6 +53,14 @@ export const TransformationDirector = () => {
     form.current.reset();
     form.current.beginTransform();
     entrySpeed.current = flightHandle.speed;
+    // Reverse: start the playhead at the end (robot) and switch the controller to robot so the fold-back reads
+    // from the finished robot pose. The descending playhead in useFrame plays the timeline backward.
+    if (reverse) {
+      revDur.current = runner.current.getSnapshot().duration;
+      revT.current = revDur.current;
+      runner.current.seek(revDur.current);
+      form.current.switchToRobotForm();
+    }
     txFrame.def = def;
     txFrame.charModelId = character?.modelAssetId;
     txFrame.showcaseYaw = 0;
@@ -70,7 +84,7 @@ export const TransformationDirector = () => {
       fc.dispose();
       resetTransformationRuntime();
     };
-  }, [charId]);
+  }, [charId, reverse]);
 
   useFrame((_, dtRaw) => {
     const r = runner.current;
@@ -82,6 +96,31 @@ export const TransformationDirector = () => {
     if (transformationDev.reset) { transformationDev.reset = false; r.reset(); form.current.reset(); form.current.beginTransform(); done.current = false; }
     if (transformationDev.forceFinish) { transformationDev.forceFinish = false; r.fastForward(); }
     if (transformationDev.forceQuick) { transformationDev.forceQuick = false; runner.current = new TransformationTimelineRunner(def, 'quick'); form.current.reset(); form.current.beginTransform(); done.current = false; return; }
+
+    // ── REVERSE (RETURN_TRANSFORMATION): descending playhead → robot folds back to vehicle → RETURN_FLIGHT ──
+    if (reverse) {
+      revT.current = Math.max(0, revT.current - dt);
+      r.seek(revT.current);
+      // switch robot→plane in the last quarter of the fold (mirror of the forward robot-enable point)
+      const switchAt = Math.min(revDur.current * 0.25, def.controllerSwitchConfig?.robotControllerEnableTime ?? revDur.current * 0.25);
+      if (revT.current <= switchAt && form.current.getCurrentForm() !== 'plane') form.current.switchToPlaneForm();
+      const rsnap = r.getSnapshot();
+      txFrame.snapshot = rsnap;
+      useTxVersion.getState().bump(`${rsnap.activeEffects.map((e) => e.id).join(',')}|${rsnap.activeModelRef ?? ''}:${rsnap.activeModelStageId ?? ''}|${rsnap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
+      const rfc = form.current;
+      Object.assign(transformationHandle, {
+        timelineId: def.id, characterId: charId ?? '', mode: r.mode, time: rsnap.time, duration: rsnap.duration,
+        progress: 1 - rsnap.progress, phase: rsnap.phase, stageLabel: rsnap.activeStageLabel, form: rfc.getCurrentForm(),
+        planeCtrl: rfc.planeControllerActive, robotCtrl: rfc.robotControllerActive, planeCol: rfc.planeColliderActive,
+        robotCol: rfc.robotColliderActive, effects: rsnap.activeEffects.length,
+      });
+      if (revT.current <= 0 && !done.current) {
+        done.current = true;
+        if (rfc.getCurrentForm() !== 'plane') rfc.switchToPlaneForm();
+        useGameStore.getState().requestTransition('RETURN_FLIGHT');
+      }
+      return;
+    }
 
     r.tick(dt);
 

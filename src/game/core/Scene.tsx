@@ -55,7 +55,7 @@ export const Scene = () => {
   // The new game runs in the 'greybox' scene mode. On-ground base phases render the 3D hangar (BaseScene,
   // Batch 3); other phases (Mission Control etc.) keep the grey-box behind the DOM console.
   if (sceneMode === 'greybox') {
-    const basePhase = phase === 'HANGAR' || phase === 'PLATFORM_ALIGNMENT' || phase === 'LAUNCH_PREPARATION';
+    const basePhase = phase === 'HANGAR' || phase === 'PLATFORM_ALIGNMENT' || phase === 'LAUNCH_PREPARATION' || phase === 'HANGAR_RETURN';
     if (basePhase) {
       return (
         <>
@@ -64,7 +64,7 @@ export const Scene = () => {
         </>
       );
     }
-    if (phase === 'WORLD_FLIGHT') {
+    if (phase === 'WORLD_FLIGHT' || phase === 'RETURN_FLIGHT') {
       return (
         <>
           <AdaptiveDpr />
@@ -72,7 +72,7 @@ export const Scene = () => {
         </>
       );
     }
-    if (phase === 'DESTINATION_APPROACH') {
+    if (phase === 'DESTINATION_APPROACH' || phase === 'BASE_APPROACH') {
       return (
         <>
           <AdaptiveDpr />
@@ -80,7 +80,7 @@ export const Scene = () => {
         </>
       );
     }
-    if (phase === 'TRANSFORMATION') {
+    if (phase === 'TRANSFORMATION' || phase === 'RETURN_TRANSFORMATION') {
       return (
         <>
           <AdaptiveDpr />

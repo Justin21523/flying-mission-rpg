@@ -125,8 +125,9 @@ export const RouteFollower = () => {
 
     if (u.current >= 0.999 && !useWorldFlightRuntimeStore.getState().arrived) {
       useWorldFlightRuntimeStore.getState().setArrived(true);
-      // Reached the destination → hand off to the approach phase (full descent/landing is Batch 7).
-      useGameStore.getState().requestTransition('DESTINATION_APPROACH');
+      // Reached the end → outbound flight approaches the destination; the homebound return leg approaches base.
+      const homebound = useGameStore.getState().phase === 'RETURN_FLIGHT';
+      useGameStore.getState().requestTransition(homebound ? 'BASE_APPROACH' : 'DESTINATION_APPROACH');
     }
   });
 

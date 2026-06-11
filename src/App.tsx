@@ -27,6 +27,8 @@ import { LandingHud } from './ui/game/LandingHud';
 import { MissionHud } from './ui/game/MissionHud';
 import { HuntHud } from './ui/game/HuntHud';
 import { MissionCompleteHud } from './ui/game/MissionCompleteHud';
+import { HangarReturnHud } from './ui/game/HangarReturnHud';
+import { MissionResultsScreen } from './ui/game/MissionResultsScreen';
 import { MultiCharacterHud } from './ui/hud/MultiCharacterHud';
 import { PhaserOverlay } from './ui/phaser/PhaserOverlay';
 import { DestinationDebugPanel } from './ui/dev/DestinationDebugPanel';
@@ -112,13 +114,15 @@ export const App = () => {
   const phase = useGameStore((s) => s.phase);
   const basePhase = BASE_PHASES.has(phase);
   const flightPhase = FLIGHT_PHASES.has(phase);
-  const worldFlightPhase = phase === 'WORLD_FLIGHT';
-  const approachPhase = phase === 'DESTINATION_APPROACH';
-  const transformPhase = phase === 'TRANSFORMATION';
+  const worldFlightPhase = phase === 'WORLD_FLIGHT' || phase === 'RETURN_FLIGHT'; // return leg reuses the flight HUDs
+  const approachPhase = phase === 'DESTINATION_APPROACH' || phase === 'BASE_APPROACH'; // HUD is phase-aware
+  const transformPhase = phase === 'TRANSFORMATION' || phase === 'RETURN_TRANSFORMATION';
   const descentPhase = phase === 'DESCENT';
   const landingPhase = phase === 'LANDING';
   const missionPhase = phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'SUPPORT_SELECTION';
   const missionDonePhase = phase === 'MISSION_COMPLETE';
+  const hangarReturnPhase = phase === 'HANGAR_RETURN';
+  const resultsPhase = phase === 'MISSION_RESULTS';
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -256,6 +260,8 @@ export const App = () => {
       {!editMode && !world && missionPhase && <MultiCharacterHud />}
       {!editMode && !world && missionPhase && <HuntHud />}
       {!editMode && !world && missionDonePhase && <MissionCompleteHud />}
+      {!editMode && !world && hangarReturnPhase && <HangarReturnHud />}
+      {!editMode && !world && resultsPhase && <MissionResultsScreen />}
       {/* POLI dialogue box + the Phaser mini-game overlay serve the destination phases too. */}
       {!editMode && !world && missionPhase && <DialogueBox />}
       {!editMode && !world && <PhaserOverlay />}
