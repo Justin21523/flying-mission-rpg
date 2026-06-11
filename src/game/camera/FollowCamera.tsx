@@ -8,6 +8,10 @@ import { useUiStore } from '../../stores/uiStore';
 import { useTerrainBrushStore } from '../../stores/terrainBrushStore';
 import { editorSpawn } from '../../stores/sceneEditStore';
 import { cameraFocus } from '../edit/cameraFocus';
+import { useGameStore } from '../../stores/game/useGameStore';
+import { getPhaseCamera } from '../../stores/game/editorCameraStore';
+import { editCameraHandle } from './editCameraHandle';
+import type { PerspectiveCamera } from 'three';
 
 const _focusOff = new Vector3();
 
@@ -24,6 +28,7 @@ const _focusOff = new Vector3();
 // editorSpawn so the Add-Model palette drops new objects at the camera focus.
 
 const LOOK_SENSITIVITY = 0.0032;
+const DEG2RAD = Math.PI / 180;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 // Pitch range: PITCH_MIN ≈ near-horizon (look across the world), PITCH_MAX ≈ near top-down.
 const PITCH_MIN = 0.12;
@@ -59,6 +64,11 @@ export const FollowCamera = () => {
   const dragging = useRef(false);
   const target = useRef(new Vector3());
   const lastFocus = useRef(0); // last consumed cameraFocus.fireId (edit-mode "jump to object")
+  // Per-phase authored framing (🎥 Camera): targetHeight + fov used by the play follow; snapped on phase
+  // change. Phases without an authored config keep the persistent defaults (no reset on travel).
+  const targetHeight = useRef(1.0);
+  const fovTarget = useRef(50);
+  const prevPhase = useRef('');
 
   // NOTE: the orbit angle is NOT reset on travel — yaw/pitch are persistent refs (this component never
   // remounts), so the camera facing carries over UNCHANGED across area changes / portals / teleports. The
@@ -106,11 +116,32 @@ export const FollowCamera = () => {
           c.update();
         }
         editorSpawn.x = c.target.x; editorSpawn.y = c.target.y; editorSpawn.z = c.target.z;
+        // Mirror the live edit view for the 🎥 Camera "Capture current view" button.
+        editCameraHandle.camX = state.camera.position.x; editCameraHandle.camY = state.camera.position.y; editCameraHandle.camZ = state.camera.position.z;
+        editCameraHandle.targetX = c.target.x; editCameraHandle.targetY = c.target.y; editCameraHandle.targetZ = c.target.z;
       }
       return;
     }
     const playerPosition = usePlayerStore.getState().position;
     if (!playerPosition) return;
+
+    // Apply the phase's authored framing on phase change (snap so it doesn't ease from the old view);
+    // phases without a config keep the persistent yaw/pitch/dist + default height/fov.
+    const phase = useGameStore.getState().phase;
+    if (phase !== prevPhase.current) {
+      prevPhase.current = phase;
+      const cfg = getPhaseCamera(phase);
+      if (cfg) {
+        yawTarget.current = yaw.current = cfg.yawDeg * DEG2RAD;
+        pitchTarget.current = pitch.current = clamp(cfg.pitchDeg * DEG2RAD, 0.04, Math.PI - 0.04);
+        distTarget.current = dist.current = cfg.distance;
+        targetHeight.current = cfg.targetHeight;
+        fovTarget.current = cfg.fov;
+      } else {
+        targetHeight.current = 1.0;
+        fovTarget.current = 50;
+      }
+    }
 
     // Ease the live yaw/pitch/distance toward their drag targets (frame-rate independent) → smooth orbit/zoom.
     const a = 1 - Math.exp(-CAM_SMOOTH * delta);
@@ -120,7 +151,7 @@ export const FollowCamera = () => {
 
     // Follow: orbit around the player's chest at the user's chosen yaw/pitch/distance.
     const t = target.current;
-    t.set(playerPosition.x, playerPosition.y + 1.0, playerPosition.z);
+    t.set(playerPosition.x, playerPosition.y + targetHeight.current, playerPosition.z);
     const sp = Math.sin(pitch.current);
     const cp = Math.cos(pitch.current);
     const r = dist.current;
@@ -130,6 +161,9 @@ export const FollowCamera = () => {
       t.z + r * sp * Math.cos(yaw.current),
     );
     state.camera.lookAt(t);
+    // Ease the FOV toward the phase's authored value.
+    const cam = state.camera as PerspectiveCamera;
+    if (Math.abs(cam.fov - fovTarget.current) > 0.01) { cam.fov += (fovTarget.current - cam.fov) * a; cam.updateProjectionMatrix(); }
     // Keep OrbitControls' target on the player so switching to Edit Mode (F1) keeps the view
     // centred on the player instead of snapping to the world origin (then you can see + click it).
     const c = controlsRef.current;
