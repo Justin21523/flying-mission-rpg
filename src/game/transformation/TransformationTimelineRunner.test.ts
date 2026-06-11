@@ -93,6 +93,29 @@ describe('TransformationTimelineRunner', () => {
     ]);
   });
 
+  it('model-move accumulates an eased per-slot motion offset over time', () => {
+    const tl = makeTimeline();
+    tl.stages.push({ id: 'mv', type: 'model-move', startTime: 0, duration: 1, enabled: true, params: { modelSlot: 'robot', toPosition: [0, 4, 0], toScale: 2 } });
+    const r = new TransformationTimelineRunner(tl, 'full');
+    r.seek(0.5);
+    const mid = r.getSnapshot().modelMotion.robot;
+    expect(mid.position[1]).toBeGreaterThan(0);
+    expect(mid.position[1]).toBeLessThan(4);
+    r.seek(1);
+    const done = r.getSnapshot().modelMotion.robot;
+    expect(done.position[1]).toBeCloseTo(4);
+    expect(done.scale).toBeCloseTo(2);
+    expect(r.getSnapshot().modelMotion.plane).toEqual({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 });
+  });
+
+  it('exit-stage toScale shrinks the root via exitScaleMul', () => {
+    const tl = makeTimeline();
+    tl.stages.push({ id: 'ex2', type: 'exit-stage', startTime: 0, duration: 1, enabled: true, params: { targetPhase: 'DESCENT', toScale: 0.2 } });
+    const r = new TransformationTimelineRunner(tl, 'full');
+    r.seek(0); expect(r.getSnapshot().exitScaleMul).toBeCloseTo(1);
+    r.seek(1); expect(r.getSnapshot().exitScaleMul).toBeCloseTo(0.2);
+  });
+
   it('interactive mode holds at showcase until confirm', () => {
     const r = new TransformationTimelineRunner(makeTimeline(), 'interactive');
     r.tick(10); // past the end

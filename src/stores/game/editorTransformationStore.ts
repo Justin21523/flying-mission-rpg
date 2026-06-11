@@ -4,7 +4,7 @@ import type { TransformationDefinition } from '../../types/game/transformation';
 import { SEED_TRANSFORMATIONS } from '../../data/game/transformations';
 
 export const useEditorTransformationStore = createEditorCollection<TransformationDefinition>({
-  storageKey: 'aero-rescue-editor-transformation-v5',
+  storageKey: 'aero-rescue-editor-transformation-v6',
   seed: SEED_TRANSFORMATIONS,
   makeId: () => `xf_${nanoid(6)}`,
 });

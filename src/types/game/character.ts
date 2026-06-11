@@ -1,5 +1,6 @@
 import type { SourceConfidence } from '../sourceConfidence';
 import type { WeatherKind } from './flight';
+import type { AnimRule } from '../character'; // reuse the POLI animation-rule engine (animRunner.pickLoopRule)
 
 // A playable flying character. Two forms (vehicle/robot) — the transformation between them is a core
 // pillar. Abilities are child-friendly rescue helpers (no combat, no weapons).
@@ -112,8 +113,12 @@ export interface CharacterDefinition {
   missionSuitability: string[]; // MissionType ids this character suits
   transformationId?: string; // TransformationDefinition id
   cardImage?: string; // reference card filename in src/assets/cards (Character Select art)
-  modelAssetId?: string; // kit model-library id (e.g. 'super-wings/Jett+transformer+3d+model')
+  modelAssetId?: string; // kit model-library id — the ROBOT / ground model (e.g. 'super-wings/Jett+...')
+  planeModelAssetId?: string; // optional separate PLANE/vehicle model used in flight (falls back to modelAssetId)
   modelScale?: number; // authored ground/destination model scale (Edit-Mode editable; unset = seed default).
+  // Custom animation rules (reuse POLI AnimRule + animRunner.pickLoopRule): "which clip plays when"
+  // (idle/moving/flying/vehicle/robot/ability/celebrate/key…). Drives every presenter when non-empty.
+  animationRules?: AnimRule[];
   homeBaseLocationId?: string;
   // ── animation (clip names from the model's GLB; advanced trigger→clip rules live in 🎬 Model Studio) ──
   idleAnimation?: string; // clip played in previews / on the ground (empty = first clip)

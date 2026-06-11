@@ -97,7 +97,11 @@ const GhostModelClone = ({ path, mat }: { path: string; mat: MeshBasicMaterial }
 const GhostBurst = ({ fx }: { fx: TransformationEffectTrack }) => {
   const g = useRef<Group>(null);
   const t = useRef(0);
-  const count = Math.max(3, Math.round(fx.repeat ?? 6));
+  // Authored clone controls: count (ghostCount, else repeat), spread distance (ghostSpread), size (scale),
+  // persist (ghostPersist). All Edit-Mode editable — no hardcoded clone shape.
+  const count = Math.max(1, Math.round(fx.ghostCount ?? fx.repeat ?? 6));
+  const spread = fx.ghostSpread ?? 14;
+  const persist = fx.ghostPersist ?? true;
   const mat = useMemo(
     () => new MeshBasicMaterial({ color: fx.color ?? '#7fd0ff', transparent: true, opacity: Math.min(0.85, 0.5 * (fx.intensity ?? 1)), depthWrite: false, toneMapped: false }),
     [fx.color, fx.intensity],
@@ -115,11 +119,11 @@ const GhostBurst = ({ fx }: { fx: TransformationEffectTrack }) => {
       const ghost = grp.children[i];
       const life = Math.max(0, Math.min(1, (t.current - i * stagger) / (fx.duration * 0.85)));
       const ang = (i / count) * Math.PI * 2;
-      const dist = life * 14 * (fx.scale ?? 1.6); // spreads all the way to the view edge by the end
+      const dist = life * spread * (fx.scale ?? 1.6); // spreads to the authored distance by the end
       ghost.position.set(Math.cos(ang) * dist, 0.4 + life * 1.2, Math.sin(ang) * dist);
       ghost.scale.setScalar((1 + life * 2.2) * baseScale);
       ghost.rotation.y = ang;
-      ghost.visible = life > 0; // constant opacity — no fade; unmounts when the track ends
+      ghost.visible = persist ? life > 0 : life > 0 && life < 1; // persist = stay until track end
     }
   });
 

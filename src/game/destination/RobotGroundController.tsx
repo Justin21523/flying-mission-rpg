@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier';
 import type { Group } from 'three';
@@ -11,6 +11,8 @@ import { applyMovement } from '../player/MovementStateMachine';
 import { playerMotion } from '../player/playerMotion';
 import { robotHandle } from './robotHandle';
 import { groundCharacterScale } from './groundCharacterScale';
+import { characterModelForForm } from './characterModel';
+import type { AnimState } from '../anim/animRunner';
 import { getGroundAbilityConfig } from './groundAbilityConfig';
 import type { CharacterDefinition, GroundAbilityConfig } from '../../types/game/character';
 
@@ -30,6 +32,19 @@ const EnergizedRobotModel = ({
   const [clip, setClip] = useState<string | undefined>(character.idleAnimation);
   const clipList = config.cloudRally.energizedAnimationClips;
   const active = energizedUntil > nowSec() && clipList.length > 0;
+  // Live anim state for character rules (robot form): moving from position delta, ability from energized.
+  const animState = useRef<AnimState>({ moving: false, form: 'robot', speed: 0, ability: false });
+  const lastP = useRef({ x: 0, z: 0, t: 0 });
+  const getAnimState = useCallback((): AnimState => {
+    const now = performance.now();
+    const dt = Math.max(0.001, (now - lastP.current.t) / 1000);
+    const sp = Math.hypot(robotHandle.pos.x - lastP.current.x, robotHandle.pos.z - lastP.current.z) / dt;
+    lastP.current.x = robotHandle.pos.x; lastP.current.z = robotHandle.pos.z; lastP.current.t = now;
+    animState.current.speed = sp;
+    animState.current.moving = sp > 0.3;
+    animState.current.ability = useGroundAbilityStore.getState().energizedUntil > now / 1000;
+    return animState.current;
+  }, []);
 
   useEffect(() => {
     const remaining = energizedUntil - nowSec();
@@ -49,7 +64,7 @@ const EnergizedRobotModel = ({
     };
   }, [character.idleAnimation, clipList, config.cloudRally.randomAnimationIntervalSec, energizedUntil]);
 
-  return <AnimatedGlbModel assetId={character.modelAssetId!} animation={active ? clip : character.idleAnimation} fallback={fallback} noCull />;
+  return <AnimatedGlbModel assetId={characterModelForForm(character, 'robot')!} animation={active ? clip : character.idleAnimation} rules={character.animationRules} getAnimState={getAnimState} fallback={fallback} noCull />;
 };
 
 // Ground robot for the destination (NPC_GREETING / MISSION_GAMEPLAY) — the BaseVehicle pattern in 'robot'

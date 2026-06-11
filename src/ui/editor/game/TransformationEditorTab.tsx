@@ -251,6 +251,15 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
           <NumRow label="To scale" value={p.toScale ?? 1} step={0.1} onChange={(v) => patch({ toScale: v })} />
         </>
       );
+    case 'model-move':
+      return (
+        <>
+          <SelectRow label="Model slot" value={p.modelSlot ?? 'robot'} options={opts(MODEL_SLOTS)} onChange={(v) => patch({ modelSlot: v as typeof p.modelSlot })} />
+          <Vec3 label="Move to position (offset)" value={p.toPosition ?? [0, 0, 0]} onChange={(v) => patch({ toPosition: v })} />
+          <Vec3 label="Rotate to° (offset)" value={p.toRotation ?? [0, 0, 0]} onChange={(v) => patch({ toRotation: v })} />
+          <NumRow label="Scale to ×" value={p.toScale ?? 1} step={0.1} min={0.05} onChange={(v) => patch({ toScale: v })} />
+        </>
+      );
     case 'model-visibility':
     case 'model-swap':
       return (
@@ -310,6 +319,7 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
         <>
           <TextRow label="Target phase" value={p.targetPhase ?? 'DESCENT'} onChange={(v) => patch({ targetPhase: v })} />
           <NumRow label="Descent distance (slow sink)" value={p.intensity ?? 6} step={1} min={0} onChange={(v) => patch({ intensity: v })} />
+          <NumRow label="Shrink to × (fly-out; 1 = none)" value={p.toScale ?? 1} step={0.05} min={0} onChange={(v) => patch({ toScale: v })} />
         </>
       );
     default:
@@ -396,6 +406,13 @@ const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update:
               <NumRow label="Scale" value={s.scale ?? 1} step={0.1} onChange={(v) => patch(s.id, { scale: v })} />
             </div>
             <ColorRow label="Colour" value={s.color ?? '#ffffff'} onChange={(v) => patch(s.id, { color: v })} />
+            {s.type === 'ghost-burst' && (
+              <div className="mt-1 grid grid-cols-2 gap-1.5 rounded bg-slate-950/40 p-1.5">
+                <NumRow label="Clone count" value={s.ghostCount ?? s.repeat ?? 6} step={1} min={1} onChange={(v) => patch(s.id, { ghostCount: v })} />
+                <NumRow label="Clone spread" value={s.ghostSpread ?? 14} step={1} min={0} onChange={(v) => patch(s.id, { ghostSpread: v })} />
+                <div className="col-span-2"><Check label="Persist until track ends" checked={s.ghostPersist ?? true} onChange={(v) => patch(s.id, { ghostPersist: v })} /></div>
+              </div>
+            )}
             <button onClick={() => remove(s.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
           </div>
         ))}

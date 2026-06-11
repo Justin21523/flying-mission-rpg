@@ -23,6 +23,15 @@ export interface ActiveModelClip {
   loop: boolean;
   holdFinal: boolean;
 }
+// Additive animated motion for a model slot, produced by 'model-move' stages (position+rotation added to,
+// scale multiplied onto, the authored slot offset).
+export interface SlotMotion {
+  position: [number, number, number];
+  rotation: [number, number, number]; // degrees
+  scale: number;
+}
+const IDENTITY_MOTION = (): SlotMotion => ({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 });
+
 export type RunnerPhase = 'playing' | 'showcase' | 'done';
 export interface RunnerSnapshot {
   time: number;
@@ -40,6 +49,8 @@ export interface RunnerSnapshot {
   activeEffects: TransformationEffectTrack[];
   backdropIntensity: number;
   rootYOffset: number; // slow exit descent — how far the character root has sunk (world units)
+  modelMotion: Record<ModelSlot, SlotMotion>; // animated per-slot offset from 'model-move' stages
+  exitScaleMul: number; // root scale multiplier during the exit fly-out (1 = none)
 }
 
 const ESSENTIAL_TYPES = new Set(['model-swap', 'model-visibility', 'finish-pose', 'exit-stage']);
@@ -211,11 +222,39 @@ export class TransformationTimelineRunner {
       backdropIntensity = lerp(backdropIntensity, target, k);
     }
 
-    // slow exit descent — during the exit-stage the character root sinks by params.intensity units
+    // slow exit descent + optional shrink — during the exit-stage the root sinks by params.intensity units
+    // and scales toward params.toScale (a "shrink + sink" fly-out).
     let rootYOffset = 0;
+    let exitScaleMul = 1;
     for (const st of this.stages.filter((s) => s.type === 'exit-stage' && s.startTime <= t)) {
       const k = st.duration > 0 ? ease('easeInOut', (t - st.startTime) / st.duration) : 1;
-      rootYOffset += (st.params.intensity ?? 6) * Math.min(1, k);
+      const kk = Math.min(1, k);
+      rootYOffset += (st.params.intensity ?? 6) * kk;
+      if (st.params.toScale != null) exitScaleMul *= lerp(1, st.params.toScale, kk);
+    }
+
+    // per-slot animated motion — accumulate 'model-move' stages onto each slot (same lerp+ease as parts).
+    const modelMotion: Record<ModelSlot, SlotMotion> = { plane: IDENTITY_MOTION(), robot: IDENTITY_MOTION(), shared: IDENTITY_MOTION() };
+    for (const slot of ['plane', 'robot', 'shared'] as ModelSlot[]) {
+      let cur = IDENTITY_MOTION();
+      const moves = this.stages
+        .filter((s) => s.type === 'model-move' && s.startTime <= t && (s.params.modelSlot ?? 'robot') === slot)
+        .sort((a, b) => a.startTime - b.startTime);
+      for (const st of moves) {
+        const target: SlotMotion = {
+          position: st.params.toPosition ?? cur.position,
+          rotation: st.params.toRotation ?? cur.rotation,
+          scale: st.params.toScale ?? cur.scale,
+        };
+        if (t >= st.startTime + st.duration || st.duration <= 0) {
+          cur = target;
+        } else {
+          const k = ease(st.easing, (t - st.startTime) / st.duration);
+          cur = { position: lerp3(cur.position, target.position, k), rotation: lerp3(cur.rotation, target.rotation, k), scale: lerp(cur.scale, target.scale, k) };
+          break;
+        }
+      }
+      modelMotion[slot] = cur;
     }
 
     const active = this.stages.find((s) => t >= s.startTime && t < s.startTime + s.duration);
@@ -235,6 +274,8 @@ export class TransformationTimelineRunner {
       activeEffects,
       backdropIntensity,
       rootYOffset,
+      modelMotion,
+      exitScaleMul,
     };
   }
 }

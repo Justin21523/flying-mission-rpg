@@ -7,6 +7,7 @@ import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { robotHandle } from './robotHandle';
 import { groundCharacterScale } from './groundCharacterScale';
+import { characterModelForForm } from './characterModel';
 
 // LANDING — the robot settles where it touched down (small squash-and-recover pose) while the quality
 // banner shows, then hands off to NPC_GREETING. Landing re-evaluation is disabled here by construction.
@@ -47,7 +48,7 @@ export const LandingSettle = () => {
   );
   return (
     <group ref={group} scale={baseScale}>
-      {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
+      {characterModelForForm(character, 'robot') ? <AnimatedGlbModel assetId={characterModelForForm(character, 'robot')!} animation={character?.idleAnimation} rules={character?.animationRules} fallback={fallback} noCull /> : fallback}
     </group>
   );
 };

@@ -45,11 +45,11 @@ export interface TransformationTransformOffset {
 
 export type TransformationStageType =
   | 'enter-stage' | 'backdrop-shift' | 'speed-line-burst' | 'camera-shot' | 'part-transform' | 'animation-clip'
-  | 'model-visibility' | 'model-swap' | 'effect-burst' | 'energy-ring' | 'voice-cue' | 'finish-pose'
+  | 'model-visibility' | 'model-swap' | 'model-move' | 'effect-burst' | 'energy-ring' | 'voice-cue' | 'finish-pose'
   | 'interactive-showcase' | 'exit-stage';
 export const TRANSFORMATION_STAGE_TYPES: readonly TransformationStageType[] = [
   'enter-stage', 'backdrop-shift', 'speed-line-burst', 'camera-shot', 'part-transform', 'animation-clip',
-  'model-visibility', 'model-swap', 'effect-burst', 'energy-ring', 'voice-cue', 'finish-pose',
+  'model-visibility', 'model-swap', 'model-move', 'effect-burst', 'energy-ring', 'voice-cue', 'finish-pose',
   'interactive-showcase', 'exit-stage',
 ];
 
@@ -121,6 +121,10 @@ export interface TransformationEffectTrack {
   spawnOffset?: [number, number, number];
   repeat?: number;
   easing?: Easing;
+  // ── ghost-burst (clone) authoring — how the translucent clones spawn at the finale ──
+  ghostCount?: number; // number of clone copies (default 5)
+  ghostSpread?: number; // how far they fly out from the centre (world units, default 14)
+  ghostPersist?: boolean; // keep them visible until the track ends (default true)
 }
 
 export interface TransformationAudioCue {

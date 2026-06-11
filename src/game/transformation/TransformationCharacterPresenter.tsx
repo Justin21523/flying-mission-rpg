@@ -5,7 +5,7 @@ import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { EditableObject } from '../edit/EditableObject';
 import { txFrame, useTxVersion } from './transformationRuntime';
 import { transformModelSlotKey, transformStageModelKey } from './transformPartKey';
-import type { ActiveModelClip } from './TransformationTimelineRunner';
+import type { ActiveModelClip, SlotMotion } from './TransformationTimelineRunner';
 import type { TransformationDefinition, TransformationPart, PartGeometryKind, ModelSlot, TransformationTransformOffset } from '../../types/game/transformation';
 
 // Renders the transforming character: procedural primitive parts (driven each frame by the runner's resolved
@@ -13,6 +13,19 @@ import type { TransformationDefinition, TransformationPart, PartGeometryKind, Mo
 // preview (both read txFrame.snapshot), so the two always match. The root spins with the showcase yaw.
 const DEG = Math.PI / 180;
 const DEFAULT_OFFSET: TransformationTransformOffset = { position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 };
+
+// Apply the authored slot offset + the runner's animated motion to a model group (play / preview playback).
+// Allocation-free: writes components directly, never creates objects in the frame loop.
+function applySlotMotion(g: Group, off: TransformationTransformOffset, m?: SlotMotion): void {
+  const mp = m ? m.position : ZERO3;
+  const mr = m ? m.rotation : ZERO3;
+  const ms = m ? m.scale : 1;
+  g.position.set(off.position[0] + mp[0], off.position[1] + mp[1], off.position[2] + mp[2]);
+  g.rotation.set((off.rotation[0] + mr[0]) * DEG, (off.rotation[1] + mr[1]) * DEG, (off.rotation[2] + mr[2]) * DEG);
+  const s = off.scale * ms;
+  g.scale.set(s, s, s);
+}
+const ZERO3: [number, number, number] = [0, 0, 0];
 
 function offsetForSlot(def: TransformationDefinition, slot: ModelSlot): TransformationTransformOffset {
   return def.modelSlotOffsets?.[slot] ?? DEFAULT_OFFSET;
@@ -139,21 +152,27 @@ export const TransformationCharacterPresenter = ({
   const hasRobot = !!(def.robotModelRef ?? charModelId);
   const hasPlane = !!def.planeModelRef;
   const hasShared = !!def.sharedModelRef;
+  const robotOffset = offsetForSlot(def, 'robot');
+  const planeOffset = offsetForSlot(def, 'plane');
+  const sharedOffset = offsetForSlot(def, 'shared');
   useFrame(() => {
+    const snap = txFrame.snapshot;
     if (root.current) {
       root.current.rotation.y = editRest ? 0 : txFrame.showcaseYaw;
-      root.current.position.y = editRest ? 0 : -(txFrame.snapshot?.rootYOffset ?? 0); // slow exit descent
+      root.current.position.y = editRest ? 0 : -(snap?.rootYOffset ?? 0); // slow exit descent
+      const exit = editRest ? 1 : (snap?.exitScaleMul ?? 1); // shrink fly-out
+      root.current.scale.setScalar((def.modelScale ?? 1) * exit);
     }
     if (editRest) {
       if (robot.current) robot.current.visible = hasRobot;
       if (plane.current) plane.current.visible = hasPlane;
       if (shared.current) shared.current.visible = hasShared;
-      return;
+      return; // gizmo controls the slot transforms at rest
     }
-    const vis = txFrame.snapshot?.modelVisible;
-    if (robot.current) robot.current.visible = vis?.robot ?? false;
-    if (plane.current) plane.current.visible = vis?.plane ?? false;
-    if (shared.current) shared.current.visible = vis?.shared ?? false;
+    const vis = snap?.modelVisible;
+    if (robot.current) { robot.current.visible = vis?.robot ?? false; applySlotMotion(robot.current, robotOffset, snap?.modelMotion.robot); }
+    if (plane.current) { plane.current.visible = vis?.plane ?? false; applySlotMotion(plane.current, planeOffset, snap?.modelMotion.plane); }
+    if (shared.current) { shared.current.visible = vis?.shared ?? false; applySlotMotion(shared.current, sharedOffset, snap?.modelMotion.shared); }
   });
   const color = def.particleColor;
   const clips = txFrame.snapshot?.activeModelClips ?? [];
@@ -162,9 +181,6 @@ export const TransformationCharacterPresenter = ({
   const sharedClip = clipForSlot(clips, 'shared');
   const extraRef = txFrame.snapshot?.activeModelRef ?? undefined;
   const extraClip = extraRef ? clipForRef(clips, extraRef) : undefined;
-  const robotOffset = offsetForSlot(def, 'robot');
-  const planeOffset = offsetForSlot(def, 'plane');
-  const sharedOffset = offsetForSlot(def, 'shared');
   const extraOffset = offsetForStageModel(def, txFrame.snapshot?.activeModelStageId);
   const editSource = editDef ?? def;
   return (

@@ -5,7 +5,8 @@ import { AnimationMixer, LoopOnce, LoopRepeat, type AnimationAction, type Animat
 import { SkeletonUtils } from 'three-stdlib';
 import { resolveModelAsset, useModelStudioStore } from '../../stores/modelStudioStore';
 import { useDistanceCull } from '../perf/useDistanceCull';
-import { pickLoopRule } from '../anim/animRunner';
+import { pickLoopRule, type AnimState } from '../anim/animRunner';
+import type { AnimRule } from '../../types/character';
 import { playerKeysDown } from '../player/playerInput';
 
 // Kit — like SceneGlbModel (resolve asset, clone via SkeletonUtils, Suspense + error-boundary fallback)
@@ -21,7 +22,14 @@ interface AnimatedGlbModelProps {
   autoPlayFirstClip?: boolean;
   fallback?: React.ReactNode;
   noCull?: boolean; // skip distance-culling (the flight craft moves far from playerStore → must stay visible)
+  // Caller-supplied animation RULES (reuse POLI pickLoopRule) + a live state getter. When rules are present
+  // they drive clip selection (over the single `animation` prop / Model-Studio rules). Polled each frame.
+  rules?: AnimRule[];
+  getAnimState?: () => AnimState;
 }
+
+// Stable default state for rule-driven static set-pieces (no per-frame allocation).
+const STATIC_STATE: AnimState = { speed: 0, moving: false, keyDown: (c) => playerKeysDown.has(c) };
 
 const AnimatedInner = ({
   assetId,
@@ -30,6 +38,8 @@ const AnimatedInner = ({
   loop = true,
   autoPlayFirstClip = true,
   noCull,
+  rules: callerRules,
+  getAnimState,
 }: {
   assetId: string;
   animation?: string;
@@ -37,6 +47,8 @@ const AnimatedInner = ({
   loop?: boolean;
   autoPlayFirstClip?: boolean;
   noCull?: boolean;
+  rules?: AnimRule[];
+  getAnimState?: () => AnimState;
 }) => {
   // Re-render when this asset's Model Studio tuning changes.
   useModelStudioStore((s) => s.overrides[assetId]);
@@ -44,8 +56,8 @@ const AnimatedInner = ({
   const { scene, animations } = useGLTF(encodeURI(asset.path));
   const cloned = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const mixerRef = useRef<AnimationMixer | null>(null);
-  // Model-Studio anim RULES (trigger→clip) take priority over the single `animation` clip when authored.
-  const rules = asset.animations ?? [];
+  // Caller rules (per-character) take priority, else Model-Studio rules (trigger→clip), else single clip.
+  const rules = (callerRules && callerRules.length > 0) ? callerRules : (asset.animations ?? []);
   const ruled = rules.length > 0;
   const actionsRef = useRef<Map<string, AnimationAction>>(new Map());
   const curRef = useRef<AnimationAction | null>(null);
@@ -85,8 +97,10 @@ const AnimatedInner = ({
     if (!mixer) return;
     mixer.update(dt);
     if (!ruled) return;
-    // Rule-driven clip selection (static set-piece: speed 0 / not moving → 'always'/'idle'/'key' rules fire).
-    const best = pickLoopRule(rules, { speed: 0, moving: false, keyDown: (c) => playerKeysDown.has(c) }, (c) => actionsRef.current.has(c));
+    // Rule-driven clip selection. Caller-supplied live state (flying/moving/ability/form/speed) drives it
+    // when present; otherwise a static set-piece state (speed 0 / not moving) fires 'always'/'idle'/'key'.
+    const st = getAnimState ? getAnimState() : STATIC_STATE;
+    const best = pickLoopRule(rules, st, (c) => actionsRef.current.has(c));
     const clip = best?.clip ?? firstClipRef.current;
     if (!clip) return;
     const next = actionsRef.current.get(clip);
@@ -121,12 +135,12 @@ class ModelErrorBoundary extends React.Component<{ fallback: React.ReactNode; ch
   }
 }
 
-export function AnimatedGlbModel({ assetId, animation, animationSpeed, loop, autoPlayFirstClip, fallback = null, noCull }: AnimatedGlbModelProps) {
+export function AnimatedGlbModel({ assetId, animation, animationSpeed, loop, autoPlayFirstClip, fallback = null, noCull, rules, getAnimState }: AnimatedGlbModelProps) {
   if (!resolveModelAsset(assetId)) return <>{fallback}</>;
   return (
     <ModelErrorBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
-        <AnimatedInner assetId={assetId} animation={animation} animationSpeed={animationSpeed} loop={loop} autoPlayFirstClip={autoPlayFirstClip} noCull={noCull} />
+        <AnimatedInner assetId={assetId} animation={animation} animationSpeed={animationSpeed} loop={loop} autoPlayFirstClip={autoPlayFirstClip} noCull={noCull} rules={rules} getAnimState={getAnimState} />
       </Suspense>
     </ModelErrorBoundary>
   );

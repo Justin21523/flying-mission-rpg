@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -12,6 +12,8 @@ import { descentEntry } from '../transformation/descentEntry';
 import { evaluateLanding, type LandingZoneInput } from './safeLanding';
 import { robotHandle } from './robotHandle';
 import { groundCharacterScale } from './groundCharacterScale';
+import { characterModelForForm } from './characterModel';
+import type { AnimState } from '../anim/animRunner';
 import { DESTINATION_BOUNDARY_HALF } from '../../data/game/destinationLayout';
 
 // DESCENT — the robot-form character falls from the air spawn toward the harbor. Camera-relative W/S/A/D
@@ -38,6 +40,9 @@ export const RobotDescentController = () => {
   const { camera } = useThree();
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
+  // Descent = robot form falling through the air → 'flying' rules fire; speed = fall speed.
+  const descentState = useRef<AnimState>({ flying: true, moving: true, form: 'robot', speed: 0 });
+  const getDescentAnimState = useCallback(() => { descentState.current.speed = robotHandle.vSpeed; return descentState.current; }, []);
 
   useEffect(() => {
     // start at the editable air-spawn part, falling with the transformation's momentum
@@ -141,7 +146,7 @@ export const RobotDescentController = () => {
   );
   return (
     <group ref={group} scale={groundCharacterScale(character)}>
-      {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
+      {characterModelForForm(character, 'robot') ? <AnimatedGlbModel assetId={characterModelForForm(character, 'robot')!} rules={character?.animationRules} getAnimState={getDescentAnimState} fallback={fallback} noCull /> : fallback}
     </group>
   );
 };

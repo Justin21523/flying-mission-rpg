@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Euler, Vector3, type Group } from 'three';
 import { useGameStore } from '../../stores/game/useGameStore';
@@ -11,6 +11,8 @@ import { getPath } from '../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../path/pathCurve';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
+import { characterModelForForm } from '../destination/characterModel';
+import type { AnimState } from '../anim/animRunner';
 import { flightHandle } from './flightHandle';
 import { nextSpeed, isStalling } from './flightModel';
 
@@ -44,6 +46,9 @@ export const FlightController = () => {
   const character = charId ? getEditorCharacter(charId) : undefined;
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
   const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
+  // Live anim state for character rules (reuse pickLoopRule) — a single mutated object (no per-frame alloc).
+  const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0 });
+  const getAnimState = useCallback(() => { animState.current.speed = flightHandle.speedNorm; return animState.current; }, []);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -226,10 +231,12 @@ export const FlightController = () => {
     <group ref={aircraft}>
       {/* editable facing offset + extra flight size (🛩 Flight → Craft yaw / Craft size). */}
       <group rotation={[0, (craftYaw * Math.PI) / 180, 0]} scale={craftScale}>
-        {character?.modelAssetId ? (
+        {characterModelForForm(character, 'plane') ? (
           <AnimatedGlbModel
-            assetId={character.modelAssetId}
-            animation={character.flightAnimation}
+            assetId={characterModelForForm(character, 'plane')!}
+            animation={character?.flightAnimation}
+            rules={character?.animationRules}
+            getAnimState={getAnimState}
             noCull
             fallback={
               <mesh castShadow>

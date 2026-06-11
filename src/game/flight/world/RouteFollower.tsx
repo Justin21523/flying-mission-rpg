@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
 import { useCharacterStore } from '../../../stores/game/useCharacterStore';
@@ -11,6 +11,8 @@ import { worldFlightDev } from './worldFlightDev';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
 import { useGameStore } from '../../../stores/game/useGameStore';
 import { AnimatedGlbModel } from '../../world/AnimatedGlbModel';
+import { characterModelForForm } from '../../destination/characterModel';
+import type { AnimState } from '../../anim/animRunner';
 import { flightHandle } from '../flightHandle';
 
 // The craft cruises FORWARD along the active route's 航道 (editorPathStore path) — it always flies ahead
@@ -38,6 +40,8 @@ export const RouteFollower = () => {
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
   const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
   const pathId = getActivePathId();
+  const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0 });
+  const getAnimState = useCallback(() => { animState.current.speed = flightHandle.speedNorm; return animState.current; }, []);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -130,7 +134,7 @@ export const RouteFollower = () => {
     <group ref={craft}>
       {/* editable facing offset + extra flight size (🛩 Flight → Craft yaw / Craft size). */}
       <group rotation={[0, craftYaw * DEG2RAD, 0]} scale={craftScale}>
-        {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} animation={character.flightAnimation} fallback={fallback} noCull /> : fallback}
+        {characterModelForForm(character, 'plane') ? <AnimatedGlbModel assetId={characterModelForForm(character, 'plane')!} animation={character?.flightAnimation} rules={character?.animationRules} getAnimState={getAnimState} fallback={fallback} noCull /> : fallback}
       </group>
     </group>
   );
