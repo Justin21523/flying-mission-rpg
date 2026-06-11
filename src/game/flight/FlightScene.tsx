@@ -20,6 +20,7 @@ import { BASE_CRAFT_KEY, baseLoopStartNode } from './baseCraftKey';
 import { FlightPreviewController } from './FlightPreviewController';
 import { FlightCuePreview } from './FlightCuePreview';
 import { FlightCuePlayController } from './FlightCuePlayController';
+import { FlightLegCameraGizmo } from './FlightLegCameraGizmo';
 import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 
@@ -59,6 +60,7 @@ export const FlightScene = () => {
       {editMode && !preview && <BaseFlightCraftEditable />}
       {editMode && <FlightPreviewController pathId={FLIGHT_PATH_ID} craftScale={tuning.flyAroundCraftScale} craftYaw={tuning.flyAroundCraftYawDeg} />}
       {editMode && <FlightCuePreview pathId={FLIGHT_PATH_ID} />}
+      {editMode && <FlightLegCameraGizmo />}
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
       {!editMode && <FlightCuePlayController pathId={FLIGHT_PATH_ID} />}

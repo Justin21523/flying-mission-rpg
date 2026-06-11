@@ -43,10 +43,6 @@ const FIELDS: { key: NumKey; label: string; step: number }[] = [
   { key: 'launchDurationSec', label: 'Launch sprint (sec)', step: 0.5 },
   { key: 'launchTunnelLength', label: 'Launch tunnel length', step: 4 },
   { key: 'worldCraftScale', label: 'World craft size ×', step: 0.1 },
-  { key: 'worldCamDistance', label: 'World-flight cam distance', step: 0.25 },
-  { key: 'worldCamHeight', label: 'World-flight cam height', step: 0.25 },
-  { key: 'flyAroundCamDistance', label: 'Base-loop cam distance', step: 0.25 },
-  { key: 'flyAroundCamHeight', label: 'Base-loop cam height', step: 0.25 },
   { key: 'flyAroundCraftScale', label: 'Base-loop craft size ×', step: 0.1 },
   { key: 'flyAroundCraftYawDeg', label: 'Base-loop craft yaw (deg)', step: 15 },
   { key: 'worldSteerRange', label: 'Steer max range (A/D)', step: 10 },
@@ -55,12 +51,39 @@ const FIELDS: { key: NumKey; label: string; step: number }[] = [
   { key: 'worldBankDeg', label: 'Bank angle (deg)', step: 5 },
 ];
 
+// 🎥 Flight cameras — the per-leg follow camera, pulled out of the big list so it's findable. Distance /
+// height / orbit-angle per leg; or drag it in 3D via Flight Preview → 🎮 Camera gizmo.
+const CameraPanel = () => {
+  const tuning = useEditorFlightStore((s) => s.tuning);
+  const update = useEditorFlightStore((s) => s.update);
+  const row = (label: string, key: NumKey, step = 0.25) => (
+    <Field label={label}><input type="number" step={step} value={tuning[key]} onChange={(e) => update({ [key]: parseFloat(e.target.value) || 0 } as Partial<FlightTuning>)} className={inp} /></Field>
+  );
+  return (
+    <div className="rounded border border-violet-700/40 bg-violet-950/10 p-2">
+      <div className={lbl}>🎥 Flight cameras</div>
+      <p className="mt-0.5 text-[10px] text-slate-500">Per-leg follow camera. Or drag it in 3D: Flight Preview → 🎮 Camera gizmo (scrub/pause, then drag).</p>
+      <div className="mt-1 grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <div className="text-[11px] font-semibold text-sky-200">World flight</div>
+          {row('Distance', 'worldCamDistance')}{row('Height', 'worldCamHeight')}{row('Orbit angle°', 'worldCamAngleDeg', 5)}
+        </div>
+        <div className="space-y-1">
+          <div className="text-[11px] font-semibold text-sky-200">Base fly-around</div>
+          {row('Distance', 'flyAroundCamDistance')}{row('Height', 'flyAroundCamHeight')}{row('Orbit angle°', 'flyAroundCamAngleDeg', 5)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const FlightEditorTab = () => {
   const tuning = useEditorFlightStore((s) => s.tuning);
   const update = useEditorFlightStore((s) => s.update);
   const reset = useEditorFlightStore((s) => s.reset);
   return (
     <div className="space-y-2 text-xs">
+      <CameraPanel />
       <div className="flex items-center justify-between">
         <div className={lbl}>Flight Tuning</div>
         <button onClick={reset} className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700">↺ Reset</button>
@@ -120,7 +143,7 @@ export const FlightEditorTab = () => {
 
       <div className={lbl}>Base fly-around loop — path nodes</div>
       <p className="text-[10px] text-slate-500">Drag the nodes in 3D (BASE_FLY_AROUND edit) — per-node Speed× / Bank° shape the loop. The world route nodes live in 🛫 Aero World.</p>
-      <PathNodesEditor pathId={FLIGHT_PATH_ID} />
+      <PathNodesEditor pathId={FLIGHT_PATH_ID} editPhase="BASE_FLY_AROUND" />
     </div>
   );
 };

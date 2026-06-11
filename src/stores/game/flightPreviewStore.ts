@@ -14,6 +14,7 @@ interface FlightPreviewState {
   speed: number; // u per second (≈ 1/seconds end-to-end)
   follow: boolean; // orbit target rides the craft (still user-rotatable)
   cameraMode: FlightPreviewCameraMode;
+  camGizmo: boolean; // show the draggable per-leg flight-camera proxy in the preview
   activeCueClip: string; // animation-cue clip currently active ('' = none) — drives the preview craft's clip
   activeEnv: ResolvedFlightEnv | null; // active environment cue → drives the real sky + cloud density
   play: () => void;
@@ -23,6 +24,7 @@ interface FlightPreviewState {
   setSpeed: (s: number) => void;
   toggleFollow: () => void;
   setCameraMode: (m: FlightPreviewCameraMode) => void;
+  toggleCamGizmo: () => void;
   setActiveCueClip: (c: string) => void;
   setActiveEnv: (e: ResolvedFlightEnv | null) => void;
   advance: (dt: number) => void;
@@ -42,6 +44,7 @@ export const useFlightPreviewStore = create<FlightPreviewState>((set) => ({
   speed: 0.12,
   follow: true,
   cameraMode: 'flight',
+  camGizmo: false,
   activeCueClip: '',
   activeEnv: null,
   play: () => set({ playing: true }),
@@ -51,6 +54,7 @@ export const useFlightPreviewStore = create<FlightPreviewState>((set) => ({
   setSpeed: (speed) => set({ speed: Math.max(0.01, speed) }),
   toggleFollow: () => set((s) => ({ follow: !s.follow })),
   setCameraMode: (cameraMode) => set({ cameraMode }),
+  toggleCamGizmo: () => set((s) => ({ camGizmo: !s.camGizmo })),
   setActiveCueClip: (c) => { if (useFlightPreviewStore.getState().activeCueClip !== c) set({ activeCueClip: c }); },
   setActiveEnv: (e) => { if (!envEq(useFlightPreviewStore.getState().activeEnv, e)) set({ activeEnv: e }); },
   advance: (dt) =>

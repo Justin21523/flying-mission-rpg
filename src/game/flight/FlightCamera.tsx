@@ -52,7 +52,7 @@ export const FlightCamera = () => {
     let pull = world ? 0 : tuning.camPullback * Math.min(1, flightHandle.speedNorm);
     let dist = world ? tuning.worldCamDistance : tuning.flyAroundCamDistance;
     let height = world ? tuning.worldCamHeight : tuning.flyAroundCamHeight;
-    let angle = 0;
+    let angle = (world ? tuning.worldCamAngleDeg : tuning.flyAroundCamAngleDeg) * DEG; // per-leg orbit angle
     // A camera cue (edit preview) overrides the framing: its distance/height/orbit-angle steer the shot.
     if (flightCueHandle.camActive) { dist = flightCueHandle.distance; height = flightCueHandle.height; angle = flightCueHandle.angleDeg * DEG; pull = 0; }
     _off.set(dist * Math.sin(angle), height, dist * Math.cos(angle) + pull).applyQuaternion(_q).add(flightHandle.pos);

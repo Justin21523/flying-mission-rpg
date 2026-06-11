@@ -11,5 +11,5 @@ export const PathNodeList = ({ route, update }: { route: FlightRoute; update: (p
     store.updatePath(id, { name: `${route.name} Path`, areaId: 'world', defaultSpeed: Math.max(1, route.virtualDistance / Math.max(1, route.estimatedFlightSec)) });
     update({ pathId: id });
   };
-  return <PathNodesEditor pathId={route.pathId} onCreatePath={createPath} createLabel="Create world path" />;
+  return <PathNodesEditor pathId={route.pathId} onCreatePath={createPath} createLabel="Create world path" editPhase="WORLD_FLIGHT" />;
 };

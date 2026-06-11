@@ -28,6 +28,7 @@ import { clearActiveFlightEvents } from './flightEventRuntime';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
 import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
 import { FlightCelebrationLayer } from './FlightCelebrationLayer';
+import { FlightLegCameraGizmo } from '../FlightLegCameraGizmo';
 
 const RAD2DEG = 180 / Math.PI;
 
@@ -88,6 +89,7 @@ export const WorldFlightScene = () => {
       {layers.editableCraft && !preview && <WorldFlightCraftEditable />}
       {editMode && <FlightPreviewController pathId={getActivePathId()} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} />}
       {editMode && <FlightCuePreview pathId={getActivePathId()} />}
+      {editMode && <FlightLegCameraGizmo />}
 
       {/* EDIT: orbit camera, unless previewing with Camera = Flight (shows the authored worldCam* framing +
           craft scale live). PLAY: the flight camera. */}

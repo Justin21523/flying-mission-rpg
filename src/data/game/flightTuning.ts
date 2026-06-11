@@ -43,10 +43,12 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   worldCraftOffset: [0, 0, 0],
   worldCamDistance: 1.0,
   worldCamHeight: 0.65,
+  worldCamAngleDeg: 0,
   // Base fly-around defaults = the previously-shared values (camera dist/height + worldCraft scale/yaw),
   // so the loop looks identical until an author dials it independently of the world leg.
   flyAroundCamDistance: 2.5,
   flyAroundCamHeight: 1.0,
+  flyAroundCamAngleDeg: 0,
   flyAroundCraftScale: 3.4,
   flyAroundCraftYawDeg: 180,
   flyAroundCraftOffset: [0, 0, 0],

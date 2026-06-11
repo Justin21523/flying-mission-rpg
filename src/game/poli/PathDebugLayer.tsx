@@ -34,9 +34,9 @@ const PathNodes = ({ def }: { def: PathDefinition }) => {
             color={color}
             onMove={(p) => updatePathNode(def.id, n.id, p)}
           >
-            <mesh position={[0, 0.4, 0]}>
-              <sphereGeometry args={[0.32, 12, 10]} />
-              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
+            <mesh position={[0, 0.4, 0]} renderOrder={998} onUpdate={(self) => { const mm = self.material as { depthTest?: boolean }; mm.depthTest = false; }}>
+              <sphereGeometry args={[0.7, 14, 12]} />
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.7} depthTest={false} />
             </mesh>
             {/* numbered handle (1-based) like the road editor, so the order is obvious */}
             <Text position={[0, 1.0, 0]} fontSize={0.4} color={color} anchorX="center" anchorY="middle" outlineWidth={0.04} outlineColor="#000" raycast={() => null} depthOffset={-10}>

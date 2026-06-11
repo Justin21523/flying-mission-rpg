@@ -5,6 +5,8 @@ import type { PathCurveType, PathDirectionMode, PathNodeData } from '../../../..
 import { TextRow, NumRow, SelectRow } from '../CollectionEditor';
 import { Field, inp, lbl, MoveButtons } from '../../editorShared';
 import { useFlightPreviewStore } from '../../../../stores/game/flightPreviewStore';
+import { useGameStore } from '../../../../stores/game/useGameStore';
+import type { GamePhase } from '../../../../types/game/state';
 
 // Reusable path-node editor for ANY editorPathStore path (the world route path AND the base fly-around loop).
 // The 3D node handles (PathDebugLayer) drag → updatePathNode live; this mirrors them (position + rich per-node
@@ -14,7 +16,7 @@ const CURVE_TYPES: PathCurveType[] = ['catmullRom', 'bezier', 'linear'];
 const DIRECTIONS: PathDirectionMode[] = ['oneWay', 'twoWay'];
 const num = (value: string, fallback = 0) => { const p = parseFloat(value); return Number.isNaN(p) ? fallback : p; };
 
-export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create path' }: { pathId?: string; onCreatePath?: () => void; createLabel?: string }) => {
+export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create path', editPhase }: { pathId?: string; onCreatePath?: () => void; createLabel?: string; editPhase?: GamePhase }) => {
   const paths = useEditorPathStore((s) => s.paths);
   const path = paths.find((p) => p.id === pathId);
   const selectedKey = useWorldSelectStore((s) => s.selectedKey);
@@ -44,12 +46,21 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
   }
   const nodes = path.nodes ?? [];
   const patchNode = (nodeId: string, patch: Partial<PathNodeData>) => { store.updateNode(path.id, nodeId, patch); seekToNode(nodeId); };
+  const editIn3D = () => {
+    if (editPhase) useGameStore.getState().jumpTo(editPhase); // mount this leg's scene so the node handles show
+    const first = nodes[0];
+    if (first) selectNode(path.id, first); // focus the first node so it's on-screen
+  };
   return (
     <div className="space-y-1.5 rounded border border-sky-700/40 bg-sky-950/15 p-2">
       <div className="flex items-center justify-between gap-2">
         <div className={lbl}>Flight path nodes · {nodes.length}</div>
-        <button onClick={() => store.addNode(path.id)} className="rounded bg-sky-700/30 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700/50">+ Node</button>
+        <div className="flex gap-1">
+          {editPhase && <button onClick={editIn3D} className="rounded bg-violet-700/40 px-2 py-0.5 text-[11px] text-violet-100 hover:bg-violet-700/60">▶ Edit route in 3D</button>}
+          <button onClick={() => store.addNode(path.id)} className="rounded bg-sky-700/30 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700/50">+ Node</button>
+        </div>
       </div>
+      {editPhase && <p className="text-[10px] text-slate-500">Click “Edit route in 3D”, then drag the numbered node handles. Each row’s Focus jumps to that node.</p>}
       <div className="grid grid-cols-2 gap-2">
         <TextRow label="Path name" value={path.name} onChange={(v) => store.updatePath(path.id, { name: v })} />
         <Field label="Area">

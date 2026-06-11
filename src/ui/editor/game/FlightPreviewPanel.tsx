@@ -13,6 +13,7 @@ export const FlightPreviewPanel = () => {
   const speed = useFlightPreviewStore((s) => s.speed);
   const follow = useFlightPreviewStore((s) => s.follow);
   const cameraMode = useFlightPreviewStore((s) => s.cameraMode);
+  const camGizmo = useFlightPreviewStore((s) => s.camGizmo);
   const s = useFlightPreviewStore.getState();
   const camBtn = (mode: 'flight' | 'orbit') =>
     `rounded px-2 py-1 text-[11px] ${cameraMode === mode ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
@@ -35,7 +36,8 @@ export const FlightPreviewPanel = () => {
           <button onClick={() => s.setCameraMode('orbit')} className={camBtn('orbit')}>🛰 Orbit (free-look)</button>
         </div>
       </Field>
-      <p className="-mt-0.5 text-[10px] text-slate-500">{cameraMode === 'flight' ? 'Flight: adjusting 🛩 cam distance/height + craft scale shows live here.' : 'Orbit: free-look; drag to inspect from any angle.'}</p>
+      <p className="-mt-0.5 text-[10px] text-slate-500">{cameraMode === 'flight' ? 'Flight: adjusting 🛩 cam distance/height/angle + craft scale shows live here.' : 'Orbit: free-look; drag to inspect from any angle.'}</p>
+      <Check label="🎮 Camera gizmo (drag the camera in 3D — scrub/pause first)" checked={camGizmo} onChange={() => s.toggleCamGizmo()} />
       <div className="grid grid-cols-2 items-end gap-2">
         <Field label="Speed (u/sec)"><input type="number" step={0.02} min={0.01} value={speed} onChange={(e) => s.setSpeed(parseFloat(e.target.value) || 0.12)} className={inp} /></Field>
         <Check label="Follow craft (orbit rides along)" checked={follow} onChange={() => s.toggleFollow()} />

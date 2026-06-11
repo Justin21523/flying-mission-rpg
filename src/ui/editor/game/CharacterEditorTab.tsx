@@ -286,7 +286,7 @@ export const CharacterEditorTab = () => {
             <ModelPicker value={c.planeModelAssetId} onChange={(v) => update({ planeModelAssetId: v })} noneLabel="(use robot model)" />
           </Field>
           <NumRow label="Ground model scale (landing/mission + afterimages)" value={c.modelScale ?? GROUND_BASE_SCALE} step={0.1} min={0.1} onChange={(v) => update({ modelScale: v })} />
-          <Check label="Can fly at destination (F toggle — Space up / Ctrl down / Shift+move fast)" checked={c.canFly ?? false} onChange={(v) => update({ canFly: v })} />
+          <Check label="Can fly at destination (F toggle — Space up / Shift down / Shift+move fast). On by default." checked={c.canFly !== false} onChange={(v) => update({ canFly: v })} />
 
           {/* Animation clips — read live from the selected model's GLB. Single-clip fallbacks when no rules. */}
           <div className={lbl}>Animation clips (fallback)</div>

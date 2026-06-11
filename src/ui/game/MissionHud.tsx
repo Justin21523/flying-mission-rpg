@@ -22,7 +22,8 @@ export const MissionHud = () => {
   const mission = missionId ? getEditorMission(missionId) : undefined;
   const npc = mission?.npcId ? getEditorGameNpc(mission.npcId) : undefined;
   const charId = useCharacterStore((s) => s.selectedCharacterId);
-  const canFly = !!(charId && getEditorCharacter(charId)?.canFly);
+  const ch = charId ? getEditorCharacter(charId) : undefined;
+  const canFly = !!ch && ch.canFly !== false; // flight on by default unless the character disables it
 
   return (
     <>

@@ -92,7 +92,7 @@ export const RobotGroundController = () => {
   const spawnPos = useMemo<[number, number, number]>(() => [robotHandle.pos.x, Math.max(1, robotHandle.pos.y + 0.4), robotHandle.pos.z], []);
   // Flight + jump state (destination ground phases).
   const flying = useRef(false);
-  const canFlyRef = useRef(!!character?.canFly);
+  const canFlyRef = useRef(!!character && character.canFly !== false);
   const supersRef = useRef<SuperMove[] | undefined>(character?.supers);
   const colorRef = useRef(character?.color ?? '#38bdf8');
   const jumpsUsed = useRef(0);
@@ -102,7 +102,7 @@ export const RobotGroundController = () => {
   useEffect(() => {
     abilityRef.current = abilityConfig;
   }, [abilityConfig]);
-  useEffect(() => { canFlyRef.current = !!character?.canFly; }, [character?.canFly]);
+  useEffect(() => { canFlyRef.current = !!character && character.canFly !== false; }, [character, character?.canFly]);
   useEffect(() => { supersRef.current = character?.supers; colorRef.current = character?.color ?? '#38bdf8'; }, [character?.supers, character?.color]);
 
   useEffect(() => {
