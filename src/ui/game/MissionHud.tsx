@@ -5,6 +5,9 @@ import { getEditorMission } from '../../stores/game/editorMissionStore';
 import { getEditorGameNpc } from '../../stores/game/editorGameNpcStore';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { usePhaserOverlayStore } from '../../game/phaser/phaserBridge';
+import { useCharacterStore } from '../../stores/game/useCharacterStore';
+import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
+import { robotHandle } from '../../game/destination/robotHandle';
 
 // Mission HUD (NPC_GREETING + MISSION_GAMEPLAY) — mission/NPC names, objective list with live progress +
 // hints, the [E] interaction prompt and the mini-game state.
@@ -18,6 +21,8 @@ export const MissionHud = () => {
   const miniGameOpen = usePhaserOverlayStore((s) => s.openId);
   const mission = missionId ? getEditorMission(missionId) : undefined;
   const npc = mission?.npcId ? getEditorGameNpc(mission.npcId) : undefined;
+  const charId = useCharacterStore((s) => s.selectedCharacterId);
+  const canFly = !!(charId && getEditorCharacter(charId)?.canFly);
 
   return (
     <>
@@ -27,6 +32,9 @@ export const MissionHud = () => {
           <span className="font-mono text-[10px] text-slate-500">{phase === 'NPC_GREETING' ? 'greeting' : 'gameplay'}</span>
         </div>
         {npc && <div className="text-[11px] text-slate-400">Contact: {npc.name} ({npc.role})</div>}
+        {canFly && (
+          <div className="mt-1 text-[10px] text-sky-300">{robotHandle.flying ? '✈ Flying · Space up · Ctrl down · Shift+move fast · F land' : '✈ Press F to fly (Space up · Ctrl down · Shift+move fast)'}</div>
+        )}
         {phase === 'NPC_GREETING' && <div className="mt-1 text-[11px] text-amber-200">Find the NPC with the ⭑ marker and talk to them.</div>}
         {phase === 'MISSION_GAMEPLAY' && mission && (
           <div className="mt-1 space-y-1">

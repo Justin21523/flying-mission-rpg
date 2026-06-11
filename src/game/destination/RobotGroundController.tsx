@@ -14,10 +14,14 @@ import { groundCharacterScale } from './groundCharacterScale';
 import { characterModelForForm } from './characterModel';
 import type { AnimState } from '../anim/animRunner';
 import { getGroundAbilityConfig } from './groundAbilityConfig';
+import { nextFlying } from './flightToggle';
 import type { CharacterDefinition, GroundAbilityConfig } from '../../types/game/character';
 
 const nowSec = () => performance.now() / 1000;
 const liveSurgeDirection: [number, number, number] = [0, 0, 1];
+const FLY_V = 6; // vertical ascend/descend speed while flying (Space / Ctrl)
+const JUMP_V = 7; // jump impulse (ground; up to 2 jumps)
+const MAX_JUMPS = 2; // jump + double-jump
 
 const EnergizedRobotModel = ({
   character,
@@ -82,10 +86,17 @@ export const RobotGroundController = () => {
   const abilityConfig = useMemo(() => getGroundAbilityConfig(character), [character]);
   const abilityRef = useRef(abilityConfig);
   const spawnPos = useMemo<[number, number, number]>(() => [robotHandle.pos.x, Math.max(1, robotHandle.pos.y + 0.4), robotHandle.pos.z], []);
+  // Flight + jump state (destination ground phases).
+  const flying = useRef(false);
+  const canFlyRef = useRef(!!character?.canFly);
+  const jumpsUsed = useRef(0);
+  const grounded = useRef(true);
+  const lastPosY = useRef(spawnPos[1]);
 
   useEffect(() => {
     abilityRef.current = abilityConfig;
   }, [abilityConfig]);
+  useEffect(() => { canFlyRef.current = !!character?.canFly; }, [character?.canFly]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -93,6 +104,28 @@ export const RobotGroundController = () => {
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       keys.current[e.code] = true;
       if (e.repeat) return;
+      // F — toggle flight (only if this character can fly). Gravity off while flying.
+      if (e.code === 'KeyF' && canFlyRef.current) {
+        flying.current = nextFlying(true, flying.current);
+        bodyRef.current?.setGravityScale(flying.current ? 0 : 1, true);
+        robotHandle.flying = flying.current;
+        if (!flying.current) jumpsUsed.current = 0;
+        return;
+      }
+      // Space — jump + double-jump on the ground (Space is ascend while flying, handled in useFrame).
+      if (e.code === 'Space' && !flying.current) {
+        const b = bodyRef.current;
+        if (b) {
+          if (grounded.current) jumpsUsed.current = 0;
+          if (jumpsUsed.current < MAX_JUMPS) {
+            const v = b.linvel();
+            b.setLinvel({ x: v.x, y: JUMP_V, z: v.z }, true);
+            jumpsUsed.current += 1;
+            grounded.current = false;
+          }
+        }
+        return;
+      }
       const cfg = abilityRef.current;
       const t = nowSec();
       if (e.code === cfg.cloudRally.keyCode) {
@@ -144,12 +177,25 @@ export const RobotGroundController = () => {
       heading.current = Math.atan2(dir[0], dir[2]);
       playerMotion.speed = ability.surgeConfig.speed;
     }
+    // Vertical flight (Space = up, Ctrl = down, else hover) — horizontal speed already includes Shift fast-fly
+    // from applyMovement. Grounded detection (resting, not at jump apex) resets the double-jump on the ground.
+    if (flying.current) {
+      const v = b.linvel();
+      const vy = keys.current['Space'] ? FLY_V : keys.current['ControlLeft'] ? -FLY_V : 0;
+      b.setLinvel({ x: v.x, y: vy, z: v.z }, true);
+      grounded.current = false;
+    } else {
+      const py = b.translation().y;
+      if (Math.abs(py - lastPosY.current) < 0.02 && b.linvel().y <= 0.05) { grounded.current = true; jumpsUsed.current = 0; }
+      lastPosY.current = py;
+    }
     if (visualRef.current) visualRef.current.rotation.y = heading.current;
     const p = b.translation();
     robotHandle.pos.set(p.x, p.y, p.z);
     robotHandle.heading = heading.current;
-    robotHandle.vSpeed = 0;
+    robotHandle.vSpeed = b.linvel().y;
     robotHandle.altitude = p.y;
+    robotHandle.flying = flying.current;
     usePlayerStore.getState().setPosition({ x: p.x, y: p.y, z: p.z });
   });
 

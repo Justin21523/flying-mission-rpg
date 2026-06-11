@@ -125,6 +125,7 @@ export interface CharacterDefinition {
   flightAnimation?: string; // clip played while flying (empty = first clip / Model-Studio rules)
   transformAnimation?: string; // clip played during transformation (Batch 6)
   groundAbility?: GroundAbilityConfig;
+  canFly?: boolean; // destination ground phases: F toggles flight (Space up / Shift down / hover)
   // ── flavour / extra properties ──
   catchphrase?: string;
   preferredWeather?: WeatherKind;

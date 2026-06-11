@@ -5,7 +5,7 @@ import { CHARACTER_FORMS, ABILITY_KINDS, GROUND_EXTRA_ABILITY_KINDS } from '../.
 import type { CharacterDefinition, CharacterAbility, GroundAbilityConfig, GroundExtraAbilitySlot } from '../../../types/game/character';
 import { WEATHER_KINDS } from '../../../types/game/flight';
 import { getModelAsset } from '../../../data/modelLibrary';
-import { csv, parseCsv, Field, inp, lbl } from '../editorShared';
+import { csv, parseCsv, Field, inp, lbl, Check } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
 import { useGltfClipNames } from '../useGltfClipNames';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
@@ -238,6 +238,7 @@ export const CharacterEditorTab = () => {
             <ModelPicker value={c.planeModelAssetId} onChange={(v) => update({ planeModelAssetId: v })} noneLabel="(use robot model)" />
           </Field>
           <NumRow label="Ground model scale (landing/mission + afterimages)" value={c.modelScale ?? GROUND_BASE_SCALE} step={0.1} min={0.1} onChange={(v) => update({ modelScale: v })} />
+          <Check label="Can fly at destination (F toggle — Space up / Ctrl down / Shift+move fast)" checked={c.canFly ?? false} onChange={(v) => update({ canFly: v })} />
 
           {/* Animation clips — read live from the selected model's GLB. Single-clip fallbacks when no rules. */}
           <div className={lbl}>Animation clips (fallback)</div>

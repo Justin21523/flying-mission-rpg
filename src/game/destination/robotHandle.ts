@@ -9,4 +9,5 @@ export const robotHandle = {
   hSpeed: 0,
   altitude: 80,
   thrusters: false,
+  flying: false, // ground-phase flight toggle (F) active
 };
