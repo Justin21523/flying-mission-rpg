@@ -10,6 +10,7 @@ import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { useWorldFlightRuntimeStore } from '../../stores/game/worldFlightRuntimeStore';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useTransformationPreviewStore } from '../../stores/game/transformationPreviewStore';
+import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { getEditorCharacters, getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { getEditorMissions, getEditorMission } from '../../stores/game/editorMissionStore';
 import { getEditorLocations, getEditorLocation } from '../../stores/game/editorLocationStore';
@@ -195,6 +196,7 @@ export function resetDevScenarioRuntime(): void {
   useTransformationPreviewStore.getState().stop();
   useMissionStore.getState().clearRuntime();
   useCharacterStore.getState().clearSupport();
+  useSupportRuntimeStore.getState().reset();
 }
 
 export function applyDevScenario(input: DevScenarioInput, phase: GamePhase): ResolvedDevScenario {

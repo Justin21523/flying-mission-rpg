@@ -21,12 +21,14 @@ import { GroundAfterimageLayer } from './GroundAfterimageLayer';
 import { SuperAbilityFx } from '../player/SuperAbilityFx';
 import { DestinationYokaiLayer } from './DestinationYokaiLayer';
 import { KillFxLayer } from '../player/KillFxLayer';
+import { SupportCompanionLayer } from '../characters/runtime/SupportCompanionLayer';
+import { CompanionAiHost } from '../characters/ai/CompanionAiHost';
 
 // The destination vertical slice (DESCENT → LANDING → NPC_GREETING → MISSION_GAMEPLAY → MISSION_COMPLETE).
 // One scene for all five phases: the POLI editable ground ('aero_destination' — sculpt/PBR/environment
 // tools work here), the gizmo-editable layout + NPCs, and the phase-appropriate controller. Edit Mode shows
 // everything selectable with the flat-bright ambience. Runtime resets on unmount.
-const GROUND_PHASES = new Set(['NPC_GREETING', 'MISSION_GAMEPLAY', 'MISSION_COMPLETE']);
+const GROUND_PHASES = new Set(['NPC_GREETING', 'MISSION_GAMEPLAY', 'SUPPORT_SELECTION', 'MISSION_COMPLETE']);
 
 export const DestinationScene = () => {
   const editMode = useUiStore((s) => s.editMode);
@@ -48,6 +50,7 @@ export const DestinationScene = () => {
         <EditableGround areaId="aero_destination" />
         <DestinationLayoutLayer />
         {!editMode && GROUND_PHASES.has(phase) && <RobotGroundController />}
+        {!editMode && GROUND_PHASES.has(phase) && <SupportCompanionLayer />}
       </Physics>
 
       <DestinationNpcLayer />
@@ -56,6 +59,7 @@ export const DestinationScene = () => {
       {!editMode && (phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY') && <ObjectiveDirectorHost />}
       {!editMode && GROUND_PHASES.has(phase) && (
         <>
+          <CompanionAiHost />
           <GroundAbilityFx />
           <GroundAfterimageLayer />
           <SuperAbilityFx />

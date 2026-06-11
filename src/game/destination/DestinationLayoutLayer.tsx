@@ -77,6 +77,7 @@ const PartVisual = ({ part }: { part: DestinationPart }) => {
         </group>
       );
     case 'marker':
+    case 'support_spawn':
     case 'spawn_air':
       return (
         <mesh position={[0, 0.8, 0]}>
@@ -101,7 +102,7 @@ const PartVisual = ({ part }: { part: DestinationPart }) => {
   }
 };
 
-const EDIT_ONLY: ReadonlySet<DestinationPart['kind']> = new Set(['spawn_air', 'boundary', 'marker']);
+const EDIT_ONLY: ReadonlySet<DestinationPart['kind']> = new Set(['spawn_air', 'support_spawn', 'boundary', 'marker']);
 
 const DestinationEntity = ({ part, editMode }: { part: DestinationPart; editMode: boolean }) => {
   const key = destinationPartKey(part.id);

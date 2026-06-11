@@ -30,6 +30,7 @@ export interface MissionObjective {
   miniGameId?: string; // activate/repair: the Phaser mini-game that completes it
   hintText?: string; // optional HUD hint (e.g. search area description)
   completeEffects?: DialogueEffect[]; // fired once when THIS objective completes (Mission Studio)
+  allowAiAssistComplete?: boolean; // Batch 8: companion AI may complete only when the author allows it
 }
 
 // Structured mission reward (Mission Studio) — a friendly POLI-style reward row. Coins go through walletStore;

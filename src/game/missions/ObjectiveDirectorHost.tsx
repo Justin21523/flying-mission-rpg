@@ -123,6 +123,16 @@ export const ObjectiveDirectorHost = () => {
       return;
     }
 
+    // External legal assist APIs (Batch 8 support AI) may mark objective progress in the mission runtime.
+    // Mirror completed runtime objectives into the local ObjectiveModel so the normal completion pipeline
+    // remains the single path to rewards and MISSION_COMPLETE.
+    const runtimeProgress = useMissionStore.getState().runtime?.objectiveProgress ?? {};
+    if (m) {
+      for (const [objId, progress] of Object.entries(runtimeProgress)) {
+        if (progress.done && m.states[objId] === 'active') m.states[objId] = 'completed';
+      }
+    }
+
     let prompt: string | null = null;
     const parts = getDestinationParts().filter((p) => p.enabled);
 

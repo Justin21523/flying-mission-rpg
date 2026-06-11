@@ -89,7 +89,7 @@ export const Scene = () => {
       );
     }
     const destinationPhase =
-      phase === 'DESCENT' || phase === 'LANDING' || phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'MISSION_COMPLETE';
+      phase === 'DESCENT' || phase === 'LANDING' || phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'SUPPORT_SELECTION' || phase === 'MISSION_COMPLETE';
     if (destinationPhase) {
       return (
         <>

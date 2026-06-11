@@ -86,6 +86,7 @@ const ObjectivesEditor = ({ mission, update, npcs }: { mission: MissionDefinitio
               )}
               <TextRow label="Hint" value={o.hintText ?? ''} onChange={(v) => patch(o.id, { hintText: v || undefined })} />
               <Check label="Optional" checked={o.optional ?? false} onChange={(v) => patch(o.id, { optional: v })} />
+              <Check label="Allow AI assist complete" checked={o.allowAiAssistComplete ?? false} onChange={(v) => patch(o.id, { allowAiAssistComplete: v })} />
               <div className={lbl}>On this objective complete</div>
               <MechListEditor label="Effects" kind="effect" items={o.completeEffects} onChange={(items) => patch(o.id, { completeEffects: items as DialogueEffect[] | undefined })} />
               <button onClick={() => remove(o.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>

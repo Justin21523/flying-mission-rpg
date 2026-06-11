@@ -7,6 +7,7 @@ export type DestinationPartKind =
   | 'landing_zone'
   | 'safe_zone'
   | 'spawn_air' // where the descent starts (in the sky above the layout)
+  | 'support_spawn'
   | 'dropoff_zone'
   | 'carry_item'
   | 'lost_item'
@@ -20,6 +21,7 @@ export const DESTINATION_PART_KINDS: readonly DestinationPartKind[] = [
   'landing_zone',
   'safe_zone',
   'spawn_air',
+  'support_spawn',
   'dropoff_zone',
   'carry_item',
   'lost_item',

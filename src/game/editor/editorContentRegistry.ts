@@ -40,6 +40,7 @@ import { useEditorFlightCueStore } from '../../stores/game/editorFlightCueStore'
 import { useEditorRegionStore } from '../../stores/game/editorRegionStore';
 import { useEditorAeroYokaiStore } from '../../stores/game/editorAeroYokaiStore';
 import { useHuntStore } from '../../stores/game/huntStore';
+import { useEditorSupportStore } from '../../stores/game/editorSupportStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -69,6 +70,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorGameNpcStore, useEditorTransformationStore, useEditorBaseLayoutStore,
   useEditorFlightStore, useEditorExteriorStore, useEditorFlightEventStore, useEditorDestinationStore,
   useEditorCameraStore, useEditorFlightCueStore, useEditorRegionStore, useEditorAeroYokaiStore, useHuntStore,
+  useEditorSupportStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -214,6 +216,17 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorFlightCueStore.getState().importState(data as { byPath?: never }); },
     clear: () => useEditorFlightCueStore.getState().reset(),
     summary: () => `${Object.values(useEditorFlightCueStore.getState().byPath).reduce((n, l) => n + l.length, 0)} flight cues`,
+  },
+  {
+    id: 'gameSupport',
+    label: 'Support Dispatch',
+    serialize: () => {
+      const s = useEditorSupportStore.getState();
+      return { profiles: s.profiles, aiProfiles: s.aiProfiles, limits: s.limits, seeded: s.seeded };
+    },
+    deserialize: (data) => { if (isObj(data)) useEditorSupportStore.getState().importState(data as { profiles?: never; aiProfiles?: never; limits?: never; seeded?: boolean }); },
+    clear: () => useEditorSupportStore.getState().reset(),
+    summary: () => `${useEditorSupportStore.getState().profiles.length} support profiles`,
   },
   {
     id: 'sceneEdit',

@@ -27,10 +27,16 @@ import { LandingHud } from './ui/game/LandingHud';
 import { MissionHud } from './ui/game/MissionHud';
 import { HuntHud } from './ui/game/HuntHud';
 import { MissionCompleteHud } from './ui/game/MissionCompleteHud';
+import { MultiCharacterHud } from './ui/hud/MultiCharacterHud';
 import { PhaserOverlay } from './ui/phaser/PhaserOverlay';
 import { DestinationDebugPanel } from './ui/dev/DestinationDebugPanel';
 import { WorldFlightDebugPanel } from './ui/dev/WorldFlightDebugPanel';
 import { TransformationDebugPanel } from './ui/dev/TransformationDebugPanel';
+import { SupportDebugPanel } from './ui/dev/SupportDebugPanel';
+import { SupportSelectionPanel } from './ui/support/SupportSelectionPanel';
+import { SupportDispatchStatusPanel } from './ui/support/SupportDispatchStatusPanel';
+import { SupportArrivalToast } from './ui/support/SupportArrivalToast';
+import { SupportDispatchDirectorHost } from './game/support/SupportDispatchDirectorHost';
 import { useGameStore } from './stores/game/useGameStore';
 import { usePoll } from './ui/usePoll';
 
@@ -110,7 +116,7 @@ export const App = () => {
   const transformPhase = phase === 'TRANSFORMATION';
   const descentPhase = phase === 'DESCENT';
   const landingPhase = phase === 'LANDING';
-  const missionPhase = phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY';
+  const missionPhase = phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'SUPPORT_SELECTION';
   const missionDonePhase = phase === 'MISSION_COMPLETE';
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
@@ -241,6 +247,11 @@ export const App = () => {
       {!editMode && !world && descentPhase && <DescentHud />}
       {!editMode && !world && landingPhase && <LandingHud />}
       {!editMode && !world && missionPhase && <MissionHud />}
+      {!editMode && !world && missionPhase && <SupportDispatchDirectorHost />}
+      {!editMode && !world && missionPhase && <SupportSelectionPanel />}
+      {!editMode && !world && missionPhase && <SupportDispatchStatusPanel />}
+      {!editMode && !world && missionPhase && <SupportArrivalToast />}
+      {!editMode && !world && missionPhase && <MultiCharacterHud />}
       {!editMode && !world && missionPhase && <HuntHud />}
       {!editMode && !world && missionDonePhase && <MissionCompleteHud />}
       {/* POLI dialogue box + the Phaser mini-game overlay serve the destination phases too. */}
@@ -253,6 +264,7 @@ export const App = () => {
       {(fsmDebug || editMode) && worldFlightPhase && <WorldFlightDebugPanel />}
       {(fsmDebug || editMode) && transformPhase && <TransformationDebugPanel />}
       {(fsmDebug || editMode) && (descentPhase || landingPhase || missionPhase || missionDonePhase) && <DestinationDebugPanel />}
+      {(fsmDebug || editMode) && missionPhase && <SupportDebugPanel />}
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}

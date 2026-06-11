@@ -10,6 +10,7 @@ import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStor
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
 import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { useEditorDestinationStore } from '../../stores/game/editorDestinationStore';
+import { useEditorSupportStore } from '../../stores/game/editorSupportStore';
 import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
 import { useModelStudioStore } from '../../stores/modelStudioStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
@@ -51,6 +52,7 @@ export function seedGameContent(): void {
   useEditorExteriorStore.getState().mergeMissingFromSeed();
   useEditorFlightEventStore.getState().mergeMissingFromSeed();
   useEditorDestinationStore.getState().mergeMissingFromSeed();
+  useEditorSupportStore.getState().mergeMissingFromSeed();
 
   // Seed our 航道 curves into the editorPathStore so the 🛣 Tracks tab + node gizmos edit the REAL paths
   // (fly-around around the base, and the long-distance world route).
@@ -58,4 +60,3 @@ export function seedGameContent(): void {
   ALL_WORLD_PATHS.forEach(seedPath);
   seedCraftScale();
 }
-

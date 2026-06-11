@@ -1,4 +1,5 @@
 import type { GamePhase } from '../../types/game/state';
+import type { SupportDispatchMode, SupportDispatchStatus } from '../../types/game/support';
 
 // Typed game-wide pub/sub. Decouples systems (Director ↔ stores ↔ UI) without prop-drilling. Every
 // `on` returns a disposer so subscribers clean up. Payloads are typed per event name.
@@ -7,6 +8,13 @@ export interface GameEventMap {
   'phase:blocked': { from: GamePhase; to: GamePhase; reason: string };
   'mission:selected': { missionId: string };
   'character:selected': { characterId: string };
+  'support:requested': { characterId: string; mode: SupportDispatchMode };
+  'support:stage-changed': { characterId: string; status: SupportDispatchStatus };
+  'support:eta-updated': { characterId: string; etaSeconds: number };
+  'support:arrived': { characterId: string };
+  'support:cancelled': { characterId: string; reason?: string };
+  'support:tier-changed': { characterId: string; tier: 'active' | 'standby' | 'remote' };
+  'control:switched': { fromCharacterId: string; toCharacterId: string };
 }
 
 export type GameEventName = keyof GameEventMap;
