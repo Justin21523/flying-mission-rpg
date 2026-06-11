@@ -29,4 +29,6 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   worldBankDeg: 35,
   worldSteerSpeed: 45,
   worldVertSpeed: 40,
+  worldCloudScale: 2,
+  worldFlightDurationSec: 120,
 };

@@ -20,7 +20,10 @@ import { FlightProgressHud } from './ui/game/FlightProgressHud';
 import { FlightSonarHud } from './ui/game/FlightSonarHud';
 import { WorldMapHud } from './ui/game/WorldMapHud';
 import { DestinationApproachHud } from './ui/game/DestinationApproachHud';
+import { TransformationHud } from './ui/game/TransformationHud';
+import { DescentHud } from './ui/game/DescentHud';
 import { WorldFlightDebugPanel } from './ui/dev/WorldFlightDebugPanel';
+import { TransformationDebugPanel } from './ui/dev/TransformationDebugPanel';
 import { useGameStore } from './stores/game/useGameStore';
 import { usePoll } from './ui/usePoll';
 
@@ -96,6 +99,8 @@ export const App = () => {
   const flightPhase = FLIGHT_PHASES.has(phase);
   const worldFlightPhase = phase === 'WORLD_FLIGHT';
   const approachPhase = phase === 'DESTINATION_APPROACH';
+  const transformPhase = phase === 'TRANSFORMATION';
+  const descentPhase = phase === 'DESCENT';
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -220,11 +225,14 @@ export const App = () => {
         </>
       )}
       {!editMode && !world && approachPhase && <DestinationApproachHud />}
+      {!editMode && !world && transformPhase && <TransformationHud />}
+      {!editMode && !world && descentPhase && <DescentHud />}
       <Dock />
       <DevPanel />
       {/* Phase jumper: always available in Edit Mode (jump to any mid-game scene), plus the Leva toggle. */}
       {(fsmDebug || editMode) && <GameStateDebugPanel />}
       {(fsmDebug || editMode) && worldFlightPhase && <WorldFlightDebugPanel />}
+      {(fsmDebug || editMode) && transformPhase && <TransformationDebugPanel />}
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}

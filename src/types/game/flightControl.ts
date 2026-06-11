@@ -32,4 +32,6 @@ export interface FlightTuning {
   worldBankDeg: number; // world-flight: bank-into-turn roll (deg) for the A/D feel
   worldSteerSpeed: number; // world-flight: lateral drift speed while holding A/D (units/sec)
   worldVertSpeed: number; // world-flight: climb/descend speed while holding Space/Shift (units/sec)
+  worldCloudScale: number; // world-flight: cloud-puff size multiplier
+  worldFlightDurationSec: number; // world-flight: end-to-end flight time (unified across routes)
 }

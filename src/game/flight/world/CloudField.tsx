@@ -25,6 +25,8 @@ const _rel = new Vector3();
 const POS: Vector3[] = Array.from({ length: MAX_CLOUDS }, () => new Vector3());
 const SCALE = new Float32Array(MAX_CLOUDS);
 
+let SCALE_MUL = 2; // editable cloud-size multiplier (worldCloudScale)
+
 // Place puff i ahead of the craft along `fwd`, spread wide to the sides and dropped into the cloud carpet.
 function place(i: number, ahead: number): void {
   const lat = (Math.random() * 2 - 1) * LATERAL;
@@ -33,21 +35,23 @@ function place(i: number, ahead: number): void {
   p.x += -_fwd.z * lat;
   p.z += _fwd.x * lat;
   p.y = flightHandle.pos.y - (DROP_MIN + Math.random() * DROP_RANGE);
-  SCALE[i] = 14 + Math.random() * 28; // big puffs → continuous carpet
+  SCALE[i] = (14 + Math.random() * 28) * SCALE_MUL; // big puffs → continuous carpet
 }
 
-const CloudFieldInner = ({ count }: { count: number }) => {
+const CloudFieldInner = ({ count, scale }: { count: number; scale: number }) => {
   const mesh = useRef<InstancedMesh>(null);
   const deck = useRef<Mesh>(null);
 
   useEffect(() => {
+    SCALE_MUL = scale;
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
     for (let i = 0; i < count; i++) place(i, (Math.random() * 2 - 1) * AHEAD);
-  }, [count]);
+  }, [count, scale]);
 
   useFrame(() => {
     const m = mesh.current;
     if (!m) return;
+    SCALE_MUL = scale;
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
     for (let i = 0; i < count; i++) {
       _rel.copy(POS[i]).sub(flightHandle.pos);
@@ -79,8 +83,9 @@ const CloudFieldInner = ({ count }: { count: number }) => {
 export const CloudField = () => {
   useEditorRouteStore((s) => s.items); // reactive: 🌦 cloud-density edits re-resolve the count
   const base = useEditorFlightStore((s) => s.tuning.worldCloudCount);
+  const scale = useEditorFlightStore((s) => Math.max(0.25, s.tuning.worldCloudScale));
   const density = getActiveRoute()?.editorEnvironment?.cloudDensity ?? 1;
   const count = Math.min(MAX_CLOUDS, Math.max(8, Math.round(base * density)));
-  // Key by count so changing it (Flight tab or route density) rebuilds the instanced pool cleanly.
-  return <CloudFieldInner key={count} count={count} />;
+  // Key by count+scale so changing either (Flight tab / route density) rebuilds the instanced pool cleanly.
+  return <CloudFieldInner key={`${count}-${scale}`} count={count} scale={scale} />;
 };

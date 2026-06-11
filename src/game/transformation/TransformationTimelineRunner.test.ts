@@ -1,0 +1,58 @@
+import { describe, it, expect } from 'vitest';
+import { TransformationTimelineRunner } from './TransformationTimelineRunner';
+import { makeTimeline } from './testFixture';
+
+describe('TransformationTimelineRunner', () => {
+  it('full mode activates a part-transform mid-stage', () => {
+    const r = new TransformationTimelineRunner(makeTimeline(), 'full');
+    r.seek(0.75); // halfway through s1 (0.5..1.0)
+    const wing = r.getSnapshot().parts.get('wing_left')!;
+    expect(wing.rotation[2]).toBeGreaterThan(20);
+    expect(wing.rotation[2]).toBeLessThan(90);
+  });
+
+  it('reveals the robot model only after its model-visibility stage', () => {
+    const r = new TransformationTimelineRunner(makeTimeline(), 'full');
+    r.seek(2.0);
+    expect(r.getSnapshot().modelVisible.robot).toBe(false);
+    r.seek(2.7);
+    expect(r.getSnapshot().modelVisible.robot).toBe(true);
+  });
+
+  it('quick mode keeps only essential stages, time-scaled', () => {
+    const r = new TransformationTimelineRunner(makeTimeline(), 'quick');
+    expect(r.duration).toBeCloseTo(1.5);
+    // the non-essential part-transform is dropped → wing stays at base even near the end
+    r.seek(1.4);
+    expect(r.getSnapshot().parts.get('wing_left')!.rotation[2]).toBe(0);
+    // but the robot model still reveals (essential)
+    expect(r.getSnapshot().modelVisible.robot).toBe(true);
+  });
+
+  it('pause stops time; resume continues', () => {
+    const r = new TransformationTimelineRunner(makeTimeline(), 'full');
+    r.tick(0.5);
+    r.pause();
+    r.tick(1.0);
+    expect(r.time).toBeCloseTo(0.5);
+    r.resume();
+    r.tick(0.5);
+    expect(r.time).toBeCloseTo(1.0);
+  });
+
+  it('fastForward completes the timeline', () => {
+    const r = new TransformationTimelineRunner(makeTimeline(), 'full');
+    r.fastForward();
+    expect(r.isDone()).toBe(true);
+    expect(r.time).toBeCloseTo(r.duration);
+  });
+
+  it('interactive mode holds at showcase until confirm', () => {
+    const r = new TransformationTimelineRunner(makeTimeline(), 'interactive');
+    r.tick(10); // past the end
+    expect(r.getPhase()).toBe('showcase');
+    expect(r.isDone()).toBe(false);
+    r.confirm();
+    expect(r.isDone()).toBe(true);
+  });
+});

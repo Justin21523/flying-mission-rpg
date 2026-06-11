@@ -28,6 +28,8 @@ const FIELDS: { key: keyof FlightTuning; label: string; step: number }[] = [
   { key: 'worldCraftYawDeg', label: 'Craft yaw (deg)', step: 90 },
   { key: 'worldSteerSpeed', label: 'Steer speed (hold A/D)', step: 5 },
   { key: 'worldVertSpeed', label: 'Climb speed (hold Spc/Shift)', step: 5 },
+  { key: 'worldCloudScale', label: 'Cloud size ×', step: 0.25 },
+  { key: 'worldFlightDurationSec', label: 'Flight time (sec)', step: 10 },
   { key: 'worldSteerRange', label: 'Steer max range (A/D)', step: 10 },
   { key: 'worldVertRange', label: 'Vertical max range (↑/↓)', step: 10 },
   { key: 'worldSteerSmooth', label: 'Bank smoothing', step: 0.5 },

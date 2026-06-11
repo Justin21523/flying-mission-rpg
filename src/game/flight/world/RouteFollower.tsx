@@ -70,12 +70,13 @@ export const RouteFollower = () => {
     if (!cc) return;
     const dt = Math.min(dtRaw, 0.05);
     const tuning = getFlightTuning();
-    const speedMult = character ? character.stats.flightSpeed / 6 : 1;
     const k = keys.current;
-    // Always cruise forward — W boosts, S eases off (never reverses).
+    // Always cruise forward — W boosts, S eases off (never reverses). Flight time is UNIFIED: a route takes
+    // worldFlightDurationSec end-to-end regardless of its path length (so all routes are ~2 min by default).
     const boost = k['KeyW'] ? 1.7 : k['KeyS'] ? 0.45 : 1;
-    const pathSpeed = tuning.cruiseSpeed * speedMult * boost;
-    u.current = Math.min(1, u.current + (pathSpeed * dt) / Math.max(1, cc.length));
+    const dur = Math.max(5, tuning.worldFlightDurationSec);
+    u.current = Math.min(1, u.current + (dt / dur) * boost);
+    const pathSpeed = (cc.length / dur) * boost; // for HUD display only
     // Dev jumps (WorldFlightDebugPanel): snap / advance route progress.
     if (worldFlightDev.jumpU >= 0) { u.current = Math.min(1, worldFlightDev.jumpU); worldFlightDev.jumpU = -1; }
     if (worldFlightDev.progressDelta !== 0) { u.current = Math.min(1, u.current + worldFlightDev.progressDelta); worldFlightDev.progressDelta = 0; }
