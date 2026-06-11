@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGameStore } from '../../stores/game/useGameStore';
+import { useUiStore } from '../../stores/uiStore';
 import { useMissionStore } from '../../stores/game/useMissionStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { useFlightStore } from '../../stores/game/useFlightStore';
@@ -195,6 +196,13 @@ export const GameStateDebugPanel = () => {
     focusForPhase(p, applied.routeId);
   };
 
+  // Jump to a phase, apply the scenario, AND drop straight into Play Mode — so after editing a stage you can
+  // immediately feel it in play (the requested "edit → test" loop).
+  const playFromPhase = (p: GamePhase): void => {
+    applyScenarioToPhase(p, true);
+    useUiStore.getState().setEditMode(false);
+  };
+
   const setLiveRouteProgress = (value: number): void => {
     const next = Math.max(0, Math.min(1, value));
     setRouteProgress(next);
@@ -312,6 +320,7 @@ export const GameStateDebugPanel = () => {
         <div className="mt-2 flex flex-wrap gap-1">
           <Button tone="sky" onClick={() => applyScenarioToPhase(targetPhase, false)}>Apply Scenario</Button>
           <Button tone="emerald" onClick={() => applyScenarioToPhase(targetPhase, true)}>Jump + Apply</Button>
+          <Button tone="emerald" onClick={() => playFromPhase(targetPhase)}>▶ Play from here</Button>
           <Button tone="amber" onClick={resetDevScenarioRuntime}>Reset Runtime</Button>
         </div>
       </div>

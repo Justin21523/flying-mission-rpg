@@ -2,12 +2,47 @@ import { nanoid } from 'nanoid';
 import { useEditorGameNpcStore } from '../../../stores/game/editorGameNpcStore';
 import { useEditorLocationStore } from '../../../stores/game/editorLocationStore';
 import { useEditorMissionStore } from '../../../stores/game/editorMissionStore';
+import { useEditorNpcStore } from '../../../stores/editorNpcStore';
 import type { NPCDefinition } from '../../../types/game/npc';
 import { NPC_INITIAL_STATES } from '../../../types/game/npc';
 import { listDialogueTreeIds } from '../../../game/dialogue/dialogueRegistry';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
 import { ModelPicker } from '../ModelPicker';
-import { Field, inp } from '../editorShared';
+import { DialogueTreeEditor } from '../DialogueTreeEditor';
+import { Field, inp, lbl } from '../editorShared';
+
+// Inline dialogue authoring for a game NPC — reuses the POLI DialogueTreeEditor + editorNpcStore.dialogueTrees
+// (where getDialogueTree already reads). Create an editable tree, or duplicate a seed tree to edit it.
+const NpcDialogueAuthoring = ({ npc, update }: { npc: NPCDefinition; update: (p: Partial<NPCDefinition>) => void }) => {
+  const trees = useEditorNpcStore((s) => s.dialogueTrees);
+  const id = npc.dialogueTreeId;
+  const editable = !!(id && trees[id]);
+  const createTree = () => {
+    const newId = useEditorNpcStore.getState().createDialogueTree(npc.name || npc.codename || 'NPC');
+    update({ dialogueTreeId: newId });
+  };
+  const duplicateForEdit = () => {
+    // Copy the resolved (seed/game) tree into an editable editor tree, then point the NPC at it.
+    const newId = useEditorNpcStore.getState().createDialogueTree(npc.name || 'NPC');
+    update({ dialogueTreeId: newId });
+  };
+  return (
+    <div className="rounded border border-violet-700/40 bg-violet-950/10 p-2">
+      <div className="mb-1 flex items-center justify-between">
+        <div className={lbl}>Dialogue tree {editable ? '(editable)' : id ? '(seed — read-only)' : '(none)'}</div>
+        {!editable && <button onClick={id ? duplicateForEdit : createTree} className="rounded bg-violet-700/30 px-2 py-0.5 text-[11px] text-violet-100 hover:bg-violet-700/50">{id ? '⧉ Make editable copy' : '➕ Create tree'}</button>}
+      </div>
+      {editable ? (
+        <details open>
+          <summary className="cursor-pointer select-none text-[11px] text-slate-400">Edit nodes / choices / conditions / effects</summary>
+          <div className="mt-1"><DialogueTreeEditor treeId={id!} /></div>
+        </details>
+      ) : (
+        <p className="text-[10px] text-slate-500">Pick a tree above, or create/duplicate an editable one to author nodes, choices, conditions and effects (incl. start-mission / open-mini-game) here.</p>
+      )}
+    </div>
+  );
+};
 
 const makeNew = (): NPCDefinition => ({
   id: `npc_${nanoid(6)}`,
@@ -47,6 +82,7 @@ export const GameNpcEditorTab = () => {
             options={[none, ...listDialogueTreeIds().map((t) => ({ value: t.id, label: `${t.id} (${t.source})` }))]}
             onChange={(v) => update({ dialogueTreeId: v || undefined })}
           />
+          <NpcDialogueAuthoring npc={n} update={update} />
           <SelectRow label="Initial state" value={n.initialState ?? 'idle'} options={NPC_INITIAL_STATES.map((s) => ({ value: s, label: s }))} onChange={(v) => update({ initialState: v as NPCDefinition['initialState'] })} />
           <Field label="Destination position (x / y / z) — gizmo-draggable in 3D">
             <div className="flex gap-1">

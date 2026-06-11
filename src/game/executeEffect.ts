@@ -17,6 +17,7 @@ import { spawnRandomIncident } from './incident/spawnIncident';
 import { canStartQuest } from './quest/questPrereqs';
 import { getEditorMission } from '../stores/game/editorMissionStore';
 import { useMissionStore } from '../stores/game/useMissionStore';
+import { isMissionAvailable } from './missions/missionAvailability';
 import { useGameStore } from '../stores/game/useGameStore';
 import { phaserBridge } from './phaser/phaserBridge';
 
@@ -84,7 +85,8 @@ export function executeEffect(effect: DialogueEffect): void {
     // ── aero-rescue game effects (Batch 7) ──
     case 'startMission': {
       const def = getEditorMission(effect.missionId);
-      if (def) {
+      // Gated by the mission's prerequisites (Mission Studio) — don't begin a mission whose prereqs fail.
+      if (def && isMissionAvailable(def)) {
         useMissionStore.getState().beginMission(def);
         // accepting the mission moves the greeting into gameplay (legal transition; no-op elsewhere)
         if (useGameStore.getState().phase === 'NPC_GREETING') useGameStore.getState().requestTransition('MISSION_GAMEPLAY');

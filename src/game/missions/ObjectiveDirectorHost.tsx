@@ -11,6 +11,7 @@ import { useDialogueStore } from '../../stores/dialogueStore';
 import { getDialogueTree } from '../dialogue/dialogueRegistry';
 import { phaserBridge } from '../phaser/phaserBridge';
 import { ObjectiveModel } from './objectiveModel';
+import { runEffects } from './missionEffects';
 import { robotHandle } from '../destination/robotHandle';
 import { destinationDev } from '../destination/destinationDev';
 import type { DestinationPart } from '../../types/game/destination';
@@ -155,9 +156,11 @@ export const ObjectiveDirectorHost = () => {
       carried.current.position.set(robotHandle.pos.x, robotHandle.pos.y + 2.2, robotHandle.pos.z);
     }
 
-    // completion → MISSION_COMPLETE (once)
+    // completion → fire the mission's reward/flag effects (once), then MISSION_COMPLETE
     if (phase === 'MISSION_GAMEPLAY' && m && !done.current && m.allRequiredDone()) {
       done.current = true;
+      const def = missionId ? getEditorMission(missionId) : undefined;
+      runEffects(def?.completionEffects);
       useMissionStore.getState().completeMission();
       useGameStore.getState().requestTransition('MISSION_COMPLETE');
     }

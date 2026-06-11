@@ -1,6 +1,7 @@
 import type { SourceConfidence } from '../sourceConfidence';
 import type { FlightDifficulty, WeatherKind } from './flight';
 import type { AbilityKind } from './character';
+import type { DialogueCondition, DialogueEffect } from '../dialogue'; // reuse the POLI condition/effect engine
 
 // Child-friendly, non-combat mission archetypes (PDF Batch 7: carry an item / find a lost thing /
 // start-or-repair a device). Re-themed "encounters" are never combat.
@@ -45,6 +46,9 @@ export interface MissionDefinition {
   recommendedCharacterIds: string[];
   summary: string;
   objectives: MissionObjective[];
+  // ── complexity (Mission Studio) — reuse the POLI dialogue condition/effect unions ──
+  prerequisites?: DialogueCondition[]; // ALL must pass for the mission to be offerable / startable
+  completionEffects?: DialogueEffect[]; // rewards / flags fired once when the mission completes
 }
 
 export type MissionStatus = 'pending' | 'active' | 'complete' | 'failed';
