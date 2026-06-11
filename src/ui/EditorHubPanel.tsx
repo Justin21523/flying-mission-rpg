@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUiStore } from '../stores/uiStore';
+import { filterEditorTabs } from './editor/editorTabFilter';
 import { EnvironmentEditorPanel } from './editor/EnvironmentEditorPanel';
 import { NpcEditorTab } from './editor/NpcEditorTab';
 import { QuestEditorTab } from './editor/QuestEditorTab';
@@ -79,6 +80,21 @@ const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[
   { id: 'research', label: '🔬 Research', category: 'Legacy', legacy: true },
 ];
 
+// Remembered hub navigation (last tab / category / Show-Legacy) so the Hub reopens where you left it.
+const HUB_PREFS_KEY = 'aero-editor-hub-v1';
+interface HubPrefs { userTab: Tab; category: TabCategory; showLegacy: boolean }
+function loadHubPrefs(): HubPrefs {
+  try {
+    const raw = localStorage.getItem(HUB_PREFS_KEY);
+    if (raw) {
+      const p = JSON.parse(raw) as Partial<HubPrefs>;
+      const tab = TABS.find((t) => t.id === p.userTab);
+      if (tab) return { userTab: tab.id, category: tab.category, showLegacy: !!p.showLegacy };
+    }
+  } catch { /* ignore */ }
+  return { userTab: 'gchar', category: 'Aero', showLegacy: false };
+}
+
 // Which content domain(s) each tab can export/import as JSON (⬇ current · 📋 example · ⬆ replace). Tabs not
 // listed (project/save) manage their own IO. Multiple ids = that tab edits more than one domain.
 const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
@@ -142,9 +158,12 @@ const TabJsonStrip = ({ tab }: { tab: Tab }) => {
 // Translucent so it doesn't block the scene. (The Assets palette is a separate left-centre panel.)
 export const EditorHubPanel = () => {
   const close = useUiStore((s) => s.toggleEditorHub);
-  const [userTab, setUserTab] = useState<Tab>('gchar');
-  const [category, setCategory] = useState<TabCategory>('Aero');
-  const [showLegacy, setShowLegacy] = useState(false);
+  const [prefs] = useState(loadHubPrefs);
+  const [userTab, setUserTab] = useState<Tab>(prefs.userTab);
+  const [category, setCategory] = useState<TabCategory>(prefs.category);
+  const [showLegacy, setShowLegacy] = useState(prefs.showLegacy);
+  const [search, setSearch] = useState('');
+  useEffect(() => { try { localStorage.setItem(HUB_PREFS_KEY, JSON.stringify({ userTab, category, showLegacy })); } catch { /* ignore */ } }, [userTab, category, showLegacy]);
   // Snap to the POLI tab ONLY for the player handle (key '…#npc#poli') or a character picked in the
   // POLI panel — NOT for generic editor NPCs (those belong to the 🧑 NPC tab, which manages its own
   // selection). Clicking any other tab clears these so the snap never locks the hub on POLI.
@@ -154,7 +173,9 @@ export const EditorHubPanel = () => {
   const tab: Tab = selectedIsPlayer || poliSelectedId ? 'poli' : userTab;
   const activeTab = TABS.find((t) => t.id === tab);
   const visibleCategories = showLegacy ? CATEGORIES : CATEGORIES.filter((c) => c !== 'Legacy');
-  const visibleTabs = TABS.filter((t) => t.category === category && (showLegacy || !t.legacy));
+  const searching = search.trim().length > 0;
+  const searchResults = filterEditorTabs(TABS, search, showLegacy);
+  const visibleTabs = searching ? searchResults : TABS.filter((t) => t.category === category && (showLegacy || !t.legacy));
   const setTab = (t: Tab) => {
     const meta = TABS.find((item) => item.id === t);
     if (meta) setCategory(meta.category);
@@ -203,7 +224,15 @@ export const EditorHubPanel = () => {
             <button onClick={() => setScale((s) => Math.min(2, Math.round((s + 0.1) * 100) / 100))} title="Bigger" className="rounded px-1 text-sm hover:bg-slate-800">+</button>
           </div>
         </div>
-        <div className="mb-2 grid grid-cols-1 gap-1">
+        <div className="mb-2">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Search tabs…"
+            className="w-full rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-100 placeholder:text-slate-500"
+          />
+        </div>
+        {!searching && <div className="mb-2 grid grid-cols-1 gap-1">
           {visibleCategories.map((c) => (
             <button
               key={c}
@@ -217,7 +246,7 @@ export const EditorHubPanel = () => {
               {c}
             </button>
           ))}
-        </div>
+        </div>}
         <label className="mb-2 flex items-center gap-1.5 px-1 text-[10px] text-slate-400">
           <input type="checkbox" checked={showLegacy} onChange={(e) => { setShowLegacy(e.target.checked); if (!e.target.checked && category === 'Legacy') setCategory('Aero'); }} className="accent-sky-500" />
           Show Legacy
@@ -225,8 +254,9 @@ export const EditorHubPanel = () => {
         {/* Scrollable tab list — so every tab is reachable however many there are / however small the hub. */}
         <div className="-mr-1 flex-1 overflow-y-auto pr-1">
           {visibleTabs.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)} className={`mb-0.5 block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold ${tab === t.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.label}</button>
+            <button key={t.id} onClick={() => { setTab(t.id); setSearch(''); }} className={`mb-0.5 block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold ${tab === t.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.label}{searching ? <span className="ml-1 text-[9px] text-slate-500">{t.category}</span> : null}</button>
           ))}
+          {searching && visibleTabs.length === 0 && <div className="px-2 py-1 text-[11px] text-slate-500">No tabs match “{search}”.</div>}
         </div>
         <div className="shrink-0 px-1 pt-2 text-[10px] leading-relaxed text-slate-600">Assets palette is at the left · Inspector top-left. Drop assets into src/assets/ or public/.</div>
       </div>
