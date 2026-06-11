@@ -12,7 +12,7 @@ import type { CharacterForm } from '../../types/game/character';
 // The transformer GLBs are rigged with animations — a STATIC bind pose renders folded/invisible, so we
 // PLAY a clip via an AnimationMixer (same approach as the kit's ModelStudio preview). No distance culling
 // here (this is an isolated preview, not the world).
-const PosedModel = ({ assetId }: { assetId: string }) => {
+const PosedModel = ({ assetId, animation }: { assetId: string; animation?: string }) => {
   const asset = getModelAsset(assetId)!;
   const { scene, animations } = useGLTF(encodeURI(asset.path));
   const cloned = useMemo(() => SkeletonUtils.clone(scene), [scene]);
@@ -23,7 +23,9 @@ const PosedModel = ({ assetId }: { assetId: string }) => {
     if (clips.length === 0) return;
     const mixer = new AnimationMixer(cloned);
     mixerRef.current = mixer;
-    const action = mixer.clipAction(clips[0]);
+    // Play the chosen idle clip if it exists, else the first clip.
+    const clip = (animation && clips.find((c) => c.name === animation)) || clips[0];
+    const action = mixer.clipAction(clip);
     action.reset();
     action.setLoop(LoopRepeat, Infinity);
     action.play();
@@ -31,7 +33,7 @@ const PosedModel = ({ assetId }: { assetId: string }) => {
       mixer.stopAllAction();
       mixerRef.current = null;
     };
-  }, [cloned, animations]);
+  }, [cloned, animations, animation]);
 
   useFrame((_, dt) => mixerRef.current?.update(dt));
 
@@ -63,10 +65,12 @@ export const CharacterPreview3D = ({
   color,
   form,
   modelAssetId,
+  animation,
 }: {
   color: string;
   form: CharacterForm;
   modelAssetId?: string;
+  animation?: string;
 }) => {
   const showModel = form === 'robot' && !!modelAssetId && !!getModelAsset(modelAssetId);
   return (
@@ -77,7 +81,7 @@ export const CharacterPreview3D = ({
       <directionalLight position={[-3, 2, -2]} intensity={0.5} />
       {showModel ? (
         <Suspense fallback={<PrimitiveModel color={color} form={form} />}>
-          <PosedModel assetId={modelAssetId!} />
+          <PosedModel assetId={modelAssetId!} animation={animation} />
         </Suspense>
       ) : (
         <PrimitiveModel color={color} form={form} />

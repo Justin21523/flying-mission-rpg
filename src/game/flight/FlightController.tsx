@@ -195,6 +195,7 @@ export const FlightController = () => {
         {character?.modelAssetId ? (
           <AnimatedGlbModel
             assetId={character.modelAssetId}
+            animation={character.flightAnimation}
             noCull
             fallback={
               <mesh castShadow>

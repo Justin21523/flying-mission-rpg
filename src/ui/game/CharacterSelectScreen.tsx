@@ -62,7 +62,7 @@ export const CharacterSelectScreen = () => {
               </div>
 
               <div className="my-3 h-56 w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/60">
-                <CharacterPreview3D color={selected.color} form={form} modelAssetId={selected.modelAssetId} />
+                <CharacterPreview3D color={selected.color} form={form} modelAssetId={selected.modelAssetId} animation={selected.idleAnimation} />
               </div>
 
               <div className="mb-2 flex gap-1.5">

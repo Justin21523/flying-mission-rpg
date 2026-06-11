@@ -123,7 +123,7 @@ export const RouteFollower = () => {
     <group ref={craft}>
       {/* editable facing offset so the model's nose points along travel (default 180°; dial in 🛩 Flight). */}
       <group rotation={[0, craftYaw * DEG2RAD, 0]}>
-        {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
+        {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} animation={character.flightAnimation} fallback={fallback} noCull /> : fallback}
       </group>
     </group>
   );

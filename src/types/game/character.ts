@@ -1,4 +1,5 @@
 import type { SourceConfidence } from '../sourceConfidence';
+import type { WeatherKind } from './flight';
 
 // A playable flying character. Two forms (vehicle/robot) — the transformation between them is a core
 // pillar. Abilities are child-friendly rescue helpers (no combat, no weapons).
@@ -64,4 +65,11 @@ export interface CharacterDefinition {
   cardImage?: string; // reference card filename in src/assets/cards (Character Select art)
   modelAssetId?: string; // kit model-library id (e.g. 'super-wings/Jett+transformer+3d+model')
   homeBaseLocationId?: string;
+  // ── animation (clip names from the model's GLB; advanced trigger→clip rules live in 🎬 Model Studio) ──
+  idleAnimation?: string; // clip played in previews / on the ground (empty = first clip)
+  flightAnimation?: string; // clip played while flying (empty = first clip / Model-Studio rules)
+  transformAnimation?: string; // clip played during transformation (Batch 6)
+  // ── flavour / extra properties ──
+  catchphrase?: string;
+  preferredWeather?: WeatherKind;
 }
