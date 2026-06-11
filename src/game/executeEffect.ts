@@ -18,6 +18,7 @@ import { canStartQuest } from './quest/questPrereqs';
 import { getEditorMission } from '../stores/game/editorMissionStore';
 import { useMissionStore } from '../stores/game/useMissionStore';
 import { isMissionAvailable } from './missions/missionAvailability';
+import { startDestinationHunt } from '../stores/game/huntStore';
 import { useGameStore } from '../stores/game/useGameStore';
 import { phaserBridge } from './phaser/phaserBridge';
 
@@ -95,6 +96,9 @@ export function executeEffect(effect: DialogueEffect): void {
     }
     case 'openMiniGame':
       phaserBridge.openMiniGame(effect.miniGameId);
+      break;
+    case 'startHunt':
+      startDestinationHunt();
       break;
   }
 }

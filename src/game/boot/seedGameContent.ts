@@ -1,6 +1,7 @@
 import { useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
 import { useEditorLocationStore } from '../../stores/game/editorLocationStore';
 import { useEditorRegionStore } from '../../stores/game/editorRegionStore';
+import { useEditorAeroYokaiStore } from '../../stores/game/editorAeroYokaiStore';
 import { useEditorRouteStore } from '../../stores/game/editorRouteStore';
 import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
@@ -40,6 +41,7 @@ function seedPath(path: PathDefinition): void {
 export function seedGameContent(): void {
   useEditorCharacterStore.getState().mergeMissingFromSeed();
   useEditorRegionStore.getState().mergeMissingFromSeed();
+  useEditorAeroYokaiStore.getState().mergeMissingFromSeed();
   useEditorLocationStore.getState().mergeMissingFromSeed();
   useEditorRouteStore.getState().mergeMissingFromSeed();
   useEditorMissionStore.getState().mergeMissingFromSeed();

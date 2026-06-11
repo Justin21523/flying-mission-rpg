@@ -24,6 +24,7 @@ import { TransformationHud } from './ui/game/TransformationHud';
 import { DescentHud } from './ui/game/DescentHud';
 import { LandingHud } from './ui/game/LandingHud';
 import { MissionHud } from './ui/game/MissionHud';
+import { HuntHud } from './ui/game/HuntHud';
 import { MissionCompleteHud } from './ui/game/MissionCompleteHud';
 import { PhaserOverlay } from './ui/phaser/PhaserOverlay';
 import { DestinationDebugPanel } from './ui/dev/DestinationDebugPanel';
@@ -238,6 +239,7 @@ export const App = () => {
       {!editMode && !world && descentPhase && <DescentHud />}
       {!editMode && !world && landingPhase && <LandingHud />}
       {!editMode && !world && missionPhase && <MissionHud />}
+      {!editMode && !world && missionPhase && <HuntHud />}
       {!editMode && !world && missionDonePhase && <MissionCompleteHud />}
       {/* POLI dialogue box + the Phaser mini-game overlay serve the destination phases too. */}
       {!editMode && !world && missionPhase && <DialogueBox />}

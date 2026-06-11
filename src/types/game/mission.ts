@@ -8,13 +8,14 @@ import type { DialogueCondition, DialogueEffect } from '../dialogue'; // reuse t
 export type MissionType = 'delivery' | 'find_lost' | 'repair';
 export const MISSION_TYPES: readonly MissionType[] = ['delivery', 'find_lost', 'repair'];
 
-export type MissionObjectiveKind = 'carry' | 'find' | 'activate' | 'reach' | 'talk';
+export type MissionObjectiveKind = 'carry' | 'find' | 'activate' | 'reach' | 'talk' | 'hunt';
 export const MISSION_OBJECTIVE_KINDS: readonly MissionObjectiveKind[] = [
   'carry',
   'find',
   'activate',
   'reach',
   'talk',
+  'hunt',
 ];
 
 export interface MissionObjective {

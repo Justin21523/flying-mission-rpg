@@ -19,6 +19,8 @@ import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
 import { GroundAbilityFx } from './GroundAbilityFx';
 import { GroundAfterimageLayer } from './GroundAfterimageLayer';
 import { SuperAbilityFx } from '../player/SuperAbilityFx';
+import { DestinationYokaiLayer } from './DestinationYokaiLayer';
+import { KillFxLayer } from '../player/KillFxLayer';
 
 // The destination vertical slice (DESCENT → LANDING → NPC_GREETING → MISSION_GAMEPLAY → MISSION_COMPLETE).
 // One scene for all five phases: the POLI editable ground ('aero_destination' — sculpt/PBR/environment
@@ -57,6 +59,8 @@ export const DestinationScene = () => {
           <GroundAbilityFx />
           <GroundAfterimageLayer />
           <SuperAbilityFx />
+          <DestinationYokaiLayer />
+          <KillFxLayer />
         </>
       )}
 

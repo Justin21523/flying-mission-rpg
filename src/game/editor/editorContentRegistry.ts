@@ -38,6 +38,8 @@ import { useEditorDestinationStore } from '../../stores/game/editorDestinationSt
 import { useEditorCameraStore } from '../../stores/game/editorCameraStore';
 import { useEditorFlightCueStore } from '../../stores/game/editorFlightCueStore';
 import { useEditorRegionStore } from '../../stores/game/editorRegionStore';
+import { useEditorAeroYokaiStore } from '../../stores/game/editorAeroYokaiStore';
+import { useHuntStore } from '../../stores/game/huntStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -66,7 +68,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorCharacterStore, useEditorLocationStore, useEditorRouteStore, useEditorMissionStore,
   useEditorGameNpcStore, useEditorTransformationStore, useEditorBaseLayoutStore,
   useEditorFlightStore, useEditorExteriorStore, useEditorFlightEventStore, useEditorDestinationStore,
-  useEditorCameraStore, useEditorFlightCueStore, useEditorRegionStore,
+  useEditorCameraStore, useEditorFlightCueStore, useEditorRegionStore, useEditorAeroYokaiStore, useHuntStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -108,6 +110,22 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorRegionStore.getState().importState(data as { items?: never }); },
     clear: () => useEditorRegionStore.getState().reset(),
     summary: () => `${useEditorRegionStore.getState().items.length} regions`,
+  },
+  {
+    id: 'gameYokai',
+    label: 'Yokai Types',
+    serialize: () => { const s = useEditorAeroYokaiStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorAeroYokaiStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorAeroYokaiStore.getState().reset(),
+    summary: () => `${useEditorAeroYokaiStore.getState().items.length} yokai types`,
+  },
+  {
+    id: 'gameHunt',
+    label: 'Hunt Config',
+    serialize: () => ({ config: useHuntStore.getState().config }),
+    deserialize: (data) => { if (isObj(data)) useHuntStore.getState().importState(data as { config?: never }); },
+    clear: () => useHuntStore.getState().reset(),
+    summary: () => `hunt ${useHuntStore.getState().config.durationSec}s`,
   },
   {
     id: 'gameRoute',

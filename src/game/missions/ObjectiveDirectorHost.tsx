@@ -13,6 +13,8 @@ import { getDialogueTree } from '../dialogue/dialogueRegistry';
 import { phaserBridge } from '../phaser/phaserBridge';
 import { ObjectiveModel } from './objectiveModel';
 import { runEffects } from './missionEffects';
+import { useHuntStore, startDestinationHunt } from '../../stores/game/huntStore';
+import { useYokaiCombatStore } from '../../stores/yokaiCombatStore';
 import { canCompleteObjective } from './missionObjectives';
 import { missionRewardEffects, missionRewardCoins } from './missionRewards';
 import { missionDoneFlag } from './missionChain';
@@ -44,6 +46,8 @@ export const ObjectiveDirectorHost = () => {
   const missionId = useMissionStore((s) => s.currentMissionId);
   const defRef = useRef<MissionDefinition | null>(null); // active mission def (stable mid-mission)
   const firedObj = useRef<Set<string>>(new Set()); // objectives whose completeEffects already fired
+  const huntObjId = useRef<string | null>(null); // the hunt objective whose hunt is running
+  const prevHuntActive = useRef(false);
 
   // Sync objective progress + fire a per-objective completeEffects once on first completion.
   const applyObjective = useCallback((objId: string, isDone: boolean, count?: number) => {
@@ -59,6 +63,8 @@ export const ObjectiveDirectorHost = () => {
     const def = missionId ? getEditorMission(missionId) : undefined;
     defRef.current = def ?? null;
     firedObj.current = new Set();
+    huntObjId.current = null;
+    prevHuntActive.current = false;
     if (def) {
       const partIds = new Set(getDestinationParts().filter((p) => p.enabled).map((p) => p.id));
       model.current = new ObjectiveModel(def.objectives, partIds);
@@ -186,6 +192,21 @@ export const ObjectiveDirectorHost = () => {
     if (carried.current) {
       carried.current.visible = !!rt.carryingId;
       carried.current.position.set(robotHandle.pos.x, robotHandle.pos.y + 2.2, robotHandle.pos.z);
+    }
+
+    // 'hunt' objective: start the destination yokai hunt during gameplay; complete it when the hunt ends with
+    // enough defeats (else it restarts — recoverable). Marks the objective done so allRequiredDone() can pass.
+    if (phase === 'MISSION_GAMEPLAY' && m) {
+      const hs = useHuntStore.getState();
+      const huntObj = defRef.current?.objectives.find((o) => o.kind === 'hunt' && m.get(o.id) === 'active');
+      if (huntObj && !hs.active && huntObjId.current === null) { startDestinationHunt(); huntObjId.current = huntObj.id; }
+      if (prevHuntActive.current && !hs.active && huntObjId.current) {
+        const objId = huntObjId.current;
+        const target = defRef.current?.objectives.find((o) => o.id === objId)?.targetCount ?? 1;
+        if (useYokaiCombatStore.getState().kills >= target) { m.states[objId] = 'completed'; applyObjective(objId, true); }
+        huntObjId.current = null;
+      }
+      prevHuntActive.current = hs.active;
     }
 
     // completion → fire the mission's reward/flag effects (once), then MISSION_COMPLETE

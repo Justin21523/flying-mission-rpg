@@ -68,7 +68,8 @@ export type DialogueEffect =
   | { type: 'spawnRandomIncident' }
   // ── aero-rescue game effects (Batch 7) ──
   | { type: 'startMission'; missionId: string }
-  | { type: 'openMiniGame'; miniGameId: string };
+  | { type: 'openMiniGame'; miniGameId: string }
+  | { type: 'startHunt' }; // start the destination yokai hunt
 
 export interface DialogueChoice {
   id: string;

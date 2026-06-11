@@ -22,7 +22,7 @@ export const DIALOGUE_EFFECT_TYPES: DialogueEffectType[] = [
   'addItem', 'giveItem', 'giftItem', 'setWorldFlag', 'startBattle', 'startActivity', 'closeDialogue',
   'increaseTrust', 'startIncident', 'unlockTool',
   'setForm', 'setActiveCharacter', 'spawnRandomIncident',
-  'startMission', 'openMiniGame',
+  'startMission', 'openMiniGame', 'startHunt',
 ];
 
 export const DIALOGUE_CONDITION_TYPES: DialogueConditionType[] = [
@@ -51,6 +51,7 @@ export const EFFECT_FIELDS: Record<DialogueEffectType, MechField[]> = {
   spawnRandomIncident: [],
   startMission: [{ key: 'missionId', label: 'missionId', kind: 'string' }],
   openMiniGame: [{ key: 'miniGameId', label: 'miniGameId (e.g. repair_wiring)', kind: 'string' }],
+  startHunt: [],
 };
 
 export const COND_FIELDS: Record<DialogueConditionType, MechField[]> = {
