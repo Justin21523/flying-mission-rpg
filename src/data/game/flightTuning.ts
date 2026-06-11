@@ -33,7 +33,7 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   worldFlightDurationSec: 15,
   launchDurationSec: 5.5,
   launchTunnelLength: 260,
-  worldCraftScale: 3.2,
-  worldCamDistance: 2.0,
-  worldCamHeight: 0.85,
+  worldCraftScale: 3.4,
+  worldCamDistance: 1.0,
+  worldCamHeight: 0.65,
 };

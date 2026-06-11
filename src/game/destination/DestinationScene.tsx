@@ -14,6 +14,9 @@ import { RobotGroundController } from './RobotGroundController';
 import { LandingSettle } from './LandingSettle';
 import { ObjectiveDirectorHost } from '../missions/ObjectiveDirectorHost';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
+import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
+import { GroundAbilityFx } from './GroundAbilityFx';
+import { GroundAfterimageLayer } from './GroundAfterimageLayer';
 
 // The destination vertical slice (DESCENT → LANDING → NPC_GREETING → MISSION_GAMEPLAY → MISSION_COMPLETE).
 // One scene for all five phases: the POLI editable ground ('aero_destination' — sculpt/PBR/environment
@@ -26,7 +29,10 @@ export const DestinationScene = () => {
   const phase = useGameStore((s) => s.phase);
 
   useEffect(() => {
-    return () => useDestinationRuntimeStore.getState().reset();
+    return () => {
+      useDestinationRuntimeStore.getState().reset();
+      useGroundAbilityStore.getState().reset();
+    };
   }, []);
 
   return (
@@ -44,6 +50,12 @@ export const DestinationScene = () => {
       {!editMode && phase === 'DESCENT' && <RobotDescentController />}
       {!editMode && phase === 'LANDING' && <LandingSettle />}
       {!editMode && (phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY') && <ObjectiveDirectorHost />}
+      {!editMode && GROUND_PHASES.has(phase) && (
+        <>
+          <GroundAbilityFx />
+          <GroundAfterimageLayer />
+        </>
+      )}
 
       <FollowCamera />
       {editMode && <SceneEditorGizmo />}

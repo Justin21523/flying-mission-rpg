@@ -99,9 +99,8 @@ export const TransformationStage = () => {
   }
 
   const overrides = useSceneEditStore((s) => s.overrides);
-  if (def) {
-    def = mergeTransformationOverrides(def, overrides);
-  }
+  const editDef = def;
+  if (def) def = mergeTransformationOverrides(def, overrides);
 
   useEffect(() => {
     txFrame.charModelId = charModelId;
@@ -112,13 +111,13 @@ export const TransformationStage = () => {
   return (
     <>
       <TransformationBackdrop backdropColor={def.backdropColor} glowColor={def.particleColor} />
-      <TransformationCharacterPresenter def={def} charModelId={charModelId} />
+      <TransformationCharacterPresenter def={def} editDef={editDef} editMode={editMode} charModelId={charModelId} />
       {editMode && !previewPlaying ? <TransformationEditOrbitCamera /> : <TransformationCameraController />}
       <TransformationEffects />
       {editMode ? (
         <>
           <TransformationPreviewController def={def} />
-          <TransformationDebugGizmos def={def} />
+          <TransformationDebugGizmos def={editDef ?? def} />
           <SceneEditorGizmo />
         </>
       ) : (

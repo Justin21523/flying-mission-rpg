@@ -41,6 +41,55 @@ export interface CharacterAbility {
   description: string;
 }
 
+export type GroundExtraAbilityKind = 'scan_pulse' | 'hover_pop' | 'rescue_magnet';
+export const GROUND_EXTRA_ABILITY_KINDS: readonly GroundExtraAbilityKind[] = ['scan_pulse', 'hover_pop', 'rescue_magnet'];
+
+export interface GroundCloudRallyConfig {
+  name: string;
+  keyCode: string;
+  durationSec: number;
+  cooldownSec: number;
+  radius: number;
+  strength: number;
+  cloudColor: string;
+  rippleColor: string;
+  energizedDurationSec: number;
+  energizedSpeedMultiplier: number;
+  randomAnimationIntervalSec: number;
+  energizedAnimationClips: string[];
+}
+
+export interface GroundRescueSurgeConfig {
+  name: string;
+  keyCode: string;
+  durationSec: number;
+  cooldownSec: number;
+  speed: number;
+  afterimageIntervalSec: number;
+  afterimageLifeSec: number;
+  afterimageOpacity: number;
+  afterimageColor: string;
+  lockDirection: boolean;
+}
+
+export interface GroundExtraAbilitySlot {
+  id: string;
+  name: string;
+  kind: GroundExtraAbilityKind;
+  keyCode: string;
+  color: string;
+  durationSec: number;
+  cooldownSec: number;
+  radius: number;
+  strength: number;
+}
+
+export interface GroundAbilityConfig {
+  cloudRally: GroundCloudRallyConfig;
+  rescueSurge: GroundRescueSurgeConfig;
+  extraSlots: GroundExtraAbilitySlot[];
+}
+
 // 1..10 design scales — drive flight handling + Mission Control's recommendation hints.
 export interface CharacterStats {
   flightSpeed: number;
@@ -69,6 +118,7 @@ export interface CharacterDefinition {
   idleAnimation?: string; // clip played in previews / on the ground (empty = first clip)
   flightAnimation?: string; // clip played while flying (empty = first clip / Model-Studio rules)
   transformAnimation?: string; // clip played during transformation (Batch 6)
+  groundAbility?: GroundAbilityConfig;
   // ── flavour / extra properties ──
   catchphrase?: string;
   preferredWeather?: WeatherKind;

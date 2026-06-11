@@ -41,42 +41,42 @@ import { useEditorPoliCharacterStore } from '../stores/editorPoliCharacterStore'
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
 type Tab = 'gchar' | 'gloc' | 'groute' | 'gmission' | 'gnpc' | 'gxform' | 'gbase' | 'gflight' | 'gexterior' | 'gevent' | 'genv' | 'gdest' | 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save';
-const TABS: { id: Tab; label: string }[] = [
-  // ── aero-rescue game content (current project) ──
-  { id: 'gchar', label: '🛩 Characters' },
-  { id: 'gloc', label: '🌍 Locations' },
-  { id: 'groute', label: '🧭 Routes' },
-  { id: 'gmission', label: '🎯 Missions' },
-  { id: 'gnpc', label: '🧑 NPC (game)' },
-  { id: 'gxform', label: '✨ Transform' },
-  { id: 'gbase', label: '🏗 Base' },
-  { id: 'gflight', label: '✈ Flight' },
-  { id: 'gexterior', label: '🗼 Exterior' },
-  { id: 'gevent', label: '🌩 Events' },
-  { id: 'genv', label: '🌦 Environment' },
-  { id: 'gdest', label: '🏙 Destination' },
-  // ── inherited kit / POLI editors ──
-  { id: 'debug', label: '🧪 Debug' },
-  { id: 'trigger', label: '⚡ Triggers' },
-  { id: 'encounter', label: '⚔ Encounters' },
-  { id: 'project', label: '📦 Project' },
-  { id: 'npc', label: '🧑 NPC / Dialogue' },
-  { id: 'quest', label: '📜 Quest / Item' },
-  { id: 'minigame', label: '🎮 Mini-games' },
-  { id: 'environment', label: '🌤 Environment' },
-  { id: 'poli', label: '🤖 POLI' },
-  { id: 'landmark', label: '🗺 Landmarks' },
-  { id: 'incident', label: '🚨 Incidents' },
-  { id: 'traffic', label: '🚦 Traffic' },
-  { id: 'tools', label: '🛠 Tools' },
-  { id: 'world', label: '🗺 World' },
-  { id: 'portal', label: '🚪 Portals' },
-  { id: 'license', label: '🎖 License' },
-  { id: 'research', label: '🔬 Research' },
-  { id: 'studio', label: '🎬 Model Studio' },
-  { id: 'tracks', label: '🛣 Tracks' },
-  { id: 'reactions', label: '💥 Reactions' },
-  { id: 'save', label: '💾 Save' },
+type TabCategory = 'Aero' | 'World Tools' | 'Logic' | 'Assets / Project' | 'Legacy';
+const CATEGORIES: readonly TabCategory[] = ['Aero', 'World Tools', 'Logic', 'Assets / Project', 'Legacy'];
+const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[] = [
+  { id: 'gchar', label: '🛩 Characters', category: 'Aero' },
+  { id: 'gloc', label: '🌍 Locations', category: 'Aero' },
+  { id: 'groute', label: '🧭 Routes', category: 'Aero' },
+  { id: 'gmission', label: '🎯 Missions', category: 'Aero' },
+  { id: 'gnpc', label: '🧑 NPC (game)', category: 'Aero' },
+  { id: 'gxform', label: '✨ Transform', category: 'Aero' },
+  { id: 'gbase', label: '🏗 Base', category: 'Aero' },
+  { id: 'gflight', label: '✈ Flight', category: 'Aero' },
+  { id: 'gexterior', label: '🗼 Exterior', category: 'Aero' },
+  { id: 'gevent', label: '🌩 Events', category: 'Aero' },
+  { id: 'genv', label: '🌦 Flight Environment', category: 'Aero' },
+  { id: 'gdest', label: '🏙 Destination', category: 'Aero' },
+  { id: 'tracks', label: '🛣 Paths / Tracks', category: 'World Tools' },
+  { id: 'environment', label: '🌤 Ground Environment', category: 'World Tools' },
+  { id: 'world', label: '🗺 Areas / Map', category: 'World Tools' },
+  { id: 'portal', label: '🚪 Portals', category: 'World Tools' },
+  { id: 'landmark', label: '🗺 Landmarks', category: 'World Tools' },
+  { id: 'studio', label: '🎬 Model Studio', category: 'World Tools' },
+  { id: 'trigger', label: '⚡ Triggers', category: 'Logic' },
+  { id: 'npc', label: '🧑 Dialogue NPCs', category: 'Logic' },
+  { id: 'quest', label: '📜 Quest / Item', category: 'Logic' },
+  { id: 'minigame', label: '🎮 Mini-games', category: 'Logic' },
+  { id: 'reactions', label: '💥 Reactions', category: 'Logic' },
+  { id: 'project', label: '📦 Project', category: 'Assets / Project' },
+  { id: 'debug', label: '🧪 Debug', category: 'Assets / Project' },
+  { id: 'save', label: '💾 Save', category: 'Assets / Project' },
+  { id: 'poli', label: '🤖 POLI Characters', category: 'Legacy', legacy: true },
+  { id: 'encounter', label: '⚔ Encounters', category: 'Legacy', legacy: true },
+  { id: 'incident', label: '🚨 Incidents', category: 'Legacy', legacy: true },
+  { id: 'traffic', label: '🚦 Traffic', category: 'Legacy', legacy: true },
+  { id: 'tools', label: '🛠 Tools', category: 'Legacy', legacy: true },
+  { id: 'license', label: '🎖 License', category: 'Legacy', legacy: true },
+  { id: 'research', label: '🔬 Research', category: 'Legacy', legacy: true },
 ];
 
 // Which content domain(s) each tab can export/import as JSON (⬇ current · 📋 example · ⬆ replace). Tabs not
@@ -84,7 +84,7 @@ const TABS: { id: Tab; label: string }[] = [
 const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
   gchar: ['gameCharacter'],
   gloc: ['gameLocation'],
-  groute: ['gameRoute'],
+  groute: ['gameRoute', 'editorPath'],
   gmission: ['gameMission'],
   gnpc: ['gameNpc'],
   gxform: ['gameTransformation'],
@@ -141,7 +141,9 @@ const TabJsonStrip = ({ tab }: { tab: Tab }) => {
 // Translucent so it doesn't block the scene. (The Assets palette is a separate left-centre panel.)
 export const EditorHubPanel = () => {
   const close = useUiStore((s) => s.toggleEditorHub);
-  const [userTab, setUserTab] = useState<Tab>('debug');
+  const [userTab, setUserTab] = useState<Tab>('gchar');
+  const [category, setCategory] = useState<TabCategory>('Aero');
+  const [showLegacy, setShowLegacy] = useState(false);
   // Snap to the POLI tab ONLY for the player handle (key '…#npc#poli') or a character picked in the
   // POLI panel — NOT for generic editor NPCs (those belong to the 🧑 NPC tab, which manages its own
   // selection). Clicking any other tab clears these so the snap never locks the hub on POLI.
@@ -149,7 +151,12 @@ export const EditorHubPanel = () => {
   const poliSelectedId = useEditorPoliCharacterStore((s) => s.selectedId);
   const selectedIsPlayer = !!selectedKey && selectedKey.endsWith('#npc#poli');
   const tab: Tab = selectedIsPlayer || poliSelectedId ? 'poli' : userTab;
+  const activeTab = TABS.find((t) => t.id === tab);
+  const visibleCategories = showLegacy ? CATEGORIES : CATEGORIES.filter((c) => c !== 'Legacy');
+  const visibleTabs = TABS.filter((t) => t.category === category && (showLegacy || !t.legacy));
   const setTab = (t: Tab) => {
+    const meta = TABS.find((item) => item.id === t);
+    if (meta) setCategory(meta.category);
     setUserTab(t);
     if (t !== 'poli') {
       useEditorPoliCharacterStore.getState().selectPoli(null);
@@ -195,9 +202,28 @@ export const EditorHubPanel = () => {
             <button onClick={() => setScale((s) => Math.min(2, Math.round((s + 0.1) * 100) / 100))} title="Bigger" className="rounded px-1 text-sm hover:bg-slate-800">+</button>
           </div>
         </div>
+        <div className="mb-2 grid grid-cols-1 gap-1">
+          {visibleCategories.map((c) => (
+            <button
+              key={c}
+              onClick={() => {
+                setCategory(c);
+                const first = TABS.find((t) => t.category === c && (showLegacy || !t.legacy));
+                if (first) setTab(first.id);
+              }}
+              className={`rounded px-2 py-1 text-left text-[10px] font-bold ${category === c || activeTab?.category === c ? 'bg-sky-600/25 text-sky-100' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        <label className="mb-2 flex items-center gap-1.5 px-1 text-[10px] text-slate-400">
+          <input type="checkbox" checked={showLegacy} onChange={(e) => { setShowLegacy(e.target.checked); if (!e.target.checked && category === 'Legacy') setCategory('Aero'); }} className="accent-sky-500" />
+          Show Legacy
+        </label>
         {/* Scrollable tab list — so every tab is reachable however many there are / however small the hub. */}
         <div className="-mr-1 flex-1 overflow-y-auto pr-1">
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} className={`mb-0.5 block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold ${tab === t.id ? 'bg-violet-600/30 text-violet-100' : 'text-slate-300 hover:bg-slate-800'}`}>{t.label}</button>
           ))}
         </div>

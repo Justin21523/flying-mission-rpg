@@ -1,14 +1,15 @@
 import { nanoid } from 'nanoid';
 import { useEditorCharacterStore } from '../../../stores/game/editorCharacterStore';
 import { useEditorTransformationStore } from '../../../stores/game/editorTransformationStore';
-import { CHARACTER_FORMS, ABILITY_KINDS } from '../../../types/game/character';
-import type { CharacterDefinition, CharacterAbility } from '../../../types/game/character';
+import { CHARACTER_FORMS, ABILITY_KINDS, GROUND_EXTRA_ABILITY_KINDS } from '../../../types/game/character';
+import type { CharacterDefinition, CharacterAbility, GroundAbilityConfig, GroundExtraAbilitySlot } from '../../../types/game/character';
 import { WEATHER_KINDS } from '../../../types/game/flight';
 import { getModelAsset } from '../../../data/modelLibrary';
-import { csv, parseCsv, Field, lbl } from '../editorShared';
+import { csv, parseCsv, Field, inp, lbl } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
 import { useGltfClipNames } from '../useGltfClipNames';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
+import { cloneGroundAbilityConfig, getGroundAbilityConfig } from '../../../game/destination/groundAbilityConfig';
 
 const makeNew = (): CharacterDefinition => ({
   id: `char_${nanoid(6)}`,
@@ -66,6 +67,138 @@ const AbilitiesEditor = ({ abilities, onChange }: { abilities: CharacterAbility[
   );
 };
 
+const ClipMultiPicker = ({
+  modelAssetId,
+  selected,
+  onChange,
+}: {
+  modelAssetId?: string;
+  selected: string[];
+  onChange: (clips: string[]) => void;
+}) => {
+  const asset = modelAssetId ? getModelAsset(modelAssetId) : undefined;
+  const clips = useGltfClipNames(asset?.path);
+  const available = clips.filter((clip) => !selected.includes(clip));
+  return (
+    <div>
+      <div className={lbl}>Energized animation clips</div>
+      <select
+        value=""
+        disabled={available.length === 0}
+        onChange={(e) => {
+          const clip = e.target.value;
+          if (clip) onChange([...selected, clip]);
+        }}
+        className={inp}
+      >
+        <option value="">{clips.length === 0 ? '(load a model with clips)' : '+ add clip...'}</option>
+        {available.map((clip) => <option key={clip} value={clip}>{clip}</option>)}
+      </select>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {selected.map((clip) => (
+          <button key={clip} onClick={() => onChange(selected.filter((c) => c !== clip))} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-rose-900/50">
+            {clip} ×
+          </button>
+        ))}
+        {selected.length === 0 && <span className="text-[10px] text-slate-500">Idle clip is used when no energized clips are selected.</span>}
+      </div>
+    </div>
+  );
+};
+
+const GroundAbilityEditor = ({ character, update }: { character: CharacterDefinition; update: (p: Partial<CharacterDefinition>) => void }) => {
+  const config = getGroundAbilityConfig(character);
+  const save = (next: GroundAbilityConfig) => update({ groundAbility: cloneGroundAbilityConfig(next) });
+  const patchCloud = (patch: Partial<GroundAbilityConfig['cloudRally']>) => save({ ...config, cloudRally: { ...config.cloudRally, ...patch } });
+  const patchSurge = (patch: Partial<GroundAbilityConfig['rescueSurge']>) => save({ ...config, rescueSurge: { ...config.rescueSurge, ...patch } });
+  const patchExtra = (id: string, patch: Partial<GroundExtraAbilitySlot>) => save({ ...config, extraSlots: config.extraSlots.map((slot) => (slot.id === id ? { ...slot, ...patch } : slot)) });
+  const addExtra = () => save({
+    ...config,
+    extraSlots: [
+      ...config.extraSlots,
+      {
+        id: `extra_${nanoid(5)}`,
+        name: 'New Power',
+        kind: 'scan_pulse',
+        keyCode: `Digit${Math.min(9, config.extraSlots.length + 1)}`,
+        color: character.color,
+        durationSec: 1,
+        cooldownSec: 4,
+        radius: 7,
+        strength: 1,
+      },
+    ],
+  });
+  const removeExtra = (id: string) => save({ ...config, extraSlots: config.extraSlots.filter((slot) => slot.id !== id) });
+  return (
+    <div className="space-y-2 rounded-lg border border-cyan-700/40 bg-cyan-950/15 p-2">
+      <div className={lbl}>Ground super powers</div>
+      <div className="rounded border border-slate-800 bg-slate-900/50 p-1.5">
+        <div className="text-[11px] font-semibold text-cyan-100">Cloud Rally</div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <TextRow label="Name" value={config.cloudRally.name} onChange={(v) => patchCloud({ name: v })} />
+          <TextRow label="Key code" value={config.cloudRally.keyCode} onChange={(v) => patchCloud({ keyCode: v })} />
+          <NumRow label="Duration (s)" value={config.cloudRally.durationSec} step={0.05} min={0.1} onChange={(v) => patchCloud({ durationSec: v })} />
+          <NumRow label="Cooldown (s)" value={config.cloudRally.cooldownSec} step={0.1} min={0} onChange={(v) => patchCloud({ cooldownSec: v })} />
+          <NumRow label="Radius" value={config.cloudRally.radius} step={0.5} min={0.5} onChange={(v) => patchCloud({ radius: v })} />
+          <NumRow label="Strength" value={config.cloudRally.strength} step={0.1} min={0} onChange={(v) => patchCloud({ strength: v })} />
+          <ColorRow label="Cloud colour" value={config.cloudRally.cloudColor} onChange={(v) => patchCloud({ cloudColor: v })} />
+          <ColorRow label="Ripple colour" value={config.cloudRally.rippleColor} onChange={(v) => patchCloud({ rippleColor: v })} />
+          <NumRow label="Energized time (s)" value={config.cloudRally.energizedDurationSec} step={0.25} min={0} onChange={(v) => patchCloud({ energizedDurationSec: v })} />
+          <NumRow label="Energized speed ×" value={config.cloudRally.energizedSpeedMultiplier} step={0.05} min={0.1} onChange={(v) => patchCloud({ energizedSpeedMultiplier: v })} />
+          <NumRow label="Random clip interval" value={config.cloudRally.randomAnimationIntervalSec} step={0.05} min={0.1} onChange={(v) => patchCloud({ randomAnimationIntervalSec: v })} />
+        </div>
+        <div className="mt-1">
+          <ClipMultiPicker modelAssetId={character.modelAssetId} selected={config.cloudRally.energizedAnimationClips} onChange={(clips) => patchCloud({ energizedAnimationClips: clips })} />
+        </div>
+      </div>
+      <div className="rounded border border-slate-800 bg-slate-900/50 p-1.5">
+        <div className="text-[11px] font-semibold text-sky-100">Rescue Surge</div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <TextRow label="Name" value={config.rescueSurge.name} onChange={(v) => patchSurge({ name: v })} />
+          <TextRow label="Key code" value={config.rescueSurge.keyCode} onChange={(v) => patchSurge({ keyCode: v })} />
+          <NumRow label="Duration (s)" value={config.rescueSurge.durationSec} step={0.05} min={0.1} onChange={(v) => patchSurge({ durationSec: v })} />
+          <NumRow label="Cooldown (s)" value={config.rescueSurge.cooldownSec} step={0.1} min={0} onChange={(v) => patchSurge({ cooldownSec: v })} />
+          <NumRow label="Dash speed" value={config.rescueSurge.speed} step={1} min={1} onChange={(v) => patchSurge({ speed: v })} />
+          <NumRow label="Ghost interval" value={config.rescueSurge.afterimageIntervalSec} step={0.005} min={0.01} onChange={(v) => patchSurge({ afterimageIntervalSec: v })} />
+          <NumRow label="Ghost life (s)" value={config.rescueSurge.afterimageLifeSec} step={0.05} min={0.1} onChange={(v) => patchSurge({ afterimageLifeSec: v })} />
+          <NumRow label="Ghost opacity" value={config.rescueSurge.afterimageOpacity} step={0.05} min={0} max={1} onChange={(v) => patchSurge({ afterimageOpacity: v })} />
+          <ColorRow label="Ghost colour" value={config.rescueSurge.afterimageColor} onChange={(v) => patchSurge({ afterimageColor: v })} />
+          <Field label="Direction">
+            <select value={config.rescueSurge.lockDirection ? 'locked' : 'live'} onChange={(e) => patchSurge({ lockDirection: e.target.value === 'locked' })} className={inp}>
+              <option value="locked">locked at key press</option>
+              <option value="live">follow current facing</option>
+            </select>
+          </Field>
+        </div>
+      </div>
+      <div className="rounded border border-slate-800 bg-slate-900/50 p-1.5">
+        <div className="mb-1 flex items-center justify-between">
+          <div className="text-[11px] font-semibold text-amber-100">Extra powers</div>
+          <button onClick={addExtra} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[10px] text-emerald-100 hover:bg-emerald-700/50">+ Power</button>
+        </div>
+        <div className="space-y-1.5">
+          {config.extraSlots.map((slot) => (
+            <div key={slot.id} className="rounded border border-slate-800/80 p-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
+                <TextRow label="Name" value={slot.name} onChange={(v) => patchExtra(slot.id, { name: v })} />
+                <TextRow label="Key code" value={slot.keyCode} onChange={(v) => patchExtra(slot.id, { keyCode: v })} />
+                <SelectRow label="Kind" value={slot.kind} options={GROUND_EXTRA_ABILITY_KINDS.map((kind) => ({ value: kind, label: kind }))} onChange={(v) => patchExtra(slot.id, { kind: v as GroundExtraAbilitySlot['kind'] })} />
+                <ColorRow label="Colour" value={slot.color} onChange={(v) => patchExtra(slot.id, { color: v })} />
+                <NumRow label="Duration (s)" value={slot.durationSec} step={0.05} min={0.1} onChange={(v) => patchExtra(slot.id, { durationSec: v })} />
+                <NumRow label="Cooldown (s)" value={slot.cooldownSec} step={0.1} min={0} onChange={(v) => patchExtra(slot.id, { cooldownSec: v })} />
+                <NumRow label="Radius" value={slot.radius} step={0.5} min={0.5} onChange={(v) => patchExtra(slot.id, { radius: v })} />
+                <NumRow label="Strength" value={slot.strength} step={0.1} min={0} onChange={(v) => patchExtra(slot.id, { strength: v })} />
+              </div>
+              <button onClick={() => removeExtra(slot.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[10px] text-rose-300 hover:bg-rose-700/30">Remove</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 🛩 Characters — full authoring: identity, stats, abilities, the model, animation clips (idle / flight /
 // transform) read live from the GLB, plus flavour. Advanced trigger→clip animation RULES + per-model
 // transform live in the 🎬 Model Studio tab (it targets the same model id).
@@ -108,6 +241,7 @@ export const CharacterEditorTab = () => {
           <p className="text-[10px] text-slate-500">Advanced trigger→clip rules + per-model transform: 🎬 Model Studio (same model id).</p>
 
           <AbilitiesEditor abilities={c.abilities} onChange={(a) => update({ abilities: a })} />
+          <GroundAbilityEditor character={c} update={update} />
 
           <TextRow label="Mission suitability (csv of MissionType)" value={csv(c.missionSuitability)} onChange={(v) => update({ missionSuitability: parseCsv(v) })} />
           <SelectRow label="Transformation" value={c.transformationId ?? ''} options={[{ value: '', label: '(none)' }, ...transformations.map((t) => ({ value: t.id, label: t.name }))]} onChange={(v) => update({ transformationId: v || undefined })} />

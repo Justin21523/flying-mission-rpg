@@ -1,8 +1,10 @@
-import { useRef } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
+import { EditableObject } from '../edit/EditableObject';
 import { txFrame, useTxVersion } from './transformationRuntime';
+import { transformModelSlotKey, transformStageModelKey } from './transformPartKey';
 import type { ActiveModelClip } from './TransformationTimelineRunner';
 import type { TransformationDefinition, TransformationPart, PartGeometryKind, ModelSlot, TransformationTransformOffset } from '../../types/game/transformation';
 
@@ -19,6 +21,15 @@ function offsetForSlot(def: TransformationDefinition, slot: ModelSlot): Transfor
 function offsetForStageModel(def: TransformationDefinition, stageId: string | null | undefined): TransformationTransformOffset {
   if (!stageId) return DEFAULT_OFFSET;
   return def.stages.find((s) => s.id === stageId)?.params.modelOffset ?? DEFAULT_OFFSET;
+}
+
+function offsetBase(offset: TransformationTransformOffset | undefined) {
+  const source = offset ?? DEFAULT_OFFSET;
+  return {
+    position: source.position,
+    rotation: [source.rotation[0] * DEG, source.rotation[1] * DEG, source.rotation[2] * DEG] as [number, number, number],
+    scale: source.scale,
+  };
 }
 
 function clipForSlot(clips: ActiveModelClip[], slot: ModelSlot): ActiveModelClip | undefined {
@@ -62,11 +73,61 @@ const GeomFor = ({ kind }: { kind: PartGeometryKind }) => {
   }
 };
 
-export const TransformationCharacterPresenter = ({ def, charModelId }: { def: TransformationDefinition; charModelId?: string }) => {
+const EditableModelGroup = ({
+  editMode,
+  objKey,
+  editOffset,
+  runtimeOffset,
+  groupRef,
+  initialVisible = false,
+  children,
+}: {
+  editMode: boolean;
+  objKey: string;
+  editOffset?: TransformationTransformOffset;
+  runtimeOffset: TransformationTransformOffset;
+  groupRef: RefObject<Group | null>;
+  initialVisible?: boolean;
+  children: ReactNode;
+}) => {
+  if (editMode) {
+    return (
+      <EditableObject objKey={objKey} base={offsetBase(editOffset)}>
+        <group ref={groupRef} visible={initialVisible}>
+          {children}
+        </group>
+      </EditableObject>
+    );
+  }
+  return (
+    <group
+      ref={groupRef}
+      visible={initialVisible}
+      position={runtimeOffset.position}
+      rotation={[runtimeOffset.rotation[0] * DEG, runtimeOffset.rotation[1] * DEG, runtimeOffset.rotation[2] * DEG]}
+      scale={runtimeOffset.scale}
+    >
+      {children}
+    </group>
+  );
+};
+
+export const TransformationCharacterPresenter = ({
+  def,
+  editDef,
+  editMode = false,
+  charModelId,
+}: {
+  def: TransformationDefinition;
+  editDef?: TransformationDefinition;
+  editMode?: boolean;
+  charModelId?: string;
+}) => {
   const root = useRef<Group>(null);
   const robot = useRef<Group>(null);
   const plane = useRef<Group>(null);
   const shared = useRef<Group>(null);
+  const extra = useRef<Group>(null);
   // Re-render when the active extra model / clip changes (sparse — bumped by the director/preview driver),
   // so multi-model sequences (any number of model-swap stages) and animation-clip switches mount live.
   useTxVersion((s) => s.v);
@@ -91,26 +152,34 @@ export const TransformationCharacterPresenter = ({ def, charModelId }: { def: Tr
   const planeOffset = offsetForSlot(def, 'plane');
   const sharedOffset = offsetForSlot(def, 'shared');
   const extraOffset = offsetForStageModel(def, txFrame.snapshot?.activeModelStageId);
+  const editSource = editDef ?? def;
   return (
     <group ref={root} scale={def.modelScale ?? 1}>
       {(def.parts ?? []).map((p) => (
         <PartMesh key={p.key} part={p} color={p.color ?? color} />
       ))}
       {/* model slots — robot defaults to the character's GLB; plane/shared from the timeline refs */}
-      <group ref={robot} visible={false} position={robotOffset.position} rotation={[robotOffset.rotation[0] * DEG, robotOffset.rotation[1] * DEG, robotOffset.rotation[2] * DEG]} scale={robotOffset.scale}>
+      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'robot')} editOffset={offsetForSlot(editSource, 'robot')} runtimeOffset={robotOffset} groupRef={robot}>
         {(def.robotModelRef ?? charModelId) && <AnimatedGlbModel assetId={(def.robotModelRef ?? charModelId)!} animation={robotClip?.clipName} animationSpeed={robotClip?.clipSpeed} loop={robotClip?.loop} autoPlayFirstClip={!!robotClip} noCull />}
-      </group>
-      <group ref={plane} visible={false} position={planeOffset.position} rotation={[planeOffset.rotation[0] * DEG, planeOffset.rotation[1] * DEG, planeOffset.rotation[2] * DEG]} scale={planeOffset.scale}>
+      </EditableModelGroup>
+      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'plane')} editOffset={offsetForSlot(editSource, 'plane')} runtimeOffset={planeOffset} groupRef={plane}>
         {def.planeModelRef && <AnimatedGlbModel assetId={def.planeModelRef} animation={planeClip?.clipName} animationSpeed={planeClip?.clipSpeed} loop={planeClip?.loop} autoPlayFirstClip={!!planeClip} noCull />}
-      </group>
-      <group ref={shared} visible={false} position={sharedOffset.position} rotation={[sharedOffset.rotation[0] * DEG, sharedOffset.rotation[1] * DEG, sharedOffset.rotation[2] * DEG]} scale={sharedOffset.scale}>
+      </EditableModelGroup>
+      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'shared')} editOffset={offsetForSlot(editSource, 'shared')} runtimeOffset={sharedOffset} groupRef={shared}>
         {def.sharedModelRef && <AnimatedGlbModel assetId={def.sharedModelRef} animation={sharedClip?.clipName} animationSpeed={sharedClip?.clipSpeed} loop={sharedClip?.loop} autoPlayFirstClip={!!sharedClip} noCull />}
-      </group>
+      </EditableModelGroup>
       {/* arbitrary extra model (model-swap stage with a modelRef — supports chained multi-model sequences) */}
       {extraRef && (
-        <group position={extraOffset.position} rotation={[extraOffset.rotation[0] * DEG, extraOffset.rotation[1] * DEG, extraOffset.rotation[2] * DEG]} scale={extraOffset.scale}>
+        <EditableModelGroup
+          editMode={editMode}
+          objKey={transformStageModelKey(def.id, txFrame.snapshot?.activeModelStageId ?? 'active')}
+          editOffset={offsetForStageModel(editSource, txFrame.snapshot?.activeModelStageId)}
+          runtimeOffset={extraOffset}
+          groupRef={extra}
+          initialVisible
+        >
           <AnimatedGlbModel assetId={extraRef} animation={extraClip?.clipName} animationSpeed={extraClip?.clipSpeed} loop={extraClip?.loop} autoPlayFirstClip={!!extraClip} noCull />
-        </group>
+        </EditableModelGroup>
       )}
     </group>
   );

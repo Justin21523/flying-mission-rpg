@@ -4,7 +4,7 @@ import { DEFAULT_FLIGHT_TUNING } from '../../data/game/flightTuning';
 
 // Single editable flight-tuning document (🛩 Flight tab). localStorage-backed; takes effect live so the
 // flight feel can be dialed without code. (No-hardcoded-params rule.)
-const STORAGE_KEY = 'aero-rescue-flight-tuning-v10';
+const STORAGE_KEY = 'aero-rescue-flight-tuning-v11';
 
 function persist(t: FlightTuning): void {
   try {
