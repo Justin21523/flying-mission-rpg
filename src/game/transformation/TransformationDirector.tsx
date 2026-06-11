@@ -100,7 +100,7 @@ export const TransformationDirector = () => {
     // publish snapshot + handle (+ effect-set version bump)
     const snap = r.getSnapshot();
     txFrame.snapshot = snap;
-    useTxVersion.getState().bump(`${snap.activeEffects.map((e) => e.id).join(',')}|${snap.activeModelRef ?? ''}|${snap.activeClip ?? ''}`);
+    useTxVersion.getState().bump(`${snap.activeEffects.map((e) => e.id).join(',')}|${snap.activeModelRef ?? ''}:${snap.activeModelStageId ?? ''}|${snap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
     const fc = form.current;
     Object.assign(transformationHandle, {
       timelineId: def.id, characterId: charId ?? '', mode: r.mode, time: snap.time, duration: snap.duration,

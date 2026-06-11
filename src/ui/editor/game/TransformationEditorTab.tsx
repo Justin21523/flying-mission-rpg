@@ -5,7 +5,8 @@ import { useEditorCharacterStore } from '../../../stores/game/editorCharacterSto
 import { useTransformationPreviewStore } from '../../../stores/game/transformationPreviewStore';
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { validateTimeline } from '../../../game/transformation/transformationValidation';
-import { transformPartKey } from '../../../game/transformation/transformPartKey';
+import { asScaleVec, type EditOverride, type Vec3 as EditVec3 } from '../../../game/edit/sceneEditMerge';
+import { transformModelSlotKey, transformPartKey, transformStageModelKey } from '../../../game/transformation/transformPartKey';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
 import {
@@ -13,7 +14,8 @@ import {
   CAMERA_SHOT_TYPES, EFFECT_TYPES, TRANSFORMATION_MODES,
 } from '../../../types/game/transformation';
 import type {
-  TransformationDefinition, TransformationStage, TransformationCameraShot, TransformationEffectTrack, TransformationPart,
+  ModelSlot, TransformationDefinition, TransformationStage, TransformationCameraShot,
+  TransformationEffectTrack, TransformationPart, TransformationTransformOffset, TransformationVec3,
 } from '../../../types/game/transformation';
 import { Field, inp, lbl, Check } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
@@ -21,6 +23,33 @@ import { TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
 
 const num = (v: string) => parseFloat(v) || 0;
 const opts = (xs: readonly string[]) => xs.map((x) => ({ value: x, label: x }));
+const RAD2DEG = 180 / Math.PI;
+const DEFAULT_OFFSET: TransformationTransformOffset = { position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 };
+const round = (n: number) => Math.round(n * 100) / 100;
+
+function scaleNumber(scale: EditOverride['scale']): number | undefined {
+  if (scale === undefined) return undefined;
+  if (typeof scale === 'number') return scale;
+  const v = asScaleVec(scale);
+  return (v[0] + v[1] + v[2]) / 3;
+}
+
+function radiansToDegrees(rotation: EditVec3): TransformationVec3 {
+  return [rotation[0] * RAD2DEG, rotation[1] * RAD2DEG, rotation[2] * RAD2DEG];
+}
+
+function liveOffset(base: TransformationTransformOffset | undefined, override: EditOverride | undefined): TransformationTransformOffset {
+  const src = base ?? DEFAULT_OFFSET;
+  return {
+    position: override?.position ?? src.position,
+    rotation: override?.rotation ? radiansToDegrees(override.rotation) : src.rotation,
+    scale: scaleNumber(override?.scale) ?? src.scale,
+  };
+}
+
+function clearOverrideField(key: string, field: 'position' | 'rotation' | 'scale'): void {
+  useSceneEditStore.getState().setOverride(key, { [field]: undefined });
+}
 
 const makeNew = (): TransformationDefinition => ({
   id: `xf_${nanoid(6)}`,
@@ -57,17 +86,33 @@ const Vec3 = ({ label, value, onChange }: { label: string; value: [number, numbe
   </Field>
 );
 
-// The model whose GLB clips drive the timeline's animation-clip stages: shared → robot → the bound
-// character's model (so clip dropdowns list REAL clip names instead of free text).
-function timelineClipModelId(def: TransformationDefinition): string | undefined {
-  if (def.sharedModelRef) return def.sharedModelRef;
-  if (def.robotModelRef) return def.robotModelRef;
+function modelIdForSlot(def: TransformationDefinition, slot: ModelSlot): string | undefined {
+  if (slot === 'plane') return def.planeModelRef;
+  if (slot === 'shared') return def.sharedModelRef;
   const ch = def.characterId ? useEditorCharacterStore.getState().items.find((c) => c.id === def.characterId) : undefined;
-  return ch?.modelAssetId;
+  return def.robotModelRef ?? ch?.modelAssetId;
 }
 
-const ClipSelect = ({ def, value, onChange }: { def: TransformationDefinition; value?: string; onChange: (v?: string) => void }) => {
-  const modelId = timelineClipModelId(def);
+function fallbackClipModelId(def: TransformationDefinition): string | undefined {
+  return def.sharedModelRef ?? modelIdForSlot(def, 'robot');
+}
+
+function resolveStageClipModelId(def: TransformationDefinition, stage: TransformationStage): string | undefined {
+  if (stage.params.modelRef) return stage.params.modelRef;
+  if (stage.params.modelSlot) return modelIdForSlot(def, stage.params.modelSlot);
+  const prior = def.stages
+    .filter((s) => (s.type === 'model-swap' || s.type === 'model-visibility') && s.startTime <= stage.startTime)
+    .sort((a, b) => a.startTime - b.startTime);
+  for (let i = prior.length - 1; i >= 0; i -= 1) {
+    const st = prior[i];
+    if (!st) continue;
+    if (st.params.modelRef) return st.params.modelRef;
+    if (st.params.modelSlot) return modelIdForSlot(def, st.params.modelSlot);
+  }
+  return fallbackClipModelId(def);
+}
+
+const ClipSelect = ({ modelId, value, onChange }: { modelId?: string; value?: string; onChange: (v?: string) => void }) => {
   const asset = modelId ? getModelAsset(modelId) : undefined;
   const clips = useGltfClipNames(asset?.path);
   if (clips.length === 0) return <TextRow label="Clip name (type — no model clips found)" value={value ?? ''} onChange={(v) => onChange(v || undefined)} />;
@@ -81,9 +126,60 @@ const ClipSelect = ({ def, value, onChange }: { def: TransformationDefinition; v
   );
 };
 
+const TransformOffsetFields = ({
+  title,
+  objKey,
+  value,
+  onChange,
+}: {
+  title: string;
+  objKey: string;
+  value?: TransformationTransformOffset;
+  onChange: (v: TransformationTransformOffset) => void;
+}) => {
+  const override = useSceneEditStore((s) => s.overrides[objKey]);
+  const selectedKey = useSceneEditStore((s) => s.selectedKey);
+  const live = liveOffset(value, override);
+  const select = () => useSceneEditStore.getState().requestSelect(objKey);
+  const editVec = (field: 'position' | 'rotation', axis: number, v: number) => {
+    const nextVec = [...live[field]] as TransformationVec3;
+    nextVec[axis] = v;
+    onChange({ ...live, [field]: nextVec });
+    clearOverrideField(objKey, field);
+  };
+  const editScale = (v: number) => {
+    onChange({ ...live, scale: v });
+    clearOverrideField(objKey, 'scale');
+  };
+  return (
+    <div className={`rounded border p-1.5 ${selectedKey === objKey ? 'border-violet-500/70 bg-violet-950/30' : 'border-slate-800 bg-slate-900/45'}`}>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="truncate text-[11px] font-semibold text-slate-200">{title}</span>
+        <button onClick={select} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+      </div>
+      <Field label="Position (x / y / z) — live with the gizmo">
+        <div className="flex gap-1">
+          {([0, 1, 2] as const).map((a) => (
+            <input key={a} type="number" step={0.1} value={round(live.position[a])} onChange={(e) => editVec('position', a, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
+          ))}
+        </div>
+      </Field>
+      <Field label="Rotation° (x / y / z)">
+        <div className="flex gap-1">
+          {([0, 1, 2] as const).map((a) => (
+            <input key={a} type="number" step={1} value={round(live.rotation[a])} onChange={(e) => editVec('rotation', a, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
+          ))}
+        </div>
+      </Field>
+      <NumRow label="Scale" value={round(live.scale)} step={0.1} min={0.05} onChange={editScale} />
+    </div>
+  );
+};
+
 // ── parts (the unfold anchors) — numeric form synced with the draggable 3D gizmo anchors ──
 const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const overrides = useSceneEditStore((s) => s.overrides);
+  const selectedKey = useSceneEditStore((s) => s.selectedKey);
   const parts = def.parts ?? [];
   const patch = (key: string, p: Partial<TransformationPart>) => update({ parts: parts.map((x) => (x.key === key ? { ...x, ...p } : x)) });
   const remove = (key: string) => update({ parts: parts.filter((x) => x.key !== key) });
@@ -94,11 +190,26 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
   };
   const livePos = (p: TransformationPart): [number, number, number] =>
     (overrides[transformPartKey(def.id, p.key)]?.position as [number, number, number]) ?? p.basePosition;
+  const liveRot = (p: TransformationPart): [number, number, number] => {
+    const ov = overrides[transformPartKey(def.id, p.key)]?.rotation;
+    return ov ? radiansToDegrees(ov) : p.baseRotation;
+  };
+  const liveScale = (p: TransformationPart): number => scaleNumber(overrides[transformPartKey(def.id, p.key)]?.scale) ?? p.baseScale;
   const editPos = (p: TransformationPart, axis: number, v: number) => {
     const next = [...livePos(p)] as [number, number, number];
     next[axis] = v;
     patch(p.key, { basePosition: next });
-    useSceneEditStore.getState().setOverride(transformPartKey(def.id, p.key), { position: undefined });
+    clearOverrideField(transformPartKey(def.id, p.key), 'position');
+  };
+  const editRot = (p: TransformationPart, axis: number, v: number) => {
+    const next = [...liveRot(p)] as [number, number, number];
+    next[axis] = v;
+    patch(p.key, { baseRotation: next });
+    clearOverrideField(transformPartKey(def.id, p.key), 'rotation');
+  };
+  const editScale = (p: TransformationPart, v: number) => {
+    patch(p.key, { baseScale: v });
+    clearOverrideField(transformPartKey(def.id, p.key), 'scale');
   };
   return (
     <div>
@@ -109,7 +220,11 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
       <p className="mt-0.5 text-[10px] text-slate-500">Drag the blue anchors in 3D (jump to TRANSFORMATION) — positions here follow live.</p>
       <div className="mt-1 space-y-1.5">
         {parts.map((p) => (
-          <div key={p.key} className="rounded bg-slate-900/60 p-1.5">
+          <div key={p.key} className={`rounded border p-1.5 ${selectedKey === transformPartKey(def.id, p.key) ? 'border-violet-500/70 bg-violet-950/30' : 'border-slate-800 bg-slate-900/60'}`}>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="truncate text-[11px] font-semibold text-sky-200">{p.key}</span>
+              <button onClick={() => useSceneEditStore.getState().requestSelect(transformPartKey(def.id, p.key))} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+            </div>
             <div className="grid grid-cols-2 gap-1.5">
               <Field label="Part"><span className="text-[11px] font-semibold text-sky-200">{p.key}</span></Field>
               <SelectRow label="Geometry" value={p.geometry} options={PART_GEOMETRY_KINDS.map((g) => ({ value: g, label: g }))} onChange={(v) => patch(p.key, { geometry: v as TransformationPart['geometry'] })} />
@@ -117,19 +232,45 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
             <Field label="Base position (x / y / z) — live with the gizmo">
               <div className="flex gap-1">
                 {([0, 1, 2] as const).map((a) => (
-                  <input key={a} type="number" step={0.1} value={Math.round(livePos(p)[a] * 100) / 100} onChange={(e) => editPos(p, a, parseFloat(e.target.value) || 0)} className={inp + ' w-0 flex-1 text-center'} />
+                  <input key={a} type="number" step={0.1} value={round(livePos(p)[a])} onChange={(e) => editPos(p, a, parseFloat(e.target.value) || 0)} className={inp + ' w-0 flex-1 text-center'} />
                 ))}
               </div>
             </Field>
-            <Vec3 label="Base rotation°" value={p.baseRotation} onChange={(v) => patch(p.key, { baseRotation: v })} />
+            <Field label="Base rotation° (x / y / z) — live with the gizmo">
+              <div className="flex gap-1">
+                {([0, 1, 2] as const).map((a) => (
+                  <input key={a} type="number" step={1} value={round(liveRot(p)[a])} onChange={(e) => editRot(p, a, parseFloat(e.target.value) || 0)} className={inp + ' w-0 flex-1 text-center'} />
+                ))}
+              </div>
+            </Field>
             <div className="grid grid-cols-2 gap-1.5">
-              <NumRow label="Base scale" value={p.baseScale} step={0.1} min={0.1} onChange={(v) => patch(p.key, { baseScale: v })} />
+              <NumRow label="Base scale" value={round(liveScale(p))} step={0.1} min={0.1} onChange={(v) => editScale(p, v)} />
               <ColorRow label="Colour (empty = theme)" value={p.color ?? def.particleColor} onChange={(v) => patch(p.key, { color: v })} />
             </div>
             <button onClick={() => remove(p.key)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+const ModelSlotsEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
+  const patch = (slot: ModelSlot, value: TransformationTransformOffset) => {
+    update({ modelSlotOffsets: { ...(def.modelSlotOffsets ?? {}), [slot]: value } });
+  };
+  return (
+    <div className="space-y-1.5">
+      <div className={lbl}>Model slot offsets</div>
+      {MODEL_SLOTS.map((slot) => (
+        <TransformOffsetFields
+          key={slot}
+          title={`${slot} slot`}
+          objKey={transformModelSlotKey(def.id, slot)}
+          value={def.modelSlotOffsets?.[slot]}
+          onChange={(v) => patch(slot, v)}
+        />
+      ))}
     </div>
   );
 };
@@ -153,9 +294,19 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
         <>
           <SelectRow label="Model slot" value={p.modelSlot ?? 'robot'} options={opts(MODEL_SLOTS)} onChange={(v) => patch({ modelSlot: v as typeof p.modelSlot })} />
           {s.type === 'model-swap' && (
-            <Field label="Arbitrary model (overrides slot — chain any number of swaps)">
-              <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v })} noneLabel="(use slot)" />
-            </Field>
+            <>
+              <Field label="Arbitrary model (overrides slot — chain any number of swaps)">
+                <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v })} noneLabel="(use slot)" />
+              </Field>
+              {p.modelRef && (
+                <TransformOffsetFields
+                  title="Stage model offset"
+                  objKey={transformStageModelKey(def.id, s.id)}
+                  value={p.modelOffset}
+                  onChange={(v) => patch({ modelOffset: v })}
+                />
+              )}
+            </>
           )}
           <Check label="Visible" checked={p.visible ?? true} onChange={(v) => patch({ visible: v })} />
         </>
@@ -163,8 +314,18 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
     case 'animation-clip':
       return (
         <>
-          <ClipSelect def={def} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
+          <SelectRow
+            label="Target slot"
+            value={p.modelSlot ?? ''}
+            options={[{ value: '', label: '(auto)' }, ...opts(MODEL_SLOTS)]}
+            onChange={(v) => patch({ modelSlot: (v || undefined) as ModelSlot | undefined, modelRef: undefined, clipName: undefined })}
+          />
+          <Field label="Target model override">
+            <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v, clipName: undefined })} noneLabel="(use slot/auto)" />
+          </Field>
+          <ClipSelect modelId={resolveStageClipModelId(def, s)} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
           <NumRow label="Clip speed" value={p.clipSpeed ?? 1} step={0.1} onChange={(v) => patch({ clipSpeed: v })} />
+          <Check label="Loop" checked={p.loop ?? false} onChange={(v) => patch({ loop: v })} />
           <Check label="Hold final frame" checked={p.holdFinal ?? false} onChange={(v) => patch({ holdFinal: v })} />
         </>
       );
@@ -356,6 +517,7 @@ export const TransformationEditorTab = () => {
                   <Field label="Plane model (slot)"><ModelPicker value={def.planeModelRef} onChange={(v) => upd({ planeModelRef: v })} noneLabel="(none)" /></Field>
                   <Field label="Robot model (slot — empty = character's)"><ModelPicker value={def.robotModelRef} onChange={(v) => upd({ robotModelRef: v })} noneLabel="(character's)" /></Field>
                   <Field label="Shared model (slot)"><ModelPicker value={def.sharedModelRef} onChange={(v) => upd({ sharedModelRef: v })} noneLabel="(none)" /></Field>
+                  <ModelSlotsEditor def={def} update={upd} />
                   <StagesEditor def={def} update={upd} />
                 </>
               )}

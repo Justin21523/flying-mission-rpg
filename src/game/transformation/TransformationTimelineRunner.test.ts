@@ -63,9 +63,34 @@ describe('TransformationTimelineRunner', () => {
     expect(r.getSnapshot().activeModelRef).toBeNull();
     r.seek(1.2);
     expect(r.getSnapshot().activeModelRef).toBe('m_alt');
+    expect(r.getSnapshot().activeModelStageId).toBe('ms');
     // a later slot-based stage (s2 at 2.6) returns control to the robot slot
     r.seek(2.8);
     expect(r.getSnapshot().modelVisible.robot).toBe(true);
+  });
+
+  it('targets animation clips to the selected model slot', () => {
+    const tl = makeTimeline();
+    tl.sharedModelRef = 'm_shared';
+    tl.stages.push({ id: 'clip_shared', type: 'animation-clip', startTime: 1.0, duration: 1.0, enabled: true, params: { modelSlot: 'shared', clipName: 'Wave', clipSpeed: 1.2, loop: true } });
+    const r = new TransformationTimelineRunner(tl, 'full');
+    r.seek(1.2);
+    expect(r.getSnapshot().activeModelClips).toEqual([
+      expect.objectContaining({ stageId: 'clip_shared', modelSlot: 'shared', clipName: 'Wave', clipSpeed: 1.2, loop: true }),
+    ]);
+  });
+
+  it('uses the most recent model stage for untargeted animation clips', () => {
+    const tl = makeTimeline();
+    tl.stages.push(
+      { id: 'ms_ref', type: 'model-swap', startTime: 1.0, duration: 0.1, enabled: true, params: { modelRef: 'm_alt' } },
+      { id: 'clip_auto', type: 'animation-clip', startTime: 1.2, duration: 1.0, enabled: true, params: { clipName: 'Spin' } },
+    );
+    const r = new TransformationTimelineRunner(tl, 'full');
+    r.seek(1.3);
+    expect(r.getSnapshot().activeModelClips).toEqual([
+      expect.objectContaining({ stageId: 'clip_auto', modelRef: 'm_alt', clipName: 'Spin' }),
+    ]);
   });
 
   it('interactive mode holds at showcase until confirm', () => {

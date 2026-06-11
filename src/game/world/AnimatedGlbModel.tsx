@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { AnimationMixer, LoopRepeat, type AnimationAction, type AnimationClip, type Group } from 'three';
+import { AnimationMixer, LoopOnce, LoopRepeat, type AnimationAction, type AnimationClip, type Group } from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { resolveModelAsset, useModelStudioStore } from '../../stores/modelStudioStore';
 import { useDistanceCull } from '../perf/useDistanceCull';
@@ -16,11 +16,28 @@ import { playerKeysDown } from '../player/playerInput';
 interface AnimatedGlbModelProps {
   assetId: string;
   animation?: string;
+  animationSpeed?: number;
+  loop?: boolean;
+  autoPlayFirstClip?: boolean;
   fallback?: React.ReactNode;
   noCull?: boolean; // skip distance-culling (the flight craft moves far from playerStore → must stay visible)
 }
 
-const AnimatedInner = ({ assetId, animation, noCull }: { assetId: string; animation?: string; noCull?: boolean }) => {
+const AnimatedInner = ({
+  assetId,
+  animation,
+  animationSpeed = 1,
+  loop = true,
+  autoPlayFirstClip = true,
+  noCull,
+}: {
+  assetId: string;
+  animation?: string;
+  animationSpeed?: number;
+  loop?: boolean;
+  autoPlayFirstClip?: boolean;
+  noCull?: boolean;
+}) => {
   // Re-render when this asset's Model Studio tuning changes.
   useModelStudioStore((s) => s.overrides[assetId]);
   const asset = resolveModelAsset(assetId)!;
@@ -47,15 +64,21 @@ const AnimatedInner = ({ assetId, animation, noCull }: { assetId: string; animat
         firstClipRef.current = clips[0]?.name;
         curRef.current = null;
       } else {
-        const clip = (animation && clips.find((c) => c.name === animation)) || clips[0];
-        if (clip) mixer.clipAction(clip).reset().play();
+        const clip = (animation && clips.find((c) => c.name === animation)) || (autoPlayFirstClip ? clips[0] : undefined);
+        if (clip) {
+          const action = mixer.clipAction(clip).reset();
+          action.timeScale = animationSpeed;
+          action.setLoop(loop ? LoopRepeat : LoopOnce, loop ? Infinity : 1);
+          action.clampWhenFinished = true;
+          action.play();
+        }
       }
       return () => { mixer.stopAllAction(); mixerRef.current = null; actionsRef.current = new Map(); curRef.current = null; };
     } catch {
       // Static model still renders — animation is best-effort only.
       return;
     }
-  }, [cloned, animations, animation, ruled]);
+  }, [cloned, animations, animation, ruled, animationSpeed, loop, autoPlayFirstClip]);
 
   useFrame((_, dt) => {
     const mixer = mixerRef.current;
@@ -98,12 +121,12 @@ class ModelErrorBoundary extends React.Component<{ fallback: React.ReactNode; ch
   }
 }
 
-export function AnimatedGlbModel({ assetId, animation, fallback = null, noCull }: AnimatedGlbModelProps) {
+export function AnimatedGlbModel({ assetId, animation, animationSpeed, loop, autoPlayFirstClip, fallback = null, noCull }: AnimatedGlbModelProps) {
   if (!resolveModelAsset(assetId)) return <>{fallback}</>;
   return (
     <ModelErrorBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
-        <AnimatedInner assetId={assetId} animation={animation} noCull={noCull} />
+        <AnimatedInner assetId={assetId} animation={animation} animationSpeed={animationSpeed} loop={loop} autoPlayFirstClip={autoPlayFirstClip} noCull={noCull} />
       </Suspense>
     </ModelErrorBoundary>
   );

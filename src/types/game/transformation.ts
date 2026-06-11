@@ -35,6 +35,14 @@ export const EASINGS: readonly Easing[] = ['linear', 'easeIn', 'easeOut', 'easeI
 export type ModelSlot = 'plane' | 'robot' | 'shared';
 export const MODEL_SLOTS: readonly ModelSlot[] = ['plane', 'robot', 'shared'];
 
+export type TransformationVec3 = [number, number, number];
+
+export interface TransformationTransformOffset {
+  position: TransformationVec3;
+  rotation: TransformationVec3; // degrees
+  scale: number;
+}
+
 export type TransformationStageType =
   | 'enter-stage' | 'backdrop-shift' | 'speed-line-burst' | 'camera-shot' | 'part-transform' | 'animation-clip'
   | 'model-visibility' | 'model-swap' | 'effect-burst' | 'energy-ring' | 'voice-cue' | 'finish-pose'
@@ -54,6 +62,7 @@ export interface StageParams {
   visible?: boolean;
   modelSlot?: ModelSlot;
   modelRef?: string; // model-swap: arbitrary model-library id (overrides the slot — chain any number of swaps)
+  modelOffset?: TransformationTransformOffset; // model-swap arbitrary model placement/size offset
   clipName?: string;
   clipSpeed?: number;
   loop?: boolean;
@@ -167,6 +176,7 @@ export interface TransformationDefinition {
   robotModelRef?: string;
   sharedModelRef?: string;
   modelScale?: number; // overall presenter scale (parts + models) — editable size of the whole performance
+  modelSlotOffsets?: Partial<Record<ModelSlot, TransformationTransformOffset>>;
   backdropColor: string; // hex — echoes (but contrasts) the character colour
   particleColor: string; // hex
   parts: TransformationPart[];

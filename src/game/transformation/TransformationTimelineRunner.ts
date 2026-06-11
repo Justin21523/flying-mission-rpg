@@ -14,6 +14,15 @@ export interface PartState {
   scale: number;
   visible: boolean;
 }
+export interface ActiveModelClip {
+  stageId: string;
+  modelSlot?: ModelSlot;
+  modelRef?: string;
+  clipName: string;
+  clipSpeed: number;
+  loop: boolean;
+  holdFinal: boolean;
+}
 export type RunnerPhase = 'playing' | 'showcase' | 'done';
 export interface RunnerSnapshot {
   time: number;
@@ -24,7 +33,9 @@ export interface RunnerSnapshot {
   parts: Map<TransformationPartKey, PartState>;
   modelVisible: Record<ModelSlot, boolean>;
   activeModelRef: string | null; // arbitrary extra model shown by a model-swap stage with params.modelRef
-  activeClip: string | null;
+  activeModelStageId: string | null;
+  activeClip: string | null; // latest active clip name, kept for debug panels
+  activeModelClips: ActiveModelClip[];
   activeCameraShot: TransformationCameraShot | null;
   activeEffects: TransformationEffectTrack[];
   backdropIntensity: number;
@@ -53,6 +64,23 @@ function baseModelVisible(strategy: FormStrategy): Record<ModelSlot, boolean> {
     case 'hybrid': return { plane: true, robot: false, shared: false };
     default: return { plane: false, robot: false, shared: false }; // modular-parts-procedural
   }
+}
+
+function fallbackClipSlot(def: TransformationDefinition): ModelSlot {
+  if (def.sharedModelRef) return 'shared';
+  return 'robot';
+}
+
+function resolveClipTarget(def: TransformationDefinition, stages: TransformationStage[], clipStage: TransformationStage): Pick<ActiveModelClip, 'modelSlot' | 'modelRef'> {
+  if (clipStage.params.modelRef) return { modelRef: clipStage.params.modelRef };
+  if (clipStage.params.modelSlot) return { modelSlot: clipStage.params.modelSlot };
+  const priorStages = stages
+    .filter((s) => (s.type === 'model-swap' || s.type === 'model-visibility') && s.startTime <= clipStage.startTime)
+    .sort((a, b) => a.startTime - b.startTime);
+  const prior = priorStages[priorStages.length - 1];
+  if (prior?.params.modelRef) return { modelRef: prior.params.modelRef };
+  if (prior?.params.modelSlot) return { modelSlot: prior.params.modelSlot };
+  return { modelSlot: fallbackClipSlot(def) };
 }
 
 export class TransformationTimelineRunner {
@@ -133,23 +161,39 @@ export class TransformationTimelineRunner {
     // number of different models can be chained across the timeline).
     const modelVisible = baseModelVisible(this.def.formStrategy);
     let activeModelRef: string | null = null;
+    let activeModelStageId: string | null = null;
     for (const st of this.stages.filter((s) => (s.type === 'model-visibility' || s.type === 'model-swap') && s.startTime <= t).sort((a, b) => a.startTime - b.startTime)) {
       const slot = st.params.modelSlot;
       if (st.type === 'model-swap' && st.params.modelRef) {
         modelVisible.plane = false; modelVisible.robot = false; modelVisible.shared = false;
         activeModelRef = st.params.modelRef;
+        activeModelStageId = st.id;
       } else if (st.type === 'model-swap' && slot) {
         modelVisible.plane = false; modelVisible.robot = false; modelVisible.shared = false; modelVisible[slot] = true;
         activeModelRef = null;
+        activeModelStageId = null;
       } else if (slot) {
         modelVisible[slot] = st.params.visible ?? true;
       }
     }
 
-    // active animation clip — latest clip stage started (holds final if holdFinal)
+    // active animation clips — each stage can target a specific model slot/ref.
     let activeClip: string | null = null;
+    const activeModelClips: ActiveModelClip[] = [];
     for (const st of this.stages.filter((s) => s.type === 'animation-clip' && s.startTime <= t).sort((a, b) => a.startTime - b.startTime)) {
-      if (t < st.startTime + st.duration || st.params.holdFinal) activeClip = st.params.clipName ?? activeClip;
+      if ((t < st.startTime + st.duration || st.params.holdFinal) && st.params.clipName) {
+        const target = resolveClipTarget(this.def, this.stages, st);
+        const clip: ActiveModelClip = {
+          stageId: st.id,
+          ...target,
+          clipName: st.params.clipName,
+          clipSpeed: st.params.clipSpeed ?? 1,
+          loop: st.params.loop ?? false,
+          holdFinal: st.params.holdFinal ?? false,
+        };
+        activeModelClips.push(clip);
+        activeClip = clip.clipName;
+      }
     }
 
     // camera shot containing t (last match wins)
@@ -184,7 +228,9 @@ export class TransformationTimelineRunner {
       parts,
       modelVisible,
       activeModelRef,
+      activeModelStageId,
       activeClip,
+      activeModelClips,
       activeCameraShot,
       activeEffects,
       backdropIntensity,
