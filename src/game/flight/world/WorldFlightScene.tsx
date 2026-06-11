@@ -1,8 +1,12 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useUiStore } from '../../../stores/uiStore';
+import { useSceneEditStore } from '../../../stores/sceneEditStore';
+import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
+import type { FlightTuning } from '../../../types/game/flightControl';
 import { EditModeAmbience } from '../../edit/EditModeAmbience';
 import { WorldFlightEnvironment } from './WorldFlightEnvironment';
 import { SceneEditorGizmo } from '../../edit/SceneEditorGizmo';
+import { asScaleNum } from '../../edit/sceneEditMerge';
 import { FollowCamera } from '../../camera/FollowCamera';
 import { PathDebugLayer } from '../../poli/PathDebugLayer';
 import { FlightCamera } from '../FlightCamera';
@@ -11,57 +15,67 @@ import { CloudField } from './CloudField';
 import { SpeedField } from './SpeedField';
 import { FlightEventDirectorHost } from './FlightEventDirectorHost';
 import { FlightEventRenderer } from './FlightEventRenderer';
-import { FlightEventPreview } from './FlightEventPreview';
 import { WorldFlightDebugGizmos } from './WorldFlightDebugGizmos';
+import { WorldFlightCraftEditable } from './WorldFlightCraftEditable';
+import { WORLD_CRAFT_KEY, routeStartNode } from './worldCraftKey';
+import { worldFlightSceneLayers } from './worldFlightSceneLayers';
 import { clearActiveFlightEvents } from './flightEventRuntime';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
 
-// WORLD_FLIGHT — the long-distance high-altitude leg (PDF §批次5), split into layers:
-//   ambience (WorldFlightEnvironment / WorldSkyAmbience) · route geometry (PathDebugLayer, area 'world') ·
-//   the craft (RouteFollower) · cloud carpet + speed streaks (instanced, recycled) · the event DIRECTOR
-//   (FlightEventDirectorHost, logic) + RENDERER (FlightEventRenderer, view) · FlightCamera.
-// PLAY runs the full system; EDIT shows the orbit camera + gizmo + the route's event-pool gallery + segment
-// debug gizmos so everything is editable in place (🧭/🌩/🌦/🛣) and synced. All runtime is disposed on exit.
+const RAD2DEG = 180 / Math.PI;
+
+// WORLD_FLIGHT — the long-distance high-altitude leg (PDF §批次5). Layer visibility is decided by the pure
+// worldFlightSceneLayers(editMode): PLAY runs the rich system (ambience · clouds · speed · event director +
+// renderer · RouteFollower · FlightCamera); EDIT is a CLEAN authoring view (flat-bright ambience · route line
+// + draggable nodes · segment gizmos · the selectable craft/character · user-orbit camera) with NO clouds /
+// fog / speed / event clutter. All runtime is disposed on exit.
 export const WorldFlightScene = () => {
   const editMode = useUiStore((s) => s.editMode);
+  const layers = worldFlightSceneLayers(editMode);
 
   useEffect(() => {
-    // Dispose everything when leaving WORLD_FLIGHT (no residual events / state).
     return () => {
       clearActiveFlightEvents();
       useWorldFlightRuntimeStore.getState().reset();
     };
   }, []);
 
+  // Bake a finished craft gizmo drag into the authored flight tuning (offset relative to the route start,
+  // yaw degrees, scale) and clear the override — so the craft transform lives in authored data, not runtime.
+  const bakeCraft = useCallback((key: string) => {
+    if (key !== WORLD_CRAFT_KEY) return;
+    const ov = useSceneEditStore.getState().overrides[key];
+    if (!ov) return;
+    const start = routeStartNode();
+    const patch: Partial<FlightTuning> = {};
+    if (ov.position) patch.worldCraftOffset = [ov.position[0] - start[0], ov.position[1] - start[1], ov.position[2] - start[2]];
+    if (ov.rotation) patch.worldCraftYawDeg = ov.rotation[1] * RAD2DEG;
+    if (ov.scale !== undefined) patch.worldCraftScale = asScaleNum(ov.scale);
+    useEditorFlightStore.getState().update(patch);
+    useSceneEditStore.getState().setOverride(key, { position: undefined, rotation: undefined, scale: undefined });
+  }, []);
+
   return (
     <>
-      {/* EDIT MODE is always a clear, flat-bright view (POLI principle) — no sky dome / fog so authoring is
-          unobstructed. PLAY uses the per-route sky. */}
-      {editMode ? <EditModeAmbience /> : <WorldFlightEnvironment />}
+      {layers.ambience === 'edit' ? <EditModeAmbience /> : <WorldFlightEnvironment />}
 
-      {/* The route line + draggable node handles are EDIT-ONLY (no coloured guide line during play). */}
-      {editMode && <PathDebugLayer areaId="world" />}
+      {layers.pathDebug && <PathDebugLayer areaId="world" />}
 
-      {!editMode && (
+      {layers.routeFollower && <RouteFollower />}
+      {layers.clouds && <CloudField />}
+      {layers.speed && <SpeedField />}
+      {layers.events && (
         <>
-          <RouteFollower />
-          <CloudField />
-          <SpeedField />
           <FlightEventDirectorHost />
           <FlightEventRenderer />
         </>
       )}
 
-      {/* Edit Mode: route event-pool gallery + segment-band gizmos (same visuals as play). */}
-      {editMode && (
-        <>
-          <FlightEventPreview />
-          <WorldFlightDebugGizmos />
-        </>
-      )}
+      {layers.segmentGizmos && <WorldFlightDebugGizmos />}
+      {layers.editableCraft && <WorldFlightCraftEditable />}
 
       {editMode ? <FollowCamera /> : <FlightCamera />}
-      {editMode && <SceneEditorGizmo />}
+      {layers.sceneGizmo && <SceneEditorGizmo onCommit={bakeCraft} />}
     </>
   );
 };

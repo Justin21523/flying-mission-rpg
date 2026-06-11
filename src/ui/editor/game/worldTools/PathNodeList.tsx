@@ -16,6 +16,7 @@ const num = (value: string, fallback = 0) => { const p = parseFloat(value); retu
 export const PathNodeList = ({ route, update }: { route: FlightRoute; update: (patch: Partial<FlightRoute>) => void }) => {
   const paths = useEditorPathStore((s) => s.paths);
   const path = paths.find((p) => p.id === route.pathId);
+  const selectedKey = useWorldSelectStore((s) => s.selectedKey);
   const store = useEditorPathStore.getState();
 
   const createPath = () => {
@@ -57,7 +58,8 @@ export const PathNodeList = ({ route, update }: { route: FlightRoute; update: (p
       </div>
       <div className="space-y-1">
         {nodes.map((node, index) => (
-          <div key={node.id} className="rounded border border-slate-800 bg-slate-900/55 p-1.5">
+          <div key={node.id} className={`rounded border p-1.5 ${selectedKey === `${path.id}#node#${node.id}` ? 'border-violet-500/70 bg-violet-950/30' : 'border-slate-800 bg-slate-900/55'}`}>
+
             <div className="mb-1 flex items-center gap-1">
               <span className="w-6 text-center text-[11px] font-bold text-sky-200">{index + 1}</span>
               <button onClick={() => selectNode(path.id, node)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-sky-200 hover:bg-slate-700">Focus</button>

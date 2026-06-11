@@ -6,6 +6,7 @@ import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { robotHandle } from './robotHandle';
+import { groundCharacterScale } from './groundCharacterScale';
 
 // LANDING — the robot settles where it touched down (small squash-and-recover pose) while the quality
 // banner shows, then hands off to NPC_GREETING. Landing re-evaluation is disabled here by construction.
@@ -17,6 +18,7 @@ export const LandingSettle = () => {
   const fired = useRef(false);
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
+  const baseScale = groundCharacterScale(character);
 
   useEffect(() => {
     t.current = 0;
@@ -29,7 +31,7 @@ export const LandingSettle = () => {
     if (g) {
       g.position.copy(robotHandle.pos);
       const k = Math.min(1, t.current / 0.5);
-      g.scale.set(1.4 * (1 + (1 - k) * 0.12), 1.4 * (1 - (1 - k) * 0.18), 1.4 * (1 + (1 - k) * 0.12)); // squash → recover
+      g.scale.set(baseScale * (1 + (1 - k) * 0.12), baseScale * (1 - (1 - k) * 0.18), baseScale * (1 + (1 - k) * 0.12)); // squash → recover
     }
     if (t.current >= SETTLE_SEC && !fired.current) {
       fired.current = true;
@@ -44,7 +46,7 @@ export const LandingSettle = () => {
     </mesh>
   );
   return (
-    <group ref={group} scale={1.4}>
+    <group ref={group} scale={baseScale}>
       {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
     </group>
   );

@@ -4,7 +4,8 @@ import { Field, inp, lbl } from '../editorShared';
 
 // 🛩 Flight — live-editable flight handling. Takes effect immediately so the feel can be tuned without
 // code (per-character flightSpeed/agility further scale speed/turn at runtime).
-const FIELDS: { key: keyof FlightTuning; label: string; step: number }[] = [
+type NumKey = { [K in keyof FlightTuning]: FlightTuning[K] extends number ? K : never }[keyof FlightTuning];
+const FIELDS: { key: NumKey; label: string; step: number }[] = [
   { key: 'maxSpeed', label: 'Max speed', step: 1 },
   { key: 'cruiseSpeed', label: 'Cruise speed', step: 1 },
   { key: 'stallSpeed', label: 'Stall speed', step: 1 },
@@ -64,7 +65,25 @@ export const FlightEditorTab = () => {
           </Field>
         ))}
       </div>
-      <p className="text-[10px] text-slate-500">Live. Character flightSpeed/agility scale speed/turn on top of these.</p>
+      <Field label="Craft offset from route start (x / y / z) — gizmo-draggable in WORLD_FLIGHT edit">
+        <div className="flex gap-1">
+          {([0, 1, 2] as const).map((a) => (
+            <input
+              key={a}
+              type="number"
+              step={0.5}
+              value={tuning.worldCraftOffset[a]}
+              onChange={(e) => {
+                const next = [...tuning.worldCraftOffset] as [number, number, number];
+                next[a] = parseFloat(e.target.value) || 0;
+                update({ worldCraftOffset: next });
+              }}
+              className={inp + ' w-0 flex-1 text-center'}
+            />
+          ))}
+        </div>
+      </Field>
+      <p className="text-[10px] text-slate-500">Live. Character flightSpeed/agility scale speed/turn on top of these. The craft is selectable in WORLD_FLIGHT Edit Mode (gizmo → facing/scale/offset).</p>
     </div>
   );
 };

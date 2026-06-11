@@ -38,16 +38,17 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
     <>
       <group ref={setObj} position={position} onPointerDown={handleSelect}>
         {children}
-        {/* Invisible grab box so even async GLBs are reliably clickable (invisible meshes still get
-            pointer events but are skipped by the raycaster only when not rendered — opacity 0 keeps it). */}
-        <mesh position={[0, 0.8, 0]}>
-          <boxGeometry args={[1.2, 1.8, 1.2]} />
+        {/* Small invisible grab proxy so close-together placements (e.g. path nodes) are each individually
+            clickable and the gizmo handle isn't occluded — kept compact and centred (was a big 1.2×1.8×1.2
+            box that overlapped neighbours and blocked clicks). Selection is shown by a tight marker below. */}
+        <mesh position={[0, 0.3, 0]}>
+          <boxGeometry args={[0.5, 0.6, 0.5]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
         {selected && (
-          <mesh position={[0, 0.8, 0]}>
-            <boxGeometry args={[1.25, 1.85, 1.25]} />
-            <meshBasicMaterial color={color} wireframe transparent opacity={0.85} depthTest={false} />
+          <mesh position={[0, 0.3, 0]} renderOrder={999} onUpdate={(self) => { const mm = self.material as { depthTest?: boolean }; mm.depthTest = false; }}>
+            <sphereGeometry args={[0.22, 14, 12]} />
+            <meshBasicMaterial color={color} transparent opacity={0.5} depthTest={false} />
           </mesh>
         )}
       </group>

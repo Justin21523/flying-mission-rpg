@@ -1,8 +1,11 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, BufferAttribute, CanvasTexture, Color, type Group, type Mesh, type MeshBasicMaterial, type Points, type PointsMaterial } from 'three';
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
+import { useCharacterStore } from '../../stores/game/useCharacterStore';
+import { getEditorCharacter, useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
 import { robotHandle } from './robotHandle';
+import { groundScaleRatio } from './groundCharacterScale';
 
 const SMOKE = 170;
 const SPARK = 90;
@@ -29,6 +32,14 @@ function makeSoftTexture(): CanvasTexture {
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 export const GroundAbilityFx = () => {
+  // The FX frame the CURRENT (authored) character size — ratio vs the base look, so editing a character's
+  // model scale reframes its Q/R effects too (no hardcoded size).
+  const charId = useCharacterStore((s) => s.selectedCharacterId);
+  useEditorCharacterStore((s) => s.items);
+  const character = charId ? getEditorCharacter(charId) : undefined;
+  const ratioRef = useRef(1);
+  useEffect(() => { ratioRef.current = groundScaleRatio(character); }, [character]);
+
   const groupRef = useRef<Group>(null);
   const smokeRef = useRef<Points>(null);
   const sparkRef = useRef<Points>(null);
@@ -63,7 +74,7 @@ export const GroundAbilityFx = () => {
       tint.set(store.cloudConfig.cloudColor);
       rippleTint.set(store.cloudConfig.rippleColor);
       local.duration = Math.max(0.2, store.cloudConfig.durationSec);
-      local.ringMax = Math.max(0.5, store.cloudConfig.radius);
+      local.ringMax = Math.max(0.5, store.cloudConfig.radius) * ratioRef.current;
       local.age = 0;
       for (let i = 0; i < SMOKE; i += 1) {
         const a = rnd(0, Math.PI * 2);
@@ -95,7 +106,7 @@ export const GroundAbilityFx = () => {
         tint.set(extra.color);
         rippleTint.set(extra.color);
         local.duration = Math.max(0.2, extra.durationSec);
-        local.ringMax = Math.max(0.5, extra.radius);
+        local.ringMax = Math.max(0.5, extra.radius) * ratioRef.current;
         local.age = 0;
         for (let i = 0; i < SPARK; i += 1) {
           const a = rnd(0, Math.PI * 2);
@@ -164,7 +175,7 @@ export const GroundAbilityFx = () => {
     if (glowRef.current && glowMat) {
       if (t <= GLOW_LIFE) {
         const k = t / GLOW_LIFE;
-        const sc = 0.6 + k * 3.4;
+        const sc = (0.6 + k * 3.4) * ratioRef.current;
         glowRef.current.scale.set(sc, sc, sc);
         glowMat.opacity = (1 - k) * 0.85;
       } else {

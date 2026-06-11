@@ -113,6 +113,7 @@ export interface CharacterDefinition {
   transformationId?: string; // TransformationDefinition id
   cardImage?: string; // reference card filename in src/assets/cards (Character Select art)
   modelAssetId?: string; // kit model-library id (e.g. 'super-wings/Jett+transformer+3d+model')
+  modelScale?: number; // authored ground/destination model scale (Edit-Mode editable; unset = seed default).
   homeBaseLocationId?: string;
   // ── animation (clip names from the model's GLB; advanced trigger→clip rules live in 🎬 Model Studio) ──
   idleAnimation?: string; // clip played in previews / on the ground (empty = first clip)

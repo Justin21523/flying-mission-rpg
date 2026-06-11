@@ -8,6 +8,7 @@ import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter, useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
 import { robotHandle } from './robotHandle';
+import { groundCharacterScale } from './groundCharacterScale';
 
 const MAX = 18;
 
@@ -25,6 +26,7 @@ const GhostModel = ({
   position,
   rotation,
   scale,
+  baseScale,
   setGroup,
   setMat,
 }: {
@@ -33,6 +35,7 @@ const GhostModel = ({
   position: [number, number, number];
   rotation: [number, number, number];
   scale: number;
+  baseScale: number;
   setGroup: (i: number, g: Group | null) => void;
   setMat: (i: number, m: MeshStandardMaterial | null) => void;
 }) => {
@@ -57,7 +60,7 @@ const GhostModel = ({
 
   return (
     <group ref={(el) => setGroup(index, el)} visible={false}>
-      <group position={[0, -0.8, 0]} scale={1.4}>
+      <group position={[0, -0.8, 0]} scale={baseScale}>
         <primitive object={clone} position={position} rotation={rotation} scale={scale} />
       </group>
     </group>
@@ -132,6 +135,7 @@ export const GroundAfterimageLayer = () => {
             position={asset.position}
             rotation={asset.rotation}
             scale={asset.scale}
+            baseScale={groundCharacterScale(character)}
             setGroup={setGroup}
             setMat={setMat}
           />

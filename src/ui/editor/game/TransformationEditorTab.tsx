@@ -224,6 +224,7 @@ const ModelSlotsEditor = ({ def, update }: { def: TransformationDefinition; upda
   return (
     <div className="space-y-1.5">
       <div className={lbl}>Model slot offsets</div>
+      <p className="text-[10px] text-slate-500">Click a model in 3D (TRANSFORMATION edit) or Select below → gizmo. Facing = rotation Y. Drag bakes here.</p>
       {MODEL_SLOTS.map((slot) => (
         <TransformOffsetFields
           key={slot}

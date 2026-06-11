@@ -11,6 +11,7 @@ import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { descentEntry } from '../transformation/descentEntry';
 import { evaluateLanding, type LandingZoneInput } from './safeLanding';
 import { robotHandle } from './robotHandle';
+import { groundCharacterScale } from './groundCharacterScale';
 import { DESTINATION_BOUNDARY_HALF } from '../../data/game/destinationLayout';
 
 // DESCENT — the robot-form character falls from the air spawn toward the harbor. Camera-relative W/S/A/D
@@ -139,7 +140,7 @@ export const RobotDescentController = () => {
     </mesh>
   );
   return (
-    <group ref={group} scale={1.4}>
+    <group ref={group} scale={groundCharacterScale(character)}>
       {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
     </group>
   );

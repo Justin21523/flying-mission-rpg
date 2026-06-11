@@ -10,6 +10,7 @@ import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { applyMovement } from '../player/MovementStateMachine';
 import { playerMotion } from '../player/playerMotion';
 import { robotHandle } from './robotHandle';
+import { groundCharacterScale } from './groundCharacterScale';
 import { getGroundAbilityConfig } from './groundAbilityConfig';
 import type { CharacterDefinition, GroundAbilityConfig } from '../../types/game/character';
 
@@ -147,7 +148,7 @@ export const RobotGroundController = () => {
   return (
     <RigidBody ref={bodyRef} type="dynamic" colliders={false} position={spawnPos} lockRotations canSleep={false} linearDamping={0.4} ccd>
       <CuboidCollider args={[0.5, 0.8, 0.5]} />
-      <group ref={visualRef} position={[0, -0.8, 0]} scale={1.4}>
+      <group ref={visualRef} position={[0, -0.8, 0]} scale={groundCharacterScale(character)}>
         {character?.modelAssetId ? <EnergizedRobotModel character={character} config={abilityConfig} fallback={fallback} /> : fallback}
       </group>
     </RigidBody>

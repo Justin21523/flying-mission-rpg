@@ -10,6 +10,7 @@ import { ModelPicker } from '../ModelPicker';
 import { useGltfClipNames } from '../useGltfClipNames';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
 import { cloneGroundAbilityConfig, getGroundAbilityConfig } from '../../../game/destination/groundAbilityConfig';
+import { GROUND_BASE_SCALE } from '../../../game/destination/groundCharacterScale';
 
 const makeNew = (): CharacterDefinition => ({
   id: `char_${nanoid(6)}`,
@@ -232,6 +233,7 @@ export const CharacterEditorTab = () => {
           <Field label="Model (robot/transformer)">
             <ModelPicker value={c.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(none)" />
           </Field>
+          <NumRow label="Ground model scale (landing/mission + afterimages)" value={c.modelScale ?? GROUND_BASE_SCALE} step={0.1} min={0.1} onChange={(v) => update({ modelScale: v })} />
 
           {/* Animation clips — read live from the selected model's GLB. */}
           <div className={lbl}>Animation clips</div>
