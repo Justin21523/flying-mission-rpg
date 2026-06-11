@@ -20,13 +20,18 @@ import { flightHandle } from '../flightHandle';
 // streams backward past it (no more inversion). The model's facing offset is editable (🛩 Flight → Craft yaw).
 const _pos = new Vector3();
 const _tan = new Vector3();
+const _right = new Vector3();
 const _look = new Vector3();
 const DEG2RAD = Math.PI / 180;
+const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
 
 export const RouteFollower = () => {
   const craft = useRef<Group>(null);
   const keys = useRef<Record<string, boolean>>({});
   const u = useRef(0);
+  const lateral = useRef(0); // A/D offset from the route centreline
+  const vert = useRef(0); // ↑/↓ offset
+  const bank = useRef(0); // bank-into-turn roll
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
@@ -76,10 +81,25 @@ export const RouteFollower = () => {
 
     samplePos(cc.curve, u.current, _pos);
     sampleTangent(cc.curve, u.current, _tan);
+
+    // Steering — A/D nudge the craft laterally off the route centreline (with bank-into-turn roll), ↑/↓
+    // nudge it vertically. Eased so it feels like flying, not snapping. Keeps the craft parallel to the route.
+    const steerIn = (k['KeyD'] || k['ArrowRight'] ? 1 : 0) - (k['KeyA'] || k['ArrowLeft'] ? 1 : 0);
+    const vertIn = (k['ArrowUp'] || k['Space'] ? 1 : 0) - (k['ArrowDown'] || k['ShiftLeft'] ? 1 : 0);
+    const sm = tuning.worldSteerSmooth * dt;
+    lateral.current = lerp(lateral.current, steerIn * tuning.worldSteerRange, sm);
+    vert.current = lerp(vert.current, vertIn * tuning.worldVertRange, sm);
+    bank.current = lerp(bank.current, -steerIn * tuning.worldBankDeg * DEG2RAD, sm * 1.5);
+
+    _right.set(-_tan.z, 0, _tan.x).normalize(); // horizontal right of travel
+    _pos.addScaledVector(_right, lateral.current);
+    _pos.y += vert.current;
+
     flightHandle.pos.copy(_pos);
     c.position.copy(_pos);
     _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
     c.lookAt(_look);
+    c.rotateZ(bank.current); // roll around the forward axis → bank into the turn
     flightHandle.quat.copy(c.quaternion);
     flightHandle.speed = pathSpeed;
     flightHandle.altitude = _pos.y;

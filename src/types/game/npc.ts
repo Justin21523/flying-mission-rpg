@@ -11,6 +11,7 @@ export interface NPCDefinition {
   role: string;
   description: string;
   color: string; // hex — placeholder mesh + UI tint
+  modelAssetId?: string; // optional GLB (empty = placeholder mesh)
   dialogueTreeId?: string;
   missionId?: string;
 }

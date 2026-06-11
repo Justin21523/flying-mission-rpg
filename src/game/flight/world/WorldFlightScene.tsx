@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useUiStore } from '../../../stores/uiStore';
 import { EditModeAmbience } from '../../edit/EditModeAmbience';
 import { WorldFlightEnvironment } from './WorldFlightEnvironment';
-import { WorldSkyAmbience } from './WorldSkyAmbience';
 import { SceneEditorGizmo } from '../../edit/SceneEditorGizmo';
 import { FollowCamera } from '../../camera/FollowCamera';
 import { PathDebugLayer } from '../../poli/PathDebugLayer';
@@ -36,17 +35,12 @@ export const WorldFlightScene = () => {
 
   return (
     <>
-      {editMode ? (
-        <>
-          <EditModeAmbience />
-          <WorldSkyAmbience />
-        </>
-      ) : (
-        <WorldFlightEnvironment />
-      )}
+      {/* EDIT MODE is always a clear, flat-bright view (POLI principle) — no sky dome / fog so authoring is
+          unobstructed. PLAY uses the per-route sky. */}
+      {editMode ? <EditModeAmbience /> : <WorldFlightEnvironment />}
 
-      {/* World route line + draggable node handles (Tracks tab edits these; synced in play). */}
-      <PathDebugLayer areaId="world" />
+      {/* The route line + draggable node handles are EDIT-ONLY (no coloured guide line during play). */}
+      {editMode && <PathDebugLayer areaId="world" />}
 
       {!editMode && (
         <>

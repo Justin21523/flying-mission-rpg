@@ -30,4 +30,5 @@ export interface WorldLocation {
   coordinate: WorldCoordinate; // 3D world anchor
   mapPosition: { x: number; y: number }; // 0..100 percentage — for the Batch 2 2D/SVG world map
   environment?: string; // biome / background hint
+  modelAssetId?: string; // optional GLB landmark for the location
 }

@@ -256,7 +256,7 @@ const FALLBACK = (color: string, size: number) => (
 // Optional GLB placeholder model (e.g. real bird / craft assets) — overrides the primitive when set.
 const ModelViz = ({ def }: { def: FlightEventDef }) => (
   <group scale={def.size}>
-    <AnimatedGlbModel assetId={def.modelAssetId!} fallback={FALLBACK(def.color, 1)} />
+    <AnimatedGlbModel assetId={def.modelAssetId!} fallback={FALLBACK(def.color, 1)} noCull />
   </group>
 );
 

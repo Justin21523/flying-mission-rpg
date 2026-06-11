@@ -33,6 +33,7 @@ export interface MissionDefinition {
   locationId: string;
   npcId?: string;
   routeId?: string;
+  modelAssetId?: string; // optional GLB marker for the mission's objective/site
   difficulty: FlightDifficulty;
   weather: WeatherKind;
   recommendedAbility?: AbilityKind;

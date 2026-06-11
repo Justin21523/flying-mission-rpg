@@ -2,7 +2,8 @@ import { nanoid } from 'nanoid';
 import { useEditorLocationStore } from '../../../stores/game/editorLocationStore';
 import { LOCATION_KINDS } from '../../../types/game/world';
 import type { WorldLocation } from '../../../types/game/world';
-import { Check } from '../editorShared';
+import { Check, Field } from '../editorShared';
+import { ModelPicker } from '../ModelPicker';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ConfidenceRow } from './CollectionEditor';
 
 const makeNew = (): WorldLocation => ({
@@ -48,6 +49,7 @@ export const LocationEditorTab = () => (
           <NumRow label="Map y (0-100)" value={l.mapPosition.y} min={0} max={100} onChange={(v) => update({ mapPosition: { ...l.mapPosition, y: v } })} />
         </div>
         <TextRow label="Environment" value={l.environment ?? ''} onChange={(v) => update({ environment: v || undefined })} />
+        <Field label="Landmark model (empty = none)"><ModelPicker value={l.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(none)" /></Field>
       </>
     )}
   />

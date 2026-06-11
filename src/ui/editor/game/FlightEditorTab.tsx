@@ -26,6 +26,10 @@ const FIELDS: { key: keyof FlightTuning; label: string; step: number }[] = [
   { key: 'worldEventMaxActive', label: 'World event max', step: 1 },
   { key: 'worldEventSpawnGap', label: 'World event gap (s)', step: 0.2 },
   { key: 'worldCraftYawDeg', label: 'Craft yaw (deg)', step: 90 },
+  { key: 'worldSteerRange', label: 'Steer range (A/D)', step: 5 },
+  { key: 'worldVertRange', label: 'Vertical range (↑/↓)', step: 5 },
+  { key: 'worldSteerSmooth', label: 'Steer smoothing', step: 0.5 },
+  { key: 'worldBankDeg', label: 'Bank angle (deg)', step: 5 },
 ];
 
 export const FlightEditorTab = () => {

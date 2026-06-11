@@ -13,6 +13,7 @@ export interface TransformationDefinition {
   id: string;
   name: string;
   characterId?: string; // optional binding to one character
+  modelAssetId?: string; // optional GLB override (empty = the bound character's model)
   durationSec: number;
   backdropColor: string; // hex
   particleColor: string; // hex

@@ -7,7 +7,8 @@ import { MISSION_TYPES } from '../../../types/game/mission';
 import type { MissionDefinition } from '../../../types/game/mission';
 import { WEATHER_KINDS, FLIGHT_DIFFICULTIES } from '../../../types/game/flight';
 import { ABILITY_KINDS } from '../../../types/game/character';
-import { csv, parseCsv } from '../editorShared';
+import { csv, parseCsv, Field } from '../editorShared';
+import { ModelPicker } from '../ModelPicker';
 import { CollectionEditor, TextRow, SelectRow, ConfidenceRow } from './CollectionEditor';
 
 const makeNew = (): MissionDefinition => ({
@@ -42,6 +43,7 @@ export const MissionEditorTab = () => {
           <SelectRow label="Location" value={m.locationId} options={[none, ...locations.map((l) => ({ value: l.id, label: l.name }))]} onChange={(v) => update({ locationId: v })} />
           <SelectRow label="NPC" value={m.npcId ?? ''} options={[none, ...npcs.map((n) => ({ value: n.id, label: n.name }))]} onChange={(v) => update({ npcId: v || undefined })} />
           <SelectRow label="Route" value={m.routeId ?? ''} options={[none, ...routes.map((r) => ({ value: r.id, label: r.name }))]} onChange={(v) => update({ routeId: v || undefined })} />
+          <Field label="Objective/site model (empty = none)"><ModelPicker value={m.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(none)" /></Field>
           <SelectRow label="Difficulty" value={m.difficulty} options={FLIGHT_DIFFICULTIES.map((d) => ({ value: d, label: d }))} onChange={(v) => update({ difficulty: v as MissionDefinition['difficulty'] })} />
           <SelectRow label="Weather" value={m.weather} options={WEATHER_KINDS.map((w) => ({ value: w, label: w }))} onChange={(v) => update({ weather: v as MissionDefinition['weather'] })} />
           <SelectRow label="Recommended ability" value={m.recommendedAbility ?? ''} options={[none, ...ABILITY_KINDS.map((a) => ({ value: a, label: a }))]} onChange={(v) => update({ recommendedAbility: (v || undefined) as MissionDefinition['recommendedAbility'] })} />

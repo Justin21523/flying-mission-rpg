@@ -23,8 +23,8 @@ export const FlightScene = () => {
       {editMode ? <EditModeAmbience /> : <DynamicAmbience />}
 
       <ExteriorLayer />
-      {/* Flight route: POLI path line (play guidance) + draggable node handles (edit). Tracks tab edits nodes. */}
-      <PathDebugLayer areaId="exterior" />
+      {/* Flight route line + draggable node handles are EDIT-ONLY (no coloured guide line during play). */}
+      {editMode && <PathDebugLayer areaId="exterior" />}
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
 

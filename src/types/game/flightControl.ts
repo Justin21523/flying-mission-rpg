@@ -26,4 +26,8 @@ export interface FlightTuning {
   worldEventMaxActive: number; // world-flight: max concurrent flight events
   worldEventSpawnGap: number; // world-flight: min seconds between event spawns
   worldCraftYawDeg: number; // craft model facing offset (deg) — dial so the nose points along travel
+  worldSteerRange: number; // world-flight: max lateral offset from the route centreline (A/D)
+  worldVertRange: number; // world-flight: max vertical offset from the route (↑/↓)
+  worldSteerSmooth: number; // world-flight: steering ease (higher = snappier)
+  worldBankDeg: number; // world-flight: bank-into-turn roll (deg) for the A/D feel
 }

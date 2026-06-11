@@ -3,6 +3,8 @@ import { useEditorTransformationStore } from '../../../stores/game/editorTransfo
 import { useEditorCharacterStore } from '../../../stores/game/editorCharacterStore';
 import type { TransformationDefinition } from '../../../types/game/transformation';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
+import { ModelPicker } from '../ModelPicker';
+import { Field } from '../editorShared';
 
 const makeNew = (): TransformationDefinition => ({
   id: `xf_${nanoid(6)}`,
@@ -27,6 +29,7 @@ export const TransformationEditorTab = () => {
         <>
           <TextRow label="Name" value={t.name} onChange={(v) => update({ name: v })} />
           <SelectRow label="Character" value={t.characterId ?? ''} options={[none, ...characters.map((c) => ({ value: c.id, label: c.name }))]} onChange={(v) => update({ characterId: v || undefined })} />
+          <Field label="Model override (empty = character's)"><ModelPicker value={t.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(character's)" /></Field>
           <NumRow label="Duration (sec)" value={t.durationSec} step={0.5} min={0} onChange={(v) => update({ durationSec: v })} />
           <ColorRow label="Backdrop colour" value={t.backdropColor} onChange={(v) => update({ backdropColor: v })} />
           <ColorRow label="Particle colour" value={t.particleColor} onChange={(v) => update({ particleColor: v })} />
