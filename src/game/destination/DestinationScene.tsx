@@ -18,6 +18,7 @@ import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntime
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
 import { GroundAbilityFx } from './GroundAbilityFx';
 import { GroundAfterimageLayer } from './GroundAfterimageLayer';
+import { GroundJetExhaustLayer } from './GroundJetExhaustLayer';
 import { SuperAbilityFx } from '../player/SuperAbilityFx';
 import { DestinationYokaiLayer } from './DestinationYokaiLayer';
 import { KillFxLayer } from '../player/KillFxLayer';
@@ -62,6 +63,7 @@ export const DestinationScene = () => {
           <CompanionAiHost />
           <GroundAbilityFx />
           <GroundAfterimageLayer />
+          <GroundJetExhaustLayer />
           <SuperAbilityFx />
           <DestinationYokaiLayer />
           <KillFxLayer />

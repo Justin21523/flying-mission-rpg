@@ -9,8 +9,13 @@ import { getEditorCharacter, useEditorCharacterStore } from '../../stores/game/e
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
 import { robotHandle } from './robotHandle';
 import { groundCharacterScale } from './groundCharacterScale';
+import { superBoost } from './superBoost';
 
 const MAX = 18;
+// Afterimage params for the R super-speed boost (the rescue surge uses its own authored params instead).
+const BOOST_INTERVAL = 0.045;
+const BOOST_LIFE = 0.85;
+const BOOST_OPACITY = 0.55;
 
 interface Ghost {
   t: number;
@@ -84,11 +89,17 @@ export const GroundAfterimageLayer = () => {
   useFrame(() => {
     const now = performance.now() / 1000;
     const ability = useGroundAbilityStore.getState();
-    const active = ability.surgeUntil > now;
+    const surging = ability.surgeUntil > now;
     const cfg = ability.surgeConfig;
-    if (active) {
-      tint.current.set(cfg.afterimageColor);
-      if (now - lastSpawn.current >= cfg.afterimageIntervalSec) {
+    // Stream clone ghosts during the rescue surge OR while R super-speed is toggled on. Surge uses its authored
+    // afterimage params; the boost uses constant params tinted by the character colour.
+    const boosting = superBoost.active && !surging;
+    const interval = surging ? cfg.afterimageIntervalSec : BOOST_INTERVAL;
+    const life = Math.max(0.1, surging ? cfg.afterimageLifeSec : BOOST_LIFE);
+    const opacity = surging ? cfg.afterimageOpacity : BOOST_OPACITY;
+    if (surging || boosting) {
+      tint.current.set(surging ? cfg.afterimageColor : (character?.color ?? '#38bdf8'));
+      if (now - lastSpawn.current >= interval) {
         lastSpawn.current = now;
         const ghost = ghosts.current[head.current % MAX];
         ghost.t = now;
@@ -99,7 +110,6 @@ export const GroundAfterimageLayer = () => {
         head.current += 1;
       }
     }
-    const life = Math.max(0.1, cfg.afterimageLifeSec);
     for (let i = 0; i < MAX; i += 1) {
       const group = groups.current[i];
       const ghost = ghosts.current[i];
@@ -113,11 +123,10 @@ export const GroundAfterimageLayer = () => {
       group.visible = true;
       group.position.set(ghost.x, ghost.y, ghost.z);
       group.rotation.y = ghost.ry;
-      const sc = 0.78 + 0.22 * k;
-      group.scale.set(sc, sc, sc);
+      group.scale.setScalar(1);
       const mat = mats.current[i];
       if (mat) {
-        mat.opacity = cfg.afterimageOpacity * k;
+        mat.opacity = opacity * k;
         mat.color.copy(tint.current);
         mat.emissive.copy(tint.current);
       }

@@ -16,6 +16,8 @@ import type { AnimState } from '../anim/animRunner';
 import { getGroundAbilityConfig } from './groundAbilityConfig';
 import { nextFlying } from './flightToggle';
 import { superForKey } from './superForKey';
+import { defaultSupers } from './defaultSupers';
+import { superBoost, SUPER_BOOST_SPEED, SUPER_BOOST_TURN, SUPER_BOOST_MULT } from './superBoost';
 import { useTransformStore } from '../../stores/transformStore';
 import { dashImpulse } from '../combat/dashImpulse';
 import type { SuperMove } from '../../types/character';
@@ -93,8 +95,10 @@ export const RobotGroundController = () => {
   // Flight + jump state (destination ground phases).
   const flying = useRef(false);
   const canFlyRef = useRef(!!character && character.canFly !== false);
-  const supersRef = useRef<SuperMove[] | undefined>(character?.supers);
   const colorRef = useRef(character?.color ?? '#38bdf8');
+  // Supers for keys 1–6: use the character's authored set when present, else a default set tinted by colour so
+  // every character can attack. (The seed roster carries no `supers` — this is why 1–6 felt unresponsive.)
+  const supersRef = useRef<SuperMove[]>(character?.supers?.length ? character.supers : defaultSupers(character?.color ?? '#38bdf8'));
   const jumpsUsed = useRef(0);
   const grounded = useRef(true);
   const lastPosY = useRef(spawnPos[1]);
@@ -103,7 +107,10 @@ export const RobotGroundController = () => {
     abilityRef.current = abilityConfig;
   }, [abilityConfig]);
   useEffect(() => { canFlyRef.current = !!character && character.canFly !== false; }, [character, character?.canFly]);
-  useEffect(() => { supersRef.current = character?.supers; colorRef.current = character?.color ?? '#38bdf8'; }, [character?.supers, character?.color]);
+  useEffect(() => {
+    colorRef.current = character?.color ?? '#38bdf8';
+    supersRef.current = character?.supers?.length ? character.supers : defaultSupers(colorRef.current);
+  }, [character?.supers, character?.color]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -143,6 +150,12 @@ export const RobotGroundController = () => {
         }
         return;
       }
+      // R — toggle sustained super-speed: keep surging forward (A/D steer, Shift faster) with clone afterimages.
+      if (e.code === 'KeyR') {
+        superBoost.active = !superBoost.active;
+        playerMotion.superMult = superBoost.active ? SUPER_BOOST_MULT : 1;
+        return;
+      }
       const cfg = abilityRef.current;
       const t = nowSec();
       if (e.code === cfg.cloudRally.keyCode) {
@@ -172,13 +185,16 @@ export const RobotGroundController = () => {
       window.removeEventListener('keyup', up);
       keys.current = {};
       playerMotion.speedMult = 1;
+      playerMotion.superMult = 1;
+      superBoost.active = false;
       useGroundAbilityStore.getState().reset();
     };
   }, []);
 
-  useFrame(() => {
+  useFrame((_, dtRaw) => {
     const b = bodyRef.current;
     if (!b) return;
+    const dt = Math.min(dtRaw, 0.05);
     const t = nowSec();
     const ability = useGroundAbilityStore.getState();
     playerMotion.speedMult = ability.energizedUntil > t ? abilityRef.current.cloudRally.energizedSpeedMultiplier : 1;
@@ -204,14 +220,26 @@ export const RobotGroundController = () => {
         dashImpulse.active = false;
       }
     }
+    // R super-speed (toggle): keep surging forward along the heading regardless of WASD; A/D STEER (rotate the
+    // heading) and Shift goes faster. Overrides applyMovement's camera-relative horizontal velocity while on;
+    // vertical (when flying) is still set by the flight block below. The afterimage layer reads superBoost.
+    if (superBoost.active) {
+      const turnIn = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0);
+      heading.current += turnIn * SUPER_BOOST_TURN * dt;
+      const boostSpeed = SUPER_BOOST_SPEED * (keys.current['ShiftLeft'] ? 1.5 : 1);
+      const v = b.linvel();
+      b.setLinvel({ x: Math.sin(heading.current) * boostSpeed, y: v.y, z: Math.cos(heading.current) * boostSpeed }, true);
+      playerMotion.speed = boostSpeed;
+    }
     // Vertical flight (Space = up, Shift = down, else hover) — horizontal speed already includes Shift fast-fly
     // from applyMovement. Grounded detection (resting, not at jump apex) resets the double-jump on the ground.
     if (flying.current) {
       const v = b.linvel();
       // Space = ascend; Shift ALONE = descend; Shift+WASD = fast flight (air sprint priority, no descend —
-      // the horizontal sprint is already applied by applyMovement). Idle = hover.
+      // the horizontal sprint is already applied by applyMovement). Idle = hover. While boosting, Shift means
+      // "faster" (not descend), so never descend on Shift during a boost.
       const movingKey = !!(keys.current['KeyW'] || keys.current['KeyA'] || keys.current['KeyS'] || keys.current['KeyD']);
-      const vy = keys.current['Space'] ? FLY_V : (keys.current['ShiftLeft'] && !movingKey) ? -FLY_V : 0;
+      const vy = keys.current['Space'] ? FLY_V : (keys.current['ShiftLeft'] && !movingKey && !superBoost.active) ? -FLY_V : 0;
       b.setLinvel({ x: v.x, y: vy, z: v.z }, true);
       grounded.current = false;
     } else {
