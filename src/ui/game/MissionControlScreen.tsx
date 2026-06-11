@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScreenFrame, Btn, panel, chip } from './screenChrome';
 import { WorldMapPanel } from './WorldMapPanel';
 import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
-import { getEditorLocation } from '../../stores/game/editorLocationStore';
+import { getEditorLocation, useEditorLocationStore } from '../../stores/game/editorLocationStore';
+import { getEditorRegion, useEditorRegionStore } from '../../stores/game/editorRegionStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { useMissionStore } from '../../stores/game/useMissionStore';
 import { isMissionAvailable } from '../../game/missions/missionAvailability';
+import { isLocationUnlocked } from '../../game/game/regionGrouping';
+import type { WorldLocation } from '../../types/game/world';
 import { pickTestMissionId } from '../../game/game/missionSelection';
 import { playUiSound } from '../../game/audio/uiSound';
 
@@ -14,12 +17,30 @@ import { playUiSound } from '../../game/audio/uiSound';
 // editable stores, so Edit Mode changes reflect immediately.
 export const MissionControlScreen = () => {
   const missions = useEditorMissionStore((s) => s.items);
+  const locations = useEditorLocationStore((s) => s.items);
+  const regions = useEditorRegionStore((s) => s.items);
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
+  const [regionId, setRegionId] = useState<string | null>(null);
   const [featuredId, setFeaturedId] = useState<string | null>(null);
 
+  const locked = useMemo(() => {
+    const byId = new Map(regions.map((r) => [r.id, r]));
+    const set = new Set<string>();
+    for (const l of locations) if (!isLocationUnlocked(l, l.regionId ? byId.get(l.regionId) : undefined)) set.add(l.id);
+    return set;
+  }, [locations, regions]);
+
+  const regionColorFor = (l: WorldLocation) => getEditorRegion(l.regionId)?.color;
+  const missionCountFor = (id: string) => missions.filter((m) => m.locationId === id && isMissionAvailable(m) && !locked.has(m.locationId)).length;
+
   const visible = useMemo(
-    () => missions.filter((m) => isMissionAvailable(m) && (!activeLocationId || m.locationId === activeLocationId)),
-    [missions, activeLocationId],
+    () => missions.filter((m) =>
+      isMissionAvailable(m)
+      && !locked.has(m.locationId)
+      && (!activeLocationId || m.locationId === activeLocationId)
+      && (!regionId || getEditorLocation(m.locationId)?.regionId === regionId),
+    ),
+    [missions, activeLocationId, regionId, locked],
   );
 
   const accept = (id: string) => useMissionStore.getState().selectMission(id); // → MISSION_BRIEFING
@@ -44,7 +65,21 @@ export const MissionControlScreen = () => {
   return (
     <ScreenFrame title="Mission Control" subtitle="dispatch">
       <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <WorldMapPanel activeLocationId={activeLocationId} onPick={setActiveLocationId} />
+        <div className="flex min-h-0 flex-col gap-2">
+          {regions.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              <button onClick={() => setRegionId(null)} className={`${chip} ${regionId === null ? 'border-sky-400/70 text-sky-100' : 'border-slate-600 text-slate-300'}`}>All regions</button>
+              {[...regions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((r) => (
+                <button key={r.id} onClick={() => setRegionId(regionId === r.id ? null : r.id)} className={`${chip} ${regionId === r.id ? 'text-white' : 'text-slate-300'}`} style={{ borderColor: regionId === r.id ? r.color : undefined }}>
+                  <span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: r.color }} />{r.name}{r.unlocked === false ? ' 🔒' : ''}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="min-h-0 flex-1">
+            <WorldMapPanel activeLocationId={activeLocationId} onPick={setActiveLocationId} regionColorFor={regionColorFor} lockedIds={locked} missionCountFor={missionCountFor} />
+          </div>
+        </div>
 
         <div className={`flex min-h-0 flex-col ${panel} p-3`}>
           <div className="mb-2 flex items-center justify-between gap-2">

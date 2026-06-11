@@ -14,6 +14,8 @@ export const SEED_LOCATIONS: WorldLocation[] = [
     coordinate: { x: 0, y: 0, z: 0 },
     mapPosition: { x: 50, y: 50 },
     environment: 'open_sky',
+    regionId: 'reg_home_waters',
+    order: 0,
   },
   {
     id: 'loc_brightcity',
@@ -26,6 +28,8 @@ export const SEED_LOCATIONS: WorldLocation[] = [
     coordinate: { x: 320, y: 0, z: -180 },
     mapPosition: { x: 72, y: 38 },
     environment: 'city',
+    regionId: 'reg_far_reaches',
+    order: 0,
   },
   {
     id: 'loc_coralisle',
@@ -38,6 +42,8 @@ export const SEED_LOCATIONS: WorldLocation[] = [
     coordinate: { x: -260, y: 0, z: 220 },
     mapPosition: { x: 30, y: 68 },
     environment: 'coast',
+    regionId: 'reg_home_waters',
+    order: 2,
   },
   {
     id: 'loc_sunnyharbor',
@@ -50,6 +56,8 @@ export const SEED_LOCATIONS: WorldLocation[] = [
     coordinate: { x: 360, y: 0, z: 120 },
     mapPosition: { x: 78, y: 60 },
     environment: 'coast',
+    regionId: 'reg_home_waters',
+    order: 1,
   },
   {
     id: 'loc_mountaintown',
@@ -62,6 +70,8 @@ export const SEED_LOCATIONS: WorldLocation[] = [
     coordinate: { x: 120, y: 0, z: -360 },
     mapPosition: { x: 58, y: 18 },
     environment: 'mountain',
+    regionId: 'reg_far_reaches',
+    order: 1,
   },
   {
     id: 'loc_stormcoast',
@@ -74,5 +84,7 @@ export const SEED_LOCATIONS: WorldLocation[] = [
     coordinate: { x: -340, y: 0, z: -240 },
     mapPosition: { x: 22, y: 24 },
     environment: 'coast',
+    regionId: 'reg_far_reaches',
+    order: 2,
   },
 ];

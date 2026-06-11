@@ -28,7 +28,11 @@ export interface WorldLocation {
   isBase: boolean;
   description: string;
   coordinate: WorldCoordinate; // 3D world anchor
-  mapPosition: { x: number; y: number }; // 0..100 percentage — for the Batch 2 2D/SVG world map
+  mapPosition: { x: number; y: number }; // 0..100 percentage — for the 2D/SVG world map
   environment?: string; // biome / background hint
   modelAssetId?: string; // optional GLB landmark for the location
+  // ── map system (Batch 3) ──
+  regionId?: string; // grouping on the map (Region.id)
+  unlocked?: boolean; // false = locked in Mission Control (default true)
+  order?: number; // sort order within its region
 }

@@ -37,6 +37,7 @@ import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventSt
 import { useEditorDestinationStore } from '../../stores/game/editorDestinationStore';
 import { useEditorCameraStore } from '../../stores/game/editorCameraStore';
 import { useEditorFlightCueStore } from '../../stores/game/editorFlightCueStore';
+import { useEditorRegionStore } from '../../stores/game/editorRegionStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -65,7 +66,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorCharacterStore, useEditorLocationStore, useEditorRouteStore, useEditorMissionStore,
   useEditorGameNpcStore, useEditorTransformationStore, useEditorBaseLayoutStore,
   useEditorFlightStore, useEditorExteriorStore, useEditorFlightEventStore, useEditorDestinationStore,
-  useEditorCameraStore, useEditorFlightCueStore,
+  useEditorCameraStore, useEditorFlightCueStore, useEditorRegionStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -99,6 +100,14 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorLocationStore.getState().importState(data as { items?: never }); },
     clear: () => useEditorLocationStore.getState().reset(),
     summary: () => `${useEditorLocationStore.getState().items.length} locations`,
+  },
+  {
+    id: 'gameRegion',
+    label: 'Map Regions',
+    serialize: () => { const s = useEditorRegionStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorRegionStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorRegionStore.getState().reset(),
+    summary: () => `${useEditorRegionStore.getState().items.length} regions`,
   },
   {
     id: 'gameRoute',
