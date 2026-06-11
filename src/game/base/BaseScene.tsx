@@ -6,6 +6,7 @@ import { DynamicAmbience } from '../world/DynamicAmbience';
 import { EditModeAmbience } from '../edit/EditModeAmbience';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
+import { EditableGround } from '../world/EditableGround';
 import { BaseLayoutLayer } from './BaseLayoutLayer';
 import { BaseVehicle } from './BaseVehicle';
 import { LiftPlatform } from './LiftPlatform';
@@ -46,11 +47,6 @@ function makePanelTexture(base: string, line: string): CanvasTexture {
 
 export const BaseScene = () => {
   const editMode = useUiStore((s) => s.editMode);
-  const floorTex = useMemo(() => {
-    const t = makePanelTexture('#39414f', '#2a313c');
-    t.repeat.set(H / 2, H / 2);
-    return t;
-  }, []);
   const wallTex = useMemo(() => makePanelTexture('#444b5a', '#333a47'), []);
   const ceilTex = useMemo(() => {
     const t = makePanelTexture('#2c333f', '#222831');
@@ -64,11 +60,6 @@ export const BaseScene = () => {
 
       <Physics gravity={[0, -9.81, 0]}>
         <RigidBody type="fixed" colliders={false}>
-          {/* Floor */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, BASE_GROUND_Y, 0]} receiveShadow>
-            <planeGeometry args={[H * 2, H * 2]} />
-            <meshStandardMaterial map={floorTex} roughness={0.9} />
-          </mesh>
           {/* Ceiling */}
           <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, CEIL, 0]}>
             <planeGeometry args={[H * 2, H * 2]} />
@@ -101,6 +92,8 @@ export const BaseScene = () => {
           <CuboidCollider args={[0.5, CEIL, H]} position={[H, CEIL / 2, 0]} />
         </RigidBody>
 
+        {/* POLI editable hangar floor — 🌤 Environment / 🗺 World / terrain-sculpt / PBR tools edit 'aero_base'. */}
+        <EditableGround areaId="aero_base" />
         <BaseLayoutLayer />
         {!editMode && <BaseVehicle />}
         {!editMode && <LiftPlatform />}

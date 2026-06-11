@@ -3,6 +3,7 @@ import { WorldSkyAmbience } from '../flight/world/WorldSkyAmbience';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
+import { EditableGround } from '../world/EditableGround';
 
 // DESCENT — minimal handoff after the transformation (full descent/landing/NPC is Batch 7). Shows the
 // robot-form character above the cloud floor under open sky; orbit camera. The momentum (descentEntry) is
@@ -19,10 +20,12 @@ export const DescentScene = () => {
   return (
     <>
       <WorldSkyAmbience top="#3f7fd0" bottom="#cfe3ff" />
-      <group position={[0, 0, 0]} scale={1.4}>
+      {/* POLI editable landing ground — 🌤 Environment / 🗺 World / terrain-sculpt / PBR tools edit this area. */}
+      <EditableGround areaId="aero_destination" />
+      <group position={[0, 2, 0]} scale={1.4}>
         {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} fallback={fallback} noCull /> : fallback}
       </group>
-      <OrbitControls makeDefault target={[0, 0, 0]} />
+      <OrbitControls makeDefault target={[0, 2, 0]} />
     </>
   );
 };
