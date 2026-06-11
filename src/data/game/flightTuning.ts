@@ -26,6 +26,8 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   comboWindowSec: 3,
   boostSpeedMul: 1.8,
   boostDurationSec: 3,
+  goldenChance: 0.12,
+  goldenMultiplier: 5,
   worldCraftYawDeg: 180,
   worldSteerRange: 400,
   worldVertRange: 300,

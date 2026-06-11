@@ -33,6 +33,8 @@ const FIELDS: { key: NumKey; label: string; step: number }[] = [
   { key: 'comboWindowSec', label: 'Combo window (s)', step: 0.5 },
   { key: 'boostSpeedMul', label: 'Boost speed ×', step: 0.1 },
   { key: 'boostDurationSec', label: 'Boost duration (s)', step: 0.5 },
+  { key: 'goldenChance', label: 'Golden pickup chance', step: 0.05 },
+  { key: 'goldenMultiplier', label: 'Golden reward ×', step: 1 },
   { key: 'worldCraftYawDeg', label: 'Craft yaw (deg)', step: 90 },
   { key: 'worldSteerSpeed', label: 'Steer speed (hold A/D)', step: 5 },
   { key: 'worldVertSpeed', label: 'Climb speed (hold Spc/Shift)', step: 5 },

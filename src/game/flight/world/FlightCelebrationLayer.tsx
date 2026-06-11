@@ -83,8 +83,14 @@ export const FlightCelebrationLayer = () => {
       playSfx('rescueSuccess');
       for (let c = 0; c < n; c++) {
         const ev = _collects[c];
-        popup(ev.x - 0.5, ev.y + 1.2, ev.z, `+${ev.exp} XP${ev.combo > 1 ? ` ×${ev.combo}` : ''}`);
-        popup(ev.x + 0.6, ev.y + 0.8, ev.z, `+${ev.coin}`);
+        if (ev.label) {
+          popup(ev.x, ev.y + 1.4, ev.z, `${ev.label} +${ev.exp + ev.coin}`); // milestone / perfect bonus
+        } else {
+          const star = ev.golden ? '★ ' : '';
+          popup(ev.x - 0.5, ev.y + 1.2, ev.z, `${star}+${ev.exp} XP${ev.combo > 1 ? ` ×${ev.combo}` : ''}`);
+          popup(ev.x + 0.6, ev.y + 0.8, ev.z, `+${ev.coin}`);
+        }
+        if (ev.noClone) continue;
         const i = cloneHead.current % CLONES; cloneHead.current++;
         const s = slots.current[i];
         s.active = true; s.t = 0; s.x = ev.x; s.y = ev.y; s.z = ev.z; s.spin = 0;

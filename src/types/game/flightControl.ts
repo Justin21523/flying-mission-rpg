@@ -29,6 +29,8 @@ export interface FlightTuning {
   comboWindowSec: number; // world-flight: max seconds between pickups to keep the combo going
   boostSpeedMul: number; // world-flight: speed multiplier while a boost pickup is active
   boostDurationSec: number; // world-flight: how long a boost pickup lasts
+  goldenChance: number; // world-flight: 0..1 chance a reward pickup spawns golden (big reward)
+  goldenMultiplier: number; // world-flight: reward × for a golden pickup
   worldCraftYawDeg: number; // craft model facing offset (deg) — dial so the nose points along travel
   worldSteerRange: number; // world-flight: max lateral offset from the route centreline (A/D)
   worldVertRange: number; // world-flight: max vertical offset from the route (↑/↓)

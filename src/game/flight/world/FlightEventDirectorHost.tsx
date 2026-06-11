@@ -10,6 +10,7 @@ import { segmentAtU, allowedKindsAtU, eventDensityAtU } from './WorldFlightRoute
 import { flightHandle } from '../flightHandle';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
 import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
+import { crossedMilestones } from './flightMilestones';
 import {
   ACTIVE_FLIGHT_EVENTS,
   useFlightEventVersion,
@@ -40,12 +41,14 @@ export const FlightEventDirectorHost = () => {
   const globalTimer = useRef(0);
   const elapsed = useRef(0);
   const clearTimer = useRef(0);
+  const prevU = useRef(0); // last route progress (for distance-milestone bonuses)
 
   useEffect(() => {
     clearActiveFlightEvents();
     lastSpawn.current = {};
     globalTimer.current = 0;
     elapsed.current = 0;
+    prevU.current = 0;
     return () => clearActiveFlightEvents();
   }, []);
 
@@ -61,6 +64,12 @@ export const FlightEventDirectorHost = () => {
     const routeU = flightHandle.routeU;
     const rt = useWorldFlightRuntimeStore.getState();
     let changed = false;
+
+    // Distance milestones — a one-off bonus each quarter of the route.
+    for (const m of crossedMilestones(prevU.current, routeU, 0.25)) {
+      useFlightScoreStore.getState().awardBonus([flightHandle.pos.x, flightHandle.pos.y + 2, flightHandle.pos.z], 15, 8, `${Math.round(m * 100)}%`);
+    }
+    prevU.current = routeU;
 
     // resolve / recycle (iterate backwards so splices are safe)
     for (let i = ACTIVE_FLIGHT_EVENTS.length - 1; i >= 0; i--) {
@@ -87,7 +96,13 @@ export const FlightEventDirectorHost = () => {
           else if (d.kind === 'energy_refill') rt.addEnergy(d.value ?? 20);
           else if (d.kind === 'radio' && d.radioText) rt.setRadio(d.radioText);
           // Reward + celebration (exp/coins + combo + dancing-clone popup) for rewarding kinds.
-          if (REWARD_KINDS.has(d.kind)) useFlightScoreStore.getState().award(d, [ev.pos[0], ev.pos[1], ev.pos[2]]);
+          if (REWARD_KINDS.has(d.kind)) {
+            useFlightScoreStore.getState().award(d, [ev.pos[0], ev.pos[1], ev.pos[2]], ev.golden);
+            // Perfect ring — passed near the ring's centre → a small extra bonus.
+            if (d.kind === 'stunt_ring' && dx * dx + dy * dy + dz * dz < (d.size * 0.6) * (d.size * 0.6)) {
+              useFlightScoreStore.getState().awardBonus([ev.pos[0], ev.pos[1] + 1, ev.pos[2]], 8, 4, 'Perfect!');
+            }
+          }
           rt.setActiveEvent(d.label);
           clearTimer.current = EVENT_CLEAR_SEC;
         }
@@ -136,6 +151,7 @@ export const FlightEventDirectorHost = () => {
           bornAt: elapsed.current,
           state: 'active',
           resolved: false,
+          golden: REWARD_KINDS.has(chosen.kind) && Math.random() < tuning.goldenChance,
         });
         lastSpawn.current[chosen.id] = elapsed.current;
         globalTimer.current = 0;

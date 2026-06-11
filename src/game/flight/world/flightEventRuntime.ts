@@ -19,6 +19,7 @@ export interface ActiveFlightEvent {
   bornAt: number; // director elapsed seconds at spawn
   state: FlightEventState;
   resolved: boolean;
+  golden?: boolean; // rare upgraded pickup — bigger reward + gold celebration
 }
 
 export const ACTIVE_FLIGHT_EVENTS: ActiveFlightEvent[] = [];
