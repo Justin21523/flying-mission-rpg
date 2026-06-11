@@ -3,7 +3,7 @@ import type { FlightEventDef } from '../../types/game/flightEvent';
 import { useProgressionStore } from '../progressionStore';
 import { useWalletStore } from '../walletStore';
 import { getFlightTuning } from './editorFlightStore';
-import { nextCombo, rewardFor } from '../../game/flight/world/flightRewards';
+import { nextCombo, rewardFor, flightGrade, type FlightGrade } from '../../game/flight/world/flightRewards';
 
 // World-flight reward bus + score/combo (mirrors yokaiCombatStore's queue+drain). On collecting a flight item
 // the director calls award(): it grants exp + coins, bumps the combo/score, sets a boost timer for boost
@@ -19,12 +19,16 @@ export function drainFlightCollects(out: FlightCollect[]): number {
 
 const now = () => performance.now() / 1000;
 
+export interface FlightResult { score: number; collected: number; bestCombo: number; grade: FlightGrade }
+
 interface FlightScoreState {
   score: number;
   combo: number;
   comboUntil: number;
   boostUntil: number;
   collected: number;
+  bestCombo: number;
+  lastResult: FlightResult | null; // snapshot of the just-finished leg (shown on arrival)
   award: (def: FlightEventDef, pos: [number, number, number], golden?: boolean) => void;
   awardBonus: (pos: [number, number, number], exp: number, coin: number, label: string) => void;
   boostActive: () => boolean;
@@ -37,6 +41,8 @@ export const useFlightScoreStore = create<FlightScoreState>((set, get) => ({
   comboUntil: 0,
   boostUntil: 0,
   collected: 0,
+  bestCombo: 0,
+  lastResult: null,
   award: (def, pos, golden = false) => {
     const t = now();
     const s = get();
@@ -54,6 +60,7 @@ export const useFlightScoreStore = create<FlightScoreState>((set, get) => ({
       comboUntil: t + Math.max(0.5, tuning.comboWindowSec),
       score: s.score + exp + coin,
       collected: s.collected + 1,
+      bestCombo: Math.max(s.bestCombo, combo),
       boostUntil: def.kind === 'boost' ? t + Math.max(0.5, tuning.boostDurationSec) : s.boostUntil,
     });
   },
@@ -65,5 +72,13 @@ export const useFlightScoreStore = create<FlightScoreState>((set, get) => ({
     set({ score: get().score + exp + coin });
   },
   boostActive: () => now() < get().boostUntil,
-  reset: () => { queue.length = 0; set({ score: 0, combo: 0, comboUntil: 0, boostUntil: 0, collected: 0 }); },
+  // Snapshot the just-finished leg into lastResult (kept across reset for the arrival summary), then clear live.
+  reset: () => {
+    const s = get();
+    const lastResult: FlightResult | null = s.score > 0
+      ? { score: s.score, collected: s.collected, bestCombo: s.bestCombo, grade: flightGrade(s.score) }
+      : s.lastResult;
+    queue.length = 0;
+    set({ score: 0, combo: 0, comboUntil: 0, boostUntil: 0, collected: 0, bestCombo: 0, lastResult });
+  },
 }));

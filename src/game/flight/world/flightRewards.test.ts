@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { comboMultiplier, nextCombo, rewardFor } from './flightRewards';
+import { comboMultiplier, nextCombo, rewardFor, flightGrade } from './flightRewards';
 
 describe('comboMultiplier', () => {
   it('grows +0.5 per link, capped at 5', () => {
@@ -13,6 +13,15 @@ describe('nextCombo', () => {
   it('climbs within the window, resets after it closes', () => {
     expect(nextCombo(2, 5, 6)).toBe(3); // 5 <= 6 → continue
     expect(nextCombo(2, 7, 6)).toBe(1); // 7 > 6 → reset
+  });
+});
+
+describe('flightGrade', () => {
+  it('grades by score thresholds', () => {
+    expect(flightGrade(320)).toBe('S');
+    expect(flightGrade(200)).toBe('A');
+    expect(flightGrade(100)).toBe('B');
+    expect(flightGrade(10)).toBe('C');
   });
 });
 

@@ -22,3 +22,13 @@ export function rewardFor(def: Pick<FlightEventDef, 'kind' | 'value' | 'expRewar
   const m = comboMultiplier(combo) * ring;
   return { exp: Math.round(baseExp * m), coin: Math.round(baseCoin * m) };
 }
+
+export type FlightGrade = 'S' | 'A' | 'B' | 'C';
+
+// End-of-leg grade from the accumulated flight score.
+export function flightGrade(score: number): FlightGrade {
+  if (score >= 300) return 'S';
+  if (score >= 180) return 'A';
+  if (score >= 80) return 'B';
+  return 'C';
+}
