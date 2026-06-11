@@ -108,6 +108,25 @@ describe('TransformationTimelineRunner', () => {
     expect(r.getSnapshot().modelMotion.plane).toEqual({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 });
   });
 
+  it('model-move + model-visibility can target the arbitrary swapped-in model (modelRef)', () => {
+    const tl = makeTimeline();
+    tl.stages.push(
+      { id: 'ms', type: 'model-swap', startTime: 1.0, duration: 0.1, enabled: true, params: { modelRef: 'm_alt' } },
+      { id: 'mv_ref', type: 'model-move', startTime: 1.2, duration: 1, enabled: true, params: { modelRef: 'm_alt', toPosition: [0, 0, 6] } },
+      { id: 'hide_ref', type: 'model-visibility', startTime: 3.0, duration: 0.1, enabled: true, params: { modelRef: 'm_alt', visible: false } },
+    );
+    const r = new TransformationTimelineRunner(tl, 'full');
+    r.seek(1.1);
+    expect(r.getSnapshot().activeModelVisible).toBe(true);
+    expect(r.getSnapshot().refMotion.position[2]).toBeCloseTo(0);
+    r.seek(2.2); // ref move complete
+    expect(r.getSnapshot().refMotion.position[2]).toBeCloseTo(6);
+    // ref-targeted move must NOT leak into the robot slot motion
+    expect(r.getSnapshot().modelMotion.robot).toEqual({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 });
+    r.seek(3.2); // after the ref hide
+    expect(r.getSnapshot().activeModelVisible).toBe(false);
+  });
+
   it('exit-stage toScale shrinks the root via exitScaleMul', () => {
     const tl = makeTimeline();
     tl.stages.push({ id: 'ex2', type: 'exit-stage', startTime: 0, duration: 1, enabled: true, params: { targetPhase: 'DESCENT', toScale: 0.2 } });

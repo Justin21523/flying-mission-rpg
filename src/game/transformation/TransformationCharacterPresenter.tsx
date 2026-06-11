@@ -180,6 +180,8 @@ export const TransformationCharacterPresenter = ({
     if (robot.current) { robot.current.visible = vis?.robot ?? false; applySlotMotion(robot.current, robotOffset, snap?.modelMotion.robot); }
     if (plane.current) { plane.current.visible = vis?.plane ?? false; applySlotMotion(plane.current, planeOffset, snap?.modelMotion.plane); }
     if (shared.current) { shared.current.visible = vis?.shared ?? false; applySlotMotion(shared.current, sharedOffset, snap?.modelMotion.shared); }
+    // arbitrary swapped-in model — driven by model-move (refMotion) + model-visibility (activeModelVisible).
+    if (extra.current) { extra.current.visible = snap?.activeModelVisible ?? true; applySlotMotion(extra.current, offsetForStageModel(def, snap?.activeModelStageId), snap?.refMotion); }
   });
   const color = def.particleColor;
   const clips = txFrame.snapshot?.activeModelClips ?? [];

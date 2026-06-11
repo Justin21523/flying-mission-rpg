@@ -42,6 +42,7 @@ export interface RunnerSnapshot {
   parts: Map<TransformationPartKey, PartState>;
   modelVisible: Record<ModelSlot, boolean>;
   activeModelRef: string | null; // arbitrary extra model shown by a model-swap stage with params.modelRef
+  activeModelVisible: boolean; // visibility of that extra model (toggled by model-visibility stages w/ modelRef)
   activeModelStageId: string | null;
   activeClip: string | null; // latest active clip name, kept for debug panels
   activeModelClips: ActiveModelClip[];
@@ -50,6 +51,7 @@ export interface RunnerSnapshot {
   backdropIntensity: number;
   rootYOffset: number; // slow exit descent — how far the character root has sunk (world units)
   modelMotion: Record<ModelSlot, SlotMotion>; // animated per-slot offset from 'model-move' stages
+  refMotion: SlotMotion; // animated offset for the arbitrary swapped-in model (model-move stages w/ modelRef)
   exitScaleMul: number; // root scale multiplier during the exit fly-out (1 = none)
 }
 
@@ -183,8 +185,17 @@ export class TransformationTimelineRunner {
         modelVisible.plane = false; modelVisible.robot = false; modelVisible.shared = false; modelVisible[slot] = true;
         activeModelRef = null;
         activeModelStageId = null;
-      } else if (slot) {
+      } else if (slot && !st.params.modelRef) {
         modelVisible[slot] = st.params.visible ?? true;
+      }
+    }
+
+    // arbitrary swapped-in model — its visibility (model-visibility stages carrying that modelRef) defaults to
+    // shown once a model-swap reveals it; later model-visibility stages can hide/show it.
+    let activeModelVisible = activeModelRef != null;
+    if (activeModelRef) {
+      for (const st of this.stages.filter((s) => s.type === 'model-visibility' && s.params.modelRef === activeModelRef && s.startTime <= t).sort((a, b) => a.startTime - b.startTime)) {
+        activeModelVisible = st.params.visible ?? true;
       }
     }
 
@@ -235,11 +246,8 @@ export class TransformationTimelineRunner {
 
     // per-slot animated motion — accumulate 'model-move' stages onto each slot (same lerp+ease as parts).
     const modelMotion: Record<ModelSlot, SlotMotion> = { plane: IDENTITY_MOTION(), robot: IDENTITY_MOTION(), shared: IDENTITY_MOTION() };
-    for (const slot of ['plane', 'robot', 'shared'] as ModelSlot[]) {
+    const accumulateMotion = (moves: TransformationStage[]): SlotMotion => {
       let cur = IDENTITY_MOTION();
-      const moves = this.stages
-        .filter((s) => s.type === 'model-move' && s.startTime <= t && (s.params.modelSlot ?? 'robot') === slot)
-        .sort((a, b) => a.startTime - b.startTime);
       for (const st of moves) {
         const target: SlotMotion = {
           position: st.params.toPosition ?? cur.position,
@@ -254,8 +262,20 @@ export class TransformationTimelineRunner {
           break;
         }
       }
-      modelMotion[slot] = cur;
+      return cur;
+    };
+    // Slot motion: model-move stages WITHOUT a modelRef (slot-targeted). Ref-targeted moves drive refMotion.
+    for (const slot of ['plane', 'robot', 'shared'] as ModelSlot[]) {
+      modelMotion[slot] = accumulateMotion(
+        this.stages
+          .filter((s) => s.type === 'model-move' && !s.params.modelRef && s.startTime <= t && (s.params.modelSlot ?? 'robot') === slot)
+          .sort((a, b) => a.startTime - b.startTime),
+      );
     }
+    // Motion for the arbitrary swapped-in model (model-move stages whose modelRef is the active model).
+    const refMotion = activeModelRef
+      ? accumulateMotion(this.stages.filter((s) => s.type === 'model-move' && s.params.modelRef === activeModelRef && s.startTime <= t).sort((a, b) => a.startTime - b.startTime))
+      : IDENTITY_MOTION();
 
     const active = this.stages.find((s) => t >= s.startTime && t < s.startTime + s.duration);
     return {
@@ -267,6 +287,7 @@ export class TransformationTimelineRunner {
       parts,
       modelVisible,
       activeModelRef,
+      activeModelVisible,
       activeModelStageId,
       activeClip,
       activeModelClips,
@@ -275,6 +296,7 @@ export class TransformationTimelineRunner {
       backdropIntensity,
       rootYOffset,
       modelMotion,
+      refMotion,
       exitScaleMul,
     };
   }

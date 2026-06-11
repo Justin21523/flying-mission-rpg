@@ -6,7 +6,7 @@ import { useTransformationPreviewStore } from '../../../stores/game/transformati
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { validateTimeline } from '../../../game/transformation/transformationValidation';
 import { liveOffset, scaleNumber, radiansToDegrees, resolveStageClipModelId } from '../../../game/transformation/transformationOverrides';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey } from '../../../game/transformation/transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformStageMoveKey, transformStagePartMoveKey } from '../../../game/transformation/transformPartKey';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
 import {
@@ -294,31 +294,39 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
     case 'model-move':
       return (
         <>
-          <SelectRow label="Model slot" value={p.modelSlot ?? 'robot'} options={opts(MODEL_SLOTS)} onChange={(v) => patch({ modelSlot: v as typeof p.modelSlot })} />
+          <Field label="Arbitrary model (overrides slot — moves a model-swapped model)">
+            <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v })} noneLabel="(use slot)" />
+          </Field>
+          {!p.modelRef && <SelectRow label="Model slot" value={p.modelSlot ?? 'robot'} options={opts(MODEL_SLOTS)} onChange={(v) => patch({ modelSlot: v as typeof p.modelSlot })} />}
           <Vec3 label="Move to position (offset)" value={p.toPosition ?? [0, 0, 0]} onChange={(v) => patch({ toPosition: v })} />
           <Vec3 label="Rotate to° (offset)" value={p.toRotation ?? [0, 0, 0]} onChange={(v) => patch({ toRotation: v })} />
           <NumRow label="Scale to ×" value={p.toScale ?? 1} step={0.1} min={0.05} onChange={(v) => patch({ toScale: v })} />
         </>
       );
     case 'model-visibility':
+      return (
+        <>
+          <Field label="Arbitrary model (overrides slot — shows/hides a model-swapped model)">
+            <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v })} noneLabel="(use slot)" />
+          </Field>
+          {!p.modelRef && <SelectRow label="Model slot" value={p.modelSlot ?? 'robot'} options={opts(MODEL_SLOTS)} onChange={(v) => patch({ modelSlot: v as typeof p.modelSlot })} />}
+          <Check label="Visible" checked={p.visible ?? true} onChange={(v) => patch({ visible: v })} />
+        </>
+      );
     case 'model-swap':
       return (
         <>
           <SelectRow label="Model slot" value={p.modelSlot ?? 'robot'} options={opts(MODEL_SLOTS)} onChange={(v) => patch({ modelSlot: v as typeof p.modelSlot })} />
-          {s.type === 'model-swap' && (
-            <>
-              <Field label="Arbitrary model (overrides slot — chain any number of swaps)">
-                <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v })} noneLabel="(use slot)" />
-              </Field>
-              {p.modelRef && (
-                <TransformOffsetFields
-                  title="Stage model offset"
-                  objKey={transformStageModelKey(def.id, s.id)}
-                  value={p.modelOffset}
-                  onChange={(v) => patch({ modelOffset: v })}
-                />
-              )}
-            </>
+          <Field label="Arbitrary model (overrides slot — chain any number of swaps)">
+            <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v })} noneLabel="(use slot)" />
+          </Field>
+          {p.modelRef && (
+            <TransformOffsetFields
+              title="Stage model offset"
+              objKey={transformStageModelKey(def.id, s.id)}
+              value={p.modelOffset}
+              onChange={(v) => patch({ modelOffset: v })}
+            />
           )}
           <Check label="Visible" checked={p.visible ?? true} onChange={(v) => patch({ visible: v })} />
         </>
@@ -367,6 +375,28 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
   }
 };
 
+// The gizmo anchor (key + live position) for a coordinate-bearing stage — null for stages that place nothing
+// in 3D. Lets every such stage be Selected/Focused straight from its row (the anchor also renders in 3D).
+function stageGizmo(def: TransformationDefinition, s: TransformationStage): { key: string; position: [number, number, number] } | null {
+  if (s.type === 'part-transform') return { key: transformStagePartMoveKey(def.id, s.id), position: s.params.toPosition ?? [0, 0, 0] };
+  if (s.type === 'model-move') return { key: transformStageMoveKey(def.id, s.id), position: s.params.toPosition ?? [0, 0, 0] };
+  if (s.type === 'model-swap' && s.params.modelRef) return { key: transformStageModelKey(def.id, s.id), position: s.params.modelOffset?.position ?? [0, 0, 0] };
+  return null;
+}
+
+const StageGizmoControls = ({ def, s }: { def: TransformationDefinition; s: TransformationStage }) => {
+  const selectedKey = useSceneEditStore((s2) => s2.selectedKey);
+  const g = stageGizmo(def, s);
+  if (!g) return null;
+  return (
+    <div className={`flex items-center gap-1 rounded px-1 ${selectedKey === g.key ? 'bg-violet-950/40' : ''}`}>
+      <span className="text-[10px] text-slate-500">gizmo</span>
+      <FocusButton position={g.position} objKey={g.key} />
+      <button onClick={() => useSceneEditStore.getState().requestSelect(g.key)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+    </div>
+  );
+};
+
 const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const add = () => update({ stages: [...def.stages, { id: `s_${nanoid(4)}`, type: 'part-transform', startTime: 0, duration: 0.5, enabled: true, params: {} }] });
   const seekStage = (id: string, override?: number) => { const st = def.stages.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(override ?? st?.startTime ?? 0); };
@@ -392,6 +422,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
             </div>
             <div className="mt-1"><StageParams s={s} def={def} patch={(pp) => patchParams(s.id, pp)} /></div>
             <div className="mt-1 flex items-center gap-1.5">
+              <StageGizmoControls def={def} s={s} />
               <MoveButtons index={i} count={def.stages.length} onMove={(d) => update({ stages: moveItem(def.stages, i, d) })} />
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>
