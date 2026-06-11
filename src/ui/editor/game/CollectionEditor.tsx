@@ -4,6 +4,7 @@ import type { EditorCollectionStore } from '../../../stores/game/createEditorCol
 import type { SourceConfidence } from '../../../types/sourceConfidence';
 import { SOURCE_CONFIDENCES } from '../../../types/sourceConfidence';
 import { Field, inp, lbl, FocusButton, MoveButtons } from '../editorShared';
+import { clampNum } from '../../../game/editor/clampNum';
 
 // Reusable Edit-Mode editor for any `{ id }` collection store: list (left) + add / duplicate / delete +
 // an entity-specific field form (right, via renderFields). Each game data domain becomes a ~15-line tab.
@@ -154,7 +155,7 @@ export const NumRow = ({
       step={step}
       min={min}
       max={max}
-      onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+      onChange={(e) => onChange(clampNum(parseFloat(e.target.value), min, max))}
       className={inp}
     />
   </Field>

@@ -4,6 +4,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { defaultCollisionForKind, defaultCollisionShapeForKind, asScaleVec, type CollisionShape, type EditKind, type Vec3 } from '../game/edit/sceneEditMerge';
 import { NpcSelectionExtras } from './editor/NpcSelectionExtras';
 import { duplicateAllSelected } from '../game/edit/duplicateSelection';
+import { clampNum } from '../game/editor/clampNum';
 
 const COLLISION_KINDS = new Set(['setpiece', 'groundtile', 'decoration', 'scatter', 'regional', 'landmark', 'prop', 'building', 'structure']);
 
@@ -19,7 +20,7 @@ const NumRow = ({ label, value, min, max, step, onChange }: {
   <div className="flex items-center gap-2">
     <span className="w-14 shrink-0 text-[11px] text-slate-300">{label}</span>
     <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="h-1 flex-1 accent-violet-500" />
-    <input type="number" step={step} value={Math.round(value * 1000) / 1000} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} className="w-16 shrink-0 rounded bg-slate-800/80 px-1.5 py-0.5 text-right text-[11px] text-slate-100" />
+    <input type="number" step={step} value={Math.round(value * 1000) / 1000} onChange={(e) => onChange(clampNum(parseFloat(e.target.value), min, max))} className="w-16 shrink-0 rounded bg-slate-800/80 px-1.5 py-0.5 text-right text-[11px] text-slate-100" />
   </div>
 );
 
@@ -106,7 +107,8 @@ export const EditModeInspector = () => {
       {collapsed ? null : !selectedKey ? (
         <p className="py-5 text-center text-sm text-slate-400">
           Click any object to select it.<br />
-          <span className="text-[11px] text-slate-300">drag: orbit · right-drag: pan · wheel: zoom</span>
+          <span className="text-[11px] text-slate-300">drag: orbit · right-drag: pan · wheel: zoom</span><br />
+          <span className="text-[11px] text-slate-300">Shift/Ctrl-click: multi-select · W/E/R: move/rotate/scale · Del: delete · Esc: deselect</span>
         </p>
       ) : (
         <div className="space-y-3">
@@ -148,7 +150,9 @@ export const EditModeInspector = () => {
             <NumRow label="Pos X" value={position[0]} min={-posRange} max={posRange} step={0.1} onChange={(v) => patch({ position: [v, position[1], position[2]] })} />
             <NumRow label="Pos Y" value={position[1]} min={-posRange} max={posRange} step={0.1} onChange={(v) => patch({ position: [position[0], v, position[2]] })} />
             <NumRow label="Pos Z" value={position[2]} min={-posRange} max={posRange} step={0.1} onChange={(v) => patch({ position: [position[0], position[1], v] })} />
+            <NumRow label="Rot X°" value={rotation[0] * RAD2DEG} min={-180} max={180} step={1} onChange={(v) => patch({ rotation: [v * DEG2RAD, rotation[1], rotation[2]] })} />
             <NumRow label="Rot Y°" value={rotation[1] * RAD2DEG} min={-180} max={180} step={1} onChange={(v) => patch({ rotation: [rotation[0], v * DEG2RAD, rotation[2]] })} />
+            <NumRow label="Rot Z°" value={rotation[2] * RAD2DEG} min={-180} max={180} step={1} onChange={(v) => patch({ rotation: [rotation[0], rotation[1], v * DEG2RAD] })} />
             {/* Uniform scale (sets all axes) + per-axis X/Y/Z so non-uniform scaling is editable + exact. */}
             <NumRow label="Scale" value={scale[0]} min={0.05} max={10} step={0.05} onChange={(v) => patch({ scale: [v, v, v] })} />
             <NumRow label="Scale X" value={scale[0]} min={0.05} max={10} step={0.05} onChange={(v) => patch({ scale: [v, scale[1], scale[2]] })} />
