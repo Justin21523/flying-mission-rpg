@@ -19,6 +19,7 @@ import { WorldFlightDebugGizmos } from './WorldFlightDebugGizmos';
 import { WorldFlightCraftEditable } from './WorldFlightCraftEditable';
 import { WORLD_CRAFT_KEY, routeStartNode } from './worldCraftKey';
 import { FlightPreviewController } from '../FlightPreviewController';
+import { FlightCuePreview } from '../FlightCuePreview';
 import { getActivePathId } from './worldRoute';
 import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
 import { worldFlightSceneLayers } from './worldFlightSceneLayers';
@@ -80,6 +81,7 @@ export const WorldFlightScene = () => {
       {layers.segmentGizmos && <WorldFlightDebugGizmos />}
       {layers.editableCraft && !preview && <WorldFlightCraftEditable />}
       {editMode && <FlightPreviewController pathId={getActivePathId()} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} />}
+      {editMode && <FlightCuePreview pathId={getActivePathId()} />}
 
       {/* EDIT: orbit camera, unless previewing with Camera = Flight (shows the authored worldCam* framing +
           craft scale live). PLAY: the flight camera. */}

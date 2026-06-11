@@ -18,6 +18,7 @@ import { FlightCamera } from './FlightCamera';
 import { BaseFlightCraftEditable } from './BaseFlightCraftEditable';
 import { BASE_CRAFT_KEY, baseLoopStartNode } from './baseCraftKey';
 import { FlightPreviewController } from './FlightPreviewController';
+import { FlightCuePreview } from './FlightCuePreview';
 import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 
@@ -56,6 +57,7 @@ export const FlightScene = () => {
       {editMode && <PathDebugLayer areaId="exterior" />}
       {editMode && !preview && <BaseFlightCraftEditable />}
       {editMode && <FlightPreviewController pathId={FLIGHT_PATH_ID} craftScale={tuning.flyAroundCraftScale} craftYaw={tuning.flyAroundCraftYawDeg} />}
+      {editMode && <FlightCuePreview pathId={FLIGHT_PATH_ID} />}
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
 

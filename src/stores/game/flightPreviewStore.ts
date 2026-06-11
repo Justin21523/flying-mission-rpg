@@ -13,6 +13,7 @@ interface FlightPreviewState {
   speed: number; // u per second (≈ 1/seconds end-to-end)
   follow: boolean; // orbit target rides the craft (still user-rotatable)
   cameraMode: FlightPreviewCameraMode;
+  activeCueClip: string; // animation-cue clip currently active ('' = none) — drives the preview craft's clip
   play: () => void;
   pause: () => void;
   stop: () => void;
@@ -20,6 +21,7 @@ interface FlightPreviewState {
   setSpeed: (s: number) => void;
   toggleFollow: () => void;
   setCameraMode: (m: FlightPreviewCameraMode) => void;
+  setActiveCueClip: (c: string) => void;
   advance: (dt: number) => void;
 }
 
@@ -31,13 +33,15 @@ export const useFlightPreviewStore = create<FlightPreviewState>((set) => ({
   speed: 0.12,
   follow: true,
   cameraMode: 'flight',
+  activeCueClip: '',
   play: () => set({ playing: true }),
   pause: () => set({ playing: false }),
-  stop: () => set({ playing: false, u: 0 }),
+  stop: () => set({ playing: false, u: 0, activeCueClip: '' }),
   scrub: (u) => set({ u: clamp01(u), playing: false }),
   setSpeed: (speed) => set({ speed: Math.max(0.01, speed) }),
   toggleFollow: () => set((s) => ({ follow: !s.follow })),
   setCameraMode: (cameraMode) => set({ cameraMode }),
+  setActiveCueClip: (c) => { if (useFlightPreviewStore.getState().activeCueClip !== c) set({ activeCueClip: c }); },
   advance: (dt) =>
     set((s) => {
       if (!s.playing) return s;

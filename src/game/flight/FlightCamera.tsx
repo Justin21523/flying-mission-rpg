@@ -5,6 +5,9 @@ import { getFlightTuning } from '../../stores/game/editorFlightStore';
 import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { flightHandle } from './flightHandle';
+import { flightCueHandle } from './flightCueHandle';
+
+const DEG = Math.PI / 180;
 
 // Third-person flight camera: follows behind+above, FOV widens with speed, pulls back under throttle,
 // partially follows roll (comfort mode halves it). Bounded roll + camera.up keep it from ever flipping.
@@ -46,10 +49,13 @@ export const FlightCamera = () => {
     // WORLD_FLIGHT uses its own (very close) framing so the character reads BIG during the long flight;
     // the launch/fly-around phases keep the regular pair. Both editable in 🛩 Flight.
     const world = useGameStore.getState().phase === 'WORLD_FLIGHT';
-    const pull = world ? 0 : tuning.camPullback * Math.min(1, flightHandle.speedNorm);
-    const dist = world ? tuning.worldCamDistance : tuning.flyAroundCamDistance;
-    const height = world ? tuning.worldCamHeight : tuning.flyAroundCamHeight;
-    _off.set(0, height, dist + pull).applyQuaternion(_q).add(flightHandle.pos);
+    let pull = world ? 0 : tuning.camPullback * Math.min(1, flightHandle.speedNorm);
+    let dist = world ? tuning.worldCamDistance : tuning.flyAroundCamDistance;
+    let height = world ? tuning.worldCamHeight : tuning.flyAroundCamHeight;
+    let angle = 0;
+    // A camera cue (edit preview) overrides the framing: its distance/height/orbit-angle steer the shot.
+    if (flightCueHandle.camActive) { dist = flightCueHandle.distance; height = flightCueHandle.height; angle = flightCueHandle.angleDeg * DEG; pull = 0; }
+    _off.set(dist * Math.sin(angle), height, dist * Math.cos(angle) + pull).applyQuaternion(_q).add(flightHandle.pos);
     cam.position.lerp(_off, k);
 
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
@@ -59,7 +65,7 @@ export const FlightCamera = () => {
     cam.lookAt(_look);
 
     const fovMax = comfort ? tuning.fovBase + (tuning.fovMax - tuning.fovBase) * 0.5 : tuning.fovMax;
-    const targetFov = tuning.fovBase + (fovMax - tuning.fovBase) * Math.min(1, flightHandle.speedNorm);
+    const targetFov = flightCueHandle.camActive ? flightCueHandle.fov : tuning.fovBase + (fovMax - tuning.fovBase) * Math.min(1, flightHandle.speedNorm);
     cam.fov = lerp(cam.fov, targetFov, k);
     cam.updateProjectionMatrix();
   });

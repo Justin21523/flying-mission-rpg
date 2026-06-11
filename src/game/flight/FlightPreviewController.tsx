@@ -25,6 +25,7 @@ export const FlightPreviewController = ({ pathId, craftScale, craftYaw }: { path
   const craft = useRef<Group>(null);
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
+  const cueClip = useFlightPreviewStore((s) => s.activeCueClip); // an animation cue forces this clip
   const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0.5 });
   const getAnimState = useCallback(() => animState.current, []);
 
@@ -66,7 +67,7 @@ export const FlightPreviewController = ({ pathId, craftScale, craftYaw }: { path
   return (
     <group ref={craft}>
       <group rotation={[0, craftYaw * DEG2RAD, 0]} scale={craftScale}>
-        {modelId ? <AnimatedGlbModel assetId={modelId} animation={character?.flightAnimation} rules={character?.animationRules} getAnimState={getAnimState} fallback={fallback} noCull /> : fallback}
+        {modelId ? <AnimatedGlbModel assetId={modelId} animation={cueClip || character?.flightAnimation} rules={cueClip ? undefined : character?.animationRules} getAnimState={cueClip ? undefined : getAnimState} fallback={fallback} noCull /> : fallback}
       </group>
     </group>
   );
