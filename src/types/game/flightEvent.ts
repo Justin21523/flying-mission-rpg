@@ -33,6 +33,12 @@ export const FLIGHT_EVENT_KINDS: readonly FlightEventKind[] = [
   'branch',
 ];
 
+export type FlightEventMotion = 'static' | 'drift' | 'bob' | 'orbit';
+export const FLIGHT_EVENT_MOTIONS: readonly FlightEventMotion[] = ['static', 'drift', 'bob', 'orbit'];
+
+export type FlightEventSpawnSide = 'center' | 'left' | 'right' | 'either';
+export const FLIGHT_EVENT_SPAWN_SIDES: readonly FlightEventSpawnSide[] = ['center', 'left', 'right', 'either'];
+
 export interface FlightEventDef {
   id: string;
   kind: FlightEventKind;
@@ -43,7 +49,10 @@ export interface FlightEventDef {
   color: string;
   size: number;
   durationSec: number; // how long it lingers before recycling
-  driftSpeed?: number; // gentle world-units/sec drift (movement param — birds/formation/wisps)
+  driftSpeed?: number; // motion speed/amplitude (units/sec) used by the `motion` pattern
+  motion?: FlightEventMotion; // how the whole event moves (default: drift if driftSpeed>0, else static)
+  glow?: number; // adds a coloured point-light of this intensity (0 = none)
+  spawnSide?: FlightEventSpawnSide; // which side of the route it appears on
   modelAssetId?: string; // optional GLB placeholder (empty = built-in primitive visual for the kind)
   radioText?: string; // for 'radio' events
   value?: number; // collectible/energy amount

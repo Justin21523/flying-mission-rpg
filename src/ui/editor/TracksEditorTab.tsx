@@ -50,15 +50,19 @@ export const TracksEditorTab = () => {
 // ── Paths ──────────────────────────────────────────────────────────────────────
 const PathsSection = () => {
   const areaId = usePlayerStore((s) => s.currentAreaId);
-  const paths = useEditorPathStore((s) => s.paths);
+  const allPaths = useEditorPathStore((s) => s.paths);
   const st = useEditorPathStore.getState();
+  const [q, setQ] = useState('');
+  const f = q.trim().toLowerCase();
+  const paths = f ? allPaths.filter((p) => (p.name || '').toLowerCase().includes(f) || p.id.toLowerCase().includes(f) || (p.areaId ?? '').toLowerCase().includes(f)) : allPaths;
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
-        <span className={lbl}>🛤 Paths ({paths.length})</span>
+        <span className={lbl}>🛤 Paths ({paths.length}/{allPaths.length})</span>
         <button onClick={() => st.addPath(areaId)} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ in this area</button>
       </div>
-      {paths.length === 0 && <div className="text-[11px] text-slate-500">No paths yet.</div>}
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 filter paths (e.g. world, mountain, storm, flight)…" className={inp} />
+      {paths.length === 0 && <div className="text-[11px] text-slate-500">No paths match.</div>}
       {paths.map((p) => {
         const nodes = p.nodes ?? [];
         const nodeOpts = nodes.map((n) => ({ id: n.id, label: n.id }));

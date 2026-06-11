@@ -3,12 +3,14 @@ import { useFrame } from '@react-three/fiber';
 import { Vector3, Object3D, type InstancedMesh, type Mesh } from 'three';
 import { flightHandle } from '../flightHandle';
 import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
+import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
+import { getActiveRoute } from './worldRoute';
 
 // Recycled cloud carpet — a FIXED instanced pool of big soft puffs forming a dense floor WELL BELOW the
 // craft, plus a wide soft backing deck, so the craft cruises through open blue sky over a thick carpet of
 // cloud that fills the view below. Puffs that fall behind are repositioned ahead (chunk recycling) → flat
 // object count for unlimited flight. Count editable (🛩 Flight → World cloud count). No per-frame allocs.
-const MAX_CLOUDS = 460;
+const MAX_CLOUDS = 700;
 const AHEAD = 720; // carpet extends far ahead
 const SPAWN_MIN = 60;
 const LATERAL = 700; // very wide → covers a large area to both sides (a full carpet)
@@ -75,7 +77,10 @@ const CloudFieldInner = ({ count }: { count: number }) => {
 };
 
 export const CloudField = () => {
-  const count = useEditorFlightStore((s) => Math.min(MAX_CLOUDS, Math.max(8, Math.round(s.tuning.worldCloudCount))));
-  // Key by count so changing it in the Flight tab rebuilds the instanced pool cleanly.
+  useEditorRouteStore((s) => s.items); // reactive: 🌦 cloud-density edits re-resolve the count
+  const base = useEditorFlightStore((s) => s.tuning.worldCloudCount);
+  const density = getActiveRoute()?.editorEnvironment?.cloudDensity ?? 1;
+  const count = Math.min(MAX_CLOUDS, Math.max(8, Math.round(base * density)));
+  // Key by count so changing it (Flight tab or route density) rebuilds the instanced pool cleanly.
   return <CloudFieldInner key={count} count={count} />;
 };

@@ -62,7 +62,7 @@ const PartVisual = ({ part, isNext }: { part: ExteriorPart; isNext: boolean }) =
       return (
         <mesh castShadow>
           <boxGeometry args={part.size} />
-          <meshStandardMaterial color={part.color} />
+          <meshStandardMaterial color={part.color} emissive={part.emissive ? part.color : '#000000'} emissiveIntensity={part.emissive ? 0.8 : 0} />
         </mesh>
       );
   }

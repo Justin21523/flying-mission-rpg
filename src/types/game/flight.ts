@@ -28,11 +28,20 @@ export interface RouteSegment {
   wind?: [number, number, number];
 }
 
+// Named sky looks — fill sensible sky/fog colours; manual colour fields still override per-field.
+export type SkyPreset = 'clear' | 'cloudy' | 'sunset' | 'night' | 'storm';
+export const SKY_PRESETS: readonly SkyPreset[] = ['clear', 'cloudy', 'sunset', 'night', 'storm'];
+
 // Per-route environment override (the editorEnvironment idea, applied to the world-flight sky/fog/clouds).
 export interface RouteEnvironmentOverride {
+  skyPreset?: SkyPreset;
   skyTop?: string;
   skyBottom?: string;
   fogColor?: string;
+  fogNear?: number;
+  fogFar?: number; // huge / 0 = no fog
+  ambientIntensity?: number;
+  sunIntensity?: number;
   cloudDensity?: number; // ×1 baseline cloud count
   weather?: WeatherKind;
   backgroundPresetId?: string;

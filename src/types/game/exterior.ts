@@ -34,5 +34,6 @@ export interface ExteriorPart {
   size: [number, number, number];
   color: string;
   collision: ExteriorCollision;
+  emissive?: boolean; // make the primitive glow (emissive = colour)
   order?: number; // navpoint sequence (lower = earlier)
 }

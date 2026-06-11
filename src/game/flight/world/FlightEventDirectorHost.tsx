@@ -109,7 +109,10 @@ export const FlightEventDirectorHost = () => {
         samplePos(cc.curve, aheadU, _pos);
         sampleTangent(cc.curve, aheadU, _tan);
         _perp.set(_tan.z, 0, -_tan.x).normalize();
-        const lateral = (Math.random() * 2 - 1) * chosen.lateralRange;
+        // spawnSide chooses the lateral sign (center≈0, left/right pinned, either=random ±).
+        const side = chosen.spawnSide ?? 'either';
+        const mag = Math.random() * chosen.lateralRange;
+        const lateral = side === 'center' ? 0 : side === 'left' ? -mag : side === 'right' ? mag : (Math.random() * 2 - 1) * chosen.lateralRange;
         _pos.addScaledVector(_perp, lateral);
         _pos.y += (Math.random() - 0.5) * 4;
         ACTIVE_FLIGHT_EVENTS.push({

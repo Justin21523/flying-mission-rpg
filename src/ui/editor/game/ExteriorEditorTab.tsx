@@ -2,10 +2,13 @@ import { nanoid } from 'nanoid';
 import { useEditorExteriorStore } from '../../../stores/game/editorExteriorStore';
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { EXTERIOR_KINDS } from '../../../types/game/exterior';
-import type { ExteriorPart } from '../../../types/game/exterior';
+import type { ExteriorPart, ExteriorCollision } from '../../../types/game/exterior';
 import { exteriorPartKey } from '../../../game/flight/exteriorPartKey';
-import { Field, inp, lbl } from '../editorShared';
+import { Field, inp, lbl, Check } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
+
+const COLLISIONS: ExteriorCollision[] = ['none', 'cuboid', 'hull', 'trimesh'];
+const DEG = 180 / Math.PI;
 
 // 🗼 Exterior — edit the base exterior + flight route (navpoints, tower, ring, sky gate, clouds, flight
 // spawn), synced with the 3D gizmo (drag in 3D ↔ rows here). Position shows the live merged transform.
@@ -44,6 +47,13 @@ export const ExteriorEditorTab = () => {
     update(p.id, { position: next });
     useSceneEditStore.getState().setOverride(exteriorPartKey(p.id), { position: undefined });
   };
+  const liveRot = (p: ExteriorPart) => (overrides[exteriorPartKey(p.id)]?.rotation as [number, number, number]) ?? p.rotation;
+  const editRot = (p: ExteriorPart, axis: number, deg: number) => {
+    const next = [...liveRot(p)] as [number, number, number];
+    next[axis] = deg / DEG;
+    update(p.id, { rotation: next });
+    useSceneEditStore.getState().setOverride(exteriorPartKey(p.id), { rotation: undefined });
+  };
   const round = (n: number) => Math.round(n * 100) / 100;
 
   return (
@@ -74,10 +84,23 @@ export const ExteriorEditorTab = () => {
                 <Field label="Navpoint order"><input type="number" step={1} value={sel.order ?? 0} onChange={(e) => update(sel.id, { order: num(e.target.value) })} className={inp} /></Field>
               )}
               <Field label="Model (empty = primitive)"><ModelPicker value={sel.assetId} onChange={(v) => update(sel.id, { assetId: v })} noneLabel="(primitive)" /></Field>
+              <Field label="Model target size (0 = native)"><input type="number" step={0.5} min={0} value={sel.modelTarget ?? 0} onChange={(e) => update(sel.id, { modelTarget: num(e.target.value) || undefined })} className={inp} /></Field>
+              <Field label="Collision">
+                <select value={sel.collision} onChange={(e) => update(sel.id, { collision: e.target.value as ExteriorCollision })} className={inp}>
+                  {COLLISIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
               <Field label="Position (x / y / z) — live with the gizmo">
                 <div className="flex gap-1">
                   {([0, 1, 2] as const).map((a) => (
                     <input key={a} type="number" step={0.5} value={round(livePos(sel)[a])} onChange={(e) => editPos(sel, a, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
+                  ))}
+                </div>
+              </Field>
+              <Field label="Rotation° (x / y / z) — live with the gizmo">
+                <div className="flex gap-1">
+                  {([0, 1, 2] as const).map((a) => (
+                    <input key={a} type="number" step={5} value={Math.round(liveRot(sel)[a] * DEG)} onChange={(e) => editRot(sel, a, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
                   ))}
                 </div>
               </Field>
@@ -90,6 +113,7 @@ export const ExteriorEditorTab = () => {
                 </div>
               </Field>
               <Field label="Colour"><input type="color" value={sel.color} onChange={(e) => update(sel.id, { color: e.target.value })} className="h-7 w-16 rounded bg-slate-800" /></Field>
+              <Check label="Emissive (glow)" checked={!!sel.emissive} onChange={(v) => update(sel.id, { emissive: v })} />
               <div className="flex items-center gap-1.5 border-t border-slate-800/60 pt-2">
                 <button onClick={() => { const id = duplicate(sel.id); if (id) selectPart(id); }} className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
                 <button onClick={() => remove(sel.id)} className="rounded bg-rose-700/20 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Delete</button>

@@ -1,8 +1,8 @@
-import { useRef, type ReactElement } from 'react';
+import { useRef, type ReactElement, type ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group, Mesh, MeshStandardMaterial } from 'three';
 import { AnimatedGlbModel } from '../../world/AnimatedGlbModel';
-import type { FlightEventDef, FlightEventKind } from '../../../types/game/flightEvent';
+import type { FlightEventDef, FlightEventKind, FlightEventMotion } from '../../../types/game/flightEvent';
 
 // Distinct, child-friendly 3D placeholders for every flight-event kind (PDF §批次5). All original
 // primitives (no copyrighted art); each animates locally (spin / pulse / drift) and is fully driven by the
@@ -135,11 +135,10 @@ const Chevron = ({ color }: { color: string }) => (
     <mesh rotation={[0, 0, -0.5]} position={[0.25, 0, 0]}><boxGeometry args={[0.7, 0.08, 0.08]} /><meshStandardMaterial color={color} /></mesh>
   </group>
 );
-const BirdsViz = ({ color, size, drift }: { color: string; size: number; drift: number }) => {
+const BirdsViz = ({ color, size }: { color: string; size: number }) => {
   const g = useRef<Group>(null);
-  useFrame((s, dt) => {
+  useFrame((s) => {
     if (!g.current) return;
-    g.current.position.x -= dt * drift;
     g.current.children.forEach((c, i) => { c.position.y = Math.sin(s.clock.elapsedTime * 6 + i) * 0.2; });
   });
   return (
@@ -217,11 +216,10 @@ const RadioViz = ({ color, size }: { color: string; size: number }) => {
 };
 
 // ── formation flight placeholder: little craft in a V ──
-const FormationViz = ({ color, size, drift }: { color: string; size: number; drift: number }) => {
+const FormationViz = ({ color, size }: { color: string; size: number }) => {
   const g = useRef<Group>(null);
-  useFrame((s, dt) => {
+  useFrame((s) => {
     if (!g.current) return;
-    g.current.position.x -= dt * drift;
     g.current.position.y = Math.sin(s.clock.elapsedTime * 2) * 0.15;
   });
   return (
@@ -260,10 +258,26 @@ const ModelViz = ({ def }: { def: FlightEventDef }) => (
   </group>
 );
 
+// Whole-event motion (travel) — applied uniformly over any visual/model so the editable `motion` + speed
+// drive how the event moves (the per-kind components keep their own in-place "alive" animation).
+const MotionGroup = ({ motion, speed, children }: { motion: FlightEventMotion; speed: number; children: ReactNode }) => {
+  const g = useRef<Group>(null);
+  useFrame((s, dt) => {
+    const grp = g.current;
+    if (!grp) return;
+    if (motion === 'drift') grp.position.x -= speed * dt;
+    else if (motion === 'bob') grp.position.y = Math.sin(s.clock.elapsedTime * 2) * speed * 0.12;
+    else if (motion === 'orbit') {
+      const t = s.clock.elapsedTime;
+      grp.position.x = Math.cos(t) * speed * 0.2;
+      grp.position.z = Math.sin(t) * speed * 0.2;
+    }
+  });
+  return <group ref={g}>{children}</group>;
+};
+
 export const FlightEventVisual = ({ def }: { def: FlightEventDef }) => {
-  if (def.modelAssetId) return <ModelViz def={def} />;
   const { color, size } = def;
-  const drift = def.driftSpeed ?? 0;
   const byKind: Record<FlightEventKind, ReactElement> = {
     cloud_hole: <CloudHoleViz color={color} size={size} />,
     crosswind: <CrosswindViz color={color} size={size} />,
@@ -271,13 +285,21 @@ export const FlightEventVisual = ({ def }: { def: FlightEventDef }) => {
     storm: <StormViz color={color} size={size} />,
     lightning: <LightningViz color={color} size={size} />,
     rainbow: <RainbowViz color={color} size={size} />,
-    birds: <BirdsViz color={color} size={size} drift={drift} />,
+    birds: <BirdsViz color={color} size={size} />,
     energy_refill: <EnergyViz color={color} size={size} />,
     stunt_ring: <StuntRingViz color={color} size={size} />,
     collectible: <CollectibleViz color={color} size={size} />,
     radio: <RadioViz color={color} size={size} />,
-    formation: <FormationViz color={color} size={size} drift={drift} />,
+    formation: <FormationViz color={color} size={size} />,
     branch: <BranchViz color={color} size={size} />,
   };
-  return byKind[def.kind] ?? FALLBACK(color, size);
+  const inner = def.modelAssetId ? <ModelViz def={def} /> : byKind[def.kind] ?? FALLBACK(color, size);
+  const speed = def.driftSpeed ?? 5;
+  const motion: FlightEventMotion = def.motion ?? ((def.driftSpeed ?? 0) > 0 ? 'drift' : 'static');
+  return (
+    <MotionGroup motion={motion} speed={speed}>
+      {inner}
+      {def.glow && def.glow > 0 && <pointLight color={color} intensity={def.glow} distance={size * 12} />}
+    </MotionGroup>
+  );
 };

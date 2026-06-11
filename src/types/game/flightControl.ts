@@ -28,6 +28,8 @@ export interface FlightTuning {
   worldCraftYawDeg: number; // craft model facing offset (deg) — dial so the nose points along travel
   worldSteerRange: number; // world-flight: max lateral offset from the route centreline (A/D)
   worldVertRange: number; // world-flight: max vertical offset from the route (↑/↓)
-  worldSteerSmooth: number; // world-flight: steering ease (higher = snappier)
+  worldSteerSmooth: number; // world-flight: bank ease (higher = snappier)
   worldBankDeg: number; // world-flight: bank-into-turn roll (deg) for the A/D feel
+  worldSteerSpeed: number; // world-flight: lateral drift speed while holding A/D (units/sec)
+  worldVertSpeed: number; // world-flight: climb/descend speed while holding Space/Shift (units/sec)
 }

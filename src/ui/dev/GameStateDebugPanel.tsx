@@ -10,6 +10,28 @@ import { gameEventBus } from '../../game/core/EventBus';
 import { getEditorCharacter, getEditorCharacters } from '../../stores/game/editorCharacterStore';
 import { getEditorMission, getEditorMissions } from '../../stores/game/editorMissionStore';
 import { getEditorLocation } from '../../stores/game/editorLocationStore';
+import { focusCameraOn } from '../../game/edit/cameraFocus';
+import { getPath } from '../../stores/editorPathStore';
+import { getActivePathId } from '../../game/flight/world/worldRoute';
+import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
+
+// On a dev jump, pan the EDIT camera to the new state's content so the screen visibly changes to that state
+// (FollowCamera follows the player, which isn't where flight/world content is). Reuses focusCameraOn.
+const FLY_AROUND = new Set<GamePhase>(['LAUNCH_TUNNEL', 'BASE_FLY_AROUND', 'CLOUD_ASCENT']);
+const WORLD = new Set<GamePhase>(['WORLD_FLIGHT', 'DESTINATION_APPROACH']);
+function focusForPhase(p: GamePhase): void {
+  const pathId = WORLD.has(p) ? getActivePathId() : FLY_AROUND.has(p) ? FLIGHT_PATH_ID : null;
+  const node0 = pathId ? getPath(pathId)?.nodes?.[0]?.position : undefined;
+  if (node0) focusCameraOn(node0[0], node0[1], node0[2]);
+  else focusCameraOn(0, 1, 0); // base / console states
+}
+
+// One place to perform a dev jump: fill prereqs, switch phase, and move the edit camera to it.
+function devJumpTo(jump: (p: GamePhase) => void, p: GamePhase): void {
+  ensureJumpPrereqs();
+  jump(p);
+  focusForPhase(p);
+}
 
 // Jumping straight to a mid-game phase must Just Work — fill in a default mission + character if the
 // player hasn't picked any yet (so the base/flight/mission scenes have the context they need).
@@ -25,6 +47,19 @@ function ensureJumpPrereqs(): void {
     if (c) cs.selectCharacter(c.id);
   }
 }
+
+// The 3D-editable phases — one-click quick jump (each renders a distinct editable scene). Order = flow.
+const QUICK_PHASES: GamePhase[] = [
+  'MISSION_CONTROL',
+  'HANGAR',
+  'PLATFORM_ALIGNMENT',
+  'LAUNCH_PREPARATION',
+  'LAUNCH_TUNNEL',
+  'BASE_FLY_AROUND',
+  'CLOUD_ASCENT',
+  'WORLD_FLIGHT',
+  'DESTINATION_APPROACH',
+];
 
 // Dev-only console for the game state machine (toggled via the Leva DevPanel). Shows the current/previous
 // phase + selection, advances via legal-only buttons, and surfaces blocked illegal moves. Not a play UI —
@@ -94,13 +129,27 @@ export const GameStateDebugPanel = () => {
         </button>
       </div>
 
+      {/* One-click quick jump — switch the editable 3D scene instantly, back and forth (bypasses validation,
+          auto-fills prereqs). The Scene re-renders on phase, so the state's edit objects appear immediately. */}
+      <div className="mb-1 mt-2 text-[10px] uppercase tracking-wide text-slate-500">Quick jump (edit scenes)</div>
+      <div className="grid grid-cols-2 gap-1">
+        {QUICK_PHASES.map((p) => (
+          <button
+            key={p}
+            onClick={() => { setBlocked(null); devJumpTo(jumpTo, p); }}
+            className={`truncate rounded px-1.5 py-0.5 text-left text-[10px] ${p === phase ? 'bg-emerald-600/40 text-emerald-100' : 'bg-slate-800/70 text-slate-200 hover:bg-slate-700'}`}
+          >
+            {p === phase ? '● ' : ''}{p}
+          </button>
+        ))}
+      </div>
+
       <div className="mt-2 flex items-center gap-1">
         <span className="text-[10px] text-slate-500">Dev jump</span>
         <select
           onChange={(e) => {
             if (e.target.value) {
-              ensureJumpPrereqs();
-              jumpTo(e.target.value as GamePhase);
+              devJumpTo(jumpTo, e.target.value as GamePhase);
               e.target.value = '';
             }
           }}

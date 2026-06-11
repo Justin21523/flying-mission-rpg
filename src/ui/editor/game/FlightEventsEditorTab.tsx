@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { useEditorFlightEventStore } from '../../../stores/game/editorFlightEventStore';
-import { FLIGHT_EVENT_KINDS } from '../../../types/game/flightEvent';
+import { FLIGHT_EVENT_KINDS, FLIGHT_EVENT_MOTIONS, FLIGHT_EVENT_SPAWN_SIDES } from '../../../types/game/flightEvent';
 import type { FlightEventDef, FlightEventKind } from '../../../types/game/flightEvent';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
 import { ModelPicker } from '../ModelPicker';
@@ -69,7 +69,12 @@ export const FlightEventsEditorTab = () => (
             <NumRow label="Size" value={e.size} step={0.5} min={0.1} onChange={(v) => update({ size: v })} />
             <NumRow label="Duration (sec)" value={e.durationSec} step={0.5} min={1} onChange={(v) => update({ durationSec: v })} />
             <NumRow label="Value" value={e.value ?? 0} step={1} onChange={(v) => update({ value: v })} />
-            <NumRow label="Drift speed" value={e.driftSpeed ?? 0} step={1} min={0} onChange={(v) => update({ driftSpeed: v })} />
+            <NumRow label="Motion speed" value={e.driftSpeed ?? 0} step={1} min={0} onChange={(v) => update({ driftSpeed: v })} />
+            <NumRow label="Glow" value={e.glow ?? 0} step={0.5} min={0} onChange={(v) => update({ glow: v || undefined })} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <SelectRow label="Motion" value={e.motion ?? ''} options={[{ value: '', label: '(auto)' }, ...FLIGHT_EVENT_MOTIONS.map((m) => ({ value: m, label: m }))]} onChange={(v) => update({ motion: (v || undefined) as FlightEventDef['motion'] })} />
+            <SelectRow label="Spawn side" value={e.spawnSide ?? 'either'} options={FLIGHT_EVENT_SPAWN_SIDES.map((s) => ({ value: s, label: s }))} onChange={(v) => update({ spawnSide: v as FlightEventDef['spawnSide'] })} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <NumRow label="Min progress" value={e.minRouteProgress ?? 0} step={0.05} min={0} max={1} onChange={(v) => update({ minRouteProgress: v })} />

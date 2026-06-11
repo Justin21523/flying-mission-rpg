@@ -24,6 +24,7 @@ const _right = new Vector3();
 const _look = new Vector3();
 const DEG2RAD = Math.PI / 180;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
+const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 
 export const RouteFollower = () => {
   const craft = useRef<Group>(null);
@@ -82,14 +83,16 @@ export const RouteFollower = () => {
     samplePos(cc.curve, u.current, _pos);
     sampleTangent(cc.curve, u.current, _tan);
 
-    // Steering — A/D nudge the craft laterally off the route centreline (with bank-into-turn roll), ↑/↓
-    // nudge it vertically. Eased so it feels like flying, not snapping. Keeps the craft parallel to the route.
+    // Steering — A/D drift the craft laterally off the route centreline (with bank-into-turn roll),
+    // Space/Shift (or ↑/↓) climb/descend. The offsets INTEGRATE while held (continuous — keep going up to a
+    // generous max) and HOLD on release (no snap-back). Keeps the craft parallel to the route.
     const steerIn = (k['KeyD'] || k['ArrowRight'] ? 1 : 0) - (k['KeyA'] || k['ArrowLeft'] ? 1 : 0);
-    const vertIn = (k['ArrowUp'] || k['Space'] ? 1 : 0) - (k['ArrowDown'] || k['ShiftLeft'] ? 1 : 0);
-    const sm = tuning.worldSteerSmooth * dt;
-    lateral.current = lerp(lateral.current, steerIn * tuning.worldSteerRange, sm);
-    vert.current = lerp(vert.current, vertIn * tuning.worldVertRange, sm);
-    bank.current = lerp(bank.current, -steerIn * tuning.worldBankDeg * DEG2RAD, sm * 1.5);
+    const vertIn = (k['Space'] || k['ArrowUp'] ? 1 : 0) - (k['ShiftLeft'] || k['ShiftRight'] || k['ArrowDown'] ? 1 : 0);
+    const sr = tuning.worldSteerRange;
+    const vr = tuning.worldVertRange;
+    lateral.current = clamp(lateral.current + steerIn * tuning.worldSteerSpeed * dt, -sr, sr);
+    vert.current = clamp(vert.current + vertIn * tuning.worldVertSpeed * dt, -vr, vr);
+    bank.current = lerp(bank.current, -steerIn * tuning.worldBankDeg * DEG2RAD, tuning.worldSteerSmooth * 1.5 * dt);
 
     _right.set(-_tan.z, 0, _tan.x).normalize(); // horizontal right of travel
     _pos.addScaledVector(_right, lateral.current);
