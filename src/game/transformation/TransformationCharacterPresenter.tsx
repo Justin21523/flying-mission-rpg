@@ -164,9 +164,11 @@ export const TransformationCharacterPresenter = ({
   useFrame(() => {
     const snap = txFrame.snapshot;
     if (root.current) {
+      const rootPosition = def.rootPosition ?? ZERO3;
+      const rootRotation = def.rootRotation ?? ZERO3;
       const baseYaw = (def.baseYawDeg ?? 0) * DEG; // authored whole-character facing (always applied)
-      root.current.rotation.y = baseYaw + (editRest ? 0 : txFrame.showcaseYaw);
-      root.current.position.y = editRest ? 0 : -(snap?.rootYOffset ?? 0); // slow exit descent
+      root.current.position.set(rootPosition[0], rootPosition[1] + (editRest ? 0 : -(snap?.rootYOffset ?? 0)), rootPosition[2]);
+      root.current.rotation.set(rootRotation[0] * DEG, rootRotation[1] * DEG + baseYaw + (editRest ? 0 : txFrame.showcaseYaw), rootRotation[2] * DEG);
       const exit = editRest ? 1 : (snap?.exitScaleMul ?? 1); // shrink fly-out
       root.current.scale.setScalar((def.modelScale ?? 1) * exit);
     }
@@ -193,7 +195,7 @@ export const TransformationCharacterPresenter = ({
   const extraOffset = offsetForStageModel(def, txFrame.snapshot?.activeModelStageId);
   const editSource = editDef ?? def;
   return (
-    <group ref={root} scale={def.modelScale ?? 1}>
+    <group ref={root} position={def.rootPosition ?? ZERO3} rotation={[(def.rootRotation?.[0] ?? 0) * DEG, ((def.rootRotation?.[1] ?? 0) + (def.baseYawDeg ?? 0)) * DEG, (def.rootRotation?.[2] ?? 0) * DEG]} scale={def.modelScale ?? 1}>
       {(def.parts ?? []).map((p) => (
         <PartMesh key={p.key} part={p} color={p.color ?? color} />
       ))}

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { forceSupportArrival, requestSupport, cancelSupport } from '../../game/support/SupportDispatchDirector';
+import { beginFullControlDispatch } from '../../game/support/FullControlDispatchService';
 import { switchControlToCharacter } from '../../game/characters/control/ControlOwnershipService';
 import { getSupportProfiles } from '../../stores/game/editorSupportStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
@@ -9,6 +10,7 @@ export const SupportDebugPanel = () => {
   const dispatches = useSupportRuntimeStore((s) => s.dispatches);
   const presences = useSupportRuntimeStore((s) => s.presences);
   const ownership = useSupportRuntimeStore((s) => s.ownership);
+  const fullControl = useSupportRuntimeStore((s) => s.fullControl);
   const setPaused = useSupportRuntimeStore((s) => s.setPaused);
   const paused = useSupportRuntimeStore((s) => s.paused);
   const reset = useSupportRuntimeStore((s) => s.reset);
@@ -20,6 +22,8 @@ export const SupportDebugPanel = () => {
         <Row label="Controlled" value={ownership.controlledCharacterId ?? '-'} />
         <Row label="Input" value={ownership.inputOwnerId ?? '-'} />
         <Row label="Camera" value={ownership.cameraOwnerId ?? '-'} />
+        <Row label="Full control" value={fullControl?.dispatchCharacterId ?? '-'} />
+        <Row label="Returning" value={fullControl?.returning ? 'yes' : 'no'} />
         <Row label="Active" value={`${presences.filter((p) => p.tier === 'active').length}`} />
         <Row label="Standby" value={`${presences.filter((p) => p.tier === 'standby').length}`} />
         <Row label="Remote" value={`${presences.filter((p) => p.tier === 'remote').length}`} />
@@ -36,6 +40,9 @@ export const SupportDebugPanel = () => {
       <div className="mt-2 flex flex-wrap gap-1">
         {profiles.map((p) => (
           <Btn key={p.id} onClick={() => requestSupport(p.characterId, 'quick-simulated')}>Request {getEditorCharacter(p.characterId)?.name ?? p.characterId}</Btn>
+        ))}
+        {profiles.map((p) => (
+          <Btn key={`full_${p.id}`} onClick={() => beginFullControlDispatch(p.characterId)}>Full {getEditorCharacter(p.characterId)?.name ?? p.characterId}</Btn>
         ))}
       </div>
       <div className="mt-2 flex flex-wrap gap-1">

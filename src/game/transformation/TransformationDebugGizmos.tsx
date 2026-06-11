@@ -1,6 +1,6 @@
 import { Html } from '@react-three/drei';
 import { EditableObject } from '../edit/EditableObject';
-import { transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
+import { transformPartKey, transformRootKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
 import { cameraShotAnchor } from './transformationOverrides';
 import type { TransformationDefinition, TransformationTransformOffset } from '../../types/game/transformation';
 
@@ -36,6 +36,18 @@ const ModelAnchor = ({ objKey, label, color, offset }: { objKey: string; label: 
 // targets, so clicking the actual character model edits it — no duplicate proxy. The tab shows live values.
 export const TransformationDebugGizmos = ({ def }: { def: TransformationDefinition }) => (
   <>
+    <EditableObject
+      objKey={transformRootKey(def.id)}
+      base={{ position: def.rootPosition ?? [0, 0, 0], rotation: [(def.rootRotation?.[0] ?? 0) * DEG, (def.rootRotation?.[1] ?? 0) * DEG, (def.rootRotation?.[2] ?? 0) * DEG], scale: def.modelScale ?? 1 }}
+    >
+      <group>
+        <mesh>
+          <boxGeometry args={[1.2, 1.8, 1.2]} />
+          <meshStandardMaterial color="#f97316" emissive="#f97316" emissiveIntensity={0.35} wireframe transparent opacity={0.4} />
+        </mesh>
+        <Label text="root" />
+      </group>
+    </EditableObject>
     {(def.parts ?? []).map((p) => (
       <EditableObject
         key={p.key}

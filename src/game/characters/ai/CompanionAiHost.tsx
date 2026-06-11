@@ -5,6 +5,8 @@ import { updateCompanionAi } from './CompanionAiController';
 import { pickCompanionTask } from './CompanionTaskExecutor';
 import { applyAssistEvent } from '../../missions/missionAssist';
 import { robotHandle } from '../../destination/robotHandle';
+import { getDestinationParts } from '../../../stores/game/editorDestinationStore';
+import { getEditorGameNpcs } from '../../../stores/game/editorGameNpcStore';
 
 export const CompanionAiHost = () => {
   useEffect(() => {
@@ -13,6 +15,14 @@ export const CompanionAiHost = () => {
       const controlled = state.ownership.controlledCharacterId;
       const player = { x: robotHandle.pos.x, z: robotHandle.pos.z };
       const others = state.presences.map((p) => ({ x: p.position[0], z: p.position[2] }));
+      const zones = [
+        ...getDestinationParts()
+          .filter((p) => p.enabled && (p.kind === 'dropoff_zone' || p.kind === 'repair_device' || p.kind === 'marker'))
+          .map((p) => ({ x: p.position[0], z: p.position[2], radius: Math.max(p.radius ?? 0, 2.2) })),
+        ...getEditorGameNpcs()
+          .filter((n) => n.position)
+          .map((n) => ({ x: n.position![0], z: n.position![2], radius: Math.max(n.interactionRadius ?? 0, 2.4) })),
+      ];
       const next = state.presences.map((presence, index) => {
         if (presence.characterId === controlled) return presence;
         const profile = getSupportProfileForCharacter(presence.characterId);
@@ -20,7 +30,7 @@ export const CompanionAiHost = () => {
         if (!profile || !ai) return presence;
         const task = pickCompanionTask(profile);
         if (task?.canComplete) applyAssistEvent(task.event);
-        return updateCompanionAi(presence, ai, player, others, index + 1, 0.1, !!task);
+        return updateCompanionAi(presence, ai, player, others, zones, index + 1, 0.1, !!task);
       });
       useSupportRuntimeStore.setState({ presences: next });
       const assisting = next.find((p) => p.aiState === 'assist-objective');

@@ -19,14 +19,14 @@ const companion: CharacterPresence = {
 
 describe('CompanionAiController', () => {
   it('moves follow-player companions toward their follow slot', () => {
-    const next = updateCompanionAi(companion, ai, { x: 0, z: 0 }, [], 0, 1, false);
+    const next = updateCompanionAi(companion, ai, { x: 0, z: 0 }, [], [], 0, 1, false);
     expect(next.position[0]).toBeLessThan(companion.position[0]);
     expect(next.aiState).toBe('follow-player');
   });
 
   it('keeps remote companions unticked', () => {
     const remote = { ...companion, tier: 'remote' as const };
-    expect(updateCompanionAi(remote, ai, { x: 0, z: 0 }, [], 0, 1, false)).toBe(remote);
+    expect(updateCompanionAi(remote, ai, { x: 0, z: 0 }, [], [], 0, 1, false)).toBe(remote);
   });
 
   it('produces separation when companions overlap', () => {
@@ -39,7 +39,7 @@ describe('CompanionAiController', () => {
   });
 
   it('enters assist-objective state when an assist task is available', () => {
-    const next = updateCompanionAi(companion, ai, { x: 0, z: 0 }, [], 0, 0.1, true);
+    const next = updateCompanionAi(companion, ai, { x: 0, z: 0 }, [], [], 0, 0.1, true);
     expect(next.aiState).toBe('assist-objective');
   });
 });

@@ -1,5 +1,5 @@
 import type { CharacterPresence, SupportAiProfile } from '../../../types/game/support';
-import { applySeparation } from './CompanionAvoidanceController';
+import { applyAvoidance, type AvoidZone } from './CompanionAvoidanceController';
 import { followSlot, moveToward2D, type Vec2 } from './CompanionNavigationAgent';
 import { nextAiState } from './CompanionAiStateMachine';
 
@@ -8,6 +8,7 @@ export function updateCompanionAi(
   ai: SupportAiProfile,
   player: Vec2,
   others: readonly Vec2[],
+  zones: readonly AvoidZone[],
   index: number,
   dt: number,
   hasAssistTask: boolean,
@@ -17,7 +18,7 @@ export function updateCompanionAi(
   const target = presence.aiState === 'standby'
     ? followSlot(player, index, ai.standbyDistance)
     : followSlot(player, index, ai.followDistance);
-  const separated = applySeparation(current, others, ai.avoidanceRadius, 0.45);
+  const separated = applyAvoidance(current, others, zones, ai.avoidanceRadius, 0.45);
   const tooClose = Math.hypot(current.x - player.x, current.z - player.z) < Math.max(1, ai.avoidanceRadius);
   const state = nextAiState(presence.aiState, hasAssistTask && ai.assistBehaviorEnabled, tooClose, false);
   const moved = moveToward2D(separated, target, ai.moveSpeed, dt);

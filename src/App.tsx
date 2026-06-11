@@ -37,6 +37,7 @@ import { SupportSelectionPanel } from './ui/support/SupportSelectionPanel';
 import { SupportDispatchStatusPanel } from './ui/support/SupportDispatchStatusPanel';
 import { SupportArrivalToast } from './ui/support/SupportArrivalToast';
 import { SupportDispatchDirectorHost } from './game/support/SupportDispatchDirectorHost';
+import { FullControlDispatchHost } from './game/support/FullControlDispatchHost';
 import { useGameStore } from './stores/game/useGameStore';
 import { usePoll } from './ui/usePoll';
 
@@ -229,6 +230,7 @@ export const App = () => {
       {/* Always-on shell: game boot (seed + FSM), main dock, Leva dev panel, optional FSM dev console,
           and the Edit Mode authoring panels (Edit Mode must work in both grey-box and world scenes). */}
       <GameBoot />
+      {!editMode && !world && <FullControlDispatchHost />}
       {/* Game front-end (Mission Control → Briefing → Character Select → Hangar). Shown on the new
           grey-box game, hidden in Edit Mode and in the dormant POLI 'world' reference. */}
       {!editMode && !world && <GameScreens />}

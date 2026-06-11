@@ -2,6 +2,7 @@ import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { getSupportProfileForCharacter } from '../../stores/game/editorSupportStore';
 import { requestSupport } from '../../game/support/SupportDispatchDirector';
 import { switchControlToCharacter } from '../../game/characters/control/ControlOwnershipService';
+import { beginFullControlDispatch } from '../../game/support/FullControlDispatchService';
 import type { SupportDispatchEntry, CharacterPresence } from '../../types/game/support';
 
 export const SupportCharacterCard = ({
@@ -40,13 +41,10 @@ export const SupportCharacterCard = ({
         </button>
         <button
           disabled={unavailable}
-          onClick={() => {
-            const result = requestSupport(characterId, 'full-control');
-            if (result.ok) switchControlToCharacter(characterId);
-          }}
+          onClick={() => beginFullControlDispatch(characterId)}
           className="rounded bg-sky-700/35 px-2 py-1 text-[10px] text-sky-100 hover:bg-sky-700/55 disabled:opacity-40"
         >
-          Full Control Shell
+          Full Control
         </button>
         <button disabled={!presence} onClick={() => switchControlToCharacter(characterId)} className="rounded bg-violet-700/35 px-2 py-1 text-[10px] text-violet-100 hover:bg-violet-700/55 disabled:opacity-40">
           Switch

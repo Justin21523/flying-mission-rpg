@@ -3,10 +3,12 @@ import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useMissionStore } from '../../stores/game/useMissionStore';
+import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorMission } from '../../stores/game/editorMissionStore';
 import { getDestinationParts } from '../../stores/game/editorDestinationStore';
 import { getEditorGameNpcs } from '../../stores/game/editorGameNpcStore';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
+import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { getDialogueTree } from '../dialogue/dialogueRegistry';
@@ -100,6 +102,8 @@ export const ObjectiveDirectorHost = () => {
   useFrame(() => {
     const rt = useDestinationRuntimeStore.getState();
     const phase = useGameStore.getState().phase;
+    const controlledCharacterId = useSupportRuntimeStore.getState().ownership.controlledCharacterId ?? useCharacterStore.getState().selectedCharacterId;
+    rt.setInteractionOwner(controlledCharacterId);
     const m = model.current;
     const x = robotHandle.pos.x;
     const z = robotHandle.pos.z;

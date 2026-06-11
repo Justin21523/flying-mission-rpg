@@ -6,7 +6,7 @@ import { useTransformationPreviewStore } from '../../../stores/game/transformati
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { validateTimeline } from '../../../game/transformation/transformationValidation';
 import { liveOffset, scaleNumber, radiansToDegrees, resolveStageClipModelId } from '../../../game/transformation/transformationOverrides';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformStageMoveKey, transformStagePartMoveKey } from '../../../game/transformation/transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformRootKey, transformStageModelKey, transformStageMoveKey, transformStagePartMoveKey } from '../../../game/transformation/transformPartKey';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
 import {
@@ -230,13 +230,46 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
 // immediately in edit + play (the presenter reads modelSlotOffsets.robot). The full per-slot editor is below.
 const CharacterQuickControls = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const key = transformModelSlotKey(def.id, 'robot');
+  const rootKey = transformRootKey(def.id);
   const override = useSceneEditStore((s) => s.overrides[key]);
+  const rootOverride = useSceneEditStore((s) => s.overrides[rootKey]);
   const live = liveOffset(def.modelSlotOffsets?.robot, override);
+  const liveRoot = liveOffset({ position: def.rootPosition ?? [0, 0, 0], rotation: def.rootRotation ?? [0, 0, 0], scale: def.modelScale ?? 1 }, rootOverride);
   const setRobot = (patch: Partial<TransformationTransformOffset>) => update({ modelSlotOffsets: { ...(def.modelSlotOffsets ?? {}), robot: { ...live, ...patch } } });
+  const editRootPos = (axis: 0 | 1 | 2, value: number) => {
+    const next = [...liveRoot.position] as TransformationVec3;
+    next[axis] = value;
+    update({ rootPosition: next });
+    clearOverrideField(rootKey, 'position');
+  };
+  const editRootRot = (axis: 0 | 1 | 2, value: number) => {
+    const next = [...liveRoot.rotation] as TransformationVec3;
+    next[axis] = value;
+    update({ rootRotation: next });
+    clearOverrideField(rootKey, 'rotation');
+  };
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <NumRow label="Character size ×" value={round(live.scale)} step={0.1} min={0.05} onChange={(v) => { setRobot({ scale: v }); clearOverrideField(key, 'scale'); }} />
-      <NumRow label="Character facing° (Y) — whole show" value={round(def.baseYawDeg ?? 0)} step={5} onChange={(v) => update({ baseYawDeg: v })} />
+    <div className="space-y-1.5 rounded border border-violet-800/40 bg-violet-950/10 p-2">
+      <div className={lbl}>Character root gizmo (click the orange root box in 3D)</div>
+      <div className="grid grid-cols-2 gap-2">
+        <NumRow label="Character size ×" value={round(live.scale)} step={0.1} min={0.05} onChange={(v) => { setRobot({ scale: v }); clearOverrideField(key, 'scale'); }} />
+        <NumRow label="Root scale ×" value={round(liveRoot.scale)} step={0.1} min={0.05} onChange={(v) => { update({ modelScale: v }); clearOverrideField(rootKey, 'scale'); }} />
+      </div>
+      <Field label="Root position (x / y / z)">
+        <div className="flex gap-1">
+          {([0, 1, 2] as const).map((a) => (
+            <input key={a} type="number" step={0.25} value={round(liveRoot.position[a])} onChange={(e) => editRootPos(a, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
+          ))}
+        </div>
+      </Field>
+      <Field label="Root rotation° (x / y / z)">
+        <div className="flex gap-1">
+          {([0, 1, 2] as const).map((a) => (
+            <input key={a} type="number" step={1} value={round(liveRoot.rotation[a])} onChange={(e) => editRootRot(a, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
+          ))}
+        </div>
+      </Field>
+      <NumRow label="Character facing° (legacy Y)" value={round(def.baseYawDeg ?? 0)} step={5} onChange={(v) => update({ baseYawDeg: v })} />
     </div>
   );
 };

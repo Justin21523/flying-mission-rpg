@@ -31,6 +31,8 @@ describe('GameStateMachine', () => {
 
   it('canTransition reflects the table', () => {
     expect(canTransition('MISSION_GAMEPLAY', 'MISSION_COMPLETE')).toBe(true);
+    expect(canTransition('MISSION_GAMEPLAY', 'HANGAR')).toBe(true);
+    expect(canTransition('SUPPORT_SELECTION', 'HANGAR')).toBe(true);
     expect(canTransition('MISSION_GAMEPLAY', 'BOOT')).toBe(false);
   });
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   CharacterPresence,
   ControlOwnershipState,
+  FullControlDispatchContext,
   SupportDispatchEntry,
   SupportDispatchMode,
   SupportDispatchStatus,
@@ -19,6 +20,7 @@ interface SupportRuntimeState {
   dispatches: SupportDispatchEntry[];
   presences: CharacterPresence[];
   ownership: ControlOwnershipState;
+  fullControl: FullControlDispatchContext | null;
   toasts: SupportToast[];
   paused: boolean;
   lastAssistText: string | null;
@@ -30,6 +32,7 @@ interface SupportRuntimeState {
   updatePresence: (characterId: string, patch: Partial<CharacterPresence>) => void;
   removePresence: (characterId: string) => void;
   setOwnership: (ownership: ControlOwnershipState) => void;
+  setFullControl: (context: FullControlDispatchContext | null) => void;
   pushToast: (characterId: string, text: string) => void;
   clearOldToasts: (nowMs: number) => void;
   setPaused: (paused: boolean) => void;
@@ -71,6 +74,7 @@ export const useSupportRuntimeStore = create<SupportRuntimeState>((set, get) => 
   dispatches: [],
   presences: [],
   ownership: initialOwnership,
+  fullControl: null,
   toasts: [],
   paused: false,
   lastAssistText: null,
@@ -102,10 +106,11 @@ export const useSupportRuntimeStore = create<SupportRuntimeState>((set, get) => 
   removePresence: (characterId) => set((s) => ({ presences: s.presences.filter((p) => p.characterId !== characterId) })),
 
   setOwnership: (ownership) => set({ ownership }),
+  setFullControl: (fullControl) => set({ fullControl }),
   pushToast: (characterId, text) =>
     set((s) => ({ toasts: [...s.toasts, { id: `${characterId}_${Date.now().toString(36)}`, characterId, text, createdAtMs: Date.now() }] })),
   clearOldToasts: (nowMs) => set((s) => ({ toasts: s.toasts.filter((t) => nowMs - t.createdAtMs < 4500) })),
   setPaused: (paused) => set({ paused, dispatches: get().dispatches.map((d) => ({ ...d, paused })) }),
   setLastAssistText: (lastAssistText) => set({ lastAssistText }),
-  reset: () => set({ panelOpen: false, dispatches: [], presences: [], ownership: initialOwnership, toasts: [], paused: false, lastAssistText: null }),
+  reset: () => set({ panelOpen: false, dispatches: [], presences: [], ownership: initialOwnership, fullControl: null, toasts: [], paused: false, lastAssistText: null }),
 }));

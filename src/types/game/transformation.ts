@@ -181,6 +181,8 @@ export interface TransformationDefinition {
   planeModelRef?: string; // model-library id
   robotModelRef?: string;
   sharedModelRef?: string;
+  rootPosition?: TransformationVec3; // whole performance/root placement in the transformation showcase
+  rootRotation?: TransformationVec3; // whole performance/root rotation in degrees
   modelScale?: number; // overall presenter scale (parts + models) — editable size of the whole performance
   baseYawDeg?: number; // the whole performance's facing (Y°) — applied to the root; the showcase spins on top
   modelSlotOffsets?: Partial<Record<ModelSlot, TransformationTransformOffset>>;

@@ -17,6 +17,7 @@ export const DestinationDebugPanel = () => {
   const runtime = useMissionStore((s) => s.runtime);
   const evaluation = useDestinationRuntimeStore((s) => s.evaluation);
   const carryingId = useDestinationRuntimeStore((s) => s.carryingId);
+  const interactionOwner = useDestinationRuntimeStore((s) => s.interactionOwnerId);
   const dlgNode = useDialogueStore((s) => s.currentNodeId);
   const miniGame = usePhaserOverlayStore((s) => s.openId);
   const jump = useGameStore((s) => s.jumpTo);
@@ -31,6 +32,7 @@ export const DestinationDebugPanel = () => {
         <Row label="hSpeed" value={robotHandle.hSpeed.toFixed(1)} />
         <Row label="Landing" value={evaluation ? evaluation.quality : '—'} />
         <Row label="Carrying" value={carryingId ?? '—'} />
+        <Row label="Interaction owner" value={interactionOwner ?? '—'} />
         <Row label="Dialogue" value={dlgNode ?? '—'} />
         <Row label="Mini-game" value={miniGame ?? '—'} />
       </div>

@@ -1,5 +1,5 @@
 import { asScaleVec, type EditOverride, type Vec3 } from '../edit/sceneEditMerge';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformRootKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
 import { MODEL_SLOTS, type ModelSlot, type TransformationDefinition, type TransformationStage, type TransformationTransformOffset, type TransformationVec3 } from '../../types/game/transformation';
 
 // Pure transformation edit-merge helpers (no React / no R3F → unit-testable). Shared by TransformationStage
@@ -31,11 +31,15 @@ export function liveOffset(base: TransformationTransformOffset | undefined, over
 // Merge ALL sceneEditStore overrides for a timeline into a fresh def (used for the live preview while editing).
 export function mergeTransformationOverrides(def: TransformationDefinition, overrides: Record<string, EditOverride>): TransformationDefinition {
   const modelSlotOffsets: Partial<Record<ModelSlot, TransformationTransformOffset>> = { ...(def.modelSlotOffsets ?? {}) };
+  const rootOverride = overrides[transformRootKey(def.id)];
   for (const slot of MODEL_SLOTS) {
     modelSlotOffsets[slot] = liveOffset(def.modelSlotOffsets?.[slot], overrides[transformModelSlotKey(def.id, slot)]);
   }
   return {
     ...def,
+    rootPosition: rootOverride?.position ?? def.rootPosition,
+    rootRotation: rootOverride?.rotation ? radiansToDegrees(rootOverride.rotation) : def.rootRotation,
+    modelScale: scaleNumber(rootOverride?.scale) ?? def.modelScale,
     modelSlotOffsets,
     parts: (def.parts ?? []).map((p) => {
       const ov = overrides[transformPartKey(def.id, p.key)];
@@ -59,6 +63,13 @@ export function mergeTransformationOverrides(def: TransformationDefinition, over
 // returning the patch to apply to the editor store. Recognises the three transform key shapes; returns null
 // for an unrelated key so the caller can ignore it.
 export function bakeOverrideToDef(def: TransformationDefinition, key: string, override: EditOverride): Partial<TransformationDefinition> | null {
+  if (key === transformRootKey(def.id)) {
+    const patch: Partial<TransformationDefinition> = {};
+    if (override.position) patch.rootPosition = override.position;
+    if (override.rotation) patch.rootRotation = radiansToDegrees(override.rotation);
+    if (override.scale !== undefined) patch.modelScale = scaleNumber(override.scale) ?? def.modelScale;
+    return patch;
+  }
   for (const slot of MODEL_SLOTS) {
     if (key === transformModelSlotKey(def.id, slot)) {
       return { modelSlotOffsets: { ...(def.modelSlotOffsets ?? {}), [slot]: liveOffset(def.modelSlotOffsets?.[slot], override) } };

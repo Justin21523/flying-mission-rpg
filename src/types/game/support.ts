@@ -1,4 +1,5 @@
-import type { MissionObjectiveKind } from './mission';
+import type { MissionObjectiveKind, MissionRuntime } from './mission';
+import type { GamePhase } from './state';
 
 export type CharacterPresenceTier = 'active' | 'standby' | 'remote';
 export const CHARACTER_PRESENCE_TIERS: readonly CharacterPresenceTier[] = ['active', 'standby', 'remote'];
@@ -164,6 +165,35 @@ export interface SupportDispatchEntry {
   paused: boolean;
   cancelled: boolean;
   arrivedAtMs?: number;
+}
+
+export interface SupportDestinationSnapshot {
+  evaluation: {
+    safe: boolean;
+    quality: 'perfect' | 'good' | 'rough' | 'unsafe';
+    reasons: string[];
+    verticalSpeed: number;
+    horizontalSpeed: number;
+    zoneId?: string;
+  } | null;
+  prompt: string | null;
+  carryingId: string | null;
+  collectedIds: string[];
+}
+
+export interface FullControlDispatchContext {
+  dispatchCharacterId: string;
+  originControlledCharacterId: string;
+  originPhase: GamePhase;
+  originMissionId: string | null;
+  originMissionRuntime: MissionRuntime | null;
+  originDestination: SupportDestinationSnapshot;
+  originPresences: CharacterPresence[];
+  originRobotPosition: [number, number, number];
+  originRobotHeading: number;
+  returnPhase: GamePhase;
+  startedAtMs: number;
+  returning: boolean;
 }
 
 export interface SupportAssistEvent {

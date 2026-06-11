@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mergeTransformationOverrides, bakeOverrideToDef, resolveStageClipModelId, composeModelScale, liveOffset } from './transformationOverrides';
-import { transformModelSlotKey, transformPartKey, transformStageModelKey, transformStageMoveKey, transformEffectKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
+import { transformModelSlotKey, transformPartKey, transformRootKey, transformStageModelKey, transformStageMoveKey, transformEffectKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
 import type { EditOverride } from '../edit/sceneEditMerge';
 import type { TransformationDefinition } from '../../types/game/transformation';
 
@@ -50,6 +50,16 @@ describe('mergeTransformationOverrides', () => {
     expect(merged.modelSlotOffsets?.robot?.scale).toBe(3);
   });
 
+  it('merges a root override into root placement and performance scale', () => {
+    const overrides: Record<string, EditOverride> = {
+      [transformRootKey('xf1')]: { position: [1, 2, 3], rotation: [0, HALF_PI, 0], scale: 2 },
+    };
+    const merged = mergeTransformationOverrides(def(), overrides);
+    expect(merged.rootPosition).toEqual([1, 2, 3]);
+    expect(Math.round(merged.rootRotation?.[1] ?? 0)).toBe(90);
+    expect(merged.modelScale).toBe(2);
+  });
+
   it('merges a part override into the part base', () => {
     const overrides: Record<string, EditOverride> = {
       [transformPartKey('xf1', 'wing_left')]: { position: [0, 5, 0] },
@@ -73,6 +83,12 @@ describe('bakeOverrideToDef', () => {
   it('bakes a slot override into modelSlotOffsets', () => {
     const patch = bakeOverrideToDef(def(), transformModelSlotKey('xf1', 'plane'), { position: [1, 2, 3] });
     expect(patch?.modelSlotOffsets?.plane?.position).toEqual([1, 2, 3]);
+  });
+  it('bakes a root override into root fields', () => {
+    const patch = bakeOverrideToDef(def(), transformRootKey('xf1'), { position: [1, 2, 3], rotation: [HALF_PI, 0, 0], scale: 2 });
+    expect(patch?.rootPosition).toEqual([1, 2, 3]);
+    expect(Math.round(patch?.rootRotation?.[0] ?? 0)).toBe(90);
+    expect(patch?.modelScale).toBe(2);
   });
   it('bakes a part override into parts base', () => {
     const patch = bakeOverrideToDef(def(), transformPartKey('xf1', 'wing_left'), { scale: 2 });
