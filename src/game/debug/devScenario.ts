@@ -209,9 +209,13 @@ export function applyDevScenario(input: DevScenarioInput, phase: GamePhase): Res
   useFlightStore.getState().setLocation(resolved.locationId);
   useFlightStore.getState().setProgress(resolved.routeProgress);
 
-  if (BASE_PHASES.has(phase)) applyBaseState(phase);
-  if (LOCAL_FLIGHT_PHASES.has(phase) || WORLD_FLIGHT_PHASES.has(phase)) applyFlightState(phase, resolved.routeProgress);
-  if (WORLD_FLIGHT_PHASES.has(phase)) applyWorldFlightState(resolved.routeProgress);
+  // The homebound return leg reuses the world-flight + approach scenes, so set them up like their forward
+  // counterparts when jumping straight to a return phase (so dev jump-to RETURN_FLIGHT/BASE_APPROACH actually
+  // flies/approaches and advances — RETURN_FLIGHT → BASE_APPROACH → HANGAR_RETURN → MISSION_RESULTS).
+  const worldFlightSetup = WORLD_FLIGHT_PHASES.has(phase) || phase === 'RETURN_FLIGHT' || phase === 'BASE_APPROACH';
+  if (BASE_PHASES.has(phase) || phase === 'HANGAR_RETURN') applyBaseState(phase);
+  if (LOCAL_FLIGHT_PHASES.has(phase) || worldFlightSetup) applyFlightState(phase, resolved.routeProgress);
+  if (worldFlightSetup) applyWorldFlightState(resolved.routeProgress);
   if (phase === 'TRANSFORMATION' || phase === 'RETURN_TRANSFORMATION') applyTransformationState(resolved.transformationTimelineId, input.transformationMode);
   if (DESTINATION_PHASES.has(phase)) applyDestinationState(phase);
 
