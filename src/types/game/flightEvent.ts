@@ -15,7 +15,8 @@ export type FlightEventKind =
   | 'collectible'
   | 'radio'
   | 'formation'
-  | 'branch';
+  | 'branch'
+  | 'boost';
 
 export const FLIGHT_EVENT_KINDS: readonly FlightEventKind[] = [
   'cloud_hole',
@@ -31,6 +32,7 @@ export const FLIGHT_EVENT_KINDS: readonly FlightEventKind[] = [
   'radio',
   'formation',
   'branch',
+  'boost',
 ];
 
 export type FlightEventMotion = 'static' | 'drift' | 'bob' | 'orbit';
@@ -56,6 +58,8 @@ export interface FlightEventDef {
   modelAssetId?: string; // optional GLB placeholder (empty = built-in primitive visual for the kind)
   radioText?: string; // for 'radio' events
   value?: number; // collectible/energy amount
+  expReward?: number; // XP granted on collect (default derived from value)
+  coinReward?: number; // coins granted on collect (default derived from value)
   // ── director gating (Batch 5) ──
   minRouteProgress?: number; // 0..1 — earliest point on the route it may appear (default 0)
   maxRouteProgress?: number; // 0..1 — latest point (default 1)

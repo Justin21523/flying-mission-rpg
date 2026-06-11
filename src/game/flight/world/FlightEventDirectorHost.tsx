@@ -9,6 +9,7 @@ import { pickEvent } from './flightEventModel';
 import { segmentAtU, allowedKindsAtU, eventDensityAtU } from './WorldFlightRouteRuntime';
 import { flightHandle } from '../flightHandle';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
+import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
 import {
   ACTIVE_FLIGHT_EVENTS,
   useFlightEventVersion,
@@ -26,7 +27,8 @@ import type { FlightEventKind } from '../../../types/game/flightEvent';
 // fly-through (collect / energy / radio). Lifecycle + a debug snapshot live in flightEventRuntime.
 const AHEAD_U = 0.018;
 const EVENT_CLEAR_SEC = 2.5;
-const COLLECT_KINDS: ReadonlySet<FlightEventKind> = new Set(['collectible', 'energy_refill']);
+const COLLECT_KINDS: ReadonlySet<FlightEventKind> = new Set(['collectible', 'energy_refill', 'stunt_ring', 'boost']);
+const REWARD_KINDS: ReadonlySet<FlightEventKind> = new Set(['collectible', 'energy_refill', 'stunt_ring', 'boost']);
 
 const _pos = new Vector3();
 const _tan = new Vector3();
@@ -65,6 +67,14 @@ export const FlightEventDirectorHost = () => {
       const ev = ACTIVE_FLIGHT_EVENTS[i];
       const age = elapsed.current - ev.bornAt;
       if (!ev.resolved) {
+        // Magnet — reward pickups within range curve toward the craft (the renderer draws at ev.pos).
+        if (tuning.worldMagnetRadius > 0 && REWARD_KINDS.has(ev.def.kind)) {
+          const mx = flightHandle.pos.x - ev.pos[0], my = flightHandle.pos.y - ev.pos[1], mz = flightHandle.pos.z - ev.pos[2];
+          if (mx * mx + my * my + mz * mz < tuning.worldMagnetRadius * tuning.worldMagnetRadius) {
+            const pull = Math.min(1, dt * 6);
+            ev.pos[0] += mx * pull; ev.pos[1] += my * pull; ev.pos[2] += mz * pull;
+          }
+        }
         const dx = ev.pos[0] - flightHandle.pos.x;
         const dy = ev.pos[1] - flightHandle.pos.y;
         const dz = ev.pos[2] - flightHandle.pos.z;
@@ -76,6 +86,8 @@ export const FlightEventDirectorHost = () => {
           if (d.kind === 'collectible') rt.addCollectible(d.value ?? 1);
           else if (d.kind === 'energy_refill') rt.addEnergy(d.value ?? 20);
           else if (d.kind === 'radio' && d.radioText) rt.setRadio(d.radioText);
+          // Reward + celebration (exp/coins + combo + dancing-clone popup) for rewarding kinds.
+          if (REWARD_KINDS.has(d.kind)) useFlightScoreStore.getState().award(d, [ev.pos[0], ev.pos[1], ev.pos[2]]);
           rt.setActiveEvent(d.label);
           clearTimer.current = EVENT_CLEAR_SEC;
         }

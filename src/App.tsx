@@ -16,6 +16,7 @@ import { GameStateDebugPanel } from './ui/dev/GameStateDebugPanel';
 import { GameScreens } from './ui/game/GameScreens';
 import { BaseHud } from './ui/game/BaseHud';
 import { FlightHud } from './ui/game/FlightHud';
+import { FlightRewardHud } from './ui/game/FlightRewardHud';
 import { FlightProgressHud } from './ui/game/FlightProgressHud';
 import { FlightSonarHud } from './ui/game/FlightSonarHud';
 import { WorldMapHud } from './ui/game/WorldMapHud';
@@ -232,6 +233,7 @@ export const App = () => {
           <FlightProgressHud />
           <FlightSonarHud />
           <WorldMapHud />
+          <FlightRewardHud />
         </>
       )}
       {!editMode && !world && approachPhase && <DestinationApproachHud />}

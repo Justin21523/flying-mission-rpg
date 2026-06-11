@@ -292,6 +292,7 @@ export const FlightEventVisual = ({ def }: { def: FlightEventDef }) => {
     radio: <RadioViz color={color} size={size} />,
     formation: <FormationViz color={color} size={size} />,
     branch: <BranchViz color={color} size={size} />,
+    boost: <EnergyViz color={color} size={size} />,
   };
   const inner = def.modelAssetId ? <ModelViz def={def} /> : byKind[def.kind] ?? FALLBACK(color, size);
   const speed = def.driftSpeed ?? 5;

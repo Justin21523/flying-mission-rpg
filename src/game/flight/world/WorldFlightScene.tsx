@@ -26,6 +26,8 @@ import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
 import { worldFlightSceneLayers } from './worldFlightSceneLayers';
 import { clearActiveFlightEvents } from './flightEventRuntime';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
+import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
+import { FlightCelebrationLayer } from './FlightCelebrationLayer';
 
 const RAD2DEG = 180 / Math.PI;
 
@@ -45,6 +47,7 @@ export const WorldFlightScene = () => {
     return () => {
       clearActiveFlightEvents();
       useWorldFlightRuntimeStore.getState().reset();
+      useFlightScoreStore.getState().reset();
     };
   }, []);
 
@@ -77,6 +80,7 @@ export const WorldFlightScene = () => {
         <>
           <FlightEventDirectorHost />
           <FlightEventRenderer />
+          <FlightCelebrationLayer />
         </>
       )}
 

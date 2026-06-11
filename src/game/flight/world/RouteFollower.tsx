@@ -14,6 +14,7 @@ import { useGameStore } from '../../../stores/game/useGameStore';
 import { AnimatedGlbModel } from '../../world/AnimatedGlbModel';
 import { characterModelForForm } from '../../destination/characterModel';
 import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
+import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
 import type { AnimState } from '../../anim/animRunner';
 import { flightHandle } from '../flightHandle';
 
@@ -81,7 +82,8 @@ export const RouteFollower = () => {
     const k = keys.current;
     // Always cruise forward — W boosts, S eases off (never reverses). Flight time is UNIFIED: a route takes
     // worldFlightDurationSec end-to-end regardless of its path length (so all routes are ~2 min by default).
-    const boost = k['KeyW'] ? 1.7 : k['KeyS'] ? 0.45 : 1;
+    const pickup = useFlightScoreStore.getState().boostActive() ? Math.max(1, tuning.boostSpeedMul) : 1; // boost pickup surge
+    const boost = (k['KeyW'] ? 1.7 : k['KeyS'] ? 0.45 : 1) * pickup;
     const np = sampleNodeParams(def, u.current); // per-node authored speed/bank (gentle, opt-in)
     const dur = Math.max(5, tuning.worldFlightDurationSec);
     u.current = Math.min(1, u.current + (dt / dur) * boost * np.speedMul);
