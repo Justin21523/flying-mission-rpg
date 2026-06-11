@@ -5,7 +5,10 @@ import { CHARACTER_FORMS, ABILITY_KINDS, GROUND_EXTRA_ABILITY_KINDS } from '../.
 import type { CharacterDefinition, CharacterAbility, GroundAbilityConfig, GroundExtraAbilitySlot } from '../../../types/game/character';
 import { WEATHER_KINDS } from '../../../types/game/flight';
 import { getModelAsset } from '../../../data/modelLibrary';
-import { csv, parseCsv, Field, inp, lbl, Check } from '../editorShared';
+import { SUPER_KINDS, SUPER_KIND_LABEL } from '../../../types/character';
+import type { SuperMove } from '../../../types/character';
+import { csv, parseCsv, Field, inp, lbl, Check, MoveButtons } from '../editorShared';
+import { moveItem } from '../../../game/editor/arrayMove';
 import { ModelPicker } from '../ModelPicker';
 import { useGltfClipNames } from '../useGltfClipNames';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
@@ -201,6 +204,51 @@ const GroundAbilityEditor = ({ character, update }: { character: CharacterDefini
   );
 };
 
+// Super moves sub-editor — up to 6 offensive supers bound to keys 1–6 for the destination yokai hunt. Reuses
+// the POLI SuperMove/SuperKind model; each row picks an attack kind + tunes colour/damage/radius/range/cooldown.
+const SuperMovesEditor = ({ supers, onChange }: { supers: SuperMove[]; onChange: (s: SuperMove[]) => void }) => {
+  const add = () => { if (supers.length < 6) onChange([...supers, { id: `sm_${nanoid(5)}`, name: 'New Super', kind: 'nova', color: '#38bdf8', damage: 30, radius: 8, range: 14, cooldownSec: 4, duration: 0.8, count: 4 }]); };
+  const patch = (id: string, p: Partial<SuperMove>) => onChange(supers.map((s) => (s.id === id ? { ...s, ...p } : s)));
+  const remove = (id: string) => onChange(supers.filter((s) => s.id !== id));
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div className={lbl}>Super moves · {supers.length}/6 (keys 1–6)</div>
+        <button onClick={add} disabled={supers.length >= 6} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50 disabled:opacity-40">➕ Super</button>
+      </div>
+      <p className="mt-0.5 text-[10px] text-slate-500">Fired at the destination (keys 1–6). Attack kind sets the VFX + how it hits yokai (Batch 3).</p>
+      <div className="mt-1 space-y-1.5">
+        {supers.map((s, i) => (
+          <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <SelectRow label={`Key ${i + 1} · kind`} value={s.kind} options={SUPER_KINDS.map((k) => ({ value: k, label: SUPER_KIND_LABEL[k] }))} onChange={(v) => patch(s.id, { kind: v as SuperMove['kind'] })} />
+              <TextRow label="Name" value={s.name} onChange={(v) => patch(s.id, { name: v })} />
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <ColorRow label="Colour" value={s.color} onChange={(v) => patch(s.id, { color: v })} />
+              <NumRow label="Damage" value={s.damage} step={1} min={0} onChange={(v) => patch(s.id, { damage: v })} />
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <NumRow label="Radius" value={s.radius ?? 8} step={0.5} min={0} onChange={(v) => patch(s.id, { radius: v })} />
+              <NumRow label="Range" value={s.range ?? 14} step={0.5} min={0} onChange={(v) => patch(s.id, { range: v })} />
+              <NumRow label="Cooldown s" value={s.cooldownSec} step={0.5} min={0} onChange={(v) => patch(s.id, { cooldownSec: v })} />
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <NumRow label="Duration s" value={s.duration ?? 0.8} step={0.1} min={0} onChange={(v) => patch(s.id, { duration: v })} />
+              <NumRow label="Count" value={s.count ?? 4} step={1} min={1} onChange={(v) => patch(s.id, { count: v })} />
+            </div>
+            <div className="mt-1 flex gap-1.5">
+              <MoveButtons index={i} count={supers.length} onMove={(d) => onChange(moveItem(supers, i, d))} />
+              <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            </div>
+          </div>
+        ))}
+        {supers.length === 0 && <div className="text-[11px] text-slate-500">No supers — ➕ to add (keys 1–6).</div>}
+      </div>
+    </div>
+  );
+};
+
 // 🛩 Characters — full authoring: identity, stats, abilities, the model, animation clips (idle / flight /
 // transform) read live from the GLB, plus flavour. Advanced trigger→clip animation RULES + per-model
 // transform live in the 🎬 Model Studio tab (it targets the same model id).
@@ -251,6 +299,7 @@ export const CharacterEditorTab = () => {
           <p className="text-[10px] text-slate-500">Per-model transform: 🎬 Model Studio (same model id).</p>
 
           <AbilitiesEditor abilities={c.abilities} onChange={(a) => update({ abilities: a })} />
+          <SuperMovesEditor supers={c.supers ?? []} onChange={(s) => update({ supers: s })} />
           <GroundAbilityEditor character={c} update={update} />
 
           <TextRow label="Mission suitability (csv of MissionType)" value={csv(c.missionSuitability)} onChange={(v) => update({ missionSuitability: parseCsv(v) })} />

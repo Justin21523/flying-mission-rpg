@@ -15,6 +15,10 @@ import { characterModelForForm } from './characterModel';
 import type { AnimState } from '../anim/animRunner';
 import { getGroundAbilityConfig } from './groundAbilityConfig';
 import { nextFlying } from './flightToggle';
+import { superForKey } from './superForKey';
+import { useTransformStore } from '../../stores/transformStore';
+import { dashImpulse } from '../combat/dashImpulse';
+import type { SuperMove } from '../../types/character';
 import type { CharacterDefinition, GroundAbilityConfig } from '../../types/game/character';
 
 const nowSec = () => performance.now() / 1000;
@@ -89,6 +93,8 @@ export const RobotGroundController = () => {
   // Flight + jump state (destination ground phases).
   const flying = useRef(false);
   const canFlyRef = useRef(!!character?.canFly);
+  const supersRef = useRef<SuperMove[] | undefined>(character?.supers);
+  const colorRef = useRef(character?.color ?? '#38bdf8');
   const jumpsUsed = useRef(0);
   const grounded = useRef(true);
   const lastPosY = useRef(spawnPos[1]);
@@ -97,6 +103,7 @@ export const RobotGroundController = () => {
     abilityRef.current = abilityConfig;
   }, [abilityConfig]);
   useEffect(() => { canFlyRef.current = !!character?.canFly; }, [character?.canFly]);
+  useEffect(() => { supersRef.current = character?.supers; colorRef.current = character?.color ?? '#38bdf8'; }, [character?.supers, character?.color]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -123,6 +130,16 @@ export const RobotGroundController = () => {
             jumpsUsed.current += 1;
             grounded.current = false;
           }
+        }
+        return;
+      }
+      // 1–6 — offensive super moves (per-character). Reuses transformStore.triggerSuperMove: per-move cooldown,
+      // FX payload (SuperAbilityFx) + the decoupled damage bus (yokai sink wired in Batch 3). dash lunges below.
+      if (/^Digit[1-6]$/.test(e.code)) {
+        const move = superForKey(supersRef.current, e.code);
+        if (move) {
+          const p = robotHandle.pos;
+          useTransformStore.getState().triggerSuperMove({ ...move, color: colorRef.current }, { x: p.x, y: p.y, z: p.z }, heading.current);
         }
         return;
       }
@@ -177,11 +194,24 @@ export const RobotGroundController = () => {
       heading.current = Math.atan2(dir[0], dir[2]);
       playerMotion.speed = ability.surgeConfig.speed;
     }
-    // Vertical flight (Space = up, Ctrl = down, else hover) — horizontal speed already includes Shift fast-fly
+    // Dash-strike lunge (super kind 'dash') — drive the robot forward for its brief window.
+    if (dashImpulse.active) {
+      if (t < dashImpulse.until) {
+        const v = b.linvel();
+        b.setLinvel({ x: dashImpulse.dirX * dashImpulse.speed, y: v.y, z: dashImpulse.dirZ * dashImpulse.speed }, true);
+        heading.current = Math.atan2(dashImpulse.dirX, dashImpulse.dirZ);
+      } else {
+        dashImpulse.active = false;
+      }
+    }
+    // Vertical flight (Space = up, Shift = down, else hover) — horizontal speed already includes Shift fast-fly
     // from applyMovement. Grounded detection (resting, not at jump apex) resets the double-jump on the ground.
     if (flying.current) {
       const v = b.linvel();
-      const vy = keys.current['Space'] ? FLY_V : keys.current['ControlLeft'] ? -FLY_V : 0;
+      // Space = ascend; Shift ALONE = descend; Shift+WASD = fast flight (air sprint priority, no descend —
+      // the horizontal sprint is already applied by applyMovement). Idle = hover.
+      const movingKey = !!(keys.current['KeyW'] || keys.current['KeyA'] || keys.current['KeyS'] || keys.current['KeyD']);
+      const vy = keys.current['Space'] ? FLY_V : (keys.current['ShiftLeft'] && !movingKey) ? -FLY_V : 0;
       b.setLinvel({ x: v.x, y: vy, z: v.z }, true);
       grounded.current = false;
     } else {

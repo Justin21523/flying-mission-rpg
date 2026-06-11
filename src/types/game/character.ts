@@ -1,6 +1,6 @@
 import type { SourceConfidence } from '../sourceConfidence';
 import type { WeatherKind } from './flight';
-import type { AnimRule } from '../character'; // reuse the POLI animation-rule engine (animRunner.pickLoopRule)
+import type { AnimRule, SuperMove } from '../character'; // reuse the POLI animation-rule + super-move engines
 
 // A playable flying character. Two forms (vehicle/robot) — the transformation between them is a core
 // pillar. Abilities are child-friendly rescue helpers (no combat, no weapons).
@@ -126,6 +126,7 @@ export interface CharacterDefinition {
   transformAnimation?: string; // clip played during transformation (Batch 6)
   groundAbility?: GroundAbilityConfig;
   canFly?: boolean; // destination ground phases: F toggles flight (Space up / Shift down / hover)
+  supers?: SuperMove[]; // offensive super moves bound to keys 1–6 (destination yokai hunt)
   // ── flavour / extra properties ──
   catchphrase?: string;
   preferredWeather?: WeatherKind;

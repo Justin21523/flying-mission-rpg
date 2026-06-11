@@ -33,7 +33,7 @@ export const MissionHud = () => {
         </div>
         {npc && <div className="text-[11px] text-slate-400">Contact: {npc.name} ({npc.role})</div>}
         {canFly && (
-          <div className="mt-1 text-[10px] text-sky-300">{robotHandle.flying ? '✈ Flying · Space up · Ctrl down · Shift+move fast · F land' : '✈ Press F to fly (Space up · Ctrl down · Shift+move fast)'}</div>
+          <div className="mt-1 text-[10px] text-sky-300">{robotHandle.flying ? '✈ Flying · Space up · Shift down · Shift+move fast · F land' : '✈ Press F to fly (Space up · Shift down · Shift+move fast)'}</div>
         )}
         {phase === 'NPC_GREETING' && <div className="mt-1 text-[11px] text-amber-200">Find the NPC with the ⭑ marker and talk to them.</div>}
         {phase === 'MISSION_GAMEPLAY' && mission && (
