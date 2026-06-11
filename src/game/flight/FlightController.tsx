@@ -43,6 +43,7 @@ export const FlightController = () => {
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
+  const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -223,8 +224,8 @@ export const FlightController = () => {
 
   return (
     <group ref={aircraft}>
-      {/* editable facing offset so the model's nose points along travel (default 180°; 🛩 Flight → Craft yaw). */}
-      <group rotation={[0, (craftYaw * Math.PI) / 180, 0]}>
+      {/* editable facing offset + extra flight size (🛩 Flight → Craft yaw / Craft size). */}
+      <group rotation={[0, (craftYaw * Math.PI) / 180, 0]} scale={craftScale}>
         {character?.modelAssetId ? (
           <AnimatedGlbModel
             assetId={character.modelAssetId}

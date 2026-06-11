@@ -36,6 +36,7 @@ export const RouteFollower = () => {
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
+  const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
   const pathId = getActivePathId();
 
   useEffect(() => {
@@ -127,8 +128,8 @@ export const RouteFollower = () => {
   );
   return (
     <group ref={craft}>
-      {/* editable facing offset so the model's nose points along travel (default 180°; dial in 🛩 Flight). */}
-      <group rotation={[0, craftYaw * DEG2RAD, 0]}>
+      {/* editable facing offset + extra flight size (🛩 Flight → Craft yaw / Craft size). */}
+      <group rotation={[0, craftYaw * DEG2RAD, 0]} scale={craftScale}>
         {character?.modelAssetId ? <AnimatedGlbModel assetId={character.modelAssetId} animation={character.flightAnimation} fallback={fallback} noCull /> : fallback}
       </group>
     </group>

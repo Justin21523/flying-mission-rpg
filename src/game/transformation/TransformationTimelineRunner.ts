@@ -105,8 +105,10 @@ export class TransformationTimelineRunner {
 
     for (const part of this.def.parts ?? []) {
       let cur: PartState = { position: part.basePosition, rotation: part.baseRotation, scale: part.baseScale, visible: true };
+      // Stages targeting THIS part, plus "global" part stages (no partKey + a visibility) that affect ALL
+      // parts — used to hide every primitive part at the model reveal (final phase shows only the model).
       const ptStages = this.stages
-        .filter((s) => s.type === 'part-transform' && s.params.partKey === part.key && s.startTime <= t)
+        .filter((s) => s.type === 'part-transform' && s.startTime <= t && (s.params.partKey === part.key || (!s.params.partKey && s.params.visible != null)))
         .sort((a, b) => a.startTime - b.startTime);
       for (const st of ptStages) {
         const target: PartState = {

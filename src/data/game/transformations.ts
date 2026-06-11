@@ -40,7 +40,8 @@ const STD_STAGES: TransformationStage[] = [
   { id: 'g_lr', type: 'part-transform', startTime: 11.9, duration: 1.1, enabled: true, easing: 'easeOut', label: 'leg R', params: { partKey: 'leg_right', toPosition: [0.5, -1.4, 0] } },
   { id: 'g_head', type: 'part-transform', startTime: 13.1, duration: 0.9, enabled: true, easing: 'easeOut', label: 'head reveal', params: { partKey: 'head', toPosition: [0, 0.9, 0] } },
   { id: 'g_thr', type: 'part-transform', startTime: 14.0, duration: 0.8, enabled: true, easing: 'easeOut', label: 'thrusters', params: { partKey: 'thruster_back', toPosition: [0, 0.6, -0.7], toRotation: [20, 0, 0] } },
-  // ── BIG transform moment ──
+  // ── BIG transform moment ── (the white flash covers the cut: parts vanish, only the REAL model remains)
+  { id: 'g_hideparts', type: 'part-transform', startTime: 15.45, duration: 0.05, enabled: true, essential: true, label: 'hide all parts', params: { visible: false } },
   { id: 'g_robot', type: 'model-visibility', startTime: 15.5, duration: 0.1, enabled: true, essential: true, label: 'robot reveal', params: { modelSlot: 'robot', visible: true } },
   { id: 'g_finish', type: 'finish-pose', startTime: 18.0, duration: 1.0, enabled: true, essential: true, label: 'finish pose', params: {} },
   { id: 'g_show', type: 'interactive-showcase', startTime: 19.0, duration: 0.5, enabled: true, label: 'showcase', params: {} },
@@ -71,8 +72,9 @@ function effects(particle: string, ring: string): TransformationEffectTrack[] {
   return [
     { id: 'fx_flash', type: 'white-flash', startTime: 15.2, duration: 0.6, color: '#ffffff', intensity: 1 },
     { id: 'fx_ring', type: 'energy-ring', startTime: 15.4, duration: 1.4, color: ring, scale: 2.4 },
-    // the beauty shot — translucent same-colour clones bursting outward from the body centre
-    { id: 'fx_ghost', type: 'ghost-burst', startTime: 15.5, duration: 2.6, color: particle, intensity: 1, scale: 1.6, repeat: 8 },
+    // the beauty shot — translucent CHARACTER-MODEL clones bursting outward from the body centre, constant
+    // opacity (no fade), spreading until they reach the view edge
+    { id: 'fx_ghost', type: 'ghost-burst', startTime: 15.5, duration: 4.0, color: particle, intensity: 1, scale: 1.6, repeat: 6 },
     { id: 'fx_glow', type: 'glow-pulse', startTime: 15.6, duration: 1.8, color: particle, intensity: 1 },
     { id: 'fx_ring2', type: 'energy-ring', startTime: 16.4, duration: 1.2, color: ring, scale: 3.2 },
     { id: 'fx_spark', type: 'sparkle', startTime: 17.0, duration: 1.4, color: particle, followTargetPart: 'head' },
