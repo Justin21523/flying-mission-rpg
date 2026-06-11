@@ -34,4 +34,6 @@ export interface FlightTuning {
   worldVertSpeed: number; // world-flight: climb/descend speed while holding Space/Shift (units/sec)
   worldCloudScale: number; // world-flight: cloud-puff size multiplier
   worldFlightDurationSec: number; // world-flight: end-to-end flight time (unified across routes)
+  launchDurationSec: number; // launch tunnel: sprint duration before BASE_FLY_AROUND
+  launchTunnelLength: number; // launch tunnel: visual tunnel length (matches the sprint distance)
 }

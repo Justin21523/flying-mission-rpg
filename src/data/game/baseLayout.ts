@@ -87,8 +87,8 @@ export const SEED_BASE_PARTS: BasePart[] = [
     size: [4.5, 0.3, 4.5],
     color: '#8b93a6',
     collision: 'none',
-    liftDepth: 12,
-    liftDurationSec: 5,
+    liftDepth: 24,
+    liftDurationSec: 10,
   },
   {
     id: 'base_gate',

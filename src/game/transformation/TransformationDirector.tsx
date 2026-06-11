@@ -89,11 +89,11 @@ export const TransformationDirector = () => {
     if (r.getPhase() === 'showcase') {
       const k = keys.current;
       const dir = (k['KeyD'] || k['ArrowRight'] ? 1 : 0) - (k['KeyA'] || k['ArrowLeft'] ? 1 : 0);
-      txFrame.showcaseYaw += dir * def.interactionShowcase.rotateSpeedDeg * (Math.PI / 180) * dt;
+      txFrame.showcaseYaw += dir * (def.interactionShowcase?.rotateSpeedDeg ?? 90) * (Math.PI / 180) * dt;
     }
 
     // form/collider switch at the configured time (idempotent; never both active)
-    if (r.time >= def.controllerSwitchConfig.robotControllerEnableTime && form.current.getCurrentForm() !== 'robot') {
+    if (r.time >= (def.controllerSwitchConfig?.robotControllerEnableTime ?? 0) && form.current.getCurrentForm() !== 'robot') {
       form.current.switchToRobotForm();
     }
 
@@ -113,7 +113,7 @@ export const TransformationDirector = () => {
     if (r.isDone() && !done.current) {
       done.current = true;
       if (fc.getCurrentForm() !== 'robot') fc.switchToRobotForm();
-      const m = def.momentumTransferConfig;
+      const m = def.momentumTransferConfig ?? { preserveHorizontalVelocity: false, horizontalVelocityMultiplier: 0, initialDescentVelocity: 8, clampMaxDescentSpeed: 30, faceCameraOnExit: true };
       descentEntry.velocity = clamp(m.initialDescentVelocity + (m.preserveHorizontalVelocity ? entrySpeed.current * m.horizontalVelocityMultiplier : 0), 0, m.clampMaxDescentSpeed);
       descentEntry.faceCamera = m.faceCameraOnExit;
       useGameStore.getState().requestTransition('DESCENT');

@@ -61,15 +61,16 @@ export class TransformationTimelineRunner {
   private stages: TransformationStage[];
 
   constructor(private def: TransformationDefinition, public mode: 'full' | 'interactive' | 'quick') {
+    const allStages = def.stages ?? [];
     if (mode === 'quick') {
       const scale = def.totalDurationSec > 0 ? def.quickDurationSec / def.totalDurationSec : 1;
       this.duration = Math.max(0.1, def.quickDurationSec);
-      this.stages = def.stages
+      this.stages = allStages
         .filter((s) => s.enabled && (s.essential || ESSENTIAL_TYPES.has(s.type)))
         .map((s) => ({ ...s, startTime: s.startTime * scale, duration: s.duration * scale }));
     } else {
-      this.duration = Math.max(0.1, def.totalDurationSec);
-      this.stages = def.stages.filter((s) => s.enabled);
+      this.duration = Math.max(0.1, def.totalDurationSec || 1);
+      this.stages = allStages.filter((s) => s.enabled);
     }
   }
 
@@ -82,7 +83,7 @@ export class TransformationTimelineRunner {
     if (this.time >= this.duration) {
       this.time = this.duration;
       // Interactive showcase holds (player confirms); otherwise the timeline is done.
-      const wantsShowcase = this.def.interactionShowcase.enabled && this.mode === 'interactive';
+      const wantsShowcase = !!this.def.interactionShowcase?.enabled && this.mode === 'interactive';
       this.phase = wantsShowcase ? 'showcase' : 'done';
     }
   }
@@ -100,7 +101,7 @@ export class TransformationTimelineRunner {
     const t = this.time;
     const parts = new Map<TransformationPartKey, PartState>();
 
-    for (const part of this.def.parts) {
+    for (const part of this.def.parts ?? []) {
       let cur: PartState = { position: part.basePosition, rotation: part.baseRotation, scale: part.baseScale, visible: true };
       const ptStages = this.stages
         .filter((s) => s.type === 'part-transform' && s.params.partKey === part.key && s.startTime <= t)
@@ -139,10 +140,10 @@ export class TransformationTimelineRunner {
 
     // camera shot containing t (last match wins)
     let activeCameraShot: TransformationCameraShot | null = null;
-    for (const sh of this.def.cameraShots) if (t >= sh.startTime && t < sh.startTime + sh.duration) activeCameraShot = sh;
+    for (const sh of this.def.cameraShots ?? []) if (t >= sh.startTime && t < sh.startTime + sh.duration) activeCameraShot = sh;
 
     // active effect tracks
-    const activeEffects = this.def.effectTracks.filter((fx) => t >= fx.startTime && t < fx.startTime + fx.duration);
+    const activeEffects = (this.def.effectTracks ?? []).filter((fx) => t >= fx.startTime && t < fx.startTime + fx.duration);
 
     // backdrop intensity — latest backdrop-shift target, else 1 while playing
     let backdropIntensity = 1;

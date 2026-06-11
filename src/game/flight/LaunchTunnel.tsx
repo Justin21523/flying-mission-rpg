@@ -1,14 +1,16 @@
 import { BackSide } from 'three';
 import { getExteriorByKind } from '../../stores/game/editorExteriorStore';
+import { useEditorFlightStore } from '../../stores/game/editorFlightStore';
 
 // The launch tunnel — a lit corridor the craft auto-accelerates out of (LAUNCH_TUNNEL phase). Built from
-// the editable flight-spawn marker (the exit). Emissive rings + exit door glow under Bloom.
-const LEN = 36;
-const RINGS = 8;
+// the editable flight-spawn marker (the exit). Length is editable (🛩 Flight → Launch tunnel length) so the
+// visual matches the (editable) sprint distance. Emissive rings + exit door glow.
+const RINGS = 12;
 
 export const LaunchTunnel = () => {
   const sp = getExteriorByKind('flight_spawn');
   const p = sp ? sp.position : [0, 26, 60];
+  const LEN = useEditorFlightStore((s) => Math.max(8, s.tuning.launchTunnelLength));
   const cz = p[2] + LEN / 2;
 
   return (

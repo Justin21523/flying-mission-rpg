@@ -17,8 +17,6 @@ import { nextSpeed, isStalling } from './flightModel';
 // First flight system. Arcade-smooth, euler-integrated (pitch clamped, roll auto-levels) so the craft can
 // never flip/loop out of control. Character stats drive speed/turn. Reads live-editable tuning + navpoints.
 // Mounted only during flight phases. No Rapier — free flight is pure integration for the best feel.
-const TUNNEL_LEN = 34;
-const TUNNEL_DURATION = 2.6;
 const SINK_RATE = 7;
 const MIN_ALT = 6;
 
@@ -87,7 +85,7 @@ export const FlightController = () => {
         const sp = getExteriorByKind('flight_spawn');
         const p = sp ? sp.position : [0, 26, 60];
         // start inside the tunnel, behind the exit, flying toward it (+z behind → nose -z).
-        flightHandle.pos.set(p[0], p[1], p[2] + TUNNEL_LEN);
+        flightHandle.pos.set(p[0], p[1], p[2] + tuning.launchTunnelLength);
         rot.current = { pitch: 0, yaw: 0, roll: 0 };
         speed.current = tuning.cruiseSpeed * speedMult * 0.5;
       } else if (phase === 'BASE_FLY_AROUND') {
@@ -184,7 +182,7 @@ export const FlightController = () => {
     // ── phase progression ── (tunnel auto-launch; fly-around/ascent handled by the path-follow branch)
     if (tunnel) {
       launchT.current += dt;
-      if (launchT.current > TUNNEL_DURATION) useGameStore.getState().requestTransition('BASE_FLY_AROUND');
+      if (launchT.current > getFlightTuning().launchDurationSec) useGameStore.getState().requestTransition('BASE_FLY_AROUND');
     }
   });
 

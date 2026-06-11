@@ -8,9 +8,23 @@ import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStor
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
 import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
+import { useModelStudioStore } from '../../stores/modelStudioStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
 import { ALL_WORLD_PATHS } from '../../data/game/worldRoutes';
 import type { PathDefinition } from '../../types/path';
+
+// Bigger default size for the character craft — set via Model Studio (the single source of truth for model
+// scale), so the flight craft / base vehicle / transformation reveal are all bigger AND stay tunable in the
+// 🎬 Model Studio tab. Only sets a default when the user hasn't tuned that model.
+const DEFAULT_CRAFT_SCALE = 2.5;
+function seedCraftScale(): void {
+  const ms = useModelStudioStore.getState();
+  for (const c of useEditorCharacterStore.getState().items) {
+    if (c.modelAssetId && ms.overrides[c.modelAssetId]?.scale == null) {
+      ms.setTransform(c.modelAssetId, { scale: DEFAULT_CRAFT_SCALE });
+    }
+  }
+}
 
 // Seed a path into POLI's editorPathStore (idempotent) so the 🛣 Tracks tab + node gizmos can edit it.
 function seedPath(path: PathDefinition): void {
@@ -36,5 +50,6 @@ export function seedGameContent(): void {
   // (fly-around around the base, and the long-distance world route).
   seedPath(FLIGHT_PATH);
   ALL_WORLD_PATHS.forEach(seedPath);
+  seedCraftScale();
 }
 

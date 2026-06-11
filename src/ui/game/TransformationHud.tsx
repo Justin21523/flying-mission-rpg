@@ -8,7 +8,7 @@ export const TransformationHud = () => {
   usePoll(100);
   const h = transformationHandle;
   const showcase = h.phase === 'showcase';
-  const prompt = txFrame.def?.interactionShowcase.promptText;
+  const prompt = txFrame.def?.interactionShowcase?.promptText;
 
   return (
     <>

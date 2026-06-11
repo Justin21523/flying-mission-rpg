@@ -51,7 +51,7 @@ export const TransformationCharacterPresenter = ({ def, charModelId }: { def: Tr
   const color = def.particleColor;
   return (
     <group ref={root}>
-      {def.parts.map((p) => (
+      {(def.parts ?? []).map((p) => (
         <PartMesh key={p.key} part={p} color={p.color ?? color} />
       ))}
       {/* the real character model revealed at the finish */}
