@@ -3,13 +3,60 @@ import { useEditorMissionStore } from '../../../stores/game/editorMissionStore';
 import { useEditorLocationStore } from '../../../stores/game/editorLocationStore';
 import { useEditorGameNpcStore } from '../../../stores/game/editorGameNpcStore';
 import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
-import { MISSION_TYPES } from '../../../types/game/mission';
-import type { MissionDefinition } from '../../../types/game/mission';
+import { useEditorDestinationStore } from '../../../stores/game/editorDestinationStore';
+import { MISSION_TYPES, MISSION_OBJECTIVE_KINDS } from '../../../types/game/mission';
+import type { MissionDefinition, MissionObjective } from '../../../types/game/mission';
 import { WEATHER_KINDS, FLIGHT_DIFFICULTIES } from '../../../types/game/flight';
 import { ABILITY_KINDS } from '../../../types/game/character';
-import { csv, parseCsv, Field } from '../editorShared';
+import { validateObjective } from '../../../game/destination/destinationValidation';
+import { csv, parseCsv, Field, lbl } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
-import { CollectionEditor, TextRow, SelectRow, ConfidenceRow } from './CollectionEditor';
+import { CollectionEditor, TextRow, NumRow, SelectRow, ConfidenceRow } from './CollectionEditor';
+
+// Objectives sub-editor — the data-driven destination tasks (carry / find / activate(repair) / reach / talk)
+// with their destination-part bindings. Invalid bindings show inline and are skipped by the director.
+const ObjectivesEditor = ({ mission, update }: { mission: MissionDefinition; update: (p: Partial<MissionDefinition>) => void }) => {
+  const parts = useEditorDestinationStore((s) => s.items);
+  const partIds = new Set(parts.map((p) => p.id));
+  const objs = mission.objectives;
+  const add = () => update({ objectives: [...objs, { id: `obj_${nanoid(5)}`, kind: 'carry', description: 'New objective', targetCount: 1, targetObjectIds: [] }] });
+  const patch = (id: string, p: Partial<MissionObjective>) => update({ objectives: objs.map((o) => (o.id === id ? { ...o, ...p } : o)) });
+  const remove = (id: string) => update({ objectives: objs.filter((o) => o.id !== id) });
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div className={lbl}>Objectives · {objs.length}</div>
+        <button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Objective</button>
+      </div>
+      <div className="mt-1 space-y-1.5">
+        {objs.map((o) => {
+          const errs = validateObjective(o, partIds);
+          return (
+            <div key={o.id} className="rounded bg-slate-900/60 p-1.5">
+              {errs.length > 0 && (
+                <div className="mb-1 rounded bg-rose-900/40 p-1 text-[10px] text-rose-200">{errs.map((er, i) => <div key={i}>⚠ {er}</div>)}</div>
+              )}
+              <div className="grid grid-cols-2 gap-1.5">
+                <SelectRow label="Kind" value={o.kind} options={MISSION_OBJECTIVE_KINDS.map((k) => ({ value: k, label: k }))} onChange={(v) => patch(o.id, { kind: v as MissionObjective['kind'] })} />
+                <NumRow label="Target count" value={o.targetCount} step={1} min={1} onChange={(v) => patch(o.id, { targetCount: v })} />
+              </div>
+              <TextRow label="Description" value={o.description} onChange={(v) => patch(o.id, { description: v })} />
+              <TextRow label="Target object ids (csv of 🏙 part ids)" value={csv(o.targetObjectIds ?? [])} onChange={(v) => patch(o.id, { targetObjectIds: parseCsv(v) })} />
+              {o.kind === 'carry' && (
+                <SelectRow label="Dropoff zone" value={o.dropoffZoneId ?? ''} options={[{ value: '', label: '(none)' }, ...parts.filter((p) => p.kind === 'dropoff_zone').map((p) => ({ value: p.id, label: p.label }))]} onChange={(v) => patch(o.id, { dropoffZoneId: v || undefined })} />
+              )}
+              {o.kind === 'activate' && (
+                <TextRow label="Mini-game id" value={o.miniGameId ?? ''} onChange={(v) => patch(o.id, { miniGameId: v || undefined })} />
+              )}
+              <TextRow label="Hint" value={o.hintText ?? ''} onChange={(v) => patch(o.id, { hintText: v || undefined })} />
+              <button onClick={() => remove(o.id)} className="mt-1 rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const makeNew = (): MissionDefinition => ({
   id: `mission_${nanoid(6)}`,
@@ -50,7 +97,7 @@ export const MissionEditorTab = () => {
           <TextRow label="Recommended characters (csv of ids)" value={csv(m.recommendedCharacterIds)} onChange={(v) => update({ recommendedCharacterIds: parseCsv(v) })} />
           <TextRow label="Summary" area value={m.summary} onChange={(v) => update({ summary: v })} />
           <ConfidenceRow value={m.sourceConfidence} onChange={(v) => update({ sourceConfidence: v })} />
-          <p className="text-[10px] text-slate-500">Objectives: {m.objectives.length} (deep editor in a later batch).</p>
+          <ObjectivesEditor mission={m} update={update} />
         </>
       )}
     />

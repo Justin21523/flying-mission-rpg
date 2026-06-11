@@ -65,7 +65,10 @@ export type DialogueEffect =
   | { type: 'unlockTool'; toolId: string }
   | { type: 'setForm'; form: string }
   | { type: 'setActiveCharacter'; charId: string }
-  | { type: 'spawnRandomIncident' };
+  | { type: 'spawnRandomIncident' }
+  // ── aero-rescue game effects (Batch 7) ──
+  | { type: 'startMission'; missionId: string }
+  | { type: 'openMiniGame'; miniGameId: string };
 
 export interface DialogueChoice {
   id: string;

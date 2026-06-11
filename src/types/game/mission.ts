@@ -22,6 +22,11 @@ export interface MissionObjective {
   description: string;
   targetCount: number;
   optional?: boolean;
+  // ── destination bindings (Batch 7) — reference destination-part ids; all Edit-Mode editable ──
+  targetObjectIds?: string[]; // carry item(s) / lost item(s) / repair device(s) / reach markers / NPC ids
+  dropoffZoneId?: string; // carry: where to deliver
+  miniGameId?: string; // activate/repair: the Phaser mini-game that completes it
+  hintText?: string; // optional HUD hint (e.g. search area description)
 }
 
 // Authored mission template (data-driven). Failure is always recoverable downstream (no permadeath).

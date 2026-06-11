@@ -1,6 +1,7 @@
 import { useSceneEditStore } from '../../stores/sceneEditStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
+import { useEditorDestinationStore } from '../../stores/game/editorDestinationStore';
 
 // Wire gizmo Shift+D (duplicate) and Del (delete) to the DATA stores for the game's editable layout parts
 // (base + exterior), including multi-selection — so batch duplicate/delete work like move already does
@@ -11,10 +12,12 @@ interface PartOps {
 }
 const BASE = 'base#structure#';
 const EXT = 'exterior#structure#';
+const DST = 'destination#structure#';
 
 function opsFor(key: string): { ops: PartOps; id: string } | null {
   if (key.startsWith(BASE)) return { ops: useEditorBaseLayoutStore.getState(), id: key.slice(BASE.length) };
   if (key.startsWith(EXT)) return { ops: useEditorExteriorStore.getState(), id: key.slice(EXT.length) };
+  if (key.startsWith(DST)) return { ops: useEditorDestinationStore.getState(), id: key.slice(DST.length) };
   return null;
 }
 

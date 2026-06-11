@@ -5,18 +5,22 @@ import type { MissionDefinition } from '../../types/game/mission';
 export const SEED_MISSIONS: MissionDefinition[] = [
   {
     id: 'mission_parcel_run',
-    name: 'Parcel Run',
+    name: 'Sunny Harbor Helper',
     sourceConfidence: 'GameAdaptation',
     type: 'delivery',
-    locationId: 'loc_brightcity',
-    npcId: 'npc_postmistress',
+    locationId: 'loc_sunnyharbor',
+    npcId: 'npc_mina',
     routeId: 'route_home_sunnyharbor',
     difficulty: 'easy',
     weather: 'clear',
     recommendedAbility: 'lift',
     recommendedCharacterIds: ['char_jett', 'char_flip'],
-    summary: 'Deliver an important parcel safely to the postmistress in Bright City.',
-    objectives: [{ id: 'obj_carry_parcel', kind: 'carry', description: 'Carry the parcel to the post office', targetCount: 1 }],
+    summary: 'Help Mina around Sunny Harbor: deliver the parcel, find the lost cap and fix the beacon.',
+    objectives: [
+      { id: 'obj_carry_parcel', kind: 'carry', description: 'Carry the parcel to the post office dropoff', targetCount: 1, targetObjectIds: ['dst_parcel'], dropoffZoneId: 'dst_dropoff', hintText: 'The parcel sits by the harbor road.' },
+      { id: 'obj_find_cap', kind: 'find', description: 'Find the lost cap near the lighthouse', targetCount: 1, targetObjectIds: ['dst_lost_cap'], hintText: 'Look around the lighthouse side of the harbor.' },
+      { id: 'obj_fix_beacon', kind: 'activate', description: 'Rewire the harbor beacon (mini-game)', targetCount: 1, targetObjectIds: ['dst_beacon'], miniGameId: 'repair_wiring', hintText: 'The beacon is at the lighthouse base.' },
+    ],
   },
   {
     id: 'mission_lost_kite',

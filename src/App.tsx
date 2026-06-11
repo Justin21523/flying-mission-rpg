@@ -22,6 +22,11 @@ import { WorldMapHud } from './ui/game/WorldMapHud';
 import { DestinationApproachHud } from './ui/game/DestinationApproachHud';
 import { TransformationHud } from './ui/game/TransformationHud';
 import { DescentHud } from './ui/game/DescentHud';
+import { LandingHud } from './ui/game/LandingHud';
+import { MissionHud } from './ui/game/MissionHud';
+import { MissionCompleteHud } from './ui/game/MissionCompleteHud';
+import { PhaserOverlay } from './ui/phaser/PhaserOverlay';
+import { DestinationDebugPanel } from './ui/dev/DestinationDebugPanel';
 import { WorldFlightDebugPanel } from './ui/dev/WorldFlightDebugPanel';
 import { TransformationDebugPanel } from './ui/dev/TransformationDebugPanel';
 import { useGameStore } from './stores/game/useGameStore';
@@ -101,6 +106,9 @@ export const App = () => {
   const approachPhase = phase === 'DESTINATION_APPROACH';
   const transformPhase = phase === 'TRANSFORMATION';
   const descentPhase = phase === 'DESCENT';
+  const landingPhase = phase === 'LANDING';
+  const missionPhase = phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY';
+  const missionDonePhase = phase === 'MISSION_COMPLETE';
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -227,12 +235,19 @@ export const App = () => {
       {!editMode && !world && approachPhase && <DestinationApproachHud />}
       {!editMode && !world && transformPhase && <TransformationHud />}
       {!editMode && !world && descentPhase && <DescentHud />}
+      {!editMode && !world && landingPhase && <LandingHud />}
+      {!editMode && !world && missionPhase && <MissionHud />}
+      {!editMode && !world && missionDonePhase && <MissionCompleteHud />}
+      {/* POLI dialogue box + the Phaser mini-game overlay serve the destination phases too. */}
+      {!editMode && !world && missionPhase && <DialogueBox />}
+      {!editMode && !world && <PhaserOverlay />}
       <Dock />
       <DevPanel />
       {/* Phase jumper: always available in Edit Mode (jump to any mid-game scene), plus the Leva toggle. */}
       {(fsmDebug || editMode) && <GameStateDebugPanel />}
       {(fsmDebug || editMode) && worldFlightPhase && <WorldFlightDebugPanel />}
       {(fsmDebug || editMode) && transformPhase && <TransformationDebugPanel />}
+      {(fsmDebug || editMode) && (descentPhase || landingPhase || missionPhase || missionDonePhase) && <DestinationDebugPanel />}
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}

@@ -15,6 +15,10 @@ import { useTransformStore } from '../stores/transformStore';
 import type { PoliCharId, PoliForm } from '../stores/transformStore';
 import { spawnRandomIncident } from './incident/spawnIncident';
 import { canStartQuest } from './quest/questPrereqs';
+import { getEditorMission } from '../stores/game/editorMissionStore';
+import { useMissionStore } from '../stores/game/useMissionStore';
+import { useGameStore } from '../stores/game/useGameStore';
+import { phaserBridge } from './phaser/phaserBridge';
 
 // Kit — apply a generic dialogue/choice/quest effect to the live stores. Add a case here when you add
 // an effect kind to DialogueEffect.
@@ -76,6 +80,19 @@ export function executeEffect(effect: DialogueEffect): void {
       break;
     case 'spawnRandomIncident':
       spawnRandomIncident();
+      break;
+    // ── aero-rescue game effects (Batch 7) ──
+    case 'startMission': {
+      const def = getEditorMission(effect.missionId);
+      if (def) {
+        useMissionStore.getState().beginMission(def);
+        // accepting the mission moves the greeting into gameplay (legal transition; no-op elsewhere)
+        if (useGameStore.getState().phase === 'NPC_GREETING') useGameStore.getState().requestTransition('MISSION_GAMEPLAY');
+      }
+      break;
+    }
+    case 'openMiniGame':
+      phaserBridge.openMiniGame(effect.miniGameId);
       break;
   }
 }

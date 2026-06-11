@@ -5,7 +5,7 @@ import { SEED_NPCS } from '../../data/game/npcs';
 
 // Named *GameNpc* to avoid colliding with the dormant POLI `editorNpcStore` (different NPC shape).
 export const useEditorGameNpcStore = createEditorCollection<NPCDefinition>({
-  storageKey: 'aero-rescue-editor-npc-v2',
+  storageKey: 'aero-rescue-editor-npc-v3',
   seed: SEED_NPCS,
   makeId: () => `npc_${nanoid(6)}`,
 });

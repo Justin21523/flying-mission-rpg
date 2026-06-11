@@ -9,7 +9,7 @@ import { FlightScene } from '../flight/FlightScene';
 import { WorldFlightScene } from '../flight/world/WorldFlightScene';
 import { DestinationApproachScene } from '../flight/world/DestinationApproachScene';
 import { TransformationStage } from '../transformation/TransformationStage';
-import { DescentScene } from '../transformation/DescentScene';
+import { DestinationScene } from '../destination/DestinationScene';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useEditorEnvironmentStore } from '../../stores/editorEnvironmentStore';
 import { useEditorWorldStore } from '../../stores/editorWorldStore';
@@ -88,11 +88,13 @@ export const Scene = () => {
         </>
       );
     }
-    if (phase === 'DESCENT') {
+    const destinationPhase =
+      phase === 'DESCENT' || phase === 'LANDING' || phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'MISSION_COMPLETE';
+    if (destinationPhase) {
       return (
         <>
           <AdaptiveDpr />
-          <DescentScene />
+          <DestinationScene />
         </>
       );
     }
