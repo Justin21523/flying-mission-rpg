@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { useGameStore } from '../../stores/game/useGameStore';
@@ -8,13 +8,18 @@ import { getDestinationParts } from '../../stores/game/editorDestinationStore';
 import { getEditorGameNpcs } from '../../stores/game/editorGameNpcStore';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
+import { useWalletStore } from '../../stores/walletStore';
 import { getDialogueTree } from '../dialogue/dialogueRegistry';
 import { phaserBridge } from '../phaser/phaserBridge';
 import { ObjectiveModel } from './objectiveModel';
 import { runEffects } from './missionEffects';
+import { canCompleteObjective } from './missionObjectives';
+import { missionRewardEffects, missionRewardCoins } from './missionRewards';
+import { missionDoneFlag } from './missionChain';
 import { robotHandle } from '../destination/robotHandle';
 import { destinationDev } from '../destination/destinationDev';
 import type { DestinationPart } from '../../types/game/destination';
+import type { MissionDefinition, MissionObjective } from '../../types/game/mission';
 
 // The OBJECTIVE DIRECTOR (logic host, one useFrame — the rules live in the pure ObjectiveModel). Watches
 // the robot's distance to NPCs / mission objects, shows the [E] prompt, applies pickups/dropoffs, opens the
@@ -26,16 +31,34 @@ const dist2 = (p: DestinationPart | { position: [number, number, number] }, x: n
   return dx * dx + dz * dz;
 };
 
+// Which objective owns a destination part (target or dropoff) — used for ordered-mission gating.
+function objectiveForPart(def: MissionDefinition | null, partId: string): MissionObjective | undefined {
+  return def?.objectives.find((o) => o.targetObjectIds?.includes(partId) || o.dropoffZoneId === partId);
+}
+
 export const ObjectiveDirectorHost = () => {
   const model = useRef<ObjectiveModel | null>(null);
   const eDown = useRef(false);
   const done = useRef(false);
   const carried = useRef<Group>(null);
   const missionId = useMissionStore((s) => s.currentMissionId);
+  const defRef = useRef<MissionDefinition | null>(null); // active mission def (stable mid-mission)
+  const firedObj = useRef<Set<string>>(new Set()); // objectives whose completeEffects already fired
+
+  // Sync objective progress + fire a per-objective completeEffects once on first completion.
+  const applyObjective = useCallback((objId: string, isDone: boolean, count?: number) => {
+    useMissionStore.getState().setObjective(objId, isDone, count);
+    if (isDone && !firedObj.current.has(objId)) {
+      firedObj.current.add(objId);
+      runEffects(defRef.current?.objectives.find((o) => o.id === objId)?.completeEffects);
+    }
+  }, []);
 
   // (Re)build the model for the active mission; subscribe to the Phaser bridge for repair results.
   useEffect(() => {
     const def = missionId ? getEditorMission(missionId) : undefined;
+    defRef.current = def ?? null;
+    firedObj.current = new Set();
     if (def) {
       const partIds = new Set(getDestinationParts().filter((p) => p.enabled).map((p) => p.id));
       model.current = new ObjectiveModel(def.objectives, partIds);
@@ -50,7 +73,7 @@ export const ObjectiveDirectorHost = () => {
       if (!m) return;
       if (evt.type === 'mini-game-success') {
         const r = m.miniGameResult(evt.miniGameId, true);
-        if (r.objective) useMissionStore.getState().setObjective(r.objective.id, r.completed, m.counts[r.objective.id]);
+        if (r.objective) applyObjective(r.objective.id, r.completed, m.counts[r.objective.id]);
       }
       // fail / cancel → objective stays active for retry (no state pollution)
     });
@@ -66,7 +89,7 @@ export const ObjectiveDirectorHost = () => {
       window.removeEventListener('keydown', down);
       useDestinationRuntimeStore.getState().setPrompt(null);
     };
-  }, [missionId]);
+  }, [missionId, applyObjective]);
 
   useFrame(() => {
     const rt = useDestinationRuntimeStore.getState();
@@ -113,36 +136,45 @@ export const ObjectiveDirectorHost = () => {
 
     // 2) mission-object interactions (gameplay only)
     if (!prompt && phase === 'MISSION_GAMEPLAY' && m) {
+      const def = defRef.current;
+      const progress = useMissionStore.getState().runtime?.objectiveProgress ?? {};
+      // In an ordered mission, a part's interaction is locked until its objective's predecessors are done.
+      const isGated = (partId: string): boolean => {
+        const owner = objectiveForPart(def, partId);
+        return !!(owner && def?.ordered && !canCompleteObjective(def.objectives, progress, owner.id, true));
+      };
+      const GATED = 'Finish earlier objectives first';
       for (const p of parts) {
         const r = p.radius ?? 3;
         if (dist2(p, x, z) > r * r) continue;
+        const gated = isGated(p.id);
         if ((p.kind === 'carry_item' || p.kind === 'lost_item') && !rt.collectedIds.includes(p.id) && rt.carryingId !== p.id) {
-          prompt = `Pick up ${p.label} (E)`;
-          if (pressed) {
+          prompt = gated ? GATED : `Pick up ${p.label} (E)`;
+          if (pressed && !gated) {
             const res = m.tryPickup(p.id);
             if (res.attached) rt.setCarrying(p.id);
             else if (res.objective) {
               rt.addCollected(p.id);
-              useMissionStore.getState().setObjective(res.objective.id, res.completed, m.counts[res.objective.id]);
+              applyObjective(res.objective.id, res.completed, m.counts[res.objective.id]);
             }
           }
           break;
         }
         if (p.kind === 'dropoff_zone' && rt.carryingId) {
-          prompt = `Deliver ${getDestinationParts().find((q) => q.id === rt.carryingId)?.label ?? 'item'} (E)`;
-          if (pressed) {
+          prompt = gated ? GATED : `Deliver ${getDestinationParts().find((q) => q.id === rt.carryingId)?.label ?? 'item'} (E)`;
+          if (pressed && !gated) {
             const res = m.tryDropoff(p.id);
             if (res.completed && res.objective) {
               rt.addCollected(rt.carryingId);
               rt.setCarrying(null);
-              useMissionStore.getState().setObjective(res.objective.id, true, m.counts[res.objective.id]);
+              applyObjective(res.objective.id, true, m.counts[res.objective.id]);
             }
           }
           break;
         }
         if (p.kind === 'repair_device' && !rt.collectedIds.includes(p.id)) {
-          prompt = `Repair ${p.label} (E)`;
-          if (pressed && !phaserBridge.isOpen()) phaserBridge.openMiniGame(p.miniGameId ?? 'repair_wiring');
+          prompt = gated ? GATED : `Repair ${p.label} (E)`;
+          if (pressed && !gated && !phaserBridge.isOpen()) phaserBridge.openMiniGame(p.miniGameId ?? 'repair_wiring');
           break;
         }
       }
@@ -159,8 +191,12 @@ export const ObjectiveDirectorHost = () => {
     // completion → fire the mission's reward/flag effects (once), then MISSION_COMPLETE
     if (phase === 'MISSION_GAMEPLAY' && m && !done.current && m.allRequiredDone()) {
       done.current = true;
-      const def = missionId ? getEditorMission(missionId) : undefined;
-      runEffects(def?.completionEffects);
+      const cdef = defRef.current;
+      runEffects(cdef?.completionEffects); // advanced raw effects
+      runEffects(missionRewardEffects(cdef?.rewards)); // structured rewards → effects
+      const coins = missionRewardCoins(cdef?.rewards);
+      if (coins > 0) useWalletStore.getState().addCoins(coins);
+      if (cdef) runEffects([{ type: 'setWorldFlag', flag: missionDoneFlag(cdef.id) }]); // unlock chained missions
       useMissionStore.getState().completeMission();
       useGameStore.getState().requestTransition('MISSION_COMPLETE');
     }

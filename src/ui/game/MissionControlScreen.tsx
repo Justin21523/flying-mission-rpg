@@ -5,6 +5,7 @@ import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { getEditorLocation } from '../../stores/game/editorLocationStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { useMissionStore } from '../../stores/game/useMissionStore';
+import { isMissionAvailable } from '../../game/missions/missionAvailability';
 import { pickTestMissionId } from '../../game/game/missionSelection';
 import { playUiSound } from '../../game/audio/uiSound';
 
@@ -17,7 +18,7 @@ export const MissionControlScreen = () => {
   const [featuredId, setFeaturedId] = useState<string | null>(null);
 
   const visible = useMemo(
-    () => (activeLocationId ? missions.filter((m) => m.locationId === activeLocationId) : missions),
+    () => missions.filter((m) => isMissionAvailable(m) && (!activeLocationId || m.locationId === activeLocationId)),
     [missions, activeLocationId],
   );
 

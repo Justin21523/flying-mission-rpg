@@ -28,6 +28,19 @@ export interface MissionObjective {
   dropoffZoneId?: string; // carry: where to deliver
   miniGameId?: string; // activate/repair: the Phaser mini-game that completes it
   hintText?: string; // optional HUD hint (e.g. search area description)
+  completeEffects?: DialogueEffect[]; // fired once when THIS objective completes (Mission Studio)
+}
+
+// Structured mission reward (Mission Studio) — a friendly POLI-style reward row. Coins go through walletStore;
+// the rest compile to the POLI DialogueEffect engine (see game/missions/missionRewards.ts).
+export type MissionRewardType = 'item' | 'coins' | 'worldFlag' | 'trust' | 'unlockTool';
+export const MISSION_REWARD_TYPES: readonly MissionRewardType[] = ['item', 'coins', 'worldFlag', 'trust', 'unlockTool'];
+export interface MissionReward {
+  id: string;
+  type: MissionRewardType;
+  amount?: number; // coins / item quantity / trust amount
+  targetId?: string; // itemId / flag / toolId
+  characterId?: string; // trust target
 }
 
 // Authored mission template (data-driven). Failure is always recoverable downstream (no permadeath).
@@ -46,9 +59,13 @@ export interface MissionDefinition {
   recommendedCharacterIds: string[];
   summary: string;
   objectives: MissionObjective[];
+  ordered?: boolean; // objectives must be completed in order (earlier required ones first)
   // ── complexity (Mission Studio) — reuse the POLI dialogue condition/effect unions ──
   prerequisites?: DialogueCondition[]; // ALL must pass for the mission to be offerable / startable
-  completionEffects?: DialogueEffect[]; // rewards / flags fired once when the mission completes
+  requiredMissionIds?: string[]; // these missions must be complete first (compiled to done-flag conditions)
+  nextMissionIds?: string[]; // missions this one leads into (shown in the flow preview; unlocked via done flag)
+  rewards?: MissionReward[]; // structured rewards applied on completion
+  completionEffects?: DialogueEffect[]; // advanced: raw effects fired once when the mission completes
 }
 
 export type MissionStatus = 'pending' | 'active' | 'complete' | 'failed';
