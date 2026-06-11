@@ -1,13 +1,31 @@
 import type { WorldLocation } from '../../types/game/world';
 import type { Region } from '../../types/game/region';
+import type { DialogueCondition } from '../../types/dialogue';
+import { evaluateCondition } from '../evaluateCondition';
+import { missionRequirementConditions } from '../missions/missionChain';
 
-// Pure map-system helpers (no React/stores → unit-testable).
+// Pure map-system helpers. isLocationUnlocked stays testable via an injectable `evalFn` (default = the live
+// condition engine), mirroring isMissionAvailable.
 
-// A location is available unless it or its region is explicitly locked (default = unlocked).
-export function isLocationUnlocked(loc: Pick<WorldLocation, 'unlocked'>, region: Pick<Region, 'unlocked'> | undefined): boolean {
+type UnlockGate = Pick<WorldLocation, 'unlocked' | 'requiredMissionIds' | 'unlockConditions'>;
+type RegionGate = Pick<Region, 'unlocked' | 'requiredMissionIds' | 'unlockConditions'>;
+
+// A location is locked by a manual `unlocked: false` (hard override) on it or its region; otherwise it unlocks
+// once ALL its + its region's progress conditions pass (required missions → done-flags, plus unlockConditions).
+export function isLocationUnlocked(
+  loc: UnlockGate,
+  region: RegionGate | undefined,
+  evalFn: (c: DialogueCondition) => boolean = evaluateCondition,
+): boolean {
   if (loc.unlocked === false) return false;
-  if (region && region.unlocked === false) return false;
-  return true;
+  if (region?.unlocked === false) return false;
+  const conds: DialogueCondition[] = [
+    ...(loc.unlockConditions ?? []),
+    ...missionRequirementConditions(loc.requiredMissionIds),
+    ...(region?.unlockConditions ?? []),
+    ...missionRequirementConditions(region?.requiredMissionIds),
+  ];
+  return conds.every(evalFn);
 }
 
 export interface RegionGroup {

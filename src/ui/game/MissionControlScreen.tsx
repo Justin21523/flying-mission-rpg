@@ -6,9 +6,12 @@ import { getEditorLocation, useEditorLocationStore } from '../../stores/game/edi
 import { getEditorRegion, useEditorRegionStore } from '../../stores/game/editorRegionStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { useMissionStore } from '../../stores/game/useMissionStore';
+import { useFlagStore } from '../../stores/flagStore';
 import { isMissionAvailable } from '../../game/missions/missionAvailability';
 import { isLocationUnlocked } from '../../game/game/regionGrouping';
+import { evaluateCondition } from '../../game/evaluateCondition';
 import type { WorldLocation } from '../../types/game/world';
+import type { DialogueCondition } from '../../types/dialogue';
 import { pickTestMissionId } from '../../game/game/missionSelection';
 import { playUiSound } from '../../game/audio/uiSound';
 
@@ -19,16 +22,19 @@ export const MissionControlScreen = () => {
   const missions = useEditorMissionStore((s) => s.items);
   const locations = useEditorLocationStore((s) => s.items);
   const regions = useEditorRegionStore((s) => s.items);
+  const flags = useFlagStore((s) => s.flags); // re-evaluate locks live when progress flags change
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
   const [regionId, setRegionId] = useState<string | null>(null);
   const [featuredId, setFeaturedId] = useState<string | null>(null);
 
   const locked = useMemo(() => {
+    // world-flag gates read the subscribed `flags` (so locks update live); other condition kinds delegate.
+    const evalUnlock = (c: DialogueCondition) => (c.type === 'worldFlagSet' ? flags[c.flag] === true : evaluateCondition(c));
     const byId = new Map(regions.map((r) => [r.id, r]));
     const set = new Set<string>();
-    for (const l of locations) if (!isLocationUnlocked(l, l.regionId ? byId.get(l.regionId) : undefined)) set.add(l.id);
+    for (const l of locations) if (!isLocationUnlocked(l, l.regionId ? byId.get(l.regionId) : undefined, evalUnlock)) set.add(l.id);
     return set;
-  }, [locations, regions]);
+  }, [locations, regions, flags]);
 
   const regionColorFor = (l: WorldLocation) => getEditorRegion(l.regionId)?.color;
   const missionCountFor = (id: string) => missions.filter((m) => m.locationId === id && isMissionAvailable(m) && !locked.has(m.locationId)).length;

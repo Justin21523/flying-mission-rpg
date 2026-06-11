@@ -7,7 +7,10 @@ import { useEditorGameNpcStore } from '../../../stores/game/editorGameNpcStore';
 import { useUiStore } from '../../../stores/uiStore';
 import type { Region } from '../../../types/game/region';
 import type { WorldLocation } from '../../../types/game/world';
+import type { DialogueCondition } from '../../../types/dialogue';
 import { WorldMapPanel } from '../../game/WorldMapPanel';
+import { MultiCheck } from './MultiCheck';
+import { MechListEditor } from '../dialogueEditorShared';
 import { Check, lbl, MoveButtons, FocusButton } from '../editorShared';
 import { TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
 
@@ -15,6 +18,7 @@ import { TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
 // into colour-coded regions, lock/unlock them, and see each location's missions + NPCs at a glance.
 const RegionsList = () => {
   const regions = useEditorRegionStore((s) => s.items);
+  const missionOpts = useEditorMissionStore((s) => s.items).map((m) => ({ id: m.id, label: m.name }));
   const add = () => useEditorRegionStore.getState().upsert({ id: `reg_${nanoid(6)}`, name: 'New Region', color: '#a78bfa', order: regions.length });
   const update = (id: string, p: Partial<Region>) => useEditorRegionStore.getState().update(id, p);
   return (
@@ -36,7 +40,10 @@ const RegionsList = () => {
               <TextRow label="Name" value={r.name} onChange={(v) => update(r.id, { name: v })} />
               <ColorRow label="Colour" value={r.color} onChange={(v) => update(r.id, { color: v })} />
             </div>
-            <Check label="Unlocked (available in Mission Control)" checked={r.unlocked !== false} onChange={(v) => update(r.id, { unlocked: v })} />
+            <Check label="Unlocked (uncheck = force-locked)" checked={r.unlocked !== false} onChange={(v) => update(r.id, { unlocked: v })} />
+            <MultiCheck label="Unlock when missions complete" options={missionOpts} selected={r.requiredMissionIds ?? []} onChange={(ids) => update(r.id, { requiredMissionIds: ids })} />
+            <div className={lbl}>Unlock when (conditions — ALL pass)</div>
+            <MechListEditor label="Conditions" kind="condition" items={r.unlockConditions} onChange={(items) => update(r.id, { unlockConditions: items as DialogueCondition[] | undefined })} />
           </div>
         ))}
         {regions.length === 0 && <div className="text-[11px] text-slate-500">No regions — ➕ to add one.</div>}
@@ -47,7 +54,8 @@ const RegionsList = () => {
 
 const LocationPanel = ({ loc }: { loc: WorldLocation }) => {
   const regions = useEditorRegionStore((s) => s.items);
-  const missions = useEditorMissionStore((s) => s.items).filter((m) => m.locationId === loc.id);
+  const allMissions = useEditorMissionStore((s) => s.items);
+  const missions = allMissions.filter((m) => m.locationId === loc.id);
   const npcs = useEditorGameNpcStore((s) => s.items).filter((n) => n.locationId === loc.id);
   const update = (p: Partial<WorldLocation>) => useEditorLocationStore.getState().update(loc.id, p);
   const goto = (tab: string) => useUiStore.getState().setEditorHubTab(tab);
@@ -61,7 +69,10 @@ const LocationPanel = ({ loc }: { loc: WorldLocation }) => {
         <SelectRow label="Region" value={loc.regionId ?? ''} options={[{ value: '', label: '(unassigned)' }, ...regions.map((r) => ({ value: r.id, label: r.name }))]} onChange={(v) => update({ regionId: v || undefined })} />
         <NumRow label="Order in region" value={loc.order ?? 0} step={1} onChange={(v) => update({ order: v })} />
       </div>
-      <Check label="Unlocked (available in Mission Control)" checked={loc.unlocked !== false} onChange={(v) => update({ unlocked: v })} />
+      <Check label="Unlocked (uncheck = force-locked)" checked={loc.unlocked !== false} onChange={(v) => update({ unlocked: v })} />
+      <MultiCheck label="Unlock when missions complete" options={allMissions.map((m) => ({ id: m.id, label: m.name }))} selected={loc.requiredMissionIds ?? []} onChange={(ids) => update({ requiredMissionIds: ids })} />
+      <div className={lbl}>Unlock when (conditions — ALL pass)</div>
+      <MechListEditor label="Conditions" kind="condition" items={loc.unlockConditions} onChange={(items) => update({ unlockConditions: items as DialogueCondition[] | undefined })} />
       <div className="mt-1.5 grid grid-cols-2 gap-2">
         <div className="rounded bg-slate-900/55 p-1.5">
           <div className="flex items-center justify-between"><span className={lbl}>Missions · {missions.length}</span><button onClick={() => goto('gmission')} className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-sky-200 hover:bg-slate-700">→ 🎯</button></div>

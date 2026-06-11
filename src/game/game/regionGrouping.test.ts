@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { isLocationUnlocked, locationsByRegion } from './regionGrouping';
 import type { WorldLocation } from '../../types/game/world';
 import type { Region } from '../../types/game/region';
+import type { DialogueCondition } from '../../types/dialogue';
 
 const loc = (id: string, p: Partial<WorldLocation> = {}): WorldLocation => ({
   id, codename: id, name: id, sourceConfidence: 'GameAdaptation', kind: 'city', isBase: false,
@@ -10,14 +11,28 @@ const loc = (id: string, p: Partial<WorldLocation> = {}): WorldLocation => ({
 const region = (id: string, p: Partial<Region> = {}): Region => ({ id, name: id, color: '#fff', ...p });
 
 describe('isLocationUnlocked', () => {
+  const never = () => false;
   it('defaults to unlocked', () => {
-    expect(isLocationUnlocked(loc('a'), region('r'))).toBe(true);
+    expect(isLocationUnlocked(loc('a'), region('r'), never)).toBe(true);
   });
-  it('locked when the location is locked', () => {
-    expect(isLocationUnlocked(loc('a', { unlocked: false }), region('r'))).toBe(false);
+  it('locked when the location is manually locked (hard override)', () => {
+    expect(isLocationUnlocked(loc('a', { unlocked: false }), region('r'), () => true)).toBe(false);
   });
-  it('locked when the region is locked', () => {
-    expect(isLocationUnlocked(loc('a'), region('r', { unlocked: false }))).toBe(false);
+  it('locked when the region is manually locked', () => {
+    expect(isLocationUnlocked(loc('a'), region('r', { unlocked: false }), () => true)).toBe(false);
+  });
+  it('gated by required missions (done-flag conditions)', () => {
+    const flags = new Set<string>();
+    const evalFn = (c: DialogueCondition) => c.type === 'worldFlagSet' && flags.has(c.flag);
+    const l = loc('a', { requiredMissionIds: ['m_x'] });
+    expect(isLocationUnlocked(l, undefined, evalFn)).toBe(false);
+    flags.add('mission:m_x:done');
+    expect(isLocationUnlocked(l, undefined, evalFn)).toBe(true);
+  });
+  it('gated by the region unlockConditions', () => {
+    const r = region('r', { unlockConditions: [{ type: 'worldFlagSet', flag: 'storms_cleared' }] });
+    expect(isLocationUnlocked(loc('a'), r, () => false)).toBe(false);
+    expect(isLocationUnlocked(loc('a'), r, () => true)).toBe(true);
   });
 });
 

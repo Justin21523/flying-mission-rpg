@@ -1,4 +1,5 @@
 import type { SourceConfidence } from '../sourceConfidence';
+import type { DialogueCondition } from '../dialogue';
 
 // A 3D anchor in the abstract world (NOT a real-scale globe — see PDF "不要建立真實比例地球").
 export interface WorldCoordinate {
@@ -33,6 +34,9 @@ export interface WorldLocation {
   modelAssetId?: string; // optional GLB landmark for the location
   // ── map system (Batch 3) ──
   regionId?: string; // grouping on the map (Region.id)
-  unlocked?: boolean; // false = locked in Mission Control (default true)
+  unlocked?: boolean; // false = manual HARD lock (overrides conditions); default true
   order?: number; // sort order within its region
+  // ── progress-driven unlock (evaluated live) ──
+  requiredMissionIds?: string[]; // unlock once these missions are complete (mission:<id>:done flags)
+  unlockConditions?: DialogueCondition[]; // general gate (world flag / quest / trust / level …) — ALL must pass
 }
