@@ -17,7 +17,7 @@ import { getGroundAbilityConfig } from './groundAbilityConfig';
 import { nextFlying } from './flightToggle';
 import { superForKey } from './superForKey';
 import { defaultSupers } from './defaultSupers';
-import { superBoost, SUPER_BOOST_SPEED, SUPER_BOOST_TURN, SUPER_BOOST_MULT } from './superBoost';
+import { superBoost, SUPER_BOOST_SPEED, SUPER_BOOST_TURN } from './superBoost';
 import { useTransformStore } from '../../stores/transformStore';
 import { dashImpulse } from '../combat/dashImpulse';
 import type { SuperMove } from '../../types/character';
@@ -148,12 +148,6 @@ export const RobotGroundController = () => {
           const p = robotHandle.pos;
           useTransformStore.getState().triggerSuperMove({ ...move, color: colorRef.current }, { x: p.x, y: p.y, z: p.z }, heading.current);
         }
-        return;
-      }
-      // R — toggle sustained super-speed: keep surging forward (A/D steer, Shift faster) with clone afterimages.
-      if (e.code === 'KeyR') {
-        superBoost.active = !superBoost.active;
-        playerMotion.superMult = superBoost.active ? SUPER_BOOST_MULT : 1;
         return;
       }
       const cfg = abilityRef.current;

@@ -16,6 +16,8 @@ import { requestSupport, forceSupportArrival } from '../../../game/support/Suppo
 import { beginFullControlDispatch } from '../../../game/support/FullControlDispatchService';
 import { switchControlToCharacter } from '../../../game/characters/control/ControlOwnershipService';
 import { getControlledCharacterName } from '../../../game/characters/control/controlledCharacter';
+import { getGroundAbilityConfig } from '../../../game/destination/groundAbilityConfig';
+import { useGroundAbilityStore } from '../../../stores/game/groundAbilityStore';
 import { phaserBridge, usePhaserOverlayStore } from '../../../game/phaser/phaserBridge';
 import { useDialogueStore } from '../../../stores/dialogueStore';
 import { getDialogueTree, listDialogueTreeIds } from '../../../game/dialogue/dialogueRegistry';
@@ -111,6 +113,12 @@ export const MissionStudioTab = () => {
   const selectedNpc = npcs.find((n) => n.id === npcChoice);
   const selectedDialogueId = valueOrNull(dialogueChoice) ?? selectedNpc?.dialogueTreeIds?.[0] ?? selectedNpc?.dialogueTreeId ?? null;
   const selectedDialogue = selectedDialogueId ? getDialogueTree(selectedDialogueId) : null;
+  const abilityCharacterId = valueOrNull(characterChoice) ?? selectedCharacterId ?? characters[0]?.id ?? null;
+  const abilityCharacter = abilityCharacterId ? characters.find((c) => c.id === abilityCharacterId) : undefined;
+  const abilityConfig = getGroundAbilityConfig(abilityCharacter);
+  const abilityRuntime = useGroundAbilityStore();
+  const triggerCloud = () => useGroundAbilityStore.getState().triggerCloud(abilityConfig.cloudRally, performance.now() / 1000);
+  const triggerSurge = () => useGroundAbilityStore.getState().triggerSurge(abilityConfig.rescueSurge, [0, 0, 1], performance.now() / 1000);
 
   return (
     <div className="space-y-3 text-xs">
@@ -253,6 +261,22 @@ export const MissionStudioTab = () => {
             <Button disabled={!miniGameOpen} tone="emerald" onClick={() => miniGameOpen && phaserBridge.emitResult({ type: 'mini-game-success', miniGameId: miniGameOpen, score: 100 })}>Success</Button>
             <Button disabled={!miniGameOpen} tone="rose" onClick={() => miniGameOpen && phaserBridge.emitResult({ type: 'mini-game-failed', miniGameId: miniGameOpen, reason: 'Studio failure probe' })}>Fail</Button>
             <Button disabled={!miniGameOpen} tone="amber" onClick={() => miniGameOpen && phaserBridge.emitResult({ type: 'mini-game-cancelled', miniGameId: miniGameOpen })}>Cancel</Button>
+          </div>
+        </div>
+
+        <div className="space-y-2 rounded border border-slate-800 bg-slate-950/50 p-2">
+          <div className="text-[10px] uppercase tracking-wide text-slate-500">Ability Probe</div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+            <span className="text-slate-500">Character</span><span className="truncate font-mono text-slate-200">{abilityCharacter?.name ?? '-'}</span>
+            <span className="text-slate-500">Cloud key</span><span className="font-mono text-slate-200">{abilityConfig.cloudRally.keyCode}</span>
+            <span className="text-slate-500">Surge key</span><span className="font-mono text-slate-200">{abilityConfig.rescueSurge.keyCode}</span>
+            <span className="text-slate-500">Energized until</span><span className="font-mono text-slate-200">{abilityRuntime.energizedUntil.toFixed(1)}s</span>
+            <span className="text-slate-500">Surge until</span><span className="font-mono text-slate-200">{abilityRuntime.surgeUntil.toFixed(1)}s</span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            <Button tone="sky" onClick={triggerCloud}>Trigger Cloud</Button>
+            <Button tone="emerald" onClick={triggerSurge}>Trigger Surge</Button>
+            <Button tone="amber" onClick={() => useGroundAbilityStore.getState().reset()}>Reset Abilities</Button>
           </div>
         </div>
       </div>
