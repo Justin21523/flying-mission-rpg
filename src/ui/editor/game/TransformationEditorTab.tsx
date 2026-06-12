@@ -7,6 +7,7 @@ import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { validateTimeline } from '../../../game/transformation/transformationValidation';
 import { bakeOverrideToDef, liveOffset, scaleNumber, radiansToDegrees, resolveStageClipModelId } from '../../../game/transformation/transformationOverrides';
 import { listTransformationEditTargets, resolveTransformationEditTarget } from '../../../game/transformation/transformationEditTargets';
+import { modelSlotVisibilityDiagnostics, stageClipDiagnostic, stageScrubTimes, stageTargetDiagnostic } from '../../../game/transformation/transformationAuthoringDiagnostics';
 import { transformModelSlotKey, transformPartKey, transformRootKey, transformStageModelKey, transformStageMoveKey, transformStagePartMoveKey } from '../../../game/transformation/transformPartKey';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
@@ -68,12 +69,14 @@ const Vec3 = ({ label, value, onChange }: { label: string; value: [number, numbe
 
 const SelectedTargetDiagnostics = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const selectedKey = useSceneEditStore((s) => s.selectedKey);
+  const selectionLockKey = useSceneEditStore((s) => s.selectionLockKey);
   const overrides = useSceneEditStore((s) => s.overrides);
   const targets = listTransformationEditTargets(def);
   const target = resolveTransformationEditTarget(def, selectedKey);
   const override = selectedKey ? overrides[selectedKey] : undefined;
   const hasOverride = !!override && (override.position !== undefined || override.rotation !== undefined || override.scale !== undefined);
   const selectTarget = (key: string) => useSceneEditStore.getState().requestSelect(key);
+  const toggleLock = () => useSceneEditStore.getState().setSelectionLock(selectionLockKey ? null : selectedKey);
   const resetSelected = () => { if (selectedKey) useSceneEditStore.getState().resetKey(selectedKey); };
   const bakeSelected = () => {
     if (!selectedKey || !override) return;
@@ -101,6 +104,7 @@ const SelectedTargetDiagnostics = ({ def, update }: { def: TransformationDefinit
         <span className="rounded bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-violet-100">{target.label}</span>
         <span className="rounded bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300">{target.kind}</span>
         {hasOverride && <span className="rounded bg-amber-900/40 px-2 py-0.5 text-[10px] text-amber-100">override pending</span>}
+        {selectionLockKey && <span className="rounded bg-violet-900/40 px-2 py-0.5 text-[10px] text-violet-100">target locked</span>}
       </div>
       {selectedKey && <div className="mt-1 truncate font-mono text-[10px] text-slate-500">{selectedKey}</div>}
       <div className="mt-2 flex flex-wrap gap-1">
@@ -111,6 +115,7 @@ const SelectedTargetDiagnostics = ({ def, update }: { def: TransformationDefinit
         <button onClick={bakeSelected} disabled={!hasOverride || !target.canBake} className="rounded bg-emerald-700/30 px-2 py-1 text-[10px] text-emerald-100 hover:bg-emerald-700/50 disabled:opacity-40">Bake Selected</button>
         <button onClick={resetSelected} disabled={!selectedKey || !hasOverride} className="rounded bg-amber-700/30 px-2 py-1 text-[10px] text-amber-100 hover:bg-amber-700/50 disabled:opacity-40">Reset Selected</button>
         <button onClick={bakeAll} disabled={!targets.some((item) => overrides[item.key])} className="rounded bg-sky-700/30 px-2 py-1 text-[10px] text-sky-100 hover:bg-sky-700/50 disabled:opacity-40">Bake All Pending</button>
+        <button onClick={toggleLock} disabled={!selectedKey && !selectionLockKey} className="rounded bg-violet-700/30 px-2 py-1 text-[10px] text-violet-100 hover:bg-violet-700/50 disabled:opacity-40">{selectionLockKey ? 'Unlock Target' : 'Lock Target'}</button>
       </div>
     </div>
   );
@@ -126,17 +131,29 @@ function modelIdForSlot(def: TransformationDefinition, slot: ModelSlot): string 
 const stageClipModelId = (def: TransformationDefinition, stage: TransformationStage): string | undefined =>
   resolveStageClipModelId(def, stage, (slot) => modelIdForSlot(def, slot));
 
-const ClipSelect = ({ modelId, value, onChange }: { modelId?: string; value?: string; onChange: (v?: string) => void }) => {
+const ClipSelect = ({ modelId, stage, value, onChange }: { modelId?: string; stage: TransformationStage; value?: string; onChange: (v?: string) => void }) => {
   const asset = modelId ? getModelAsset(modelId) : undefined;
   const clips = useGltfClipNames(asset?.path);
+  const diagnostic = stageClipDiagnostic(stage, modelId, clips);
   if (clips.length === 0) return <TextRow label="Clip name (type — no model clips found)" value={value ?? ''} onChange={(v) => onChange(v || undefined)} />;
   return (
-    <SelectRow
-      label="Clip"
-      value={value ?? ''}
-      options={[{ value: '', label: '(none)' }, ...clips.map((c) => ({ value: c, label: c }))]}
-      onChange={(v) => onChange(v || undefined)}
-    />
+    <div className="space-y-1">
+      <SelectRow
+        label="Clip"
+        value={value ?? ''}
+        options={[{ value: '', label: '(none)' }, ...clips.map((c) => ({ value: c, label: c }))]}
+        onChange={(v) => onChange(v || undefined)}
+      />
+      <div className={`rounded px-2 py-1 text-[10px] ${diagnostic.ok ? 'bg-emerald-950/20 text-emerald-200' : 'bg-rose-950/30 text-rose-200'}`}>
+        {diagnostic.message}
+        {diagnostic.missing && (
+          <span className="ml-2 inline-flex gap-1">
+            <button onClick={() => onChange(undefined)} className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-100 hover:bg-slate-700">Clear clip</button>
+            {diagnostic.firstValidClip && <button onClick={() => onChange(diagnostic.firstValidClip)} className="rounded bg-sky-800 px-1.5 py-0.5 text-sky-100 hover:bg-sky-700">Use first valid</button>}
+          </span>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -362,6 +379,24 @@ const ModelSlotsEditor = ({ def, update }: { def: TransformationDefinition; upda
   );
 };
 
+const ModelSlotVisibilityPanel = ({ def }: { def: TransformationDefinition }) => {
+  const rows = modelSlotVisibilityDiagnostics(def, (slot) => modelIdForSlot(def, slot));
+  return (
+    <div className="rounded border border-slate-800 bg-slate-900/45 p-1.5">
+      <div className={lbl}>Model slot visibility diagnostics</div>
+      <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
+        {rows.map((row) => (
+          <div key={row.slot} className={`rounded px-2 py-1 ${row.visible ? 'bg-emerald-950/20 text-emerald-200' : 'bg-slate-950/40 text-slate-400'}`}>
+            <div className="font-semibold">{row.slot}</div>
+            <div className="truncate font-mono">{row.modelId ?? 'no model'}</div>
+            <div>{row.visible ? 'visible' : 'hidden'}{row.sourceStageId ? ` · ${row.sourceStageId}` : ''}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ── stage params (type-aware) ──
 const StageParams = ({ s, def, patch }: { s: TransformationStage; def: TransformationDefinition; patch: (p: Partial<TransformationStage['params']>) => void }) => {
   const p = s.params;
@@ -427,7 +462,7 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
           <Field label="Target model override">
             <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v, clipName: undefined })} noneLabel="(use slot/auto)" />
           </Field>
-          <ClipSelect modelId={stageClipModelId(def, s)} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
+          <ClipSelect modelId={stageClipModelId(def, s)} stage={s} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
           <NumRow label="Clip speed" value={p.clipSpeed ?? 1} step={0.1} onChange={(v) => patch({ clipSpeed: v })} />
           <Check label="Loop" checked={p.loop ?? false} onChange={(v) => patch({ loop: v })} />
           <Check label="Hold final frame" checked={p.holdFinal ?? false} onChange={(v) => patch({ holdFinal: v })} />
@@ -481,6 +516,20 @@ const StageGizmoControls = ({ def, s }: { def: TransformationDefinition; s: Tran
   );
 };
 
+const StageAuthoringDiagnostics = ({ s }: { s: TransformationStage }) => {
+  const target = stageTargetDiagnostic(s);
+  const times = stageScrubTimes(s);
+  const scrub = (time: number) => useTransformationPreviewStore.getState().scrub(time);
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px]">
+      <span className="rounded bg-slate-950/60 px-2 py-0.5 text-slate-400">target: <span className="text-slate-200">{target.label}</span></span>
+      <button onClick={() => scrub(times.start)} className="rounded bg-slate-800 px-2 py-0.5 text-slate-200 hover:bg-slate-700">Scrub Start</button>
+      <button onClick={() => scrub(times.middle)} className="rounded bg-slate-800 px-2 py-0.5 text-slate-200 hover:bg-slate-700">Scrub Mid</button>
+      <button onClick={() => scrub(times.end)} className="rounded bg-slate-800 px-2 py-0.5 text-slate-200 hover:bg-slate-700">Scrub End</button>
+    </div>
+  );
+};
+
 const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const add = () => update({ stages: [...def.stages, { id: `s_${nanoid(4)}`, type: 'part-transform', startTime: 0, duration: 0.5, enabled: true, params: {} }] });
   const seekStage = (id: string, override?: number) => { const st = def.stages.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(override ?? st?.startTime ?? 0); };
@@ -506,6 +555,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
               <Check label="Essential (quick)" checked={s.essential ?? false} onChange={(v) => patch(s.id, { essential: v })} />
             </div>
             <div className="mt-1"><StageParams s={s} def={def} patch={(pp) => patchParams(s.id, pp)} /></div>
+            <StageAuthoringDiagnostics s={s} />
             <div className="mt-1 flex items-center gap-1.5">
               <StageGizmoControls def={def} s={s} />
               <MoveButtons index={i} count={def.stages.length} onMove={(d) => update({ stages: moveItem(def.stages, i, d) })} />
@@ -677,6 +727,7 @@ export const TransformationEditorTab = () => {
                   <Field label="Shared model (slot)"><ModelPicker value={def.sharedModelRef} onChange={(v) => upd({ sharedModelRef: v })} noneLabel="(none)" /></Field>
                   <ShowcaseSettings def={def} update={upd} />
                   <ModelSlotsEditor def={def} update={upd} />
+                  <ModelSlotVisibilityPanel def={def} />
                   <StagesEditor def={def} update={upd} />
                 </>
               )}

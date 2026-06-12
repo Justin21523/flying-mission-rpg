@@ -59,6 +59,7 @@ interface SceneEditState extends PersistShape {
   selectedKey: string | null;
   selectedObject: Object3D | null;
   selectedAssetId: string | null;     // set-piece assetId (for duplicate)
+  selectionLockKey: string | null;    // editor-only target lock; not persisted
   // Phase 101 — additional (shift-clicked) selections for batch transform / delete / duplicate.
   // The primary stays selectedKey/selectedObject; the gizmo applies its drag delta to all.
   extraSelected: { key: string; object: Object3D; assetId: string | null }[];
@@ -89,6 +90,7 @@ interface SceneEditState extends PersistShape {
   clearSelection: () => void;
   clearPendingSelect: () => void;
   requestSelect: (key: string) => void;
+  setSelectionLock: (key: string | null) => void;
   setMode: (mode: GizmoMode) => void;
   resetKey: (key: string) => void;
   resetAll: () => void;
@@ -147,6 +149,7 @@ export const useSceneEditStore = create<SceneEditState>((set, get) => ({
   selectedKey: null,
   selectedObject: null,
   selectedAssetId: null,
+  selectionLockKey: null,
   extraSelected: [],
   pendingSelectKey: null,
   pendingExtraKeys: [],
@@ -207,11 +210,12 @@ export const useSceneEditStore = create<SceneEditState>((set, get) => ({
   setOverride: (key, patch) =>
     set((s) => ({ overrides: { ...s.overrides, [key]: { ...s.overrides[key], ...patch } } })),
 
-  select: (key, object, assetId = null) => { clearWorldSelect(); set({ selectedKey: key, selectedObject: object, selectedAssetId: assetId, extraSelected: [], pendingExtraKeys: [] }); },
+  select: (key, object, assetId = null) => { clearWorldSelect(); set((s) => (s.selectionLockKey && s.selectionLockKey !== key ? {} : { selectedKey: key, selectedObject: object, selectedAssetId: assetId, extraSelected: [], pendingExtraKeys: [] })); },
 
   // Shift-click: toggle a placement in/out of the batch selection. Becomes the primary if
   // nothing is selected yet; otherwise joins (or leaves) the extra set.
   toggleSelect: (key, object, assetId = null) => { clearWorldSelect(); return set((s) => {
+    if (s.selectionLockKey && s.selectionLockKey !== key) return s;
     if (s.selectedKey === key) return s;
     if (s.extraSelected.some((e) => e.key === key)) return { extraSelected: s.extraSelected.filter((e) => e.key !== key) };
     if (!s.selectedKey) return { selectedKey: key, selectedObject: object, selectedAssetId: assetId };
@@ -219,10 +223,11 @@ export const useSceneEditStore = create<SceneEditState>((set, get) => ({
   }); },
   clearExtra: () => set({ extraSelected: [] }),
 
-  clearSelection: () => set({ selectedKey: null, selectedObject: null, selectedAssetId: null, extraSelected: [], pendingExtraKeys: [] }),
+  clearSelection: () => set((s) => (s.selectionLockKey ? { pendingExtraKeys: [] } : { selectedKey: null, selectedObject: null, selectedAssetId: null, extraSelected: [], pendingExtraKeys: [] })),
   clearPendingSelect: () => set({ pendingSelectKey: null }),
   // POLI — queue a freshly-created object (by key) to auto-select + show the gizmo once it mounts.
-  requestSelect: (key) => { clearWorldSelect(); set({ pendingSelectKey: key }); },
+  requestSelect: (key) => { clearWorldSelect(); set((s) => (s.selectionLockKey && s.selectionLockKey !== key ? {} : { pendingSelectKey: key })); },
+  setSelectionLock: (key) => set({ selectionLockKey: key }),
   setMode: (mode) => set({ mode }),
 
   resetKey: (key) => {
