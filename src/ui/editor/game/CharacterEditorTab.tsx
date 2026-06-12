@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid';
 import { useEditorCharacterStore } from '../../../stores/game/editorCharacterStore';
 import { useEditorTransformationStore } from '../../../stores/game/editorTransformationStore';
-import { CHARACTER_FORMS, ABILITY_KINDS, GROUND_EXTRA_ABILITY_KINDS } from '../../../types/game/character';
-import type { CharacterDefinition, CharacterAbility, GroundAbilityConfig, GroundExtraAbilitySlot } from '../../../types/game/character';
+import { CHARACTER_FORMS, ABILITY_KINDS, GROUND_ABILITY_LIBRARY_KINDS, GROUND_EXTRA_ABILITY_KINDS } from '../../../types/game/character';
+import type { CharacterDefinition, CharacterAbility, GroundAbilityConfig, GroundAbilityDefinition, GroundExtraAbilitySlot } from '../../../types/game/character';
 import { WEATHER_KINDS } from '../../../types/game/flight';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { SUPER_KINDS, SUPER_KIND_LABEL } from '../../../types/character';
@@ -14,6 +14,7 @@ import { useGltfClipNames } from '../useGltfClipNames';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
 import { AnimationRulesEditor } from './AnimationRulesEditor';
 import { cloneGroundAbilityConfig, getGroundAbilityConfig } from '../../../game/destination/groundAbilityConfig';
+import { getGroundAbilityLibrary, validateGroundAbilityLibrary } from '../../../game/destination/groundAbilityLibrary';
 import { GROUND_BASE_SCALE } from '../../../game/destination/groundCharacterScale';
 
 const makeNew = (): CharacterDefinition => ({
@@ -165,6 +166,7 @@ const GroundAbilityEditor = ({ character, update }: { character: CharacterDefini
           <NumRow label="Duration (s)" value={config.rescueSurge.durationSec} step={0.05} min={0.1} onChange={(v) => patchSurge({ durationSec: v })} />
           <NumRow label="Cooldown (s)" value={config.rescueSurge.cooldownSec} step={0.1} min={0} onChange={(v) => patchSurge({ cooldownSec: v })} />
           <NumRow label="Dash speed" value={config.rescueSurge.speed} step={1} min={1} onChange={(v) => patchSurge({ speed: v })} />
+          <NumRow label="Ghost count" value={config.rescueSurge.afterimageCount} step={1} min={1} max={32} onChange={(v) => patchSurge({ afterimageCount: v })} />
           <NumRow label="Ghost interval" value={config.rescueSurge.afterimageIntervalSec} step={0.005} min={0.01} onChange={(v) => patchSurge({ afterimageIntervalSec: v })} />
           <NumRow label="Ghost life (s)" value={config.rescueSurge.afterimageLifeSec} step={0.05} min={0.1} onChange={(v) => patchSurge({ afterimageLifeSec: v })} />
           <NumRow label="Ghost opacity" value={config.rescueSurge.afterimageOpacity} step={0.05} min={0} max={1} onChange={(v) => patchSurge({ afterimageOpacity: v })} />
@@ -199,6 +201,72 @@ const GroundAbilityEditor = ({ character, update }: { character: CharacterDefini
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+};
+
+const GroundAbilityLibraryEditor = ({ character, update }: { character: CharacterDefinition; update: (p: Partial<CharacterDefinition>) => void }) => {
+  const library = getGroundAbilityLibrary(character);
+  const errors = validateGroundAbilityLibrary(library);
+  const save = (next: GroundAbilityDefinition[]) => update({ groundAbilityLibrary: next.map((ability) => ({ ...ability, animationPool: ability.animationPool ? [...ability.animationPool] : undefined })) });
+  const patch = (id: string, p: Partial<GroundAbilityDefinition>) => save(library.map((ability) => (ability.id === id ? { ...ability, ...p } : ability)));
+  const add = () => save([
+    ...library,
+    {
+      id: `ability_${nanoid(5)}`,
+      name: 'New Ability',
+      kind: 'rescue-field',
+      keyCode: `Digit${Math.min(9, library.length + 1)}`,
+      durationSec: 1,
+      cooldownSec: 4,
+      color: character.color,
+      radius: 6,
+      strength: 1,
+      aiUsable: true,
+    },
+  ]);
+  const remove = (id: string) => save(library.filter((ability) => ability.id !== id));
+  return (
+    <div className="space-y-2 rounded-lg border border-fuchsia-700/40 bg-fuchsia-950/10 p-2">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className={lbl}>Ability library · {library.length}</div>
+          <div className="text-[10px] text-slate-500">Runtime maps this library to Q/R/extra FX while keeping old groundAbility data compatible.</div>
+        </div>
+        <button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[10px] text-emerald-100 hover:bg-emerald-700/50">+ Ability</button>
+      </div>
+      {errors.length > 0 && <div className="rounded bg-rose-950/30 p-1.5 text-[10px] text-rose-200">{errors.map((error) => <div key={error}>{error}</div>)}</div>}
+      <div className="space-y-1.5">
+        {library.map((ability, index) => (
+          <div key={ability.id} className="rounded border border-slate-800 bg-slate-900/55 p-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <TextRow label="Name" value={ability.name} onChange={(v) => patch(ability.id, { name: v })} />
+              <TextRow label="Key code" value={ability.keyCode} onChange={(v) => patch(ability.id, { keyCode: v })} />
+              <SelectRow label="Kind" value={ability.kind} options={GROUND_ABILITY_LIBRARY_KINDS.map((kind) => ({ value: kind, label: kind }))} onChange={(v) => patch(ability.id, { kind: v as GroundAbilityDefinition['kind'] })} />
+              <ColorRow label="FX colour" value={ability.color} onChange={(v) => patch(ability.id, { color: v })} />
+              <NumRow label="Duration (s)" value={ability.durationSec} step={0.05} min={0.05} onChange={(v) => patch(ability.id, { durationSec: v })} />
+              <NumRow label="Cooldown (s)" value={ability.cooldownSec} step={0.1} min={0} onChange={(v) => patch(ability.id, { cooldownSec: v })} />
+              <NumRow label="Radius" value={ability.radius} step={0.5} min={0} onChange={(v) => patch(ability.id, { radius: v })} />
+              <NumRow label="Strength" value={ability.strength} step={0.1} min={0} onChange={(v) => patch(ability.id, { strength: v })} />
+              <NumRow label="Speed" value={ability.speed ?? 0} step={1} min={0} onChange={(v) => patch(ability.id, { speed: v || undefined })} />
+              <NumRow label="Ghost count" value={ability.afterimageCount ?? 0} step={1} min={0} max={32} onChange={(v) => patch(ability.id, { afterimageCount: v || undefined })} />
+              <NumRow label="Ghost life (s)" value={ability.afterimageLifeSec ?? 0} step={0.05} min={0} onChange={(v) => patch(ability.id, { afterimageLifeSec: v || undefined })} />
+              <NumRow label="Ghost opacity" value={ability.afterimageOpacity ?? 0} step={0.05} min={0} max={1} onChange={(v) => patch(ability.id, { afterimageOpacity: v || undefined })} />
+            </div>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              <Check label="AI can use" checked={ability.aiUsable ?? false} onChange={(v) => patch(ability.id, { aiUsable: v })} />
+              <Check label="Lock dash direction" checked={ability.lockDirection ?? false} onChange={(v) => patch(ability.id, { lockDirection: v })} />
+            </div>
+            <div className="mt-1">
+              <ClipMultiPicker modelAssetId={character.modelAssetId} selected={ability.animationPool ?? []} onChange={(clips) => patch(ability.id, { animationPool: clips })} />
+            </div>
+            <div className="mt-1 flex gap-1.5">
+              <MoveButtons index={index} count={library.length} onMove={(d) => save(moveItem(library, index, d))} />
+              <button onClick={() => remove(ability.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[10px] text-rose-300 hover:bg-rose-700/30">Remove</button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -300,6 +368,7 @@ export const CharacterEditorTab = () => {
 
           <AbilitiesEditor abilities={c.abilities} onChange={(a) => update({ abilities: a })} />
           <SuperMovesEditor supers={c.supers ?? []} onChange={(s) => update({ supers: s })} />
+          <GroundAbilityLibraryEditor character={c} update={update} />
           <GroundAbilityEditor character={c} update={update} />
 
           <TextRow label="Mission suitability (csv of MissionType)" value={csv(c.missionSuitability)} onChange={(v) => update({ missionSuitability: parseCsv(v) })} />

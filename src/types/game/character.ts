@@ -45,6 +45,46 @@ export interface CharacterAbility {
 export type GroundExtraAbilityKind = 'scan_pulse' | 'hover_pop' | 'rescue_magnet';
 export const GROUND_EXTRA_ABILITY_KINDS: readonly GroundExtraAbilityKind[] = ['scan_pulse', 'hover_pop', 'rescue_magnet'];
 
+export type GroundAbilityLibraryKind =
+  | 'forward-dash-afterimage'
+  | 'cloud-rally-shockwave'
+  | 'air-dash'
+  | 'rescue-field'
+  | 'repair-beam'
+  | 'scan-wave'
+  | 'npc-shield'
+  | 'carry-assist';
+export const GROUND_ABILITY_LIBRARY_KINDS: readonly GroundAbilityLibraryKind[] = [
+  'forward-dash-afterimage',
+  'cloud-rally-shockwave',
+  'air-dash',
+  'rescue-field',
+  'repair-beam',
+  'scan-wave',
+  'npc-shield',
+  'carry-assist',
+];
+
+export interface GroundAbilityDefinition {
+  id: string;
+  name: string;
+  kind: GroundAbilityLibraryKind;
+  keyCode: string;
+  durationSec: number;
+  cooldownSec: number;
+  color: string;
+  radius: number;
+  strength: number;
+  speed?: number;
+  afterimageCount?: number;
+  afterimageIntervalSec?: number;
+  afterimageLifeSec?: number;
+  afterimageOpacity?: number;
+  lockDirection?: boolean;
+  animationPool?: string[];
+  aiUsable?: boolean;
+}
+
 export interface GroundCloudRallyConfig {
   name: string;
   keyCode: string;
@@ -66,6 +106,7 @@ export interface GroundRescueSurgeConfig {
   durationSec: number;
   cooldownSec: number;
   speed: number;
+  afterimageCount: number;
   afterimageIntervalSec: number;
   afterimageLifeSec: number;
   afterimageOpacity: number;
@@ -125,6 +166,7 @@ export interface CharacterDefinition {
   flightAnimation?: string; // clip played while flying (empty = first clip / Model-Studio rules)
   transformAnimation?: string; // clip played during transformation (Batch 6)
   groundAbility?: GroundAbilityConfig;
+  groundAbilityLibrary?: GroundAbilityDefinition[];
   canFly?: boolean; // destination ground phases: F toggles flight (Space up / Shift down / hover)
   supers?: SuperMove[]; // offensive super moves bound to keys 1–6 (destination yokai hunt)
   // ── flavour / extra properties ──

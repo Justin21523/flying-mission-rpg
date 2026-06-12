@@ -11,7 +11,7 @@ import { robotHandle } from './robotHandle';
 import { groundCharacterScale } from './groundCharacterScale';
 import { superBoost } from './superBoost';
 
-const MAX = 18;
+const MAX = 32;
 // Afterimage params for the R super-speed boost (the rescue surge uses its own authored params instead).
 const BOOST_INTERVAL = 0.045;
 const BOOST_LIFE = 0.85;
@@ -97,11 +97,12 @@ export const GroundAfterimageLayer = () => {
     const interval = surging ? cfg.afterimageIntervalSec : BOOST_INTERVAL;
     const life = Math.max(0.1, surging ? cfg.afterimageLifeSec : BOOST_LIFE);
     const opacity = surging ? cfg.afterimageOpacity : BOOST_OPACITY;
+    const activeLimit = Math.max(1, Math.min(MAX, surging ? cfg.afterimageCount : 18));
     if (surging || boosting) {
       tint.current.set(surging ? cfg.afterimageColor : (character?.color ?? '#38bdf8'));
       if (now - lastSpawn.current >= interval) {
         lastSpawn.current = now;
-        const ghost = ghosts.current[head.current % MAX];
+        const ghost = ghosts.current[head.current % activeLimit];
         ghost.t = now;
         ghost.x = robotHandle.pos.x;
         ghost.y = robotHandle.pos.y;
@@ -114,6 +115,10 @@ export const GroundAfterimageLayer = () => {
       const group = groups.current[i];
       const ghost = ghosts.current[i];
       if (!group) continue;
+      if (i >= activeLimit) {
+        group.visible = false;
+        continue;
+      }
       const age = now - ghost.t;
       if (age < 0 || age > life) {
         group.visible = false;
