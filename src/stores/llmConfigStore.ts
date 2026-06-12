@@ -3,8 +3,11 @@ import { create } from 'zustand';
 // Local-LLM config (Batch 11). The ONLY provider is local llama.cpp serving Qwen2.5-14B-Instruct via its
 // OpenAI-compatible HTTP server. The LLM generates flavour TEXT only (validated by zod, template fallback) and
 // never controls game rules. Persisted to localStorage; `lastTest` is transient (the 🤖 LLM tab's status).
+export type LlmProviderId = 'llamacpp' | 'mock';
+
 export interface LlmConfig {
   enabled: boolean;
+  providerId: LlmProviderId; // 'llamacpp' (real local server) | 'mock' (offline deterministic, dev/test)
   endpoint: string; // llama.cpp server base, e.g. http://localhost:8080
   model: string; // sent as the OpenAI `model` field (llama.cpp serves the loaded GGUF regardless)
   temperature: number;
@@ -14,6 +17,7 @@ export interface LlmConfig {
 
 export const DEFAULT_LLM_CONFIG: LlmConfig = {
   enabled: false, // off by default → game is fully playable on templates with no server running
+  providerId: 'llamacpp',
   endpoint: 'http://localhost:8080',
   model: 'qwen2.5-14b-instruct',
   temperature: 0.7,

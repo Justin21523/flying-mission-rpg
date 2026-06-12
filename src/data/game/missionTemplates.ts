@@ -46,4 +46,50 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
     coinsBase: 45,
     extraReward: { type: 'trust', amount: 2 },
   },
+  // Post-13 — extra variety within the existing types/part-pools (multi-objective combos), so the generator
+  // produces a richer mix. New MissionType enums (escort/scout…) are deferred (need new destination parts).
+  {
+    id: 'tpl_double_delivery',
+    type: 'delivery',
+    weight: 1,
+    namePatterns: ['{place} Double Drop', 'Two-Parcel Rush to {place}', '{place} Bulk Delivery'],
+    summaryPatterns: ['Carry both parcels to {place} and drop them at the marked zone.', 'A busy day — two packages need delivering to {place}.'],
+    difficultyWeights: { normal: 3, hard: 2 },
+    weatherWeights: { clear: 3, cloudy: 2, wind: 1 },
+    objectives: [
+      { kind: 'carry', partKind: 'carry_item', needsDropoff: true, countRange: [2, 2] },
+    ],
+    coinsBase: 45,
+    extraReward: { type: 'trust', amount: 1 },
+  },
+  {
+    id: 'tpl_search_and_carry',
+    type: 'find_lost',
+    weight: 1,
+    namePatterns: ['{place} Search & Recover', 'Recover & Return at {place}', '{place} Find-and-Carry'],
+    summaryPatterns: ['Find what was lost near {place}, then carry it back to the drop-off.', 'Track down the missing item at {place} and bring it home.'],
+    difficultyWeights: { normal: 3, hard: 2 },
+    weatherWeights: { clear: 2, cloudy: 2, fog: 2 },
+    objectives: [
+      { kind: 'find', partKind: 'lost_item', countRange: [1, 1] },
+      { kind: 'carry', partKind: 'carry_item', needsDropoff: true, countRange: [1, 1] },
+    ],
+    coinsBase: 50,
+    extraReward: { type: 'trust', amount: 2 },
+  },
+  {
+    id: 'tpl_repair_and_find',
+    type: 'repair',
+    weight: 1,
+    namePatterns: ['{place} Service Call', 'Fix & Find at {place}', '{place} Maintenance Run'],
+    summaryPatterns: ['Repair the device at {place} and recover the missing part.', 'A repair at {place} also needs a lost component tracked down.'],
+    difficultyWeights: { hard: 3, expert: 1 },
+    weatherWeights: { clear: 2, cloudy: 2, rain: 1 },
+    objectives: [
+      { kind: 'activate', partKind: 'repair_device', needsMiniGame: true, countRange: [1, 1] },
+      { kind: 'find', partKind: 'lost_item', countRange: [1, 1] },
+    ],
+    coinsBase: 60,
+    extraReward: { type: 'unlockTool' },
+  },
 ];

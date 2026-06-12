@@ -1,4 +1,5 @@
 import { getLlmConfig } from '../../stores/llmConfigStore';
+import { mockLlmProvider } from './mockLlmProvider';
 
 // Provider abstraction (Batch 11). The ONLY shipped provider is local llama.cpp serving Qwen2.5-14B-Instruct via
 // its OpenAI-compatible HTTP server; the interface keeps it swappable. Used only to generate flavour TEXT.
@@ -40,7 +41,12 @@ class LlamaCppProvider implements LlmProvider {
 }
 
 export const llamaCppProvider: LlmProvider = new LlamaCppProvider();
-export function getActiveProvider(): LlmProvider { return llamaCppProvider; }
+
+// Post-13 — provider selection by config. 'mock' is an offline deterministic provider (dev/test); 'llamacpp'
+// is the real local server.
+export function getActiveProvider(): LlmProvider {
+  return getLlmConfig().providerId === 'mock' ? mockLlmProvider : llamaCppProvider;
+}
 
 // Quick connectivity check for the 🤖 LLM tab's "Test connection" button.
 export async function pingLlm(): Promise<{ ok: boolean; message: string; ms?: number }> {

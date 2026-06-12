@@ -80,6 +80,16 @@ export function completeFullControlArrival(): boolean {
 export function cancelFullControlDispatch(reason = 'Full-control dispatch cancelled'): void {
   const context = useSupportRuntimeStore.getState().fullControl;
   if (!context) return;
+  // Restore the player to the origin character + the phase they dispatched from (single input owner, no
+  // half-finished dispatch left dangling).
+  switchControlToCharacter(context.originControlledCharacterId);
+  if (!useGameStore.getState().requestTransition(context.originPhase)) {
+    useGameStore.getState().jumpTo(context.originPhase, null);
+  }
+  const mission = useMissionStore.getState();
+  mission.selectMission(context.originMissionId);
+  if (context.originMissionRuntime) useMissionStore.setState({ runtime: context.originMissionRuntime });
+  useDestinationRuntimeStore.getState().restore(context.originDestination);
   useSupportRuntimeStore.getState().setFullControl(null);
   gameEventBus.emit('support:cancelled', { characterId: context.dispatchCharacterId, reason });
 }

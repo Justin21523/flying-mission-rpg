@@ -30,6 +30,12 @@ export const LlmSettingsTab = () => {
       <Check label="Enable LLM text" checked={config.enabled} onChange={(v) => update({ enabled: v })} />
 
       <div className="grid grid-cols-2 gap-2">
+        <Field label="Provider">
+          <select className={inp} value={config.providerId} onChange={(e) => update({ providerId: e.target.value as typeof config.providerId })}>
+            <option value="llamacpp">llama.cpp (local server)</option>
+            <option value="mock">mock (offline, dev/test)</option>
+          </select>
+        </Field>
         <Field label="Endpoint"><input className={inp} value={config.endpoint} onChange={(e) => update({ endpoint: e.target.value })} /></Field>
         <Field label="Model"><input className={inp} value={config.model} onChange={(e) => update({ model: e.target.value })} /></Field>
         <Field label="Temperature"><input type="number" step={0.1} min={0} max={2} className={inp} value={config.temperature} onChange={(e) => update({ temperature: Number(e.target.value) || 0 })} /></Field>
