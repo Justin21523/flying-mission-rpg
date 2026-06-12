@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Euler, Vector3, type Group } from 'three';
+import { shouldTick } from '../performance/SceneVisibilityController';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
@@ -81,6 +82,7 @@ export const FlightController = () => {
   }, []);
 
   useFrame((_, dtRaw) => {
+    if (!shouldTick()) return; // soft-pause (system menu / tab hidden)
     const craft = aircraft.current;
     if (!craft) return;
     const dt = Math.min(dtRaw, 0.05);

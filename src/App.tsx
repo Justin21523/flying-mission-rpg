@@ -55,6 +55,8 @@ import { installProgressObservers } from './game/progress/progressObservers';
 import { flushOnUnload } from './game/save/SaveManager';
 import { captureSettingsSnapshot } from './game/save/settingsSnapshot';
 import { useAutoPlaytesterStore } from './stores/game/autoPlaytesterStore';
+import { SystemMenu } from './ui/system/SystemMenu';
+import { SystemMenuButton } from './ui/system/SystemMenuButton';
 import { RuntimeHealthPanel } from './ui/debug/RuntimeHealthPanel';
 import { SaveDebugPanel } from './ui/debug/SaveDebugPanel';
 import { installStateMachineDiagnostics } from './game/diagnostics/StateMachineDiagnostics';
@@ -346,6 +348,9 @@ export const App = () => {
       {/* Batch 13 — runtime health + save debug tools (FSM-debug only, to avoid cluttering Edit Mode). */}
       {fsmDebug && <RuntimeHealthPanel />}
       {fsmDebug && <SaveDebugPanel />}
+      {/* Batch 13.1 — in-game system menu (pause + settings + save) for aero play mode. */}
+      {!editMode && !world && <SystemMenuButton />}
+      {!editMode && !world && <SystemMenu />}
       {!editMode && !world && <RouteColorGradeOverlay />}
       <PlayerPosDebug />
       {/* Single R3F canvas (error boundary + Suspense loading inside). DPR capped lower (high-DPI screens

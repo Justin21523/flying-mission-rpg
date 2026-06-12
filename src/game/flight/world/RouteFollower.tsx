@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
+import { shouldTick } from '../../performance/SceneVisibilityController';
 import { useCharacterStore } from '../../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../../stores/game/editorCharacterStore';
 import { getFlightTuning, useEditorFlightStore } from '../../../stores/game/editorFlightStore';
@@ -72,6 +73,7 @@ export const RouteFollower = () => {
   }, []);
 
   useFrame((_, dtRaw) => {
+    if (!shouldTick()) return; // soft-pause (system menu / tab hidden)
     const c = craft.current;
     if (!c) return;
     const def = getPath(pathId);

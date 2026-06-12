@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
+import { shouldTick } from '../performance/SceneVisibilityController';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
@@ -68,6 +69,7 @@ export const RobotDescentController = () => {
   }, []);
 
   useFrame((_, dtRaw) => {
+    if (!shouldTick()) return; // soft-pause (system menu / tab hidden)
     const g = group.current;
     if (!g) return;
     const dt = Math.min(dtRaw, 0.05);

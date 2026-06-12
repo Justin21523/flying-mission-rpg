@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier';
+import { shouldTick } from '../performance/SceneVisibilityController';
 import type { Group } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
@@ -186,6 +187,7 @@ export const RobotGroundController = () => {
   }, []);
 
   useFrame((_, dtRaw) => {
+    if (!shouldTick()) return; // soft-pause (system menu / tab hidden)
     const b = bodyRef.current;
     if (!b) return;
     const dt = Math.min(dtRaw, 0.05);
