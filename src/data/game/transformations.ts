@@ -1,4 +1,5 @@
 import type { TransformationDefinition, TransformationStage, TransformationCameraShot, TransformationEffectTrack, TransformationPart } from '../../types/game/transformation';
+import { heroPoseAssetIds } from './superWingsModels';
 
 // Seed transformation timelines — one per roster character (id matches CharacterDefinition.transformationId).
 // Default strategy = modular-parts-procedural: primitive parts unfold, then the character's real robot model
@@ -82,6 +83,14 @@ function effects(particle: string, ring: string): TransformationEffectTrack[] {
 }
 
 interface Knobs { id: string; characterId: string; name: string; backdrop: string; particle: string; ring: string; flavour: Flavour; poses: string[]; }
+// Optional finish-pose MODEL swap (non-essential late stage): after the robot reveal, swap to a signature
+// pose GLB so the hero lands on a distinct pose. Non-essential → quick mode + the core reveal are untouched;
+// editable in ✨ Transform. Uses the existing model-swap `modelRef`.
+function finishPoseStages(characterId: string): TransformationDefinition['stages'] {
+  const pose = heroPoseAssetIds(characterId)[0];
+  if (!pose) return [];
+  return [{ id: 'g_pose_model', type: 'model-swap', startTime: 19.5, duration: 0.5, enabled: true, essential: false, label: 'finish pose model', params: { modelRef: pose } }];
+}
 function build(k: Knobs): TransformationDefinition {
   return {
     id: k.id,
@@ -94,7 +103,7 @@ function build(k: Knobs): TransformationDefinition {
     backdropColor: k.backdrop,
     particleColor: k.particle,
     parts: STD_PARTS.map((p) => ({ ...p })),
-    stages: STD_STAGES.map((s) => ({ ...s, params: { ...s.params } })),
+    stages: [...STD_STAGES.map((s) => ({ ...s, params: { ...s.params } })), ...finishPoseStages(k.characterId)],
     cameraShots: shots(k.flavour),
     effectTracks: effects(k.particle, k.ring),
     audioCues: [{ id: 'a_finish', startTime: 3.0, text: `${k.name.split(' ')[0]}: transform complete!` }],

@@ -32,10 +32,11 @@ function seedCraftScale(): void {
   const seedScale = (id: string | undefined, scale: number): void => {
     if (id && ms.overrides[id]?.scale == null) ms.setTransform(id, { scale });
   };
-  // Character robot + plane models (both used by flight / transformation slots).
+  // Character robot + plane models AND every pose/variant model (so switching any pose in shows at craft size).
   for (const c of useEditorCharacterStore.getState().items) {
     seedScale(c.modelAssetId, DEFAULT_CRAFT_SCALE);
     seedScale(c.planeModelAssetId, DEFAULT_CRAFT_SCALE);
+    for (const pm of c.poseModels ?? []) seedScale(pm.assetId, DEFAULT_CRAFT_SCALE);
   }
   // NPC models (destination greeters / side-quest residents) — Model-Studio-scaled, default-only.
   for (const n of useEditorGameNpcStore.getState().items) {

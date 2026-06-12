@@ -16,6 +16,7 @@ import { TransformationBackdrop } from './TransformationBackdrop';
 import { TransformationCharacterPresenter } from './TransformationCharacterPresenter';
 import { TransformationCameraController } from './TransformationCameraController';
 import { TransformationEffects } from './TransformationEffects';
+import { PoseSwitchFxLayer } from '../characters/PoseSwitchFxLayer';
 import { TransformationDirector } from './TransformationDirector';
 import { TransformationPreviewController } from './TransformationPreviewController';
 import { TransformationDebugGizmos } from './TransformationDebugGizmos';
@@ -96,6 +97,7 @@ export const TransformationStage = () => {
       <TransformationCharacterPresenter def={def} editDef={editDef} editMode={editMode} previewPlaying={previewPlaying} charModelId={charModelId} />
       {editMode && !previewPlaying ? <TransformationEditOrbitCamera /> : <TransformationCameraController />}
       <TransformationEffects />
+      <PoseSwitchFxLayer />
       {editMode ? (
         <>
           <TransformationPreviewController def={def} />

@@ -140,6 +140,14 @@ export interface CharacterStats {
   durability: number;
 }
 
+// One selectable model/pose for a character (transformer / airplane / a pose variant). assetId is a
+// modelLibrary id; label is a short human name shown in the 🛩 Characters "Models & Poses" list.
+export interface CharacterPoseModel {
+  id: string;
+  label: string;
+  assetId: string;
+}
+
 export interface CharacterDefinition {
   id: string;
   codename: string; // original codename — never an IP name
@@ -157,6 +165,11 @@ export interface CharacterDefinition {
   modelAssetId?: string; // kit model-library id — the ROBOT / ground model (e.g. 'super-wings/Jett+...')
   planeModelAssetId?: string; // optional separate PLANE/vehicle model used in flight (falls back to modelAssetId)
   modelScale?: number; // authored ground/destination model scale (Edit-Mode editable; unset = seed default).
+  // All of this character's available models/poses (transformer / airplane / pose variants). The 🛩
+  // Characters tab can switch any of these in as the active robot/plane model (a flashy pose-switch FX plays);
+  // the transformation showcase can swap to a pose model. Per the character-model-naming rule, every model
+  // whose filename starts with the character's name belongs to it.
+  poseModels?: CharacterPoseModel[];
   // Custom animation rules (reuse POLI AnimRule + animRunner.pickLoopRule): "which clip plays when"
   // (idle/moving/flying/vehicle/robot/ability/celebrate/key…). Drives every presenter when non-empty.
   animationRules?: AnimRule[];

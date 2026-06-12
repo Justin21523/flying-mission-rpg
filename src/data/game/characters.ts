@@ -1,4 +1,5 @@
 import type { CharacterDefinition } from '../../types/game/character';
+import { poseModelsFor } from './superWingsModels';
 
 // Seed roster — based on the project's existing Super Wings characters and the reference cards in
 // src/assets/cards (role / colour / abilities taken from each card). Stats are a gameplay adaptation
@@ -24,6 +25,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_jett',
     cardImage: 'Jett_card.jpeg',
     modelAssetId: 'super-wings/Jett+transformer+3d+model',
+    poseModels: poseModelsFor('char_jett'),
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -46,6 +48,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     cardImage: 'Donnie_card.jpeg',
     modelAssetId: 'super-wings/Donnie+transformer+3d+model',
     planeModelAssetId: 'super-wings/Donnie airplane 3d model',
+    poseModels: poseModelsFor('char_donnie'),
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -68,6 +71,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     cardImage: 'Paul_card.jpeg',
     modelAssetId: 'super-wings/paul+transformer+3d+model',
     planeModelAssetId: 'super-wings/Paul airplane 3d model',
+    poseModels: poseModelsFor('char_paul'),
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -89,6 +93,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_jerome',
     cardImage: 'Jerome_card.jpeg',
     modelAssetId: 'super-wings/Jerome+transformer+3d+model',
+    poseModels: poseModelsFor('char_jerome'),
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -110,6 +115,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_bello',
     cardImage: 'Bello_card.jpeg',
     modelAssetId: 'super-wings/Bello+transformer+3d+model',
+    poseModels: poseModelsFor('char_bello'),
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -131,6 +137,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_chase',
     cardImage: 'Chaser_card.jpeg',
     modelAssetId: 'super-wings/Chase+transformer+3d+model',
+    poseModels: poseModelsFor('char_chase'),
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -153,6 +160,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     cardImage: 'Flip_card.jpeg',
     modelAssetId: 'super-wings/Flip+transformer+3d+model',
     planeModelAssetId: 'super-wings/Flip airplane 3d model',
+    poseModels: poseModelsFor('char_flip'),
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -174,6 +182,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_todd',
     cardImage: 'Todd_card.jpeg',
     modelAssetId: 'super-wings/Todd+transformer+3d+model',
+    poseModels: poseModelsFor('char_todd'),
     homeBaseLocationId: 'loc_homebase',
   },
 ];

@@ -16,6 +16,7 @@ import { AnimationRulesEditor } from './AnimationRulesEditor';
 import { cloneGroundAbilityConfig, getGroundAbilityConfig } from '../../../game/destination/groundAbilityConfig';
 import { getGroundAbilityLibrary, validateGroundAbilityLibrary } from '../../../game/destination/groundAbilityLibrary';
 import { GROUND_BASE_SCALE } from '../../../game/destination/groundCharacterScale';
+import { triggerPoseSwitchFx } from '../../../game/characters/poseSwitchFx';
 
 const makeNew = (): CharacterDefinition => ({
   id: `char_${nanoid(6)}`,
@@ -353,6 +354,27 @@ export const CharacterEditorTab = () => {
           <Field label="Plane model (flight / vehicle form — empty = use robot model)">
             <ModelPicker value={c.planeModelAssetId} onChange={(v) => update({ planeModelAssetId: v })} noneLabel="(use robot model)" />
           </Field>
+          {/* All of this character's models / poses — switch any in as the active robot/plane (a pose-switch
+              FX plays in the scene). Every model gets its showcase here; none are hidden. */}
+          {c.poseModels && c.poseModels.length > 0 && (
+            <div>
+              <div className={lbl}>Models &amp; Poses ({c.poseModels.length})</div>
+              <div className="mt-1 flex max-h-48 flex-col gap-1 overflow-auto">
+                {c.poseModels.map((pm) => {
+                  const isRobot = c.modelAssetId === pm.assetId;
+                  const isPlane = c.planeModelAssetId === pm.assetId;
+                  return (
+                    <div key={pm.id} className="flex items-center gap-1 rounded bg-slate-900/50 p-1">
+                      <span className="flex-1 truncate text-[11px] text-slate-200" title={pm.assetId}>{pm.label}</span>
+                      <button onClick={() => { update({ modelAssetId: pm.assetId }); triggerPoseSwitchFx(c.id, pm.assetId); }} className={`rounded px-1.5 py-0.5 text-[10px] ${isRobot ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}>{isRobot ? '✓ robot' : 'use robot'}</button>
+                      <button onClick={() => { update({ planeModelAssetId: pm.assetId }); triggerPoseSwitchFx(c.id, pm.assetId); }} className={`rounded px-1.5 py-0.5 text-[10px] ${isPlane ? 'bg-sky-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}>{isPlane ? '✓ plane' : 'use plane'}</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <NumRow label="Ground model scale (landing/mission + afterimages)" value={c.modelScale ?? GROUND_BASE_SCALE} step={0.1} min={0.1} onChange={(v) => update({ modelScale: v })} />
           <Check label="Can fly at destination (F toggle — Space up / Shift down / Shift+move fast). On by default." checked={c.canFly !== false} onChange={(v) => update({ canFly: v })} />
 

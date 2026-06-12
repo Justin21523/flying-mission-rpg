@@ -25,6 +25,7 @@ import { KillFxLayer } from '../player/KillFxLayer';
 import { SupportCompanionLayer } from '../characters/runtime/SupportCompanionLayer';
 import { CompanionAiHost } from '../characters/ai/CompanionAiHost';
 import { ControlSwitchInput } from '../characters/control/ControlSwitchInput';
+import { PoseSwitchFxLayer } from '../characters/PoseSwitchFxLayer';
 
 // The destination vertical slice (DESCENT → LANDING → NPC_GREETING → MISSION_GAMEPLAY → MISSION_COMPLETE).
 // One scene for all five phases: the POLI editable ground ('aero_destination' — sculpt/PBR/environment
@@ -56,6 +57,7 @@ export const DestinationScene = () => {
       </Physics>
 
       <DestinationNpcLayer />
+      <PoseSwitchFxLayer />
       {!editMode && phase === 'DESCENT' && <RobotDescentController />}
       {!editMode && phase === 'LANDING' && <LandingSettle />}
       {!editMode && (phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY') && <ObjectiveDirectorHost />}
