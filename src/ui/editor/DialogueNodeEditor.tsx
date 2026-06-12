@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import type { DialogueNode, DialogueChoice, DialogueEmotion, DialogueEffect, DialogueCondition } from '../../types/dialogue';
 import { DIALOGUE_EMOTIONS } from '../../types/editorDialogue';
 import { MechListEditor, NodeTarget, dinp } from './dialogueEditorShared';
 import { DialogueChoiceEditor } from './DialogueChoiceEditor';
+import { generateNpcLine } from '../../game/llm/dialogueText';
+import { useLlmConfigStore } from '../../stores/llmConfigStore';
 
 // Kit — edit a single dialogue node: speaker/text/emotion, branch (nextNodeId), node-entry actions,
 // node-entry conditions (+ fallback), and its choices.
@@ -15,6 +18,18 @@ export const DialogueNodeEditor = ({ node, nodeIds, isRoot, onPatch, onSetRoot, 
   onDelete: () => void;
   canDelete: boolean;
 }) => {
+  const llmEnabled = useLlmConfigStore((s) => s.config.enabled);
+  const [rewriting, setRewriting] = useState(false);
+  const rewrite = async () => {
+    setRewriting(true);
+    try {
+      const text = await generateNpcLine(node.speaker, node.text, node.text);
+      if (text && text !== node.text) onPatch({ text });
+    } finally {
+      setRewriting(false);
+    }
+  };
+
   const choices = node.choices ?? [];
   const setChoices = (next: DialogueChoice[]) => onPatch({ choices: next.length ? next : undefined });
   const patchChoice = (id: string, patch: Partial<DialogueChoice>) =>
@@ -30,7 +45,12 @@ export const DialogueNodeEditor = ({ node, nodeIds, isRoot, onPatch, onSetRoot, 
         <span className="font-mono text-slate-500">{node.id}</span>
         {isRoot ? <span className="rounded bg-amber-600/30 px-1 text-amber-200">root</span>
           : <button onClick={onSetRoot} className="rounded px-1 text-slate-400 hover:bg-slate-800">Set as root</button>}
-        <button onClick={onDuplicate} className="ml-auto rounded px-1 text-sky-300 hover:bg-sky-700/30">⧉ dup</button>
+        {llmEnabled && (
+          <button onClick={rewrite} disabled={rewriting} title="LLM rewrite this line (flavour only)" className="ml-auto rounded px-1 text-fuchsia-300 hover:bg-fuchsia-700/30 disabled:opacity-40">
+            {rewriting ? '✨…' : '✨ rewrite'}
+          </button>
+        )}
+        <button onClick={onDuplicate} className={`${llmEnabled ? '' : 'ml-auto '}rounded px-1 text-sky-300 hover:bg-sky-700/30`}>⧉ dup</button>
         <button onClick={onDelete} disabled={!canDelete} className="rounded px-1 text-red-300 hover:bg-red-700/30 disabled:opacity-30">🗑</button>
       </div>
 

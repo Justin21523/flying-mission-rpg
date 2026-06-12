@@ -5,6 +5,8 @@ import { MISSION_TEMPLATES } from '../../../data/game/missionTemplates';
 import { collectMissionPools } from '../../../game/missions/missionPools';
 import { generateMissions, type GenerateResult } from '../../../game/missions/missionGenerator';
 import { useEditorMissionStore } from '../../../stores/game/editorMissionStore';
+import { enhanceMissionText } from '../../../game/llm/missionText';
+import { useLlmConfigStore } from '../../../stores/llmConfigStore';
 
 // 🎲 Mission Generator — the rule-based generator UI. A fixed seed + count + type filter deterministically
 // produces validated, playable missions from the templates and the live pools (locations / NPCs / routes /
@@ -16,12 +18,27 @@ export const MissionGeneratorTab = () => {
   const [count, setCount] = useState(4);
   const [types, setTypes] = useState<MissionType[]>([...MISSION_TYPES]);
   const [result, setResult] = useState<GenerateResult | null>(null);
+  const [useLlm, setUseLlm] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+  const llmEnabled = useLlmConfigStore((s) => s.config.enabled);
 
   const toggleType = (t: MissionType) => setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
-  const generate = () => {
+  const generate = async () => {
     const pools = collectMissionPools();
-    setResult(generateMissions({ seed, count, types: types.length ? types : undefined }, MISSION_TEMPLATES, pools));
+    const res = generateMissions({ seed, count, types: types.length ? types : undefined }, MISSION_TEMPLATES, pools);
+    if (useLlm && llmEnabled && res.missions.length > 0) {
+      setEnhancing(true);
+      setResult(res); // show template text immediately, then re-skin
+      try {
+        const missions = await Promise.all(res.missions.map((m) => enhanceMissionText(m)));
+        setResult({ ...res, missions });
+      } finally {
+        setEnhancing(false);
+      }
+    } else {
+      setResult(res);
+    }
   };
 
   const addAll = () => {
@@ -51,9 +68,17 @@ export const MissionGeneratorTab = () => {
         </div>
       </div>
 
+      <label className={`flex items-center gap-2 text-[11px] ${llmEnabled ? 'text-slate-200' : 'text-slate-500'}`}>
+        <input type="checkbox" checked={useLlm && llmEnabled} disabled={!llmEnabled} onChange={(e) => setUseLlm(e.target.checked)} />
+        ✨ LLM text — re-skin name / summary / objective wording (structure unchanged)
+        {!llmEnabled && <span className="text-slate-600">· enable in 🤖 LLM</span>}
+      </label>
+
       <div className="flex gap-2">
-        <button onClick={generate} className="rounded bg-sky-700 px-3 py-1 text-xs font-bold text-white hover:bg-sky-600">🎲 Generate</button>
-        <button onClick={addAll} disabled={!result || result.missions.length === 0} className="rounded bg-emerald-700 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-600 disabled:opacity-40">
+        <button onClick={generate} disabled={enhancing} className="rounded bg-sky-700 px-3 py-1 text-xs font-bold text-white hover:bg-sky-600 disabled:opacity-40">
+          {enhancing ? '✨ Enhancing…' : '🎲 Generate'}
+        </button>
+        <button onClick={addAll} disabled={!result || result.missions.length === 0 || enhancing} className="rounded bg-emerald-700 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-600 disabled:opacity-40">
           ＋ Add {result?.missions.length ?? 0} to missions
         </button>
         <span className="ml-auto self-center text-[10px] text-slate-500">{missionCount} missions total</span>
