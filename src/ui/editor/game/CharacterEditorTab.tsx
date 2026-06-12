@@ -11,12 +11,14 @@ import { csv, parseCsv, Field, inp, lbl, Check, MoveButtons } from '../editorSha
 import { moveItem } from '../../../game/editor/arrayMove';
 import { ModelPicker } from '../ModelPicker';
 import { useGltfClipNames } from '../useGltfClipNames';
+import { AnimationTrackSelect } from '../AnimationTrackSelect';
 import { CollectionEditor, TextRow, NumRow, SelectRow, ColorRow, ConfidenceRow } from './CollectionEditor';
 import { AnimationRulesEditor } from './AnimationRulesEditor';
 import { cloneGroundAbilityConfig, getGroundAbilityConfig } from '../../../game/destination/groundAbilityConfig';
 import { getGroundAbilityLibrary, validateGroundAbilityLibrary } from '../../../game/destination/groundAbilityLibrary';
 import { GROUND_BASE_SCALE } from '../../../game/destination/groundCharacterScale';
 import { triggerPoseSwitchFx } from '../../../game/characters/poseSwitchFx';
+import { resetPlaneModelToAuto, resetRobotModelToAuto } from '../../../game/characters/autoCharacterModelReset';
 
 const makeNew = (): CharacterDefinition => ({
   id: `char_${nanoid(6)}`,
@@ -33,19 +35,9 @@ const makeNew = (): CharacterDefinition => ({
   homeBaseLocationId: 'loc_homebase',
 });
 
-// Animation-clip picker — lists the model's real GLB clip names (falls back to free text if not loaded yet).
+// Animation-clip picker — lists the model's real GLB clip names. Unknown saved values stay selectable.
 const ClipPicker = ({ label, modelAssetId, value, onChange }: { label: string; modelAssetId?: string; value?: string; onChange: (v?: string) => void }) => {
-  const asset = modelAssetId ? getModelAsset(modelAssetId) : undefined;
-  const clips = useGltfClipNames(asset?.path);
-  if (clips.length === 0) return <TextRow label={`${label} (type clip name)`} value={value ?? ''} onChange={(v) => onChange(v || undefined)} />;
-  return (
-    <SelectRow
-      label={label}
-      value={value ?? ''}
-      options={[{ value: '', label: '(first / default)' }, ...clips.map((c) => ({ value: c, label: c }))]}
-      onChange={(v) => onChange(v || undefined)}
-    />
-  );
+  return <AnimationTrackSelect label={label} modelAssetId={modelAssetId} value={value} noneLabel="(first / default)" onChange={onChange} />;
 };
 
 // Abilities sub-editor — add / edit / remove a character's rescue helpers (name + kind + description).
@@ -349,10 +341,34 @@ export const CharacterEditorTab = () => {
           </div>
 
           <Field label="Robot model (ground / mission / robot form)">
-            <ModelPicker value={c.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(none)" />
+            <div className="space-y-1">
+              <ModelPicker value={c.modelAssetId} onChange={(v) => update({ modelAssetId: v })} noneLabel="(none)" />
+              <button
+                onClick={() => {
+                  const patch = resetRobotModelToAuto(c.id);
+                  update(patch);
+                  if (patch.modelAssetId) triggerPoseSwitchFx(c.id, patch.modelAssetId);
+                }}
+                className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700"
+              >
+                Reset robot to auto
+              </button>
+            </div>
           </Field>
           <Field label="Plane model (flight / vehicle form — empty = use robot model)">
-            <ModelPicker value={c.planeModelAssetId} onChange={(v) => update({ planeModelAssetId: v })} noneLabel="(use robot model)" />
+            <div className="space-y-1">
+              <ModelPicker value={c.planeModelAssetId} onChange={(v) => update({ planeModelAssetId: v })} noneLabel="(use robot model)" />
+              <button
+                onClick={() => {
+                  const patch = resetPlaneModelToAuto(c.id);
+                  update(patch);
+                  if (patch.planeModelAssetId) triggerPoseSwitchFx(c.id, patch.planeModelAssetId);
+                }}
+                className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700"
+              >
+                Reset plane to auto
+              </button>
+            </div>
           </Field>
           {/* All of this character's models / poses — switch any in as the active robot/plane (a pose-switch
               FX plays in the scene). Every model gets its showcase here; none are hidden. */}

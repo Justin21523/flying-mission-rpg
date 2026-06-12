@@ -24,7 +24,14 @@ export const RouteFields = ({ route, update }: { route: FlightRoute; update: (pa
       <TextRow label="Name" value={route.name} onChange={(v) => update({ name: v })} />
       <SelectRow label="From" value={route.fromLocationId} options={locOptions} onChange={(v) => update({ fromLocationId: v })} />
       <SelectRow label="To" value={route.toLocationId} options={locOptions} onChange={(v) => update({ toLocationId: v })} />
-      <SelectRow label="Path (航道)" value={route.pathId ?? ''} options={pathOptions} onChange={(v) => update({ pathId: v || undefined })} />
+      <SelectRow label="Outbound path" value={route.pathId ?? ''} options={pathOptions} onChange={(v) => update({ pathId: v || undefined })} />
+      <SelectRow label="Return path (empty = outbound)" value={route.returnPathId ?? ''} options={pathOptions} onChange={(v) => update({ returnPathId: v || undefined })} />
+      <SelectRow
+        label="Return direction"
+        value={route.returnPathDirection ?? (route.returnPathId ? 'forward' : 'reverse')}
+        options={[{ value: 'reverse', label: 'reverse' }, { value: 'forward', label: 'forward' }]}
+        onChange={(v) => update({ returnPathDirection: v as FlightRoute['returnPathDirection'] })}
+      />
       <div className="grid grid-cols-2 gap-2">
         <NumRow label="Virtual distance" value={route.virtualDistance} step={50} onChange={(v) => update({ virtualDistance: v })} />
         <NumRow label="Est. flight (sec)" value={route.estimatedFlightSec} step={10} onChange={(v) => update({ estimatedFlightSec: v })} />

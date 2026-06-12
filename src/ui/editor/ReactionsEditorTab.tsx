@@ -11,6 +11,7 @@ import { Field, inp, lbl, Check, csv, parseCsv, usePathOptions, useAnimationOpti
 import { focusCameraOn } from '../../game/edit/cameraFocus';
 import { IdSelect } from './idPickers';
 import { ActionEditor } from './ActionEditor';
+import { AnimationTrackSelect } from './AnimationTrackSelect';
 
 // 💥 Reactions tab — authoring for the collision-reaction systems (Rules · Objects · Animation mapping). Pure
 // data editing; the reaction engine + CollisionTestLayer read the same stores. 🎯 focuses an object's 3D handle.
@@ -165,7 +166,6 @@ const AnimationsSection = () => {
   const knownClips = useMemo(() => [...new Set(Object.values(clipsByPath).flat())].sort(), [clipsByPath]);
   return (
     <div className="space-y-3">
-      <datalist id="poli-model-clips">{knownClips.map((c) => <option key={c} value={c} />)}</datalist>
       <div className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-900/40 px-2 py-1.5">
         <span className={lbl}>🎞 Animation Definitions ({definitions.length})</span>
         <button onClick={() => st.addDefinition()} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ animation</button>
@@ -177,7 +177,7 @@ const AnimationsSection = () => {
             <button onClick={() => st.removeDefinition(d.id)} className="rounded px-1 text-[11px] text-rose-400 hover:bg-slate-800">🗑</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="clip name (in the GLB)"><input list="poli-model-clips" value={d.clipName} onChange={(e) => st.updateDefinition(d.id, { clipName: e.target.value })} className={inp} placeholder={knownClips.length ? 'pick / type a clip…' : 'e.g. Wave'} /></Field>
+            <AnimationTrackSelect label="clip name (in the GLB)" clips={knownClips} value={d.clipName} onChange={(clipName) => st.updateDefinition(d.id, { clipName: clipName ?? '' })} />
             <Field label="layer"><select value={d.layer} onChange={(e) => st.updateDefinition(d.id, { layer: e.target.value as AnimationLayer })} className={inp}>{ANIMATION_LAYERS.map((l) => <option key={l} value={l}>{l}</option>)}</select></Field>
             <Field label="fade in"><input type="number" step={0.05} value={d.fadeIn} onChange={(e) => st.updateDefinition(d.id, { fadeIn: num(e.target.value) })} className={inp} /></Field>
             <Field label="fade out"><input type="number" step={0.05} value={d.fadeOut} onChange={(e) => st.updateDefinition(d.id, { fadeOut: num(e.target.value) })} className={inp} /></Field>

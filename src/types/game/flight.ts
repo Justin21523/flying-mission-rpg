@@ -62,6 +62,8 @@ export interface FlightRoute {
   backgroundEnv: string;
   eventPoolIds: string[];
   pathId?: string; // editorPathStore path the craft follows
+  returnPathId?: string; // optional homebound path; empty = reuse outbound path
+  returnPathDirection?: 'forward' | 'reverse'; // when reusing a path, reverse makes u=0 start at the destination
   segments?: RouteSegment[];
   editorEnvironment?: RouteEnvironmentOverride;
   approachStartU?: number; // where the approach band begins (default 0.85)

@@ -1,18 +1,14 @@
 import { nanoid } from 'nanoid';
 import { ANIM_TRIGGERS } from '../../../types/character';
 import type { AnimRule } from '../../../types/character';
-import { getModelAsset } from '../../../data/modelLibrary';
-import { useGltfClipNames } from '../useGltfClipNames';
 import { Check, lbl, MoveButtons } from '../editorShared';
 import { moveItem } from '../../../game/editor/arrayMove';
 import { TextRow, NumRow, SelectRow } from './CollectionEditor';
+import { AnimationTrackSelect } from '../AnimationTrackSelect';
 
-// Clip dropdown that reads the model's real GLB clip names (free text until the model is loaded). Shared.
+// Clip dropdown that reads the model's real GLB clip names. Unknown saved values stay selectable.
 export const ClipSelectField = ({ label, modelAssetId, value, onChange }: { label: string; modelAssetId?: string; value: string; onChange: (v: string) => void }) => {
-  const asset = modelAssetId ? getModelAsset(modelAssetId) : undefined;
-  const clips = useGltfClipNames(asset?.path);
-  if (clips.length === 0) return <TextRow label={`${label} (type clip name)`} value={value} onChange={onChange} />;
-  return <SelectRow label={label} value={value} options={[{ value: '', label: '(none)' }, ...clips.map((c) => ({ value: c, label: c }))]} onChange={onChange} />;
+  return <AnimationTrackSelect label={label} modelAssetId={modelAssetId} value={value} onChange={(v) => onChange(v ?? '')} />;
 };
 
 // Animation Rules sub-editor — reuse the POLI AnimRule engine (animRunner.pickLoopRule): each rule maps a

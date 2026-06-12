@@ -12,6 +12,7 @@ import { getModelAsset } from '../../data/modelLibrary';
 import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
 import { DataBackedPlacement } from '../edit/DataBackedPlacement';
 import type { FlightCue } from '../../types/game/flightCue';
+import { sampleUForDirection, type FlightLegDirection } from './flightLeg';
 
 // EDIT-ONLY driver for the flight cue timeline. Each frame it resolves the cues at the preview's u and writes
 // flightCueHandle (camera override + active animation) + tints the scene background for environment cues; it
@@ -28,10 +29,11 @@ const _ctLocal = new Vector3();
 const _ctQuatInv = new Quaternion();
 
 interface CraftXform { pos: Vector3; quat: Quaternion }
-function craftXformAt(curve: Parameters<typeof samplePos>[0], u: number): CraftXform {
+function craftXformAt(curve: Parameters<typeof samplePos>[0], u: number, direction: FlightLegDirection): CraftXform {
   const uu = Math.max(0, Math.min(1, u));
   samplePos(curve, uu, _ctPos);
   sampleTangent(curve, uu, _ctTan);
+  if (direction === 'reverse') _ctTan.multiplyScalar(-1);
   _ctObj.position.copy(_ctPos);
   _ctObj.lookAt(_ctLook.copy(_ctPos).sub(_ctTan)); // +Z → (pos−tan) ⇒ −Z = forward (same as the craft)
   return { pos: _ctPos.clone(), quat: _ctObj.quaternion.clone() };
@@ -39,7 +41,7 @@ function craftXformAt(curve: Parameters<typeof samplePos>[0], u: number): CraftX
 
 // Draggable eye anchor for a camera cue: sits at the framing's eye relative to the craft at that u; dragging
 // re-derives distance / height / orbit-angle (inverse of FlightCamera's offset) and bakes them into the cue.
-const CameraAnchor = ({ pathId, cue, xform }: { pathId: string; cue: FlightCue; xform: CraftXform }) => {
+const CameraAnchor = ({ cueKey, cue, xform }: { cueKey: string; cue: FlightCue; xform: CraftXform }) => {
   const dist = cue.camDistance ?? 12;
   const height = cue.camHeight ?? 4;
   const a = (cue.camAngleDeg ?? 0) * DEG;
@@ -47,14 +49,14 @@ const CameraAnchor = ({ pathId, cue, xform }: { pathId: string; cue: FlightCue; 
   const onMove = (p: [number, number, number]) => {
     _ctLocal.set(p[0] - xform.pos.x, p[1] - xform.pos.y, p[2] - xform.pos.z).applyQuaternion(_ctQuatInv.copy(xform.quat).invert());
     const r = (n: number) => Math.round(n * 100) / 100;
-    useEditorFlightCueStore.getState().update(pathId, cue.id, {
+    useEditorFlightCueStore.getState().update(cueKey, cue.id, {
       camDistance: r(Math.hypot(_ctLocal.x, _ctLocal.z)),
       camHeight: r(_ctLocal.y),
       camAngleDeg: r(Math.atan2(_ctLocal.x, _ctLocal.z) / DEG),
     });
   };
   return (
-    <DataBackedPlacement objKey={`${pathId}#camcue#${cue.id}`} position={[eye.x, eye.y, eye.z]} onMove={onMove} color="#a855f7">
+    <DataBackedPlacement objKey={`${cueKey}#camcue#${cue.id}`} position={[eye.x, eye.y, eye.z]} onMove={onMove} color="#a855f7">
       <mesh><boxGeometry args={[0.5, 0.4, 0.7]} /><meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.5} /></mesh>
       <Html center distanceFactor={14} position={[0, 0.7, 0]}>
         <div className="pointer-events-none whitespace-nowrap rounded bg-slate-950/80 px-1 text-[9px] text-violet-200">{cue.label || 'camera'} · u{Math.round(cue.atU * 100)}</div>
@@ -63,15 +65,15 @@ const CameraAnchor = ({ pathId, cue, xform }: { pathId: string; cue: FlightCue; 
   );
 };
 
-const EventMarker = ({ pathId, cue, base }: { pathId: string; cue: FlightCue; base: [number, number, number] }) => {
+const EventMarker = ({ cueKey, cue, base }: { cueKey: string; cue: FlightCue; base: [number, number, number] }) => {
   const off = cue.eventOffset ?? [0, 0, 0];
   const pos: [number, number, number] = [base[0] + off[0], base[1] + off[1], base[2] + off[2]];
   const asset = cue.eventAssetId ? getModelAsset(cue.eventAssetId) : undefined;
   const onMove = (p: [number, number, number]) => {
-    useEditorFlightCueStore.getState().update(pathId, cue.id, { eventOffset: [p[0] - base[0], p[1] - base[1], p[2] - base[2]] });
+    useEditorFlightCueStore.getState().update(cueKey, cue.id, { eventOffset: [p[0] - base[0], p[1] - base[1], p[2] - base[2]] });
   };
   return (
-    <DataBackedPlacement objKey={`${pathId}#cue#${cue.id}`} position={pos} onMove={onMove} color="#f59e0b">
+    <DataBackedPlacement objKey={`${cueKey}#cue#${cue.id}`} position={pos} onMove={onMove} color="#f59e0b">
       {asset ? (
         <NormalizedGlbModel assetId={cue.eventAssetId!} target={(cue.eventScale ?? 1) * 1.5} />
       ) : (
@@ -87,8 +89,8 @@ const EventMarker = ({ pathId, cue, base }: { pathId: string; cue: FlightCue; ba
   );
 };
 
-export const FlightCuePreview = ({ pathId }: { pathId: string }) => {
-  const cues = useEditorFlightCueStore((s) => s.byPath[pathId]);
+export const FlightCuePreview = ({ pathId, cueKey = pathId, direction = 'forward' }: { pathId: string; cueKey?: string; direction?: FlightLegDirection }) => {
+  const cues = useEditorFlightCueStore((s) => s.byPath[cueKey]);
 
   useEffect(() => () => { flightCueHandle.camActive = false; useFlightPreviewStore.getState().setActiveEnv(null); }, []);
 
@@ -96,7 +98,7 @@ export const FlightCuePreview = ({ pathId }: { pathId: string }) => {
     const ps = useFlightPreviewStore.getState();
     const previewing = ps.playing || ps.u > 0.001;
     if (!previewing) { flightCueHandle.camActive = false; flightCueHandle.animClip = ''; ps.setActiveCueClip(''); ps.setActiveEnv(null); return; }
-    const r = resolveFlightCues(getFlightCues(pathId), ps.u);
+    const r = resolveFlightCues(getFlightCues(cueKey), ps.u);
     if (r.camera) {
       flightCueHandle.camActive = true;
       flightCueHandle.distance = r.camera.distance;
@@ -117,17 +119,17 @@ export const FlightCuePreview = ({ pathId }: { pathId: string }) => {
     const cc = def ? getCurve(def) : null;
     if (!cc || !cues) return { markers: [], camAnchors: [] as { cue: FlightCue; xform: CraftXform }[] };
     const markers = cues.filter((c) => c.type === 'event').map((c) => {
-      samplePos(cc.curve, Math.max(0, Math.min(1, c.atU)), _scratch);
+      samplePos(cc.curve, sampleUForDirection(c.atU, direction), _scratch);
       return { cue: c, base: [_scratch.x, _scratch.y, _scratch.z] as [number, number, number] };
     });
-    const camAnchors = cues.filter((c) => c.type === 'camera').map((c) => ({ cue: c, xform: craftXformAt(cc.curve, c.atU) }));
+    const camAnchors = cues.filter((c) => c.type === 'camera').map((c) => ({ cue: c, xform: craftXformAt(cc.curve, sampleUForDirection(c.atU, direction), direction) }));
     return { markers, camAnchors };
-  }, [pathId, cues]);
+  }, [pathId, cues, direction]);
 
   return (
     <>
-      {markers.map(({ cue, base }) => <EventMarker key={cue.id} pathId={pathId} cue={cue} base={base} />)}
-      {camAnchors.map(({ cue, xform }) => <CameraAnchor key={cue.id} pathId={pathId} cue={cue} xform={xform} />)}
+      {markers.map(({ cue, base }) => <EventMarker key={cue.id} cueKey={cueKey} cue={cue} base={base} />)}
+      {camAnchors.map(({ cue, xform }) => <CameraAnchor key={cue.id} cueKey={cueKey} cue={cue} xform={xform} />)}
     </>
   );
 };

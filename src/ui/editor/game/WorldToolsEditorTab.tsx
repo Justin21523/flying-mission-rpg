@@ -3,15 +3,18 @@ import { nanoid } from 'nanoid';
 import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
 import { useFlightStore } from '../../../stores/game/useFlightStore';
 import { useGameStore } from '../../../stores/game/useGameStore';
-import { useWorldFlightEditorStore, type WorldFlightEditViewMode } from '../../../stores/game/worldFlightEditorStore';
+import { useWorldFlightEditorStore, type WorldFlightEditViewMode, type WorldFlightPathOverlayMode } from '../../../stores/game/worldFlightEditorStore';
+import { useEditorPathStore } from '../../../stores/editorPathStore';
 import type { FlightRoute } from '../../../types/game/flight';
 import { Field, inp, lbl } from '../editorShared';
 import { RouteFields } from './worldTools/RouteFields';
 import { PathNodeList } from './worldTools/PathNodeList';
+import { PathNodesEditor } from './worldTools/PathNodesEditor';
 import { SegmentList } from './worldTools/SegmentList';
 import { EventPoolPicker } from './worldTools/EventPoolPicker';
 import { RouteEnvironmentFields } from './worldTools/RouteEnvironmentFields';
 import { LocationPreview } from './worldTools/LocationPreview';
+import { resolveFlightLeg, type FlightLegKind } from '../../../game/flight/flightLeg';
 
 // 🛫 Aero World — one workspace for WORLD_FLIGHT route authoring: pick a route, make it the ACTIVE flight
 // route (so RouteFollower / HUD / event director / preview all use it live), then edit it across sub-tabs:
@@ -34,6 +37,8 @@ const makeNewRoute = (): FlightRoute => ({
 
 type Sub = 'route' | 'nodes' | 'segments' | 'events' | 'environment' | 'locations';
 const VIEW_MODES: readonly WorldFlightEditViewMode[] = ['clean-edit', 'preview-edit', 'play-like-edit'];
+const OVERLAY_MODES: readonly WorldFlightPathOverlayMode[] = ['selected-leg', 'all-world-routes'];
+const LEGS: readonly FlightLegKind[] = ['outbound', 'return'];
 const SUBS: { id: Sub; label: string }[] = [
   { id: 'route', label: 'Route' },
   { id: 'nodes', label: 'Path Nodes' },
@@ -54,11 +59,23 @@ export const WorldToolsEditorTab = () => {
   const phase = useGameStore((s) => s.phase);
   const editViewMode = useWorldFlightEditorStore((s) => s.editViewMode);
   const setEditViewMode = useWorldFlightEditorStore((s) => s.setEditViewMode);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedId = useWorldFlightEditorStore((s) => s.selectedRouteId);
+  const setSelectedId = useWorldFlightEditorStore((s) => s.setSelectedRouteId);
+  const selectedLeg = useWorldFlightEditorStore((s) => s.selectedLeg);
+  const setSelectedLeg = useWorldFlightEditorStore((s) => s.setSelectedLeg);
+  const pathOverlayMode = useWorldFlightEditorStore((s) => s.pathOverlayMode);
+  const setPathOverlayMode = useWorldFlightEditorStore((s) => s.setPathOverlayMode);
   const [sub, setSub] = useState<Sub>('route');
 
   const route = routes.find((r) => r.id === selectedId) ?? routes[0] ?? null;
   const update = (patch: Partial<FlightRoute>) => { if (route) updateRoute(route.id, patch); };
+  const leg = resolveFlightLeg(route ?? undefined, selectedLeg);
+  const createReturnPath = () => {
+    if (!route) return;
+    const id = useEditorPathStore.getState().addPath('world');
+    updateRoute(route.id, { returnPathId: id, returnPathDirection: 'forward' });
+    setSelectedLeg('return');
+  };
   const makeActive = () => { if (route) useFlightStore.getState().setRoute(route.id); };
   const jumpToWorldFlight = () => {
     if (!route) return;
@@ -96,11 +113,25 @@ export const WorldToolsEditorTab = () => {
           </div>
 
           <div className="rounded border border-sky-800/40 bg-sky-950/10 p-2">
-            <Field label="World edit view">
-              <select value={editViewMode} onChange={(e) => setEditViewMode(e.target.value as WorldFlightEditViewMode)} className={inp}>
-                {VIEW_MODES.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
-              </select>
-            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="World edit view">
+                <select value={editViewMode} onChange={(e) => setEditViewMode(e.target.value as WorldFlightEditViewMode)} className={inp}>
+                  {VIEW_MODES.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
+                </select>
+              </Field>
+              <Field label="3D route overlay">
+                <select value={pathOverlayMode} onChange={(e) => setPathOverlayMode(e.target.value as WorldFlightPathOverlayMode)} className={inp}>
+                  {OVERLAY_MODES.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
+                </select>
+              </Field>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              {LEGS.map((legId) => (
+                <button key={legId} onClick={() => setSelectedLeg(legId)} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${selectedLeg === legId ? 'bg-violet-600/30 text-violet-100' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'}`}>{legId}</button>
+              ))}
+              <span className="font-mono text-[10px] text-slate-500">{leg.pathId} · {leg.direction}</span>
+              <button onClick={createReturnPath} className="ml-auto rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">+ Return path</button>
+            </div>
             <Field label="Active route test progress">
               <div className="flex items-center gap-2">
                 <input type="range" min={0} max={1} step={0.01} value={routeProgress} onChange={(e) => setRouteProgress(parseFloat(e.target.value))} className="min-w-0 flex-1" />
@@ -118,7 +149,11 @@ export const WorldToolsEditorTab = () => {
 
           <div className="space-y-2">
             {sub === 'route' && <RouteFields route={route} update={update} />}
-            {sub === 'nodes' && <PathNodeList route={route} update={update} />}
+            {sub === 'nodes' && (
+              selectedLeg === 'outbound'
+                ? <PathNodeList route={route} update={update} />
+                : <PathNodesEditor pathId={leg.pathId} onCreatePath={createReturnPath} createLabel="Create return path" editPhase="RETURN_FLIGHT" />
+            )}
             {sub === 'segments' && <SegmentList segments={route.segments ?? []} onChange={(s) => update({ segments: s })} />}
             {sub === 'events' && <EventPoolPicker selected={route.eventPoolIds} onChange={(ids) => update({ eventPoolIds: ids })} />}
             {sub === 'environment' && <RouteEnvironmentFields route={route} update={update} />}

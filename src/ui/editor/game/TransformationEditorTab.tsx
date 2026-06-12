@@ -23,6 +23,7 @@ import { Field, inp, lbl, Check, FocusButton, MoveButtons } from '../editorShare
 import { moveItem } from '../../../game/editor/arrayMove';
 import { ModelPicker } from '../ModelPicker';
 import { TextRow, NumRow, SelectRow, ColorRow } from './CollectionEditor';
+import { AnimationTrackSelect } from '../AnimationTrackSelect';
 
 const num = (v: string) => parseFloat(v) || 0;
 const opts = (xs: readonly string[]) => xs.map((x) => ({ value: x, label: x }));
@@ -135,15 +136,9 @@ const ClipSelect = ({ modelId, stage, value, onChange }: { modelId?: string; sta
   const asset = modelId ? getModelAsset(modelId) : undefined;
   const clips = useGltfClipNames(asset?.path);
   const diagnostic = stageClipDiagnostic(stage, modelId, clips);
-  if (clips.length === 0) return <TextRow label="Clip name (type — no model clips found)" value={value ?? ''} onChange={(v) => onChange(v || undefined)} />;
   return (
     <div className="space-y-1">
-      <SelectRow
-        label="Clip"
-        value={value ?? ''}
-        options={[{ value: '', label: '(none)' }, ...clips.map((c) => ({ value: c, label: c }))]}
-        onChange={(v) => onChange(v || undefined)}
-      />
+      <AnimationTrackSelect label="Clip" clips={clips} value={value} onChange={onChange} />
       <div className={`rounded px-2 py-1 text-[10px] ${diagnostic.ok ? 'bg-emerald-950/20 text-emerald-200' : 'bg-rose-950/30 text-rose-200'}`}>
         {diagnostic.message}
         {diagnostic.missing && (

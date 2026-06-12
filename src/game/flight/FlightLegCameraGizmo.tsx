@@ -21,7 +21,7 @@ export const FlightLegCameraGizmo = () => {
   const previewing = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
   useFlightPreviewStore((s) => s.u); // recompute the eye when scrubbing
   const tuning = useEditorFlightStore((s) => s.tuning);
-  const world = useGameStore((s) => s.phase === 'WORLD_FLIGHT');
+  const world = useGameStore((s) => s.phase === 'WORLD_FLIGHT' || s.phase === 'RETURN_FLIGHT');
   if (!camGizmo || !previewing) return null;
 
   const dist = world ? tuning.worldCamDistance : tuning.flyAroundCamDistance;

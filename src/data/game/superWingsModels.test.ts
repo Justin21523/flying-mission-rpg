@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   SUPER_WINGS_MODELS,
+  buildSuperWingsModelIntakeRows,
   deriveSuperWingsModelCatalog,
   heroPoseAssetIds,
   id,
@@ -42,7 +43,7 @@ describe('super-wings model catalog', () => {
     expect(heroPoseAssetIds('char_flip').every((assetId) => assetId.startsWith('super-wings/'))).toBe(true);
     expect(heroPoseAssetIds('char_flip')).toContain(id('Flip pose 3d model'));
     expect(heroPoseAssetIds('char_flip')).not.toContain(id('Flip+landing+1+robot'));
-    expect(heroPoseAssetIds('char_jett')).toEqual([]);
+    expect(heroPoseAssetIds('char_jett')).toContain(id('Jett+pose+3d+model'));
   });
 
   it('groups an injected new filename by character name prefix', () => {
@@ -105,5 +106,44 @@ describe('super-wings model catalog', () => {
     expect(catalog.char_jett?.planeAssetId).toBe(pinnedPlane);
     expect(catalog.char_jett?.allAssetIds).not.toContain(hidden);
     expect(catalog.char_jett?.poseAssetIds).toEqual([id('Jett pose 3d model')]);
+  });
+
+  it('builds intake QA rows for assigned, hidden, and unassigned assets', () => {
+    const hidden = id('Jett hidden pose 3d model');
+    const rows = buildSuperWingsModelIntakeRows(
+      [
+        asset(id('Jett+transformer+3d+model')),
+        asset(id('Jett pose 3d model')),
+        asset(hidden),
+        asset('super-wings/futuristic aircraft hangar 3d model'),
+      ],
+      {
+        char_jett: {
+          robotAssetId: id('Jett+transformer+3d+model'),
+          hiddenAssetIds: [hidden],
+        },
+      },
+      ['jett'],
+    );
+
+    expect(rows.find((row) => row.assetId === id('Jett+transformer+3d+model'))).toMatchObject({
+      status: 'assigned',
+      characterId: 'char_jett',
+      kind: 'robot',
+      isPrimaryRobot: true,
+      isHidden: false,
+      isInPoseModels: true,
+    });
+    expect(rows.find((row) => row.assetId === hidden)).toMatchObject({
+      status: 'hidden',
+      characterId: 'char_jett',
+      isHidden: true,
+      isInPoseModels: false,
+    });
+    expect(rows.find((row) => row.assetId === 'super-wings/futuristic aircraft hangar 3d model')).toMatchObject({
+      status: 'unassigned',
+      characterId: undefined,
+      isInPoseModels: false,
+    });
   });
 });

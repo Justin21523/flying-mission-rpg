@@ -8,7 +8,7 @@ import { getFlightTuning, useEditorFlightStore } from '../../../stores/game/edit
 import { getPath } from '../../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../../path/pathCurve';
 import { sampleNodeParams } from '../pathNodeParams';
-import { getActivePathId } from './worldRoute';
+import { getActiveFlightLeg } from './worldRoute';
 import { worldFlightDev } from './worldFlightDev';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
 import { useGameStore } from '../../../stores/game/useGameStore';
@@ -18,6 +18,7 @@ import { useFlightPreviewStore } from '../../../stores/game/flightPreviewStore';
 import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
 import type { AnimState } from '../../anim/animRunner';
 import { flightHandle } from '../flightHandle';
+import { sampleUForDirection } from '../flightLeg';
 
 // The craft cruises FORWARD along the active route's 航道 (editorPathStore path) — it always flies ahead
 // (never reverses); W boosts, S eases off. NOTE: three's Object3D.lookAt on a non-camera Group points its
@@ -44,7 +45,8 @@ export const RouteFollower = () => {
   const cueClip = useFlightPreviewStore((s) => s.activeCueClip); // an animation cue forces this clip in play
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
   const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
-  const pathId = getActivePathId();
+  const homebound = useGameStore((s) => s.phase === 'RETURN_FLIGHT');
+  const leg = getActiveFlightLeg(homebound ? 'return' : 'outbound');
   const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0 });
   const getAnimState = useCallback(() => { animState.current.speed = flightHandle.speedNorm; return animState.current; }, []);
 
@@ -70,13 +72,13 @@ export const RouteFollower = () => {
     u.current = 0;
     flightHandle.routeU = 0;
     useWorldFlightRuntimeStore.getState().reset();
-  }, []);
+  }, [leg.pathId, leg.direction]);
 
   useFrame((_, dtRaw) => {
     if (!shouldTick()) return; // soft-pause (system menu / tab hidden)
     const c = craft.current;
     if (!c) return;
-    const def = getPath(pathId);
+    const def = getPath(leg.pathId);
     const cc = def ? getCurve(def) : null;
     if (!cc) return;
     const dt = Math.min(dtRaw, 0.05);
@@ -86,7 +88,8 @@ export const RouteFollower = () => {
     // worldFlightDurationSec end-to-end regardless of its path length (so all routes are ~2 min by default).
     const pickup = useFlightScoreStore.getState().boostActive() ? Math.max(1, tuning.boostSpeedMul) : 1; // boost pickup surge
     const boost = (k['KeyW'] ? 1.7 : k['KeyS'] ? 0.45 : 1) * pickup;
-    const np = sampleNodeParams(def, u.current); // per-node authored speed/bank (gentle, opt-in)
+    const sampleU = sampleUForDirection(u.current, leg.direction);
+    const np = sampleNodeParams(def, sampleU); // per-node authored speed/bank (gentle, opt-in)
     const dur = Math.max(5, tuning.worldFlightDurationSec);
     u.current = Math.min(1, u.current + (dt / dur) * boost * np.speedMul);
     const pathSpeed = (cc.length / dur) * boost; // for HUD display only
@@ -94,8 +97,9 @@ export const RouteFollower = () => {
     if (worldFlightDev.jumpU >= 0) { u.current = Math.min(1, worldFlightDev.jumpU); worldFlightDev.jumpU = -1; }
     if (worldFlightDev.progressDelta !== 0) { u.current = Math.min(1, u.current + worldFlightDev.progressDelta); worldFlightDev.progressDelta = 0; }
 
-    samplePos(cc.curve, u.current, _pos);
-    sampleTangent(cc.curve, u.current, _tan);
+    samplePos(cc.curve, sampleU, _pos);
+    sampleTangent(cc.curve, sampleU, _tan);
+    if (leg.direction === 'reverse') _tan.multiplyScalar(-1);
 
     // Steering — A/D drift the craft laterally off the route centreline (with bank-into-turn roll),
     // Space/Shift (or ↑/↓) climb/descend. The offsets INTEGRATE while held (continuous — keep going up to a
@@ -128,7 +132,6 @@ export const RouteFollower = () => {
     if (u.current >= 0.999 && !useWorldFlightRuntimeStore.getState().arrived) {
       useWorldFlightRuntimeStore.getState().setArrived(true);
       // Reached the end → outbound flight approaches the destination; the homebound return leg approaches base.
-      const homebound = useGameStore.getState().phase === 'RETURN_FLIGHT';
       useGameStore.getState().requestTransition(homebound ? 'BASE_APPROACH' : 'DESTINATION_APPROACH');
     }
   });

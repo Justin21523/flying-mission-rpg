@@ -15,6 +15,7 @@ interface EditorPathState {
   updatePathNode: (pathId: string, nodeId: string, position: [number, number, number]) => void;
   updateNode: (pathId: string, nodeId: string, patch: Partial<PathNodeData>) => void;
   addNode: (pathId: string) => void;
+  insertNodeAt: (pathId: string, index: number, position: [number, number, number]) => string | null;
   removeNode: (pathId: string, nodeId: string) => void;
   reorderNode: (pathId: string, nodeId: string, dir: -1 | 1) => void;
   removePath: (id: string) => void;
@@ -87,6 +88,33 @@ export const useEditorPathStore = create<EditorPathState>((set, get) => {
       });
       save();
       if (newId) { useWorldSelectStore.getState().select(`${pathId}#node#${newId}`); focusCameraOn(pos[0], pos[1], pos[2]); }
+    },
+    insertNodeAt: (pathId, index, position) => {
+      let newId: string | null = null;
+      set({
+        paths: get().paths.map((p) => {
+          if (p.id !== pathId) return p;
+          const nodes = p.nodes ?? [];
+          const node: PathNodeData = {
+            id: uid('node'),
+            position,
+            tangentMode: 'automatic',
+            speedMultiplier: 1,
+            width: p.laneWidth,
+          };
+          newId = node.id;
+          const nextNodes = nodes.slice();
+          const insertAt = Math.max(0, Math.min(index, nextNodes.length));
+          nextNodes.splice(insertAt, 0, node);
+          return { ...p, nodes: nextNodes, nodeIds: nextNodes.map((n) => n.id) };
+        }),
+      });
+      save();
+      if (newId) {
+        useWorldSelectStore.getState().select(`${pathId}#node#${newId}`);
+        focusCameraOn(position[0], position[1], position[2]);
+      }
+      return newId;
     },
     removeNode: (pathId, nodeId) => {
       set({

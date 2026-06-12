@@ -8,6 +8,7 @@ import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
 import { PhaseCameraGizmo } from '../camera/PhaseCameraGizmo';
 import { EditableGround } from '../world/EditableGround';
+import { SceneSetPieceLayer } from '../world/SceneSetPieceLayer';
 import { DestinationLayoutLayer } from './DestinationLayoutLayer';
 import { DestinationNpcLayer } from './DestinationNpcLayer';
 import { RobotDescentController } from './RobotDescentController';
@@ -52,6 +53,7 @@ export const DestinationScene = () => {
         {/* POLI editable landing ground — 🌤 Environment / 🗺 World / terrain sculpt / PBR edit this area. */}
         <EditableGround areaId="aero_destination" />
         <DestinationLayoutLayer />
+        <SceneSetPieceLayer areaId="aero_destination" />
         {!editMode && GROUND_PHASES.has(phase) && <RobotGroundController />}
         {!editMode && GROUND_PHASES.has(phase) && <SupportCompanionLayer />}
       </Physics>

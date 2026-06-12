@@ -78,6 +78,7 @@ import { EditAssetPalette } from './ui/EditAssetPalette';
 import { EditModeInspector } from './ui/EditModeInspector';
 import { SelectionTabSync } from './ui/SelectionTabSync';
 import { TerrainBrushHud } from './ui/TerrainBrushHud';
+import { MissionAreaQuickAddOverlay } from './ui/editor/game/MissionAreaQuickAddOverlay';
 import { InteractionPrompt } from './ui/InteractionPrompt';
 import { WorldClockHUD } from './ui/WorldClockHUD';
 import { DialogueBox } from './ui/DialogueBox';
@@ -338,6 +339,7 @@ export const App = () => {
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}
+      {editMode && <MissionAreaQuickAddOverlay />}
       {editMode && <EditModeInspector />}
       {editMode && <SelectionTabSync />}
       {editMode && <TerrainBrushHud />}

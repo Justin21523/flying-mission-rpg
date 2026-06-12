@@ -12,6 +12,7 @@ import { focusCameraOn } from '../edit/cameraFocus';
 import { characterModelForForm } from '../destination/characterModel';
 import type { AnimState } from '../anim/animRunner';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
+import { sampleUForDirection, type FlightLegDirection } from './flightLeg';
 
 // EDIT-ONLY flight timeline preview — flies a preview craft along the scene's path at the store's u (0..1),
 // scrub/play from the 🛩 Flight → Flight Preview panel. Mirrors RouteFollower's curve+bank math but is driven
@@ -21,7 +22,17 @@ const _tan = new Vector3();
 const _look = new Vector3();
 const DEG2RAD = Math.PI / 180;
 
-export const FlightPreviewController = ({ pathId, craftScale, craftYaw }: { pathId: string; craftScale: number; craftYaw: number }) => {
+export const FlightPreviewController = ({
+  pathId,
+  craftScale,
+  craftYaw,
+  direction = 'forward',
+}: {
+  pathId: string;
+  craftScale: number;
+  craftYaw: number;
+  direction?: FlightLegDirection;
+}) => {
   const craft = useRef<Group>(null);
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
@@ -38,9 +49,11 @@ export const FlightPreviewController = ({ pathId, craftScale, craftYaw }: { path
     const def = getPath(pathId);
     const cc = def ? getCurve(def) : null;
     if (!cc) return;
-    samplePos(cc.curve, u, _pos);
-    sampleTangent(cc.curve, u, _tan);
-    const np = sampleNodeParams(def, u);
+    const sampleU = sampleUForDirection(u, direction);
+    samplePos(cc.curve, sampleU, _pos);
+    sampleTangent(cc.curve, sampleU, _tan);
+    if (direction === 'reverse') _tan.multiplyScalar(-1);
+    const np = sampleNodeParams(def, sampleU);
     c.position.copy(_pos);
     _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
     c.lookAt(_look);

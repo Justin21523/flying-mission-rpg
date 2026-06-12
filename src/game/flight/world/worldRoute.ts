@@ -6,6 +6,7 @@ import { getFlightEvents } from '../../../stores/game/editorFlightEventStore';
 import { WORLD_PATH_ID } from '../../../data/game/worldRoutes';
 import type { FlightRoute } from '../../../types/game/flight';
 import type { FlightEventDef } from '../../../types/game/flightEvent';
+import { resolveFlightLeg, type FlightLegKind, type ResolvedFlightLeg } from '../flightLeg';
 
 // The route the world-flight runtime is currently flying: the active mission's route, else the first
 // authored route. Shared by RouteFollower, the event director, and the HUDs so they all agree.
@@ -21,6 +22,10 @@ export function getActiveRoute(): FlightRoute | undefined {
 
 export function getActivePathId(): string {
   return getActiveRoute()?.pathId ?? WORLD_PATH_ID;
+}
+
+export function getActiveFlightLeg(kind: FlightLegKind): ResolvedFlightLeg {
+  return resolveFlightLeg(getActiveRoute(), kind);
 }
 
 // The flight-event pool the active route allows the director to spawn (its eventPoolIds; empty = all).

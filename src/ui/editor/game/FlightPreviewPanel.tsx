@@ -2,6 +2,7 @@ import { useFlightPreviewStore, flightPreviewHandle } from '../../../stores/game
 import { usePoll } from '../../usePoll';
 import { Field, inp, lbl, Check } from '../editorShared';
 import { FlightCuesEditor } from './FlightCuesEditor';
+import { FlightRouteNodeTimeline } from './FlightRouteNodeTimeline';
 
 // 🛩 Flight → Flight Preview — a transformation-style timeline for the flight legs. Drives a preview craft
 // along the CURRENT flight scene's path (BASE_FLY_AROUND loop or WORLD_FLIGHT route) by progress u∈[0,1].
@@ -42,6 +43,7 @@ export const FlightPreviewPanel = () => {
         <Field label="Speed (u/sec)"><input type="number" step={0.02} min={0.01} value={speed} onChange={(e) => s.setSpeed(parseFloat(e.target.value) || 0.12)} className={inp} /></Field>
         <Check label="Follow craft (orbit rides along)" checked={follow} onChange={() => s.toggleFollow()} />
       </div>
+      <FlightRouteNodeTimeline />
       <FlightCuesEditor />
     </div>
   );
