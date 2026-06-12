@@ -45,6 +45,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_donnie',
     cardImage: 'Donnie_card.jpeg',
     modelAssetId: 'super-wings/Donnie+transformer+3d+model',
+    planeModelAssetId: 'super-wings/Donnie airplane 3d model',
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -66,6 +67,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_paul',
     cardImage: 'Paul_card.jpeg',
     modelAssetId: 'super-wings/paul+transformer+3d+model',
+    planeModelAssetId: 'super-wings/Paul airplane 3d model',
     homeBaseLocationId: 'loc_homebase',
   },
   {
@@ -150,6 +152,7 @@ export const SEED_CHARACTERS: CharacterDefinition[] = [
     transformationId: 'xf_flip',
     cardImage: 'Flip_card.jpeg',
     modelAssetId: 'super-wings/Flip+transformer+3d+model',
+    planeModelAssetId: 'super-wings/Flip airplane 3d model',
     homeBaseLocationId: 'loc_homebase',
   },
   {

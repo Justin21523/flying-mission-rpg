@@ -81,6 +81,8 @@ export const SEED_BASE_PARTS: BasePart[] = [
     id: 'base_lift',
     kind: 'lift_platform',
     label: 'Lift Platform',
+    assetId: 'interiors/stylized vehicle platform 3d model',
+    modelTarget: 5,
     position: [0, 0.1, -1],
     rotation: [0, 0, 0],
     scale: 1,

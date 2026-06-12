@@ -26,12 +26,20 @@ import type { PathDefinition } from '../../types/path';
 // scale), so the flight craft / base vehicle / transformation reveal are all bigger AND stay tunable in the
 // 🎬 Model Studio tab. Only sets a default when the user hasn't tuned that model.
 const DEFAULT_CRAFT_SCALE = 2.5;
+const DEFAULT_NPC_SCALE = 1.6; // cartoon NPC GLBs render at Model-Studio scale (no modelTarget) — sane default
 function seedCraftScale(): void {
   const ms = useModelStudioStore.getState();
+  const seedScale = (id: string | undefined, scale: number): void => {
+    if (id && ms.overrides[id]?.scale == null) ms.setTransform(id, { scale });
+  };
+  // Character robot + plane models (both used by flight / transformation slots).
   for (const c of useEditorCharacterStore.getState().items) {
-    if (c.modelAssetId && ms.overrides[c.modelAssetId]?.scale == null) {
-      ms.setTransform(c.modelAssetId, { scale: DEFAULT_CRAFT_SCALE });
-    }
+    seedScale(c.modelAssetId, DEFAULT_CRAFT_SCALE);
+    seedScale(c.planeModelAssetId, DEFAULT_CRAFT_SCALE);
+  }
+  // NPC models (destination greeters / side-quest residents) — Model-Studio-scaled, default-only.
+  for (const n of useEditorGameNpcStore.getState().items) {
+    seedScale(n.modelAssetId, DEFAULT_NPC_SCALE);
   }
 }
 
