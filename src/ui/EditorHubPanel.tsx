@@ -45,6 +45,7 @@ import { QualityPresetEditorTab } from './editor/game/QualityPresetEditorTab';
 import { AudioPresetEditorTab } from './editor/game/AudioPresetEditorTab';
 import { FlightPolishEditorTab } from './editor/game/FlightPolishEditorTab';
 import { TransformationPolishEditorTab } from './editor/game/TransformationPolishEditorTab';
+import { MusicEditorTab } from './editor/game/MusicEditorTab';
 import { DomainFileRow } from './editor/DomainFileRow';
 import { getDomain } from '../game/editor/editorContentRegistry';
 import { useSceneEditStore } from '../stores/sceneEditStore';
@@ -58,7 +59,7 @@ import { useEditorSupportStore } from '../stores/game/editorSupportStore';
 import { computeTabWarnings } from '../game/editor/tabWarnings';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
-type Tab = 'gchar' | 'gloc' | 'gmap' | 'gworld' | 'gmission' | 'gmissionstudio' | 'gmissiongen' | 'gllm' | 'gnpc' | 'gsupport' | 'gyokai' | 'gxform' | 'gbase' | 'gflight' | 'gexterior' | 'gevent' | 'gdest' | 'gcam' | 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save' | 'gquality' | 'gaudio' | 'gflightpolish' | 'gxfpolish';
+type Tab = 'gchar' | 'gloc' | 'gmap' | 'gworld' | 'gmission' | 'gmissionstudio' | 'gmissiongen' | 'gllm' | 'gnpc' | 'gsupport' | 'gyokai' | 'gxform' | 'gbase' | 'gflight' | 'gexterior' | 'gevent' | 'gdest' | 'gcam' | 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save' | 'gquality' | 'gaudio' | 'gflightpolish' | 'gxfpolish' | 'gmusic';
 type TabCategory = 'Mission Studio' | 'Characters / Support' | 'Flight / Transform' | 'World / Destination' | 'Data / Project' | 'Legacy';
 const CATEGORIES: readonly TabCategory[] = ['Mission Studio', 'Characters / Support', 'Flight / Transform', 'World / Destination', 'Data / Project', 'Legacy'];
 const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[] = [
@@ -94,6 +95,7 @@ const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[
   { id: 'reactions', label: '💥 Reactions', category: 'Data / Project' },
   { id: 'gquality', label: '⚙ Quality', category: 'Data / Project' },
   { id: 'gaudio', label: '🔊 Audio', category: 'Data / Project' },
+  { id: 'gmusic', label: '🎵 Music', category: 'Data / Project' },
   { id: 'project', label: '📦 Project', category: 'Data / Project' },
   { id: 'debug', label: '🧪 Debug', category: 'Data / Project' },
   { id: 'save', label: '💾 Save', category: 'Data / Project' },
@@ -141,6 +143,7 @@ const TAB_DOMAINS: Partial<Record<Tab, string[]>> = {
   gxfpolish: ['gameTransformationPolish'],
   gquality: ['gameQuality'],
   gaudio: ['gameAudioPreset'],
+  gmusic: ['gameMusic', 'gameAmbient'],
   gbase: ['gameBase'],
   gflight: ['gameFlight'],
   gexterior: ['gameExterior'],
@@ -339,7 +342,7 @@ export const EditorHubPanel = () => {
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
         <WorkflowQuickLinks activeTab={tab} onSelect={setTab} />
         <TabJsonStrip tab={tab} />
-        {tab === 'gchar' ? <CharacterEditorTab /> : tab === 'gloc' ? <LocationEditorTab /> : tab === 'gmap' ? <MapEditorTab /> : tab === 'gworld' ? <WorldToolsEditorTab /> : tab === 'gmission' ? <MissionEditorTab /> : tab === 'gmissionstudio' ? <MissionStudioTab /> : tab === 'gmissiongen' ? <MissionGeneratorTab /> : tab === 'gllm' ? <LlmSettingsTab /> : tab === 'gnpc' ? <GameNpcEditorTab /> : tab === 'gsupport' ? <SupportEditorTab /> : tab === 'gyokai' ? <YokaiHuntEditorTab /> : tab === 'gxform' ? <TransformationEditorTab /> : tab === 'gflightpolish' ? <FlightPolishEditorTab /> : tab === 'gxfpolish' ? <TransformationPolishEditorTab /> : tab === 'gquality' ? <QualityPresetEditorTab /> : tab === 'gaudio' ? <AudioPresetEditorTab /> : tab === 'gbase' ? <BaseLayoutEditorTab /> : tab === 'gflight' ? <FlightEditorTab /> : tab === 'gexterior' ? <ExteriorEditorTab /> : tab === 'gevent' ? <FlightEventsEditorTab /> : tab === 'gdest' ? <DestinationEditorTab /> : tab === 'gcam' ? <CameraEditorTab /> : tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
+        {tab === 'gchar' ? <CharacterEditorTab /> : tab === 'gloc' ? <LocationEditorTab /> : tab === 'gmap' ? <MapEditorTab /> : tab === 'gworld' ? <WorldToolsEditorTab /> : tab === 'gmission' ? <MissionEditorTab /> : tab === 'gmissionstudio' ? <MissionStudioTab /> : tab === 'gmissiongen' ? <MissionGeneratorTab /> : tab === 'gllm' ? <LlmSettingsTab /> : tab === 'gnpc' ? <GameNpcEditorTab /> : tab === 'gsupport' ? <SupportEditorTab /> : tab === 'gyokai' ? <YokaiHuntEditorTab /> : tab === 'gxform' ? <TransformationEditorTab /> : tab === 'gflightpolish' ? <FlightPolishEditorTab /> : tab === 'gxfpolish' ? <TransformationPolishEditorTab /> : tab === 'gquality' ? <QualityPresetEditorTab /> : tab === 'gaudio' ? <AudioPresetEditorTab /> : tab === 'gmusic' ? <MusicEditorTab /> : tab === 'gbase' ? <BaseLayoutEditorTab /> : tab === 'gflight' ? <FlightEditorTab /> : tab === 'gexterior' ? <ExteriorEditorTab /> : tab === 'gevent' ? <FlightEventsEditorTab /> : tab === 'gdest' ? <DestinationEditorTab /> : tab === 'gcam' ? <CameraEditorTab /> : tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
       </div>
     </div>
   );

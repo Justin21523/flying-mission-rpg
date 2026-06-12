@@ -12,6 +12,7 @@ import { validateTimeline } from './transformationValidation';
 import { txFrame, transformationHandle, useTxVersion, resetTransformationRuntime } from './transformationRuntime';
 import { transformationDev } from './transformationDev';
 import { descentEntry } from './descentEntry';
+import { emitAudioEvent } from '../audio/AudioEventBus';
 import type { TransformationDefinition } from '../../types/game/transformation';
 
 // PLAY-mode transformation orchestrator (logic in the pure Runner + FormController; this host only binds them
@@ -38,6 +39,8 @@ export const TransformationDirector = () => {
   const reverse = useGameStore((s) => s.phase === 'RETURN_TRANSFORMATION');
   const revT = useRef(0); // reverse playhead (counts down from duration → 0)
   const revDur = useRef(1);
+  // Batch 12.1 — track which effect tracks are already active so we fire an audio cue once on entry.
+  const prevFx = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const character = charId ? getEditorCharacter(charId) : undefined;
@@ -64,6 +67,8 @@ export const TransformationDirector = () => {
     txFrame.def = def;
     txFrame.charModelId = character?.modelAssetId;
     txFrame.showcaseYaw = 0;
+    prevFx.current = new Set();
+    if (!reverse) emitAudioEvent({ type: 'transformation-stage', stage: 'start' });
 
     const down = (e: KeyboardEvent) => {
       const tag = (document.activeElement?.tagName ?? '').toLowerCase();
@@ -139,6 +144,13 @@ export const TransformationDirector = () => {
     // publish snapshot + handle (+ effect-set version bump)
     const snap = r.getSnapshot();
     txFrame.snapshot = snap;
+    // Fire an audio cue once when a notable effect track enters (energy ring / white flash).
+    for (const fx of snap.activeEffects) {
+      if (!prevFx.current.has(fx.id)) {
+        prevFx.current.add(fx.id);
+        if (fx.type === 'energy-ring' || fx.type === 'white-flash') emitAudioEvent({ type: 'transformation-stage', stage: fx.type });
+      }
+    }
     useTxVersion.getState().bump(`${snap.activeEffects.map((e) => e.id).join(',')}|${snap.activeModelRef ?? ''}:${snap.activeModelStageId ?? ''}|${snap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
     const fc = form.current;
     Object.assign(transformationHandle, {
@@ -151,6 +163,7 @@ export const TransformationDirector = () => {
     // finish → momentum transfer → DESCENT
     if (r.isDone() && !done.current) {
       done.current = true;
+      emitAudioEvent({ type: 'transformation-stage', stage: 'finish' });
       if (fc.getCurrentForm() !== 'robot') fc.switchToRobotForm();
       const m = def.momentumTransferConfig ?? { preserveHorizontalVelocity: false, horizontalVelocityMultiplier: 0, initialDescentVelocity: 8, clampMaxDescentSpeed: 30, faceCameraOnExit: true };
       descentEntry.velocity = clamp(m.initialDescentVelocity + (m.preserveHorizontalVelocity ? entrySpeed.current * m.horizontalVelocityMultiplier : 0), 0, m.clampMaxDescentSpeed);

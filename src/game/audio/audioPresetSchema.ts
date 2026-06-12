@@ -14,7 +14,7 @@ export const AudioCueSchema = z.object({
   pitchRange: z.tuple([z.number().positive(), z.number().positive()]).optional()
     .refine((r) => !r || r[0] <= r[1], 'pitchRange must be [min, max] with min <= max'),
   loop: z.boolean(),
-  fallbackSfx: z.enum(['transform', 'ability', 'rescueSuccess', 'rescueFail', 'incident', 'questComplete', 'ui']).optional(),
+  fallbackSfx: z.enum(['transform', 'ability', 'rescueSuccess', 'rescueFail', 'incident', 'questComplete', 'ui', 'pickup', 'ring', 'warn', 'land', 'objective', 'coin', 'blip', 'boost']).optional(),
 });
 
 export const AudioPresetSchema = z.object({

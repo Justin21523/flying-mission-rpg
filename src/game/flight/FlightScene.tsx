@@ -21,6 +21,7 @@ import { FlightPreviewController } from './FlightPreviewController';
 import { FlightCuePreview } from './FlightCuePreview';
 import { FlightCuePlayController } from './FlightCuePlayController';
 import { FlightLegCameraGizmo } from './FlightLegCameraGizmo';
+import { FlightAudioHost } from '../audio/FlightAudioHost';
 import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 
@@ -64,6 +65,7 @@ export const FlightScene = () => {
       {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
       {!editMode && <FlightController />}
       {!editMode && <FlightCuePlayController pathId={FLIGHT_PATH_ID} />}
+      {!editMode && <FlightAudioHost />}
 
       {/* EDIT: orbit camera, unless previewing with Camera = Flight (then show the real flight framing so the
           authored cam distance/height + craft scale are visible live). PLAY: always the flight camera. */}

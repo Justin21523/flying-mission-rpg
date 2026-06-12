@@ -1,12 +1,16 @@
 import { getAudioManager } from './AudioManager';
 import { installUiAudio } from './UiAudioController';
 import { installTransformationAudio } from './TransformationAudioController';
+import { installMusicDirector } from './MusicDirector';
+import { installAudioObservers } from './audioObservers';
+import { installUiSoundDelegate } from './installUiSoundDelegate';
 import { ALL_AUDIO_PRESETS } from '../../data/audio/audioPresets';
 import { getEditorAudioPresets } from '../../stores/game/editorAudioPresetStore';
 
-// Batch 12 — one-time audio bootstrap. Registers the authored audio presets (editor store → seed
-// fallback) and installs the decoupled UI / transformation audio listeners. Mounted once from App;
-// returns a cleanup so HMR / unmount tears the listeners down.
+// Batch 12 / 12.1 — one-time audio bootstrap. Registers the authored audio presets (editor store → seed
+// fallback) and installs every decoupled audio listener: UI cues, transformation cues, procedural BGM/
+// ambient director, gameplay observers, and the global UI sound delegate. Mounted once from App; returns a
+// cleanup so HMR / unmount tears it all down.
 
 let installed = false;
 
@@ -24,9 +28,15 @@ export function initAudioRuntime(): () => void {
   installed = true;
   const offUi = installUiAudio();
   const offXf = installTransformationAudio();
+  const offMusic = installMusicDirector();
+  const offObservers = installAudioObservers();
+  const offDelegate = installUiSoundDelegate();
   return () => {
     offUi();
     offXf();
+    offMusic();
+    offObservers();
+    offDelegate();
     installed = false;
   };
 }

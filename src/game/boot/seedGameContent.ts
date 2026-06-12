@@ -15,6 +15,7 @@ import { useEditorQualityStore } from '../../stores/game/editorQualityStore';
 import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetStore';
 import { useEditorFlightPolishStore } from '../../stores/game/editorFlightPolishStore';
 import { useEditorTransformationPolishStore } from '../../stores/game/editorTransformationPolishStore';
+import { useEditorMusicTrackStore, useEditorAmbientStore } from '../../stores/game/editorMusicStore';
 import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
 import { useModelStudioStore } from '../../stores/modelStudioStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
@@ -61,6 +62,8 @@ export function seedGameContent(): void {
   useEditorAudioPresetStore.getState().mergeMissingFromSeed();
   useEditorFlightPolishStore.getState().mergeMissingFromSeed();
   useEditorTransformationPolishStore.getState().mergeMissingFromSeed();
+  useEditorMusicTrackStore.getState().mergeMissingFromSeed();
+  useEditorAmbientStore.getState().mergeMissingFromSeed();
 
   // Seed our 航道 curves into the editorPathStore so the 🛣 Tracks tab + node gizmos edit the REAL paths
   // (fly-around around the base, and the long-distance world route).

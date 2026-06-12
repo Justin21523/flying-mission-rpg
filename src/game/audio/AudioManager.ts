@@ -14,6 +14,8 @@ export interface AudioLoopHandle {
   stop(): void;
 }
 
+const SAME_CUE_DEBOUNCE_MS = 40;
+
 // Minimal Howl surface we use (kept local so the type doesn't leak Howler into the import graph).
 interface HowlLike {
   play(): number;
@@ -31,6 +33,9 @@ class AudioManager {
   private activeLoops = new Set<AudioLoopHandle>();
   private nonEssentialPaused = false;
   private unsub: (() => void) | null = null;
+  // Same-cue debounce: the global UI delegate + an explicit playUiSound on the same click collapse to one,
+  // and rapid repeats (e.g. many pickups) don't machine-gun.
+  private lastPlay = new Map<string, number>();
 
   constructor() {
     for (const id of AUDIO_BUS_IDS) this.buses.set(id, new AudioBus(id, 1));
@@ -93,6 +98,9 @@ class AudioManager {
   play(cueId: string): boolean {
     const cue = this.cues.get(cueId);
     if (!cue) return false;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (now - (this.lastPlay.get(cueId) ?? -Infinity) < SAME_CUE_DEBOUNCE_MS) return false;
+    this.lastPlay.set(cueId, now);
     const gain = this.gainFor(cue);
     if (gain <= 0) return false;
     if (cue.assetId) {
@@ -158,6 +166,11 @@ class AudioManager {
   /** Active loop count (for the performance debug panel). */
   playingCount(): number {
     return this.activeLoops.size;
+  }
+
+  /** Clear the same-cue debounce history (used by tests). */
+  clearPlayHistory(): void {
+    this.lastPlay.clear();
   }
 
   stopAll(): void {

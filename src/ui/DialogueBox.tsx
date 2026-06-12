@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { getDialogueTree } from '../game/dialogue/dialogueRegistry';
+import { getAudioManager } from '../game/audio/AudioManager';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { useDialogueStore } from '../stores/dialogueStore';
 import { useInventoryStore } from '../stores/inventoryStore';
@@ -46,6 +47,11 @@ export const DialogueBox = () => {
   const currentNodeIndex = currentNodeId ? nodeIds.indexOf(currentNodeId) : -1;
   const { displayedText, isComplete, skip } = useTypewriter(node?.text ?? '', 24);
   const choices = node?.choices;
+
+  // Batch 12.1 — soft blip each time a new dialogue line appears.
+  useEffect(() => {
+    if (isActive && currentNodeId) getAudioManager().play('fx.blip');
+  }, [isActive, currentNodeId]);
 
   const availableChoices = useMemo(() => {
     if (!choices) return [];

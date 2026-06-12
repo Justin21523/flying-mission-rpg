@@ -12,6 +12,7 @@ beforeEach(() => {
   useAudioStore.getState().reset();
   const mgr = getAudioManager();
   mgr.syncFromStore();
+  mgr.clearPlayHistory();
   mgr.registerCue(FALLBACK_CUE);
   mgr.registerCue(SILENT_CUE);
   mgr.registerCue(LOOP_CUE);

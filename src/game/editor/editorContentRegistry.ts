@@ -34,6 +34,7 @@ import { useEditorQualityStore } from '../../stores/game/editorQualityStore';
 import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetStore';
 import { useEditorFlightPolishStore } from '../../stores/game/editorFlightPolishStore';
 import { useEditorTransformationPolishStore } from '../../stores/game/editorTransformationPolishStore';
+import { useEditorMusicTrackStore, useEditorAmbientStore } from '../../stores/game/editorMusicStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { useEditorFlightStore } from '../../stores/game/editorFlightStore';
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
@@ -196,6 +197,22 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorTransformationPolishStore.getState().importState(data as { items?: never }); },
     clear: () => useEditorTransformationPolishStore.getState().reset(),
     summary: () => `${useEditorTransformationPolishStore.getState().items.length} transformation polish presets`,
+  },
+  {
+    id: 'gameMusic',
+    label: 'Music Tracks',
+    serialize: () => { const s = useEditorMusicTrackStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorMusicTrackStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorMusicTrackStore.getState().reset(),
+    summary: () => `${useEditorMusicTrackStore.getState().items.length} music tracks`,
+  },
+  {
+    id: 'gameAmbient',
+    label: 'Ambient Layers',
+    serialize: () => { const s = useEditorAmbientStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorAmbientStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorAmbientStore.getState().reset(),
+    summary: () => `${useEditorAmbientStore.getState().items.length} ambient layers`,
   },
   {
     id: 'gameBase',

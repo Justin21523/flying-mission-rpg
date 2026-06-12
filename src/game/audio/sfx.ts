@@ -1,7 +1,8 @@
 import { useAudioStore } from '../../stores/audioStore';
+import { getAudioCtx } from './audioContext';
 
 // POLI placeholder SFX — short WebAudio synth blips. No sample files (content-policy: legally-free /
-// generated only). One lazily-created AudioContext, gated by audioStore.sfxEnabled + sfxVolume.
+// generated only). Uses the shared AudioContext (audioContext.ts), gated by audioStore.sfxEnabled + sfxVolume.
 // Call playSfx(name) at event sites (transform, ability, rescue, incident, quest, ui). Never per-frame.
 
 export type SfxName =
@@ -11,7 +12,16 @@ export type SfxName =
   | 'rescueFail'
   | 'incident'
   | 'questComplete'
-  | 'ui';
+  | 'ui'
+  // Batch 12.1 — richer child-friendly palette for full-game cue coverage.
+  | 'pickup'
+  | 'ring'
+  | 'warn'
+  | 'land'
+  | 'objective'
+  | 'coin'
+  | 'blip'
+  | 'boost';
 
 interface Note { freq: number; dur: number; type: OscillatorType; delay: number; gain?: number; sweepTo?: number; }
 
@@ -50,25 +60,43 @@ const CUES: Record<SfxName, Note[]> = {
   ],
   // Tiny click — generic UI.
   ui: [{ freq: 520, dur: 0.05, type: 'sine', delay: 0, gain: 0.4 }],
+  // Bright rising "pickup" chime.
+  pickup: [
+    { freq: 784, dur: 0.07, type: 'triangle', delay: 0 },
+    { freq: 1046, dur: 0.09, type: 'triangle', delay: 0.06 },
+  ],
+  // Shimmer for passing a stunt ring.
+  ring: [
+    { freq: 988, dur: 0.06, type: 'sine', delay: 0, sweepTo: 1320 },
+    { freq: 1320, dur: 0.08, type: 'sine', delay: 0.05 },
+  ],
+  // Gentle warning two-tone (crosswind / lightning) — alert but not harsh.
+  warn: [
+    { freq: 600, dur: 0.09, type: 'square', delay: 0, gain: 0.4 },
+    { freq: 500, dur: 0.1, type: 'square', delay: 0.12, gain: 0.4 },
+  ],
+  // Soft thud for a landing touchdown.
+  land: [{ freq: 180, dur: 0.16, type: 'sine', delay: 0, sweepTo: 110, gain: 0.6 }],
+  // Friendly confirm for an objective step done.
+  objective: [
+    { freq: 659, dur: 0.08, type: 'triangle', delay: 0 },
+    { freq: 880, dur: 0.12, type: 'triangle', delay: 0.08 },
+  ],
+  // Little coin "ting".
+  coin: [
+    { freq: 1175, dur: 0.05, type: 'square', delay: 0, gain: 0.3 },
+    { freq: 1568, dur: 0.08, type: 'square', delay: 0.04, gain: 0.3 },
+  ],
+  // Tiny dialogue blip.
+  blip: [{ freq: 440, dur: 0.04, type: 'sine', delay: 0, gain: 0.3 }],
+  // Whoosh for a speed boost.
+  boost: [{ freq: 300, dur: 0.18, type: 'sawtooth', delay: 0, sweepTo: 760, gain: 0.5 }],
 };
-
-let ctx: AudioContext | null = null;
-function getCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  if (!ctx) {
-    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return null;
-    try { ctx = new AC(); } catch { return null; }
-  }
-  // Browsers suspend the context until a user gesture; resume opportunistically.
-  if (ctx.state === 'suspended') void ctx.resume();
-  return ctx;
-}
 
 export function playSfx(name: SfxName): void {
   const { sfxEnabled, sfxVolume } = useAudioStore.getState();
   if (!sfxEnabled || sfxVolume <= 0) return;
-  const ac = getCtx();
+  const ac = getAudioCtx();
   if (!ac) return;
   const cue = CUES[name];
   if (!cue) return;

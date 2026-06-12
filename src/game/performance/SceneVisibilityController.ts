@@ -1,4 +1,5 @@
 import { getAudioManager } from '../audio/AudioManager';
+import { pauseProcedural, resumeProcedural } from '../audio/proceduralAudio';
 
 // Batch 12 — central gate for "should heavy ticks run right now?". When the tab is hidden or the game is
 // paused, expensive per-frame work (flight event director, transformation effects, companion AI, weather
@@ -9,8 +10,8 @@ let hidden = false;
 let paused = false;
 
 function refreshAudio(): void {
-  if (hidden || paused) getAudioManager().pauseNonEssential();
-  else getAudioManager().resumeNonEssential();
+  if (hidden || paused) { getAudioManager().pauseNonEssential(); pauseProcedural(); }
+  else { getAudioManager().resumeNonEssential(); resumeProcedural(); }
 }
 
 /** True when heavy/non-essential per-frame work should run. */
