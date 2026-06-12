@@ -1,6 +1,6 @@
 import { asScaleVec, type EditOverride, type Vec3 } from '../edit/sceneEditMerge';
 import { transformModelSlotKey, transformPartKey, transformRootKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
-import { MODEL_SLOTS, type ModelSlot, type TransformationDefinition, type TransformationStage, type TransformationTransformOffset, type TransformationVec3 } from '../../types/game/transformation';
+import { MODEL_SLOTS, type ModelSlot, type TransformationCameraShot, type TransformationDefinition, type TransformationEffectTrack, type TransformationStage, type TransformationTransformOffset, type TransformationVec3 } from '../../types/game/transformation';
 
 // Pure transformation edit-merge helpers (no React / no R3F → unit-testable). Shared by TransformationStage
 // (live preview merge + drag-end bake) and the ✨ Transform tab (live numbers), so both agree exactly.
@@ -28,6 +28,50 @@ export function liveOffset(base: TransformationTransformOffset | undefined, over
   };
 }
 
+function cameraShotFromAnchor(shot: TransformationCameraShot, position: TransformationVec3): TransformationCameraShot {
+  const [x, y, z] = position;
+  return {
+    ...shot,
+    distance: Math.round(Math.hypot(x, z) * 100) / 100,
+    angle: Math.round(Math.atan2(x, z) * RAD2DEG * 100) / 100,
+    height: Math.round(y * 100) / 100,
+  };
+}
+
+function mergeStageOverride(def: TransformationDefinition, stage: TransformationStage, overrides: Record<string, EditOverride>): TransformationStage {
+  if (stage.type === 'model-swap' && stage.params.modelRef) {
+    const ov = overrides[transformStageModelKey(def.id, stage.id)];
+    if (ov) return { ...stage, params: { ...stage.params, modelOffset: liveOffset(stage.params.modelOffset, ov) } };
+  }
+  if (stage.type === 'model-move') {
+    const ov = overrides[transformStageMoveKey(def.id, stage.id)];
+    if (ov) {
+      const o = liveOffset({ position: stage.params.toPosition ?? [0, 0, 0], rotation: stage.params.toRotation ?? [0, 0, 0], scale: stage.params.toScale ?? 1 }, ov);
+      return { ...stage, params: { ...stage.params, toPosition: o.position, toRotation: o.rotation, toScale: o.scale } };
+    }
+  }
+  if (stage.type === 'part-transform') {
+    const ov = overrides[transformStagePartMoveKey(def.id, stage.id)];
+    if (ov) {
+      const o = liveOffset({ position: stage.params.toPosition ?? [0, 0, 0], rotation: stage.params.toRotation ?? [0, 0, 0], scale: stage.params.toScale ?? 1 }, ov);
+      return { ...stage, params: { ...stage.params, toPosition: o.position, toRotation: o.rotation, toScale: o.scale } };
+    }
+  }
+  return stage;
+}
+
+function mergeEffectOverride(def: TransformationDefinition, fx: TransformationEffectTrack, overrides: Record<string, EditOverride>): TransformationEffectTrack {
+  const ov = overrides[transformEffectKey(def.id, fx.id)];
+  return ov?.position ? { ...fx, spawnOffset: ov.position } : fx;
+}
+
+function mergeCameraOverride(def: TransformationDefinition, shot: TransformationCameraShot, overrides: Record<string, EditOverride>): TransformationCameraShot {
+  const anchor = overrides[transformCameraShotKey(def.id, shot.id)];
+  const look = overrides[transformCameraLookKey(def.id, shot.id)];
+  const placed = anchor?.position ? cameraShotFromAnchor(shot, anchor.position) : shot;
+  return look?.position ? { ...placed, lookAtOffset: look.position } : placed;
+}
+
 // Merge ALL sceneEditStore overrides for a timeline into a fresh def (used for the live preview while editing).
 export function mergeTransformationOverrides(def: TransformationDefinition, overrides: Record<string, EditOverride>): TransformationDefinition {
   const modelSlotOffsets: Partial<Record<ModelSlot, TransformationTransformOffset>> = { ...(def.modelSlotOffsets ?? {}) };
@@ -50,12 +94,9 @@ export function mergeTransformationOverrides(def: TransformationDefinition, over
         baseScale: scaleNumber(ov?.scale) ?? p.baseScale,
       };
     }),
-    stages: def.stages.map((s) => {
-      if (s.type !== 'model-swap' || !s.params.modelRef) return s;
-      const ov = overrides[transformStageModelKey(def.id, s.id)];
-      if (!ov) return s;
-      return { ...s, params: { ...s.params, modelOffset: liveOffset(s.params.modelOffset, ov) } };
-    }),
+    stages: def.stages.map((s) => mergeStageOverride(def, s, overrides)),
+    effectTracks: (def.effectTracks ?? []).map((fx) => mergeEffectOverride(def, fx, overrides)),
+    cameraShots: (def.cameraShots ?? []).map((shot) => mergeCameraOverride(def, shot, overrides)),
   };
 }
 
@@ -101,11 +142,8 @@ export function bakeOverrideToDef(def: TransformationDefinition, key: string, ov
   }
   for (const sh of def.cameraShots ?? []) {
     if (key === transformCameraShotKey(def.id, sh.id) && override.position) {
-      const [x, , z] = override.position;
       return {
-        cameraShots: def.cameraShots.map((c) => (c.id === sh.id
-          ? { ...c, distance: Math.round(Math.hypot(x, z) * 100) / 100, angle: Math.round(Math.atan2(x, z) * RAD2DEG * 100) / 100, height: Math.round(override.position![1] * 100) / 100 }
-          : c)),
+        cameraShots: def.cameraShots.map((c) => (c.id === sh.id ? cameraShotFromAnchor(c, override.position!) : c)),
       };
     }
     if (key === transformCameraLookKey(def.id, sh.id) && override.position) {

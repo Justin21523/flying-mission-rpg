@@ -77,6 +77,40 @@ describe('mergeTransformationOverrides', () => {
     expect(sw?.params.modelOffset?.position).toEqual([0, 0, 4]);
     expect(sw?.params.modelOffset?.scale).toBe(0.5);
   });
+
+  it('merges model-move and part-transform destination overrides live', () => {
+    const d = def({
+      stages: [
+        { id: 'mv', type: 'model-move', startTime: 0, duration: 1, enabled: true, params: { modelSlot: 'robot' } },
+        { id: 'pt', type: 'part-transform', startTime: 0, duration: 1, enabled: true, params: { partKey: 'wing_left' } },
+      ],
+    });
+    const merged = mergeTransformationOverrides(d, {
+      [transformStageMoveKey('xf1', 'mv')]: { position: [1, 2, 3], rotation: [0, HALF_PI, 0], scale: 1.5 },
+      [transformStagePartMoveKey('xf1', 'pt')]: { position: [4, 5, 6], scale: 2 },
+    });
+    expect(merged.stages.find((s) => s.id === 'mv')?.params.toPosition).toEqual([1, 2, 3]);
+    expect(Math.round(merged.stages.find((s) => s.id === 'mv')?.params.toRotation?.[1] ?? 0)).toBe(90);
+    expect(merged.stages.find((s) => s.id === 'mv')?.params.toScale).toBe(1.5);
+    expect(merged.stages.find((s) => s.id === 'pt')?.params.toPosition).toEqual([4, 5, 6]);
+    expect(merged.stages.find((s) => s.id === 'pt')?.params.toScale).toBe(2);
+  });
+
+  it('merges effect and camera anchor overrides live', () => {
+    const d = def({
+      effectTracks: [{ id: 'fx1', type: 'energy-ring', startTime: 0, duration: 1 }],
+      cameraShots: [{ id: 'cs1', type: 'orbit', startTime: 0, duration: 1, distance: 5, height: 2, angle: 0, fov: 50 }],
+    });
+    const merged = mergeTransformationOverrides(d, {
+      [transformEffectKey('xf1', 'fx1')]: { position: [1, 2, 3] },
+      [transformCameraShotKey('xf1', 'cs1')]: { position: [0, 4, 8] },
+      [transformCameraLookKey('xf1', 'cs1')]: { position: [0, 1.5, 0] },
+    });
+    expect(merged.effectTracks[0].spawnOffset).toEqual([1, 2, 3]);
+    expect(merged.cameraShots[0].distance).toBeCloseTo(8, 1);
+    expect(merged.cameraShots[0].height).toBeCloseTo(4, 1);
+    expect(merged.cameraShots[0].lookAtOffset).toEqual([0, 1.5, 0]);
+  });
 });
 
 describe('bakeOverrideToDef', () => {

@@ -108,7 +108,7 @@ const GhostBurst = ({ fx }: { fx: TransformationEffectTrack }) => {
   );
   useEffect(() => () => mat.dispose(), [mat]);
   const asset = txFrame.charModelId ? resolveModelAsset(txFrame.charModelId) : undefined;
-  const baseScale = asset?.scale ?? 1;
+  const baseScale = (asset?.scale ?? 1) * txFrame.ghostScale;
 
   useFrame((_, dt) => {
     t.current += dt;

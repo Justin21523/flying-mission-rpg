@@ -16,8 +16,9 @@ export const txFrame: {
   snapshot: RunnerSnapshot | null;
   def: TransformationDefinition | null;
   charModelId?: string; // the character's GLB shown as the "robot" reveal
+  ghostScale: number; // current character/root × robot-slot scale for transformation clone effects
   showcaseYaw: number; // player-controlled rotation during the interactive showcase
-} = { snapshot: null, def: null, showcaseYaw: 0 };
+} = { snapshot: null, def: null, ghostScale: 1, showcaseYaw: 0 };
 
 export interface TransformationHandle {
   timelineId: string;
@@ -44,5 +45,6 @@ export function resetTransformationRuntime(): void {
   txFrame.snapshot = null;
   txFrame.def = null;
   txFrame.charModelId = undefined;
+  txFrame.ghostScale = 1;
   txFrame.showcaseYaw = 0;
 }

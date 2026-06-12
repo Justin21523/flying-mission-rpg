@@ -98,6 +98,7 @@ const EditableModelGroup = ({
   editOffset,
   runtimeOffset,
   groupRef,
+  hitbox,
   initialVisible = false,
   children,
 }: {
@@ -106,6 +107,7 @@ const EditableModelGroup = ({
   editOffset?: TransformationTransformOffset;
   runtimeOffset: TransformationTransformOffset;
   groupRef: RefObject<Group | null>;
+  hitbox: { center: [number, number, number]; size: [number, number, number] };
   initialVisible?: boolean;
   children: ReactNode;
 }) => {
@@ -114,6 +116,10 @@ const EditableModelGroup = ({
       <EditableObject objKey={objKey} base={offsetBase(editOffset)}>
         <group ref={groupRef} visible={initialVisible}>
           {children}
+          <mesh position={hitbox.center}>
+            <boxGeometry args={hitbox.size} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
         </group>
       </EditableObject>
     );
@@ -163,6 +169,7 @@ export const TransformationCharacterPresenter = ({
   const sharedOffset = offsetForSlot(def, 'shared');
   useFrame(() => {
     const snap = txFrame.snapshot;
+    txFrame.ghostScale = (def.modelScale ?? 1) * robotOffset.scale * (snap?.modelMotion.robot.scale ?? 1);
     if (root.current) {
       const rootPosition = def.rootPosition ?? ZERO3;
       const rootRotation = def.rootRotation ?? ZERO3;
@@ -200,13 +207,13 @@ export const TransformationCharacterPresenter = ({
         <PartMesh key={p.key} part={p} color={p.color ?? color} />
       ))}
       {/* model slots — robot defaults to the character's GLB; plane/shared from the timeline refs */}
-      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'robot')} editOffset={offsetForSlot(editSource, 'robot')} runtimeOffset={robotOffset} groupRef={robot}>
+      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'robot')} editOffset={offsetForSlot(editSource, 'robot')} runtimeOffset={robotOffset} groupRef={robot} hitbox={{ center: [0, 1.1, 0], size: [2.2, 2.8, 2.2] }}>
         {(def.robotModelRef ?? charModelId) && <AnimatedGlbModel assetId={(def.robotModelRef ?? charModelId)!} animation={robotClip?.clipName} animationSpeed={robotClip?.clipSpeed} loop={robotClip?.loop} autoPlayFirstClip={!!robotClip} noCull />}
       </EditableModelGroup>
-      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'plane')} editOffset={offsetForSlot(editSource, 'plane')} runtimeOffset={planeOffset} groupRef={plane}>
+      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'plane')} editOffset={offsetForSlot(editSource, 'plane')} runtimeOffset={planeOffset} groupRef={plane} hitbox={{ center: [0, 0.7, 0], size: [3.2, 1.6, 3.2] }}>
         {def.planeModelRef && <AnimatedGlbModel assetId={def.planeModelRef} animation={planeClip?.clipName} animationSpeed={planeClip?.clipSpeed} loop={planeClip?.loop} autoPlayFirstClip={!!planeClip} noCull />}
       </EditableModelGroup>
-      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'shared')} editOffset={offsetForSlot(editSource, 'shared')} runtimeOffset={sharedOffset} groupRef={shared}>
+      <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'shared')} editOffset={offsetForSlot(editSource, 'shared')} runtimeOffset={sharedOffset} groupRef={shared} hitbox={{ center: [0, 1, 0], size: [2.6, 2.4, 2.6] }}>
         {def.sharedModelRef && <AnimatedGlbModel assetId={def.sharedModelRef} animation={sharedClip?.clipName} animationSpeed={sharedClip?.clipSpeed} loop={sharedClip?.loop} autoPlayFirstClip={!!sharedClip} noCull />}
       </EditableModelGroup>
       {/* arbitrary extra model (model-swap stage with a modelRef — supports chained multi-model sequences) */}
@@ -217,6 +224,7 @@ export const TransformationCharacterPresenter = ({
           editOffset={offsetForStageModel(editSource, txFrame.snapshot?.activeModelStageId)}
           runtimeOffset={extraOffset}
           groupRef={extra}
+          hitbox={{ center: [0, 1, 0], size: [2.4, 2.4, 2.4] }}
           initialVisible
         >
           <AnimatedGlbModel assetId={extraRef} animation={extraClip?.clipName} animationSpeed={extraClip?.clipSpeed} loop={extraClip?.loop} autoPlayFirstClip={!!extraClip} noCull />
