@@ -36,6 +36,7 @@ import { WorldFlightDebugPanel } from './ui/dev/WorldFlightDebugPanel';
 import { TransformationDebugPanel } from './ui/dev/TransformationDebugPanel';
 import { SupportDebugPanel } from './ui/dev/SupportDebugPanel';
 import { SupportSelectionPanel } from './ui/support/SupportSelectionPanel';
+import { SupportCallButton } from './ui/support/SupportCallButton';
 import { SupportDispatchStatusPanel } from './ui/support/SupportDispatchStatusPanel';
 import { SupportArrivalToast } from './ui/support/SupportArrivalToast';
 import { SupportDispatchDirectorHost } from './game/support/SupportDispatchDirectorHost';
@@ -315,6 +316,7 @@ export const App = () => {
       {!editMode && !world && (missionPhase || missionDonePhase) && <QuestTracker />}
       {!editMode && !world && missionPhase && <SupportDispatchDirectorHost />}
       {!editMode && !world && missionPhase && <SupportSelectionPanel />}
+      {!editMode && !world && missionPhase && <SupportCallButton />}
       {!editMode && !world && missionPhase && <SupportDispatchStatusPanel />}
       {!editMode && !world && missionPhase && <SupportArrivalToast />}
       {!editMode && !world && missionPhase && <MultiCharacterHud />}
