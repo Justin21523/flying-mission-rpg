@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Vector3, Object3D, type InstancedMesh } from 'three';
 import { flightHandle } from '../flightHandle';
+import { getFlightEffectConfig, onFlightEffectConfigChange } from '../effects/FlightEffectQualityController';
+import { reportStat } from '../../performance/RuntimeStatsCollector';
 
 // Recycled speed streaks — a FIXED instanced pool of thin shards close around the craft, oriented along
 // the flight direction. They sit still in the world while the craft rushes past, so they whip by as motion
@@ -30,15 +32,24 @@ function place(i: number, base: Vector3, fwd: Vector3, ahead: number): void {
 
 export const SpeedField = () => {
   const mesh = useRef<InstancedMesh>(null);
+  // Batch 12 — quality/reduce-motion gate (updated only when settings change, not per frame).
+  const enabled = useRef(getFlightEffectConfig().speedLines);
 
   useEffect(() => {
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
     for (let i = 0; i < COUNT; i++) place(i, flightHandle.pos, _fwd, (Math.random() * 2 - 1) * AHEAD);
+    return onFlightEffectConfigChange(() => { enabled.current = getFlightEffectConfig().speedLines; });
   }, []);
 
   useFrame(() => {
     const m = mesh.current;
     if (!m) return;
+    if (!enabled.current) {
+      if (m.visible) { m.visible = false; reportStat('particles', 0); }
+      return;
+    }
+    m.visible = true;
+    reportStat('particles', COUNT);
     _fwd.set(0, 0, -1).applyQuaternion(flightHandle.quat);
     // streak length grows with speed (0 at rest → long at cruise) for a dynamic speed sensation
     const stretch = 1 + Math.min(6, flightHandle.speed / 6);

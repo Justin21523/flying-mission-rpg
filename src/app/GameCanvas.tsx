@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { CanvasErrorBoundary } from '../ui/CanvasErrorBoundary';
 import { Scene } from '../game/core/Scene';
+import { PerformanceSampler } from '../game/performance/PerformanceSampler';
 import { Loading } from './Loading';
 import { useUiStore } from '../stores/uiStore';
 import { useSceneEditStore } from '../stores/sceneEditStore';
@@ -26,6 +27,8 @@ export const GameCanvas = () => (
         usePbrPatchEditStore.getState().select(null);
       }}
     >
+      {/* Batch 12 — frame sampler feeds the performance monitor (outside Suspense so it always ticks). */}
+      <PerformanceSampler />
       <Suspense fallback={<Loading />}>
         <Scene />
       </Suspense>

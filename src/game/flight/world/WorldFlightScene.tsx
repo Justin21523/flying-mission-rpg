@@ -17,6 +17,7 @@ import { FlightCamera } from '../FlightCamera';
 import { RouteFollower } from './RouteFollower';
 import { CloudField } from './CloudField';
 import { SpeedField } from './SpeedField';
+import { CloudBreakEffect } from '../effects/CloudBreakEffect';
 import { FlightEventDirectorHost } from './FlightEventDirectorHost';
 import { FlightEventRenderer } from './FlightEventRenderer';
 import { FlightEventPreview } from './FlightEventPreview';
@@ -89,6 +90,7 @@ export const WorldFlightScene = () => {
       {!editMode && <FlightCuePlayController pathId={activePathId} />}
       {layers.clouds && <CloudField />}
       {layers.speed && <SpeedField />}
+      {layers.speed && <CloudBreakEffect />}
       {layers.events && (
         <>
           <FlightEventDirectorHost />

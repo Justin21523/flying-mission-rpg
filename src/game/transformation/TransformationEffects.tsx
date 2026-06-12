@@ -5,6 +5,7 @@ import { SkeletonUtils } from 'three-stdlib';
 import { BackSide, MeshBasicMaterial, type Group, type Mesh, type PointLight } from 'three';
 import { resolveModelAsset } from '../../stores/modelStudioStore';
 import { txFrame, useTxVersion } from './transformationRuntime';
+import { useAudioStore } from '../../stores/audioStore';
 import type { TransformationEffectTrack, TransformationPartKey } from '../../types/game/transformation';
 
 // Renders the runner's currently-active effect tracks (sparse) — each keyed by id, so they mount on entry and
@@ -38,10 +39,13 @@ const EnergyRing = ({ fx }: { fx: TransformationEffectTrack }) => {
 const WhiteFlash = ({ fx }: { fx: TransformationEffectTrack }) => {
   const m = useRef<Mesh>(null);
   const t = useRef(0);
+  // Batch 12 — reduce-motion dims sudden flashes (accessibility: reduce flashing). Cached, not per-frame.
+  const flashScale = useRef(useAudioStore.getState().reduceMotion ? 0.3 : 1);
+  useEffect(() => useAudioStore.subscribe(() => { flashScale.current = useAudioStore.getState().reduceMotion ? 0.3 : 1; }), []);
   useFrame((_, dt) => {
     t.current += dt;
     const k = Math.min(1, t.current / fx.duration);
-    if (m.current) (m.current.material as MeshBasicMaterial).opacity = (1 - k) * (fx.intensity ?? 1) * 0.9;
+    if (m.current) (m.current.material as MeshBasicMaterial).opacity = (1 - k) * (fx.intensity ?? 1) * 0.9 * flashScale.current;
   });
   return (
     <mesh ref={m} scale={60}>

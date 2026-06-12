@@ -41,7 +41,13 @@ import { SupportArrivalToast } from './ui/support/SupportArrivalToast';
 import { SupportDispatchDirectorHost } from './game/support/SupportDispatchDirectorHost';
 import { FullControlDispatchHost } from './game/support/FullControlDispatchHost';
 import { useGameStore } from './stores/game/useGameStore';
+import { useGraphicsSettingsStore } from './stores/graphicsSettingsStore';
 import { usePoll } from './ui/usePoll';
+import { PerformanceDebugPanel } from './ui/debug/PerformanceDebugPanel';
+import { RouteColorGradeOverlay } from './ui/flight/RouteColorGradeOverlay';
+import { initAudioRuntime } from './game/audio/audioRuntime';
+import { installVisibilityWatcher, setPaused } from './game/performance/SceneVisibilityController';
+import { applyQualityToSupportLimits } from './game/performance/QualityPresetController';
 
 // On-ground base phases render the 3D hangar (BaseScene) + BaseHud; flight phases render FlightScene + FlightHud.
 const BASE_PHASES = new Set(['HANGAR', 'PLATFORM_ALIGNMENT', 'LAUNCH_PREPARATION']);
@@ -155,6 +161,18 @@ export const App = () => {
 
   // Start global editor Undo/Redo tracking (snapshots every authoring edit for Ctrl+Z / Ctrl+Shift+Z).
   useEffect(() => { initEditorUndo(); }, []);
+
+  // Batch 12 — audio runtime (registers presets + decoupled controllers), tab-visibility gating, and the
+  // quality→Batch-8 support-limit sync (the quality preset owns the Active/Standby/AI-tick budgets). Also
+  // pauses heavy ticks when the FSM is paused. All cleaned up on unmount.
+  useEffect(() => {
+    const offAudio = initAudioRuntime();
+    const offVis = installVisibilityWatcher();
+    applyQualityToSupportLimits();
+    const offQuality = useGraphicsSettingsStore.subscribe(() => applyQualityToSupportLimits());
+    const offPause = useGameStore.subscribe((s) => setPaused(s.paused));
+    return () => { offAudio(); offVis(); offQuality(); offPause(); };
+  }, []);
 
   // Begin the game inside an interior: on load, if any area is marked indoor (the 🏠 start space), spawn there.
   useEffect(() => {
@@ -292,6 +310,9 @@ export const App = () => {
       {editMode && <TerrainBrushHud />}
       {editMode && editorHubOpen && <EditorHubPanel />}
       <ScreenFade />
+      {/* Batch 12 — perf panel (gated by showPerfHud) + safe-tint route color grade (world-flight phases). */}
+      <PerformanceDebugPanel />
+      {!editMode && !world && <RouteColorGradeOverlay />}
       <PlayerPosDebug />
       {/* Single R3F canvas (error boundary + Suspense loading inside). DPR capped lower (high-DPI screens
           were fill-bound); a PerformanceMonitor in Scene adapts it. */}

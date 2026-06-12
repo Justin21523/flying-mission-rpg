@@ -30,6 +30,10 @@ import { useEditorRouteStore } from '../../stores/game/editorRouteStore';
 import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
 import { useEditorTransformationStore } from '../../stores/game/editorTransformationStore';
+import { useEditorQualityStore } from '../../stores/game/editorQualityStore';
+import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetStore';
+import { useEditorFlightPolishStore } from '../../stores/game/editorFlightPolishStore';
+import { useEditorTransformationPolishStore } from '../../stores/game/editorTransformationPolishStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
 import { useEditorFlightStore } from '../../stores/game/editorFlightStore';
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
@@ -160,6 +164,38 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorTransformationStore.getState().importState(data as { items?: never }); },
     clear: () => useEditorTransformationStore.getState().reset(),
     summary: () => `${useEditorTransformationStore.getState().items.length} transformations`,
+  },
+  {
+    id: 'gameQuality',
+    label: 'Quality Presets',
+    serialize: () => { const s = useEditorQualityStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorQualityStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorQualityStore.getState().reset(),
+    summary: () => `${useEditorQualityStore.getState().items.length} quality presets`,
+  },
+  {
+    id: 'gameAudioPreset',
+    label: 'Audio Presets',
+    serialize: () => { const s = useEditorAudioPresetStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorAudioPresetStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorAudioPresetStore.getState().reset(),
+    summary: () => `${useEditorAudioPresetStore.getState().items.length} audio presets`,
+  },
+  {
+    id: 'gameFlightPolish',
+    label: 'Flight Polish',
+    serialize: () => { const s = useEditorFlightPolishStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorFlightPolishStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorFlightPolishStore.getState().reset(),
+    summary: () => `${useEditorFlightPolishStore.getState().items.length} flight polish presets`,
+  },
+  {
+    id: 'gameTransformationPolish',
+    label: 'Transformation Polish',
+    serialize: () => { const s = useEditorTransformationPolishStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorTransformationPolishStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorTransformationPolishStore.getState().reset(),
+    summary: () => `${useEditorTransformationPolishStore.getState().items.length} transformation polish presets`,
   },
   {
     id: 'gameBase',

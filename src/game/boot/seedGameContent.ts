@@ -11,6 +11,10 @@ import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
 import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { useEditorDestinationStore } from '../../stores/game/editorDestinationStore';
 import { useEditorSupportStore } from '../../stores/game/editorSupportStore';
+import { useEditorQualityStore } from '../../stores/game/editorQualityStore';
+import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetStore';
+import { useEditorFlightPolishStore } from '../../stores/game/editorFlightPolishStore';
+import { useEditorTransformationPolishStore } from '../../stores/game/editorTransformationPolishStore';
 import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
 import { useModelStudioStore } from '../../stores/modelStudioStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
@@ -53,6 +57,10 @@ export function seedGameContent(): void {
   useEditorFlightEventStore.getState().mergeMissingFromSeed();
   useEditorDestinationStore.getState().mergeMissingFromSeed();
   useEditorSupportStore.getState().mergeMissingFromSeed();
+  useEditorQualityStore.getState().mergeMissingFromSeed();
+  useEditorAudioPresetStore.getState().mergeMissingFromSeed();
+  useEditorFlightPolishStore.getState().mergeMissingFromSeed();
+  useEditorTransformationPolishStore.getState().mergeMissingFromSeed();
 
   // Seed our 航道 curves into the editorPathStore so the 🛣 Tracks tab + node gizmos edit the REAL paths
   // (fly-around around the base, and the long-distance world route).

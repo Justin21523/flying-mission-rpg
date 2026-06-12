@@ -1,7 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, type PerspectiveCamera } from 'three';
 import { txFrame } from './transformationRuntime';
+import { useAudioStore } from '../../stores/audioStore';
+import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
+import { effectiveQualityPreset } from '../performance/QualityPresetController';
 
 // Drives the camera from the runner's active camera shot (orbit / close-up / low-angle / top-down / side-pan
 // / pull-back / finish-hero). Positions around the character at the origin by angle/distance/height, sets fov,
@@ -13,9 +16,14 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
 
 export const TransformationCameraController = () => {
   const { camera } = useThree();
+  // Batch 12 — reduce-motion / quality gate for camera shake (cached; recomputed only on settings change).
+  const shakeAllowed = useRef(!useAudioStore.getState().reduceMotion && effectiveQualityPreset().cameraShakeEnabled);
   useEffect(() => {
     const cam = camera as PerspectiveCamera;
-    return () => { cam.up.set(0, 1, 0); cam.fov = 50; cam.updateProjectionMatrix(); };
+    const update = (): void => { shakeAllowed.current = !useAudioStore.getState().reduceMotion && effectiveQualityPreset().cameraShakeEnabled; };
+    const u1 = useAudioStore.subscribe(update);
+    const u2 = useGraphicsSettingsStore.subscribe(update);
+    return () => { u1(); u2(); cam.up.set(0, 1, 0); cam.fov = 50; cam.updateProjectionMatrix(); };
   }, [camera]);
 
   useFrame((state, dtRaw) => {
@@ -36,6 +44,7 @@ export const TransformationCameraController = () => {
       shake = shot.shakeIntensity ?? 0;
     }
 
+    if (!shakeAllowed.current) shake = 0;
     _pos.set(Math.sin(angle) * distance, height, Math.cos(angle) * distance);
     if (shake > 0) { _pos.x += (Math.random() - 0.5) * shake; _pos.y += (Math.random() - 0.5) * shake; }
     cam.position.lerp(_pos, k);
