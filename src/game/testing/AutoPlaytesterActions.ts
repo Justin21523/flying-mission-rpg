@@ -42,9 +42,18 @@ export const realWorld: AutoWorld = {
     return true;
   },
 
-  pressForward: () => pressKey('KeyW'),
-  fastForwardWorldFlight: () => devJumpU(0.99), // debug-only fast-forward of the long route
-  finishTransformation: () => { transformationDev.forceFinish = true; },
+  steer: (phase) => {
+    // Real synthetic input that drives the live controllers (which auto-transition on progress).
+    if (phase === 'WORLD_FLIGHT' || phase === 'LAUNCH_TUNNEL' || phase === 'BASE_FLY_AROUND' || phase === 'CLOUD_ASCENT') pressKey('KeyW');
+    if (phase === 'BASE_FLY_AROUND' || phase === 'CLOUD_ASCENT') pressKey('Space'); // climb toward the cloud layer
+    if (phase === 'DESCENT') pressKey('KeyS');
+    // TRANSFORMATION: no input — let the director play the timeline.
+  },
+  forceAdvance: (phase) => {
+    // Debug fast-forward, used only after the per-step fallback window.
+    if (phase === 'WORLD_FLIGHT') devJumpU(0.99);
+    else if (phase === 'TRANSFORMATION') transformationDev.forceFinish = true;
+  },
 
   completeObjective: () => {
     const ms = useMissionStore.getState();

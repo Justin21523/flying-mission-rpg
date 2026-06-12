@@ -62,6 +62,7 @@ import { SaveDebugPanel } from './ui/debug/SaveDebugPanel';
 import { installStateMachineDiagnostics } from './game/diagnostics/StateMachineDiagnostics';
 import { registerGauge } from './game/diagnostics/SubscriptionLeakDetector';
 import { getAudioManager } from './game/audio/AudioManager';
+import { getCulledCount } from './game/perf/lod';
 
 // On-ground base phases render the 3D hangar (BaseScene) + BaseHud; flight phases render FlightScene + FlightHud.
 const BASE_PHASES = new Set(['HANGAR', 'PLATFORM_ALIGNMENT', 'LAUNCH_PREPARATION']);
@@ -186,9 +187,10 @@ export const App = () => {
     const offProgress = installProgressObservers();
     const offDiag = installStateMachineDiagnostics();
     const offGauge = registerGauge('audioLoops', () => getAudioManager().playingCount());
+    const offCulled = registerGauge('culled', () => getCulledCount());
     const onUnload = (): void => flushOnUnload();
     window.addEventListener('beforeunload', onUnload);
-    return () => { offProgress(); offDiag(); offGauge(); window.removeEventListener('beforeunload', onUnload); flushOnUnload(); };
+    return () => { offProgress(); offDiag(); offGauge(); offCulled(); window.removeEventListener('beforeunload', onUnload); flushOnUnload(); };
   }, []);
 
   // Batch 12 — audio runtime (registers presets + decoupled controllers), tab-visibility gating, and the

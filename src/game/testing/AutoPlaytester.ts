@@ -1,6 +1,10 @@
 import type { GamePhase } from '../../types/game/state';
-import { AUTO_PLAYTESTER_CONFIG } from './AutoPlaytesterConfig';
+import { AUTO_PLAYTESTER_CONFIG, type AutoPlaytesterConfig } from './AutoPlaytesterConfig';
 import { CORE_FLOW_ORDER, FINAL_PHASE, nextCorePhase, type AutoStatus } from './AutoPlaytesterStateMachine';
+
+// Phases whose transition is driven by the 3D controllers (not a UI button): real-flight steers them with
+// synthetic input and waits for the natural transition; a per-step timeout falls back to the debug hook.
+const AUTO_PHASES = new Set<GamePhase>(['LAUNCH_TUNNEL', 'BASE_FLY_AROUND', 'CLOUD_ASCENT', 'WORLD_FLIGHT', 'TRANSFORMATION', 'DESCENT']);
 
 // Batch 13 — Debug/Test-only automated playtester. Drives the game through the core flow ONE legal
 // transition at a time, issuing real inputs / runtime actions per phase (via AutoWorld) and asserting each
@@ -12,9 +16,10 @@ export interface AutoWorld {
   go(to: GamePhase): boolean;
   ensureMissionSelected(): boolean;
   ensureCharacterSelected(): boolean;
-  pressForward(): void;
-  fastForwardWorldFlight(): void;
-  finishTransformation(): void;
+  /** Real input for an auto-flight phase (synthetic keys driving the live controllers). */
+  steer(phase: GamePhase): void;
+  /** Debug fast-forward past an auto-flight phase (used only after the per-step timeout). */
+  forceAdvance(phase: GamePhase): void;
   completeObjective(): boolean;
   /** Per-phase assertion; return a failure reason or null if OK. */
   assert(phase: GamePhase): string | null;
@@ -41,7 +46,11 @@ export class AutoPlaytester {
   private failureReason: string | null = null;
   private log: string[] = [];
 
-  constructor(private readonly world: AutoWorld, private readonly onUpdate?: (s: AutoSnapshot) => void) {}
+  constructor(
+    private readonly world: AutoWorld,
+    private readonly onUpdate?: (s: AutoSnapshot) => void,
+    private readonly config: AutoPlaytesterConfig = AUTO_PLAYTESTER_CONFIG,
+  ) {}
 
   start(now: number): void {
     this.status = 'running';
@@ -91,16 +100,16 @@ export class AutoPlaytester {
     if (phase !== 'BOOT' && !CORE_FLOW_ORDER.includes(phase)) {
       return this.fail(`left the core flow at ${phase}`, now);
     }
-    if (now - this.startMs > AUTO_PLAYTESTER_CONFIG.totalTimeoutMs) {
+    if (now - this.startMs > this.config.totalTimeoutMs) {
       return this.fail('total run timeout', now);
     }
-    if (now - this.stepStartMs > AUTO_PLAYTESTER_CONFIG.stepTimeoutMs) {
+    if (now - this.stepStartMs > this.config.stepTimeoutMs) {
       return this.fail(`stuck at ${phase} (step timeout)`, now);
     }
 
-    if (now - this.lastActionMs < AUTO_PLAYTESTER_CONFIG.actionIntervalMs) return;
+    if (now - this.lastActionMs < this.config.actionIntervalMs) return;
     this.lastActionMs = now;
-    this.act(phase);
+    this.act(phase, now);
     this.emit(now);
   }
 
@@ -116,16 +125,29 @@ export class AutoPlaytester {
     };
   }
 
-  private act(phase: GamePhase): void {
+  private act(phase: GamePhase, now: number): void {
     const w = this.world;
+
+    // Controller-driven flight phases: real-flight steers and waits for the natural transition; after the
+    // per-step fallback window, push past with the debug hook (still a legal flow, never a fake ending).
+    if (AUTO_PHASES.has(phase)) {
+      const elapsed = now - this.stepStartMs;
+      if (this.config.realFlight && elapsed < this.config.flightFallbackMs) {
+        w.steer(phase);
+        this.lastAction = `fly ${phase} (real input)`;
+      } else {
+        w.forceAdvance(phase);
+        const n = nextCorePhase(phase);
+        if (n) w.go(n);
+        this.lastAction = `force past ${phase}`;
+      }
+      return;
+    }
+
     switch (phase) {
       case 'BOOT': w.go('MISSION_CONTROL'); this.lastAction = 'boot → mission control'; break;
       case 'MISSION_CONTROL': w.ensureMissionSelected(); w.go('MISSION_BRIEFING'); this.lastAction = 'select mission → briefing'; break;
       case 'CHARACTER_SELECTION': w.ensureCharacterSelected(); w.go('HANGAR'); this.lastAction = 'select character → hangar'; break;
-      case 'HANGAR': w.pressForward(); w.go('PLATFORM_ALIGNMENT'); this.lastAction = 'move to platform'; break;
-      case 'LAUNCH_TUNNEL': w.pressForward(); w.go('BASE_FLY_AROUND'); this.lastAction = 'fly through tunnel'; break;
-      case 'WORLD_FLIGHT': w.fastForwardWorldFlight(); w.go('DESTINATION_APPROACH'); this.lastAction = 'follow route (debug fast-forward)'; break;
-      case 'TRANSFORMATION': w.finishTransformation(); this.lastAction = 'finish transformation'; break; // director auto-advances to DESCENT
       case 'MISSION_GAMEPLAY': w.completeObjective(); w.go('MISSION_COMPLETE'); this.lastAction = 'complete objective'; break;
       default: {
         const n = nextCorePhase(phase);

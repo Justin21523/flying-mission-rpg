@@ -4,6 +4,7 @@ import { Vector3, type Object3D } from 'three';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useUiStore } from '../../stores/uiStore';
 import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
+import { qualityCullRadius, incCulled, decCulled } from './lod';
 
 // POLI perf — distance culling for a single object. Attach the returned ref to a <group>; a throttled frame
 // loop toggles `group.visible` based on the player's distance, so far-away content is not rendered (big-map
@@ -26,16 +27,17 @@ export function useDistanceCull<T extends Object3D>(): RefObject<T | null> {
     if (!g) return;
     const gs = useGraphicsSettingsStore.getState();
     // Never cull while editing or when culling is off — always show everything.
-    if (!gs.cullEnabled || useUiStore.getState().editMode) { if (!g.visible) g.visible = true; return; }
+    if (!gs.cullEnabled || useUiStore.getState().editMode) { if (!g.visible) { g.visible = true; decCulled(); } return; }
     const p = usePlayerStore.getState().position;
     if (!p) return;
     g.getWorldPosition(_tmp);
     const dx = _tmp.x - p.x;
     const dz = _tmp.z - p.z;
     const d2 = dx * dx + dz * dz;
-    const r = gs.cullRadius;
-    if (g.visible) { if (d2 > (r + MARGIN) * (r + MARGIN)) g.visible = false; }
-    else if (d2 < r * r) g.visible = true;
+    // Quality-scaled radius — lower quality culls distant objects sooner (distance LOD).
+    const r = qualityCullRadius(gs.cullRadius);
+    if (g.visible) { if (d2 > (r + MARGIN) * (r + MARGIN)) { g.visible = false; incCulled(); } }
+    else if (d2 < r * r) { g.visible = true; decCulled(); }
   });
   return ref;
 }

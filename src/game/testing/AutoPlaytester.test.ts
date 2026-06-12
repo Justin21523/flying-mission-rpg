@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { AutoPlaytester, type AutoWorld } from './AutoPlaytester';
 import { CORE_FLOW_ORDER } from './AutoPlaytesterStateMachine';
+import { AUTO_PLAYTESTER_CONFIG } from './AutoPlaytesterConfig';
 import type { GamePhase } from '../../types/game/state';
+
+const fastConfig = { ...AUTO_PLAYTESTER_CONFIG, realFlight: false };
 
 // A mock world that advances its phase on go()/finishTransformation() — lets us drive the runner to
 // completion without R3F.
@@ -12,9 +15,8 @@ function makeWorld(overrides: Partial<AutoWorld> = {}): { world: AutoWorld; setP
     go: (to) => { phase = to; return true; },
     ensureMissionSelected: () => true,
     ensureCharacterSelected: () => true,
-    pressForward: () => {},
-    fastForwardWorldFlight: () => {},
-    finishTransformation: () => { phase = 'DESCENT'; }, // director would advance to DESCENT
+    steer: () => {}, // real input is a no-op in the mock
+    forceAdvance: () => {}, // the runner calls go(next) after forceAdvance
     completeObjective: () => true,
     assert: () => null,
     ...overrides,
@@ -31,14 +33,23 @@ function run(ap: AutoPlaytester, ticks = 200): void {
 describe('AutoPlaytester', () => {
   it('drives the mock world all the way to completed', () => {
     const { world } = makeWorld();
-    const ap = new AutoPlaytester(world);
+    const ap = new AutoPlaytester(world, undefined, fastConfig);
     run(ap);
     expect(ap.status).toBe('completed');
     expect(ap.snapshot().currentPhase).toBe('MISSION_COMPLETE');
   });
 
+  it('real-flight steers auto phases then falls back on timeout, still completing', () => {
+    let steered = 0;
+    const { world } = makeWorld({ steer: () => { steered += 1; } });
+    const ap = new AutoPlaytester(world, undefined, { ...AUTO_PLAYTESTER_CONFIG, realFlight: true, flightFallbackMs: 700 });
+    run(ap);
+    expect(steered).toBeGreaterThan(0);          // it tried real input
+    expect(ap.status).toBe('completed');         // and the fallback still got it home
+  });
+
   it('fails with a step timeout when a phase never advances', () => {
-    const { world } = makeWorld({ go: () => false, finishTransformation: () => {} });
+    const { world } = makeWorld({ go: () => false });
     const ap = new AutoPlaytester(world);
     ap.start(0);
     ap.tick(0);
@@ -57,7 +68,7 @@ describe('AutoPlaytester', () => {
 
   it('fails and records the reason on an assertion failure', () => {
     const { world } = makeWorld({ assert: (p) => (p === 'HANGAR' ? 'broken' : null) });
-    const ap = new AutoPlaytester(world);
+    const ap = new AutoPlaytester(world, undefined, fastConfig);
     run(ap);
     expect(ap.status).toBe('failed');
     expect(ap.snapshot().failureReason).toContain('broken');

@@ -4,6 +4,9 @@ import { test, expect } from '@playwright/test';
 // and assert it reaches MISSION_COMPLETE without serious console errors. The AutoPlaytester is triggered via
 // the window debug hook — Playwright never sets the game phase directly.
 test('AutoPlaytester completes the core flow', async ({ page }) => {
+  // Real-flight steers each auto phase for a few seconds before the debug fallback, so allow well over the
+  // default 30s test timeout.
+  test.setTimeout(150_000);
   // Ignore benign WebGL/asset noise (headless has no GPU textures); we only care about real code errors.
   const benign = /GLTFLoader|THREE\.|Couldn't load texture|deprecated|WebGL/i;
   const errors: string[] = [];
