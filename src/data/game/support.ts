@@ -11,6 +11,8 @@ export const SEED_SUPPORT_AI_PROFILES: SupportAiProfile[] = [
     assistBehaviorEnabled: true,
     stuckTimeoutSeconds: 2.5,
     repositionFallbackEnabled: true,
+    workTimeSeconds: 1.2,
+    arriveDistance: 2.4,
   },
   {
     id: 'ai_rescue_anchor',
@@ -22,6 +24,8 @@ export const SEED_SUPPORT_AI_PROFILES: SupportAiProfile[] = [
     assistBehaviorEnabled: true,
     stuckTimeoutSeconds: 3,
     repositionFallbackEnabled: true,
+    workTimeSeconds: 1.6,
+    arriveDistance: 2.4,
   },
   {
     id: 'ai_engineer_helper',
@@ -33,6 +37,8 @@ export const SEED_SUPPORT_AI_PROFILES: SupportAiProfile[] = [
     assistBehaviorEnabled: true,
     stuckTimeoutSeconds: 3.5,
     repositionFallbackEnabled: true,
+    workTimeSeconds: 2.2,
+    arriveDistance: 2.6,
   },
 ];
 

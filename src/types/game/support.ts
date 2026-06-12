@@ -1,4 +1,4 @@
-import type { MissionObjectiveKind, MissionRuntime } from './mission';
+import type { MissionRuntime } from './mission';
 import type { GamePhase } from './state';
 
 export type CharacterPresenceTier = 'active' | 'standby' | 'remote';
@@ -123,6 +123,9 @@ export interface SupportAiProfile {
   assistBehaviorEnabled: boolean;
   stuckTimeoutSeconds: number;
   repositionFallbackEnabled: boolean;
+  // Autonomous-objective tuning (editable in the 🤝 Support tab; controller falls back to sane defaults).
+  workTimeSeconds?: number;   // seconds the companion "works" at an objective before completing it (default 1.6)
+  arriveDistance?: number;    // how close counts as "at the objective" (default 2.4)
 }
 
 export interface MultiCharacterLimitConfig {
@@ -198,15 +201,6 @@ export interface FullControlDispatchContext {
   returnPhase: GamePhase;
   startedAtMs: number;
   returning: boolean;
-}
-
-export interface SupportAssistEvent {
-  characterId: string;
-  objectiveKind: MissionObjectiveKind;
-  objectiveId?: string;
-  ability: SupportAbilityTag;
-  progress: number;
-  canComplete: boolean;
 }
 
 export type SupportRuntimeEvent =

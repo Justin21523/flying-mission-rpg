@@ -106,6 +106,8 @@ export const SupportEditorTab = () => {
                   <NumRow label="Avoidance radius" value={aiProfile.avoidanceRadius} step={0.1} min={0} onChange={(v) => updateAiProfile(aiProfile.id, { avoidanceRadius: v })} />
                   <NumRow label="Move speed" value={aiProfile.moveSpeed} step={0.25} min={0.1} onChange={(v) => updateAiProfile(aiProfile.id, { moveSpeed: v })} />
                   <NumRow label="Stuck timeout" value={aiProfile.stuckTimeoutSeconds} step={0.25} min={0.1} onChange={(v) => updateAiProfile(aiProfile.id, { stuckTimeoutSeconds: v })} />
+                  <NumRow label="Work time (s)" value={aiProfile.workTimeSeconds ?? 1.6} step={0.25} min={0.1} onChange={(v) => updateAiProfile(aiProfile.id, { workTimeSeconds: v })} />
+                  <NumRow label="Arrive distance" value={aiProfile.arriveDistance ?? 2.4} step={0.1} min={0.5} onChange={(v) => updateAiProfile(aiProfile.id, { arriveDistance: v })} />
                 </div>
                 <Check label="Assist behavior enabled" checked={aiProfile.assistBehaviorEnabled} onChange={(v) => updateAiProfile(aiProfile.id, { assistBehaviorEnabled: v })} />
                 <Check label="Reposition fallback enabled" checked={aiProfile.repositionFallbackEnabled} onChange={(v) => updateAiProfile(aiProfile.id, { repositionFallbackEnabled: v })} />

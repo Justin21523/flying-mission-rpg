@@ -5,7 +5,8 @@ import { useEditorCharacterStore } from '../../../stores/game/editorCharacterSto
 import { useTransformationPreviewStore } from '../../../stores/game/transformationPreviewStore';
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { validateTimeline } from '../../../game/transformation/transformationValidation';
-import { liveOffset, scaleNumber, radiansToDegrees, resolveStageClipModelId } from '../../../game/transformation/transformationOverrides';
+import { bakeOverrideToDef, liveOffset, scaleNumber, radiansToDegrees, resolveStageClipModelId } from '../../../game/transformation/transformationOverrides';
+import { listTransformationEditTargets, resolveTransformationEditTarget } from '../../../game/transformation/transformationEditTargets';
 import { transformModelSlotKey, transformPartKey, transformRootKey, transformStageModelKey, transformStageMoveKey, transformStagePartMoveKey } from '../../../game/transformation/transformPartKey';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
@@ -64,6 +65,56 @@ const Vec3 = ({ label, value, onChange }: { label: string; value: [number, numbe
     </div>
   </Field>
 );
+
+const SelectedTargetDiagnostics = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
+  const selectedKey = useSceneEditStore((s) => s.selectedKey);
+  const overrides = useSceneEditStore((s) => s.overrides);
+  const targets = listTransformationEditTargets(def);
+  const target = resolveTransformationEditTarget(def, selectedKey);
+  const override = selectedKey ? overrides[selectedKey] : undefined;
+  const hasOverride = !!override && (override.position !== undefined || override.rotation !== undefined || override.scale !== undefined);
+  const selectTarget = (key: string) => useSceneEditStore.getState().requestSelect(key);
+  const resetSelected = () => { if (selectedKey) useSceneEditStore.getState().resetKey(selectedKey); };
+  const bakeSelected = () => {
+    if (!selectedKey || !override) return;
+    const patch = bakeOverrideToDef(def, selectedKey, override);
+    if (!patch) return;
+    update(patch);
+    useSceneEditStore.getState().resetKey(selectedKey);
+  };
+  const bakeAll = () => {
+    let next: TransformationDefinition = def;
+    for (const item of targets) {
+      const ov = useSceneEditStore.getState().overrides[item.key];
+      if (!ov) continue;
+      const patch = bakeOverrideToDef(next, item.key, ov);
+      if (!patch) continue;
+      next = { ...next, ...patch };
+      useSceneEditStore.getState().resetKey(item.key);
+    }
+    update(next);
+  };
+  return (
+    <div className="rounded border border-violet-800/50 bg-violet-950/10 p-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={lbl}>Selected target</span>
+        <span className="rounded bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-violet-100">{target.label}</span>
+        <span className="rounded bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300">{target.kind}</span>
+        {hasOverride && <span className="rounded bg-amber-900/40 px-2 py-0.5 text-[10px] text-amber-100">override pending</span>}
+      </div>
+      {selectedKey && <div className="mt-1 truncate font-mono text-[10px] text-slate-500">{selectedKey}</div>}
+      <div className="mt-2 flex flex-wrap gap-1">
+        <select value={selectedKey ?? ''} onChange={(e) => e.target.value && selectTarget(e.target.value)} className={inp + ' max-w-xs'}>
+          <option value="">Select transform target</option>
+          {targets.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+        </select>
+        <button onClick={bakeSelected} disabled={!hasOverride || !target.canBake} className="rounded bg-emerald-700/30 px-2 py-1 text-[10px] text-emerald-100 hover:bg-emerald-700/50 disabled:opacity-40">Bake Selected</button>
+        <button onClick={resetSelected} disabled={!selectedKey || !hasOverride} className="rounded bg-amber-700/30 px-2 py-1 text-[10px] text-amber-100 hover:bg-amber-700/50 disabled:opacity-40">Reset Selected</button>
+        <button onClick={bakeAll} disabled={!targets.some((item) => overrides[item.key])} className="rounded bg-sky-700/30 px-2 py-1 text-[10px] text-sky-100 hover:bg-sky-700/50 disabled:opacity-40">Bake All Pending</button>
+      </div>
+    </div>
+  );
+};
 
 function modelIdForSlot(def: TransformationDefinition, slot: ModelSlot): string | undefined {
   if (slot === 'plane') return def.planeModelRef;
@@ -436,6 +487,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
   const patch = (id: string, p: Partial<TransformationStage>) => { update({ stages: def.stages.map((s) => (s.id === id ? { ...s, ...p } : s)) }); seekStage(id, p.startTime); };
   const patchParams = (id: string, pp: Partial<TransformationStage['params']>) => { update({ stages: def.stages.map((s) => (s.id === id ? { ...s, params: { ...s.params, ...pp } } : s)) }); seekStage(id); };
   const remove = (id: string) => update({ stages: def.stages.filter((s) => s.id !== id) });
+  const duplicateStage = (stage: TransformationStage) => update({ stages: [...def.stages, { ...stage, id: `s_${nanoid(4)}`, label: stage.label ? `${stage.label} Copy` : undefined, startTime: stage.startTime + 0.1, params: { ...stage.params } }] });
   return (
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Stages · {def.stages.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Stage</button></div>
@@ -457,6 +509,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
             <div className="mt-1 flex items-center gap-1.5">
               <StageGizmoControls def={def} s={s} />
               <MoveButtons index={i} count={def.stages.length} onMove={(d) => update({ stages: moveItem(def.stages, i, d) })} />
+              <button onClick={() => duplicateStage(s)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>
           </div>
@@ -470,6 +523,7 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
   const add = () => update({ cameraShots: [...def.cameraShots, { id: `c_${nanoid(4)}`, type: 'orbit', startTime: 0, duration: 1, distance: 6, height: 2, angle: 0, fov: 50 }] });
   const patch = (id: string, p: Partial<TransformationCameraShot>) => { update({ cameraShots: def.cameraShots.map((s) => (s.id === id ? { ...s, ...p } : s)) }); const sh = def.cameraShots.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(p.startTime ?? sh?.startTime ?? 0); };
   const remove = (id: string) => update({ cameraShots: def.cameraShots.filter((s) => s.id !== id) });
+  const duplicateShot = (shot: TransformationCameraShot) => update({ cameraShots: [...def.cameraShots, { ...shot, id: `c_${nanoid(4)}`, startTime: shot.startTime + 0.1 }] });
   return (
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Camera shots · {def.cameraShots.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Shot</button></div>
@@ -489,6 +543,7 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
             </div>
             <div className="mt-1 flex items-center gap-1.5">
               <MoveButtons index={i} count={def.cameraShots.length} onMove={(d) => update({ cameraShots: moveItem(def.cameraShots, i, d) })} />
+              <button onClick={() => duplicateShot(s)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>
           </div>
@@ -502,6 +557,7 @@ const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update:
   const add = () => update({ effectTracks: [...def.effectTracks, { id: `e_${nanoid(4)}`, type: 'glow-pulse', startTime: 0, duration: 1 }] });
   const patch = (id: string, p: Partial<TransformationEffectTrack>) => { update({ effectTracks: def.effectTracks.map((s) => (s.id === id ? { ...s, ...p } : s)) }); const fx = def.effectTracks.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(p.startTime ?? fx?.startTime ?? 0); };
   const remove = (id: string) => update({ effectTracks: def.effectTracks.filter((s) => s.id !== id) });
+  const duplicateEffect = (effect: TransformationEffectTrack) => update({ effectTracks: [...def.effectTracks, { ...effect, id: `e_${nanoid(4)}`, startTime: effect.startTime + 0.1 }] });
   return (
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Effect tracks · {def.effectTracks.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Effect</button></div>
@@ -526,6 +582,7 @@ const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update:
             )}
             <div className="mt-1 flex items-center gap-1.5">
               <MoveButtons index={i} count={def.effectTracks.length} onMove={(d) => update({ effectTracks: moveItem(def.effectTracks, i, d) })} />
+              <button onClick={() => duplicateEffect(s)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>
           </div>
@@ -600,6 +657,8 @@ export const TransformationEditorTab = () => {
               {(() => { const errs = validateTimeline(def); return errs.length > 0 ? (
                 <div className="rounded bg-rose-900/40 p-1.5 text-[11px] text-rose-200">{errs.map((er, i) => <div key={i}>⚠ {er}</div>)}</div>
               ) : null; })()}
+
+              <SelectedTargetDiagnostics def={def} update={upd} />
 
               {sub === 'timeline' && (
                 <>

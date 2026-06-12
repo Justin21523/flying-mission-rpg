@@ -10,8 +10,8 @@ export interface CompanionAiResult {
   completedObjectiveId?: string;
 }
 
-const ARRIVE_DIST = 2.4; // how close counts as "at the objective"
-const WORK_TIME = 1.6; // seconds of working before the objective is completed
+const DEFAULT_ARRIVE_DIST = 2.4; // how close counts as "at the objective" (per-AI-profile editable)
+const DEFAULT_WORK_TIME = 1.6; // seconds of working before the objective is completed (per-AI-profile editable)
 
 export function updateCompanionAi(
   presence: CharacterPresence,
@@ -24,16 +24,18 @@ export function updateCompanionAi(
 ): CompanionAiResult {
   if (presence.tier === 'remote') return { presence };
   const cur: Vec2 = { x: presence.position[0], z: presence.position[2] };
+  const arriveDist = ai.arriveDistance ?? DEFAULT_ARRIVE_DIST;
+  const workTime = ai.workTimeSeconds ?? DEFAULT_WORK_TIME;
 
   // ── task-driven: go to the objective and work it ──
   if (presence.taskObjectiveId && presence.taskTarget) {
     const tx = presence.taskTarget[0];
     const tz = presence.taskTarget[1];
     const dist = Math.hypot(cur.x - tx, cur.z - tz);
-    if (dist <= ARRIVE_DIST) {
+    if (dist <= arriveDist) {
       const workElapsed = (presence.workElapsed ?? 0) + dt;
       const heading = Math.atan2(tx - cur.x, tz - cur.z);
-      if (workElapsed >= WORK_TIME) {
+      if (workElapsed >= workTime) {
         return {
           presence: { ...presence, aiState: 'follow-player', heading, workElapsed: 0, taskObjectiveId: undefined, taskTarget: undefined },
           completedObjectiveId: presence.taskObjectiveId,
