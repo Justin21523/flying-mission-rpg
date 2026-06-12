@@ -1,4 +1,5 @@
 import { useEditorPathStore } from '../../../../stores/editorPathStore';
+import { nanoid } from 'nanoid';
 import { useWorldSelectStore } from '../../../../stores/worldSelectStore';
 import { focusCameraOn } from '../../../../game/edit/cameraFocus';
 import type { PathCurveType, PathDirectionMode, PathNodeData } from '../../../../types/path';
@@ -46,6 +47,15 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
   }
   const nodes = path.nodes ?? [];
   const patchNode = (nodeId: string, patch: Partial<PathNodeData>) => { store.updateNode(path.id, nodeId, patch); seekToNode(nodeId); };
+  const replaceNodes = (nextNodes: PathNodeData[]) => store.updatePath(path.id, { nodes: nextNodes, nodeIds: nextNodes.map((n) => n.id) });
+  const duplicateNode = (node: PathNodeData, index: number, insertAfter: boolean) => {
+    const copy: PathNodeData = { ...node, id: `node_${nanoid(6)}`, position: [node.position[0] + 2, node.position[1], node.position[2] + 2] };
+    const next = nodes.slice();
+    next.splice(insertAfter ? index + 1 : nodes.length, 0, copy);
+    replaceNodes(next);
+    selectNode(path.id, copy);
+  };
+  const resetFlightNode = (nodeId: string) => patchNode(nodeId, { speedMultiplier: 1, bankDeg: undefined, waitTime: undefined });
   const editIn3D = () => {
     if (editPhase) useGameStore.getState().jumpTo(editPhase); // mount this leg's scene so the node handles show
     const first = nodes[0];
@@ -83,6 +93,9 @@ export const PathNodesEditor = ({ pathId, onCreatePath, createLabel = 'Create pa
               <span className="w-6 text-center text-[11px] font-bold text-sky-200">{index + 1}</span>
               <button onClick={() => selectNode(path.id, node)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-sky-200 hover:bg-slate-700">Focus</button>
               <MoveButtons index={index} count={nodes.length} onMove={(d) => store.reorderNode(path.id, node.id, d)} />
+              <button onClick={() => duplicateNode(node, index, true)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Insert Copy</button>
+              <button onClick={() => resetFlightNode(node.id)} className="rounded bg-amber-700/20 px-2 py-0.5 text-[10px] text-amber-200 hover:bg-amber-700/30">Reset Flight</button>
+              <button onClick={() => duplicateNode(node, index, false)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Duplicate</button>
               <button onClick={() => store.removeNode(path.id, node.id)} className="ml-auto rounded bg-rose-700/20 px-2 py-0.5 text-[10px] text-rose-300 hover:bg-rose-700/30">Remove</button>
             </div>
             <Field label="Position (x / y / z) — live with the 3D node handle">

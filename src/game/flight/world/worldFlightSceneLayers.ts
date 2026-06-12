@@ -1,3 +1,5 @@
+import type { WorldFlightEditViewMode } from '../../../stores/game/worldFlightEditorStore';
+
 // Pure layer-visibility policy for the WORLD_FLIGHT scene (no R3F → unit-testable). EDIT MODE is a clean,
 // authoring-focused view: route curve + path nodes + the editable craft + segment gizmos only — no clouds,
 // speed streaks, spawned events or the event-pool gallery. PLAY MODE keeps the rich flight visuals and hides
@@ -15,15 +17,16 @@ export interface WorldFlightLayers {
   sceneGizmo: boolean; // the shared SceneEditorGizmo
 }
 
-export function worldFlightSceneLayers(editMode: boolean): WorldFlightLayers {
+export function worldFlightSceneLayers(editMode: boolean, editViewMode: WorldFlightEditViewMode = 'clean-edit'): WorldFlightLayers {
   if (editMode) {
+    const playLike = editViewMode === 'play-like-edit';
     return {
-      clouds: false,
-      speed: false,
+      clouds: playLike,
+      speed: playLike,
       events: false,
-      eventPreview: false,
+      eventPreview: editViewMode !== 'clean-edit',
       routeFollower: false,
-      ambience: 'edit',
+      ambience: playLike ? 'play' : 'edit',
       pathDebug: true,
       segmentGizmos: true,
       editableCraft: true,

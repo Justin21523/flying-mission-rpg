@@ -19,6 +19,7 @@ import { CloudField } from './CloudField';
 import { SpeedField } from './SpeedField';
 import { FlightEventDirectorHost } from './FlightEventDirectorHost';
 import { FlightEventRenderer } from './FlightEventRenderer';
+import { FlightEventPreview } from './FlightEventPreview';
 import { WorldFlightDebugGizmos } from './WorldFlightDebugGizmos';
 import { WorldFlightCraftEditable } from './WorldFlightCraftEditable';
 import { WORLD_CRAFT_KEY, routeStartNode } from './worldCraftKey';
@@ -33,6 +34,7 @@ import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRunt
 import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
 import { FlightCelebrationLayer } from './FlightCelebrationLayer';
 import { FlightLegCameraGizmo } from '../FlightLegCameraGizmo';
+import { useWorldFlightEditorStore } from '../../../stores/game/worldFlightEditorStore';
 
 const RAD2DEG = 180 / Math.PI;
 
@@ -43,7 +45,8 @@ const RAD2DEG = 180 / Math.PI;
 // fog / speed / event clutter. All runtime is disposed on exit.
 export const WorldFlightScene = () => {
   const editMode = useUiStore((s) => s.editMode);
-  const layers = worldFlightSceneLayers(editMode);
+  const editViewMode = useWorldFlightEditorStore((s) => s.editViewMode);
+  const layers = worldFlightSceneLayers(editMode, editViewMode);
   const tuning = useEditorFlightStore((s) => s.tuning);
   const preview = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
   const previewFlightCam = useFlightPreviewStore((s) => (s.playing || s.u > 0.001) && s.cameraMode === 'flight');
@@ -93,6 +96,7 @@ export const WorldFlightScene = () => {
           <FlightCelebrationLayer />
         </>
       )}
+      {layers.eventPreview && <FlightEventPreview />}
 
       {layers.segmentGizmos && <WorldFlightDebugGizmos />}
       {layers.editableCraft && !preview && <WorldFlightCraftEditable />}

@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
 import { useFlightStore } from '../../../stores/game/useFlightStore';
 import { useGameStore } from '../../../stores/game/useGameStore';
+import { useWorldFlightEditorStore, type WorldFlightEditViewMode } from '../../../stores/game/worldFlightEditorStore';
 import type { FlightRoute } from '../../../types/game/flight';
 import { Field, inp, lbl } from '../editorShared';
 import { RouteFields } from './worldTools/RouteFields';
@@ -32,6 +33,7 @@ const makeNewRoute = (): FlightRoute => ({
 });
 
 type Sub = 'route' | 'nodes' | 'segments' | 'events' | 'environment' | 'locations';
+const VIEW_MODES: readonly WorldFlightEditViewMode[] = ['clean-edit', 'preview-edit', 'play-like-edit'];
 const SUBS: { id: Sub; label: string }[] = [
   { id: 'route', label: 'Route' },
   { id: 'nodes', label: 'Path Nodes' },
@@ -50,6 +52,8 @@ export const WorldToolsEditorTab = () => {
   const activeRouteId = useFlightStore((s) => s.currentRouteId);
   const routeProgress = useFlightStore((s) => s.progress);
   const phase = useGameStore((s) => s.phase);
+  const editViewMode = useWorldFlightEditorStore((s) => s.editViewMode);
+  const setEditViewMode = useWorldFlightEditorStore((s) => s.setEditViewMode);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sub, setSub] = useState<Sub>('route');
 
@@ -92,6 +96,11 @@ export const WorldToolsEditorTab = () => {
           </div>
 
           <div className="rounded border border-sky-800/40 bg-sky-950/10 p-2">
+            <Field label="World edit view">
+              <select value={editViewMode} onChange={(e) => setEditViewMode(e.target.value as WorldFlightEditViewMode)} className={inp}>
+                {VIEW_MODES.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
+              </select>
+            </Field>
             <Field label="Active route test progress">
               <div className="flex items-center gap-2">
                 <input type="range" min={0} max={1} step={0.01} value={routeProgress} onChange={(e) => setRouteProgress(parseFloat(e.target.value))} className="min-w-0 flex-1" />
