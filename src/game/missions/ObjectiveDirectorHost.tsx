@@ -12,6 +12,9 @@ import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { getDialogueTree } from '../dialogue/dialogueRegistry';
+import { useFlagStore } from '../../stores/flagStore';
+import { evaluateCondition } from '../evaluateCondition';
+import type { NPCDefinition } from '../../types/game/npc';
 import { phaserBridge } from '../phaser/phaserBridge';
 import { ObjectiveModel } from './objectiveModel';
 import { runEffects } from './missionEffects';
@@ -38,6 +41,18 @@ const dist2 = (p: DestinationPart | { position: [number, number, number] }, x: n
 // Which objective owns a destination part (target or dropoff) — used for ordered-mission gating.
 function objectiveForPart(def: MissionDefinition | null, partId: string): MissionObjective | undefined {
   return def?.objectives.find((o) => o.targetObjectIds?.includes(partId) || o.dropoffZoneId === partId);
+}
+
+// Pick the resident's dialogue tree reactively: the FIRST of its trees (condition-gated, priority order) whose
+// tree-level condition passes — so one resident greets differently across offer / in-progress / turn-in / after
+// the rescue. Falls back to the primary tree. (Mirrors POLI's multi-tree NPC selection.)
+function pickNpcDialogueTree(n: NPCDefinition): string | null {
+  const ids = n.dialogueTreeIds?.length ? n.dialogueTreeIds : n.dialogueTreeId ? [n.dialogueTreeId] : [];
+  for (const id of ids) {
+    const tree = getDialogueTree(id);
+    if (tree && (!tree.condition || evaluateCondition(tree.condition))) return id;
+  }
+  return null;
 }
 
 export const ObjectiveDirectorHost = () => {
@@ -147,7 +162,9 @@ export const ObjectiveDirectorHost = () => {
       if (dist2({ position: n.position! }, x, z) <= r * r) {
         prompt = `Talk to ${n.name} (E)`;
         if (pressed) {
-          const treeId = n.dialogueTreeId && getDialogueTree(n.dialogueTreeId) ? n.dialogueTreeId : null;
+          // Mark this resident greeted so talkToNPC quest objectives auto-track + dialogue can gate on it.
+          useFlagStore.getState().setFlag(`npc_talked_${n.id}`);
+          const treeId = pickNpcDialogueTree(n);
           if (treeId) useDialogueStore.getState().startDialogue(treeId);
         }
         break;

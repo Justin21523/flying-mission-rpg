@@ -47,6 +47,7 @@ import { usePoll } from './ui/usePoll';
 const BASE_PHASES = new Set(['HANGAR', 'PLATFORM_ALIGNMENT', 'LAUNCH_PREPARATION']);
 const FLIGHT_PHASES = new Set(['LAUNCH_TUNNEL', 'BASE_FLY_AROUND', 'CLOUD_ASCENT']);
 import { syncEditorQuests } from './game/editor/editorQuestToQuest';
+import { setupPoliQuestRewards } from './game/poli/PoliQuestRewardHandler';
 import { QuestTrackerController } from './game/quest/questTracking';
 import { InteractionHandler } from './game/interaction/InteractionHandler';
 import { Dock } from './ui/Dock';
@@ -138,6 +139,12 @@ export const App = () => {
   // Register any editor-authored quests (from localStorage) into the runtime quest store on startup.
   useEffect(() => {
     syncEditorQuests();
+  }, []);
+
+  // Install the coins/research-aware quest reward handler for the aero game too (PoliSystemBoot only runs it in
+  // the dormant 'world' mode) — so destination resident side-quests grant coins + items + exp on completion.
+  useEffect(() => {
+    setupPoliQuestRewards();
   }, []);
 
   // Drive timed research completion even when the Research Station panel is closed.
@@ -235,6 +242,9 @@ export const App = () => {
           and the Edit Mode authoring panels (Edit Mode must work in both grey-box and world scenes). */}
       <GameBoot />
       {!editMode && !world && <FullControlDispatchHost />}
+      {/* POLI quest runtime for the aero game (destination resident side-quests): the auto-tracker runs the
+          quests; the QuestTracker HUD shows active side-quests during destination gameplay. */}
+      {!world && <QuestTrackerController />}
       {/* Game front-end (Mission Control → Briefing → Character Select → Hangar). Shown on the new
           grey-box game, hidden in Edit Mode and in the dormant POLI 'world' reference. */}
       {!editMode && !world && <GameScreens />}
@@ -253,6 +263,7 @@ export const App = () => {
       {!editMode && !world && descentPhase && <DescentHud />}
       {!editMode && !world && landingPhase && <LandingHud />}
       {!editMode && !world && missionPhase && <MissionHud />}
+      {!editMode && !world && (missionPhase || missionDonePhase) && <QuestTracker />}
       {!editMode && !world && missionPhase && <SupportDispatchDirectorHost />}
       {!editMode && !world && missionPhase && <SupportSelectionPanel />}
       {!editMode && !world && missionPhase && <SupportDispatchStatusPanel />}
