@@ -4,16 +4,21 @@ import { useCharacterStore } from '../../../stores/game/useCharacterStore';
 import { useMissionStore } from '../../../stores/game/useMissionStore';
 import { useFlightStore } from '../../../stores/game/useFlightStore';
 import { useSupportRuntimeStore } from '../../../stores/game/supportRuntimeStore';
+import { useDestinationRuntimeStore } from '../../../stores/game/destinationRuntimeStore';
 import { useEditorCharacterStore } from '../../../stores/game/editorCharacterStore';
 import { useEditorMissionStore } from '../../../stores/game/editorMissionStore';
 import { useEditorLocationStore } from '../../../stores/game/editorLocationStore';
 import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
 import { useEditorSupportStore } from '../../../stores/game/editorSupportStore';
+import { useEditorGameNpcStore } from '../../../stores/game/editorGameNpcStore';
 import { applyDevScenario, jumpToDevScenario, resetDevScenarioRuntime, type DevMissionRuntimeMode } from '../../../game/debug/devScenario';
 import { requestSupport, forceSupportArrival } from '../../../game/support/SupportDispatchDirector';
 import { beginFullControlDispatch } from '../../../game/support/FullControlDispatchService';
 import { switchControlToCharacter } from '../../../game/characters/control/ControlOwnershipService';
+import { getControlledCharacterName } from '../../../game/characters/control/controlledCharacter';
 import { phaserBridge, usePhaserOverlayStore } from '../../../game/phaser/phaserBridge';
+import { useDialogueStore } from '../../../stores/dialogueStore';
+import { getDialogueTree, listDialogueTreeIds } from '../../../game/dialogue/dialogueRegistry';
 import { MINI_GAME_IDS } from '../../../data/game/miniGames';
 import { GAME_PHASES, type GamePhase } from '../../../types/game/state';
 import type { MissionObjective } from '../../../types/game/mission';
@@ -62,6 +67,7 @@ export const MissionStudioTab = () => {
   const locations = useEditorLocationStore((s) => s.items);
   const routes = useEditorRouteStore((s) => s.items);
   const supportProfiles = useEditorSupportStore((s) => s.profiles);
+  const npcs = useEditorGameNpcStore((s) => s.items);
   const currentMissionId = useMissionStore((s) => s.currentMissionId);
   const currentLocationId = useFlightStore((s) => s.currentLocationId);
   const currentRouteId = useFlightStore((s) => s.currentRouteId);
@@ -74,6 +80,8 @@ export const MissionStudioTab = () => {
   const [routeChoice, setRouteChoice] = useState(currentRouteId ?? AUTO);
   const [supportChoice, setSupportChoice] = useState(supportProfiles[0]?.characterId ?? AUTO);
   const [objectiveChoice, setObjectiveChoice] = useState('');
+  const [npcChoice, setNpcChoice] = useState(AUTO);
+  const [dialogueChoice, setDialogueChoice] = useState(AUTO);
   const [miniGameChoice, setMiniGameChoice] = useState<string>(MINI_GAME_IDS[0] ?? '');
 
   const mission = useMemo(() => missions.find((m) => m.id === valueOrNull(missionChoice)) ?? missions.find((m) => m.id === currentMissionId) ?? missions[0], [currentMissionId, missionChoice, missions]);
@@ -99,6 +107,10 @@ export const MissionStudioTab = () => {
   const supportPresent = supportChoice !== AUTO && supportRuntime.presences.some((p) => p.characterId === supportChoice);
   const supportDispatching = supportChoice !== AUTO && supportRuntime.dispatches.some((d) => d.characterId === supportChoice);
   const canUseSupport = supportChoice !== AUTO && !supportPresent && !supportDispatching;
+  const dialogueOptions = listDialogueTreeIds();
+  const selectedNpc = npcs.find((n) => n.id === npcChoice);
+  const selectedDialogueId = valueOrNull(dialogueChoice) ?? selectedNpc?.dialogueTreeIds?.[0] ?? selectedNpc?.dialogueTreeId ?? null;
+  const selectedDialogue = selectedDialogueId ? getDialogueTree(selectedDialogueId) : null;
 
   return (
     <div className="space-y-3 text-xs">
@@ -155,7 +167,9 @@ export const MissionStudioTab = () => {
           <div className="text-[10px] uppercase tracking-wide text-slate-500">Live State</div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
             <span className="text-slate-500">Phase</span><span className="truncate font-mono text-slate-200">{phase}</span>
-            <span className="text-slate-500">Controlled</span><span className="truncate font-mono text-slate-200">{supportRuntime.ownership.controlledCharacterId ?? selectedCharacterId ?? '-'}</span>
+            <span className="text-slate-500">Controlled</span><span className="truncate font-mono text-slate-200">{getControlledCharacterName()}</span>
+            <span className="text-slate-500">Input owner</span><span className="truncate font-mono text-slate-200">{supportRuntime.ownership.inputOwnerId ?? '-'}</span>
+            <span className="text-slate-500">Prompt owner</span><span className="truncate font-mono text-slate-200">{useDestinationRuntimeStore.getState().interactionOwnerId ?? '-'}</span>
             <span className="text-slate-500">Mission</span><span className="truncate font-mono text-slate-200">{currentMissionId ?? '-'}</span>
             <span className="text-slate-500">Runtime</span><span className="truncate font-mono text-slate-200">{missionRuntime?.status ?? '-'}</span>
             <span className="text-slate-500">Full control</span><span className="truncate font-mono text-slate-200">{supportRuntime.fullControl?.dispatchCharacterId ?? '-'}</span>
@@ -187,6 +201,27 @@ export const MissionStudioTab = () => {
             <Button disabled={!canUseSupport} tone="sky" onClick={() => beginFullControlDispatch(supportChoice)}>Full Control</Button>
             <Button disabled={supportChoice === AUTO} tone="amber" onClick={() => forceSupportArrival(supportChoice)}>Force Arrival</Button>
             <Button disabled={supportChoice === AUTO || !supportPresent} tone="violet" onClick={() => switchControlToCharacter(supportChoice)}>Switch</Button>
+          </div>
+        </div>
+
+        <div className="space-y-2 rounded border border-slate-800 bg-slate-950/50 p-2">
+          <div className="text-[10px] uppercase tracking-wide text-slate-500">NPC / Dialogue Probe</div>
+          <Field label="NPC">
+            <Select value={npcChoice} onChange={setNpcChoice}>
+              <option value={AUTO}>Select NPC</option>
+              {npcs.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Dialogue">
+            <Select value={dialogueChoice} onChange={setDialogueChoice}>
+              <option value={AUTO}>NPC default</option>
+              {dialogueOptions.map((d) => <option key={d.id} value={d.id}>{d.id}</option>)}
+            </Select>
+          </Field>
+          <div className="text-[10px] text-slate-500">{selectedDialogue ? selectedDialogue.id : 'No dialogue selected.'}</div>
+          <div className="flex flex-wrap gap-1">
+            <Button disabled={!selectedDialogueId} tone="sky" onClick={() => selectedDialogueId && useDialogueStore.getState().startDialogue(selectedDialogueId)}>Start Dialogue</Button>
+            <Button disabled={!useDialogueStore.getState().isActive} tone="amber" onClick={() => useDialogueStore.getState().endDialogue()}>End Dialogue</Button>
           </div>
         </div>
 

@@ -11,6 +11,7 @@ import { useWorldFlightRuntimeStore } from '../../stores/game/worldFlightRuntime
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useTransformationPreviewStore } from '../../stores/game/transformationPreviewStore';
 import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
+import { initializeControlOwner } from '../characters/control/ControlOwnershipService';
 import { getEditorCharacters, getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { getEditorMissions, getEditorMission } from '../../stores/game/editorMissionStore';
 import { getEditorLocations, getEditorLocation } from '../../stores/game/editorLocationStore';
@@ -202,7 +203,10 @@ export function resetDevScenarioRuntime(): void {
 export function applyDevScenario(input: DevScenarioInput, phase: GamePhase): ResolvedDevScenario {
   const resolved = resolveDevScenario(input);
   resetDevScenarioRuntime();
-  if (resolved.characterId) useCharacterStore.getState().selectCharacter(resolved.characterId);
+  if (resolved.characterId) {
+    useCharacterStore.getState().selectCharacter(resolved.characterId);
+    initializeControlOwner(resolved.characterId);
+  }
   const mission = resolved.missionId ? getEditorMission(resolved.missionId) : undefined;
   applyMissionRuntime(mission, runtimeModeForPhase(input.missionRuntimeMode, phase));
   useFlightStore.getState().setRoute(resolved.routeId);

@@ -8,6 +8,7 @@ import { useFlightStore } from '../../stores/game/useFlightStore';
 import { useWorldFlightRuntimeStore } from '../../stores/game/worldFlightRuntimeStore';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useTransformationPreviewStore } from '../../stores/game/transformationPreviewStore';
+import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
 import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { useEditorLocationStore } from '../../stores/game/editorLocationStore';
@@ -49,6 +50,7 @@ function resetRuntimeStores(): void {
   useWorldFlightRuntimeStore.getState().reset();
   useDestinationRuntimeStore.getState().reset();
   useTransformationPreviewStore.getState().stop();
+  useSupportRuntimeStore.getState().reset();
 }
 
 describe('devScenario', () => {
@@ -82,6 +84,15 @@ describe('devScenario', () => {
     expect(useGameStore.getState().phase).toBe('MISSION_GAMEPLAY');
     expect(useMissionStore.getState().runtime?.missionId).toBe('mission_fix_beacon');
     expect(useMissionStore.getState().runtime?.status).toBe('active');
+  });
+
+  it('initializes control ownership when applying a playable scenario', () => {
+    const resolved = jumpToDevScenario(baseInput({ missionId: 'mission_parcel_run', characterId: 'char_jett' }), 'MISSION_GAMEPLAY');
+
+    expect(resolved.characterId).toBe('char_jett');
+    expect(useCharacterStore.getState().selectedCharacterId).toBe('char_jett');
+    expect(useSupportRuntimeStore.getState().ownership.controlledCharacterId).toBe('char_jett');
+    expect(useSupportRuntimeStore.getState().ownership.inputOwnerId).toBe('char_jett');
   });
 
   it('completes mission runtime when jumping to complete or return phases in auto mode', () => {
