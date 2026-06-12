@@ -55,41 +55,41 @@ import { computeTabWarnings } from '../game/editor/tabWarnings';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
 type Tab = 'gchar' | 'gloc' | 'gmap' | 'gworld' | 'gmission' | 'gmissionstudio' | 'gmissiongen' | 'gllm' | 'gnpc' | 'gsupport' | 'gyokai' | 'gxform' | 'gbase' | 'gflight' | 'gexterior' | 'gevent' | 'gdest' | 'gcam' | 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save';
-type TabCategory = 'Aero' | 'World Tools' | 'Logic' | 'Assets / Project' | 'Legacy';
-const CATEGORIES: readonly TabCategory[] = ['Aero', 'World Tools', 'Logic', 'Assets / Project', 'Legacy'];
+type TabCategory = 'Mission Studio' | 'Characters / Support' | 'Flight / Transform' | 'World / Destination' | 'Data / Project' | 'Legacy';
+const CATEGORIES: readonly TabCategory[] = ['Mission Studio', 'Characters / Support', 'Flight / Transform', 'World / Destination', 'Data / Project', 'Legacy'];
 const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[] = [
-  { id: 'gchar', label: '🛩 Characters', category: 'Aero' },
-  { id: 'gloc', label: '🌍 Locations', category: 'Aero' },
-  { id: 'gmap', label: '🗺 Map', category: 'Aero' },
-  { id: 'gworld', label: '🛫 Aero World', category: 'Aero' },
-  { id: 'gmission', label: '🎯 Missions', category: 'Aero' },
-  { id: 'gmissionstudio', label: '🧪 Mission Studio', category: 'Aero' },
-  { id: 'gmissiongen', label: '🎲 Mission Generator', category: 'Aero' },
-  { id: 'gllm', label: '🤖 LLM', category: 'Aero' },
-  { id: 'gnpc', label: '🧑 NPC (game)', category: 'Aero' },
-  { id: 'gsupport', label: '🤝 Support', category: 'Aero' },
-  { id: 'gyokai', label: '👹 Yokai/Hunt', category: 'Aero' },
-  { id: 'gxform', label: '✨ Transform', category: 'Aero' },
-  { id: 'gbase', label: '🏗 Base', category: 'Aero' },
-  { id: 'gflight', label: '✈ Flight', category: 'Aero' },
-  { id: 'gexterior', label: '🗼 Exterior', category: 'Aero' },
-  { id: 'gevent', label: '🌩 Events', category: 'Aero' },
-  { id: 'gdest', label: '🏙 Destination', category: 'Aero' },
-  { id: 'gcam', label: '🎥 Camera', category: 'Aero' },
-  { id: 'tracks', label: '🛣 Paths / Tracks', category: 'World Tools' },
-  { id: 'environment', label: '🌤 Ground Environment', category: 'World Tools' },
-  { id: 'world', label: '🗺 Areas / Map', category: 'World Tools' },
-  { id: 'portal', label: '🚪 Portals', category: 'World Tools' },
-  { id: 'landmark', label: '🗺 Landmarks', category: 'World Tools' },
-  { id: 'studio', label: '🎬 Model Studio', category: 'World Tools' },
-  { id: 'trigger', label: '⚡ Triggers', category: 'Logic' },
-  { id: 'npc', label: '🧑 Dialogue NPCs', category: 'Logic' },
-  { id: 'quest', label: '📜 Quest / Item', category: 'Logic' },
-  { id: 'minigame', label: '🎮 Mini-games', category: 'Logic' },
-  { id: 'reactions', label: '💥 Reactions', category: 'Logic' },
-  { id: 'project', label: '📦 Project', category: 'Assets / Project' },
-  { id: 'debug', label: '🧪 Debug', category: 'Assets / Project' },
-  { id: 'save', label: '💾 Save', category: 'Assets / Project' },
+  { id: 'gmissionstudio', label: '🧪 Mission Studio', category: 'Mission Studio' },
+  { id: 'gmission', label: '🎯 Missions', category: 'Mission Studio' },
+  { id: 'gmissiongen', label: '🎲 Mission Generator', category: 'Mission Studio' },
+  { id: 'gnpc', label: '🧑 NPC (game)', category: 'Mission Studio' },
+  { id: 'minigame', label: '🎮 Mini-games', category: 'Mission Studio' },
+  { id: 'gchar', label: '🛩 Characters', category: 'Characters / Support' },
+  { id: 'gsupport', label: '🤝 Support', category: 'Characters / Support' },
+  { id: 'studio', label: '🎬 Model Studio', category: 'Characters / Support' },
+  { id: 'gllm', label: '🤖 LLM', category: 'Characters / Support' },
+  { id: 'gflight', label: '✈ Flight', category: 'Flight / Transform' },
+  { id: 'gworld', label: '🛫 Aero World', category: 'Flight / Transform' },
+  { id: 'gevent', label: '🌩 Events', category: 'Flight / Transform' },
+  { id: 'gxform', label: '✨ Transform', category: 'Flight / Transform' },
+  { id: 'gcam', label: '🎥 Camera', category: 'Flight / Transform' },
+  { id: 'gloc', label: '🌍 Locations', category: 'World / Destination' },
+  { id: 'gmap', label: '🗺 Map', category: 'World / Destination' },
+  { id: 'gbase', label: '🏗 Base', category: 'World / Destination' },
+  { id: 'gexterior', label: '🗼 Exterior', category: 'World / Destination' },
+  { id: 'gdest', label: '🏙 Destination', category: 'World / Destination' },
+  { id: 'tracks', label: '🛣 Paths / Tracks', category: 'World / Destination' },
+  { id: 'environment', label: '🌤 Ground Environment', category: 'World / Destination' },
+  { id: 'world', label: '🗺 Areas / Map', category: 'World / Destination' },
+  { id: 'portal', label: '🚪 Portals', category: 'World / Destination' },
+  { id: 'landmark', label: '🗺 Landmarks', category: 'World / Destination' },
+  { id: 'trigger', label: '⚡ Triggers', category: 'Data / Project' },
+  { id: 'npc', label: '🧑 Dialogue NPCs', category: 'Data / Project' },
+  { id: 'quest', label: '📜 Quest / Item', category: 'Data / Project' },
+  { id: 'reactions', label: '💥 Reactions', category: 'Data / Project' },
+  { id: 'project', label: '📦 Project', category: 'Data / Project' },
+  { id: 'debug', label: '🧪 Debug', category: 'Data / Project' },
+  { id: 'save', label: '💾 Save', category: 'Data / Project' },
+  { id: 'gyokai', label: '👹 Yokai/Hunt', category: 'Legacy', legacy: true },
   { id: 'poli', label: '🤖 POLI Characters', category: 'Legacy', legacy: true },
   { id: 'encounter', label: '⚔ Encounters', category: 'Legacy', legacy: true },
   { id: 'incident', label: '🚨 Incidents', category: 'Legacy', legacy: true },
@@ -112,7 +112,7 @@ function loadHubPrefs(): HubPrefs {
       if (tab) return { userTab: tab.id, category: tab.category, showLegacy: !!p.showLegacy };
     }
   } catch { /* ignore */ }
-  return { userTab: 'gchar', category: 'Aero', showLegacy: false };
+  return { userTab: 'gmissionstudio', category: 'Mission Studio', showLegacy: false };
 }
 
 // Which content domain(s) each tab can export/import as JSON (⬇ current · 📋 example · ⬆ replace). Tabs not
@@ -177,6 +177,29 @@ const TabJsonStrip = ({ tab }: { tab: Tab }) => {
     </div>
   );
 };
+
+const QUICK_LINKS: { tab: Tab; label: string; detail: string }[] = [
+  { tab: 'gmissionstudio', label: 'Test Runtime', detail: 'phase, character, objective, support' },
+  { tab: 'gsupport', label: 'Tune Team AI', detail: 'dispatch, AI, tiers' },
+  { tab: 'gworld', label: 'Edit Routes', detail: 'nodes, events, clean preview' },
+  { tab: 'gxform', label: 'Author Transform', detail: 'targets, bake, clips' },
+  { tab: 'gdest', label: 'Place Mission Scene', detail: 'NPCs, objectives, spawn points' },
+];
+
+const WorkflowQuickLinks = ({ activeTab, onSelect }: { activeTab: Tab; onSelect: (tab: Tab) => void }) => (
+  <div className="mb-3 grid grid-cols-5 gap-1.5">
+    {QUICK_LINKS.map((item) => (
+      <button
+        key={item.tab}
+        onClick={() => onSelect(item.tab)}
+        className={`rounded border px-2 py-1 text-left ${activeTab === item.tab ? 'border-sky-500/70 bg-sky-900/30 text-sky-100' : 'border-slate-800 bg-slate-900/45 text-slate-300 hover:bg-slate-800/70'}`}
+      >
+        <div className="truncate text-[11px] font-bold">{item.label}</div>
+        <div className="truncate text-[9px] text-slate-500">{item.detail}</div>
+      </button>
+    ))}
+  </div>
+);
 
 // Kit — the tabbed Editor Hub (opens centred, free-move via the header, free-resize via the CSS handle).
 // Translucent so it doesn't block the scene. (The Assets palette is a separate left-centre panel.)
@@ -285,7 +308,7 @@ export const EditorHubPanel = () => {
           ))}
         </div>}
         <label className="mb-2 flex items-center gap-1.5 px-1 text-[10px] text-slate-400">
-          <input type="checkbox" checked={showLegacy} onChange={(e) => { setShowLegacy(e.target.checked); if (!e.target.checked && category === 'Legacy') setCategory('Aero'); }} className="accent-sky-500" />
+          <input type="checkbox" checked={showLegacy} onChange={(e) => { setShowLegacy(e.target.checked); if (!e.target.checked && category === 'Legacy') setCategory('Mission Studio'); }} className="accent-sky-500" />
           Show Legacy
         </label>
         {/* Scrollable tab list — so every tab is reachable however many there are / however small the hub. */}
@@ -302,6 +325,7 @@ export const EditorHubPanel = () => {
       </div>
       <div className="relative min-w-0 flex-1 overflow-auto p-4 pr-10">
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
+        <WorkflowQuickLinks activeTab={tab} onSelect={setTab} />
         <TabJsonStrip tab={tab} />
         {tab === 'gchar' ? <CharacterEditorTab /> : tab === 'gloc' ? <LocationEditorTab /> : tab === 'gmap' ? <MapEditorTab /> : tab === 'gworld' ? <WorldToolsEditorTab /> : tab === 'gmission' ? <MissionEditorTab /> : tab === 'gmissionstudio' ? <MissionStudioTab /> : tab === 'gmissiongen' ? <MissionGeneratorTab /> : tab === 'gllm' ? <LlmSettingsTab /> : tab === 'gnpc' ? <GameNpcEditorTab /> : tab === 'gsupport' ? <SupportEditorTab /> : tab === 'gyokai' ? <YokaiHuntEditorTab /> : tab === 'gxform' ? <TransformationEditorTab /> : tab === 'gbase' ? <BaseLayoutEditorTab /> : tab === 'gflight' ? <FlightEditorTab /> : tab === 'gexterior' ? <ExteriorEditorTab /> : tab === 'gevent' ? <FlightEventsEditorTab /> : tab === 'gdest' ? <DestinationEditorTab /> : tab === 'gcam' ? <CameraEditorTab /> : tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
       </div>
