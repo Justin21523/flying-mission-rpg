@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useEditorCharacterStore, getEditorCharacter } from './editorCharacterStore';
+import { getEditorCharacter, syncAutoCharacterModelsFromLibrary, useEditorCharacterStore } from './editorCharacterStore';
 import { SEED_CHARACTERS } from '../../data/game/characters';
 
 describe('editorCharacterStore', () => {
@@ -22,6 +22,27 @@ describe('editorCharacterStore', () => {
     useEditorCharacterStore.getState().update('char_jett', { name: 'My Jett' });
     useEditorCharacterStore.getState().mergeMissingFromSeed();
     expect(getEditorCharacter('char_jett')?.name).toBe('My Jett');
+  });
+
+  it('refreshes auto-derived pose models without clobbering user character edits', () => {
+    useEditorCharacterStore.getState().mergeMissingFromSeed();
+    useEditorCharacterStore.getState().update('char_jett', { name: 'My Jett', poseModels: [] });
+    syncAutoCharacterModelsFromLibrary();
+    const jett = getEditorCharacter('char_jett');
+    expect(jett?.name).toBe('My Jett');
+    expect(jett?.poseModels?.length).toBeGreaterThan(0);
+  });
+
+  it('repairs missing model ids while preserving valid user-selected model ids', () => {
+    useEditorCharacterStore.getState().mergeMissingFromSeed();
+    useEditorCharacterStore.getState().update('char_paul', {
+      modelAssetId: 'super-wings/missing-paul-transformer',
+      planeModelAssetId: 'super-wings/Paul pose 3d model',
+    });
+    syncAutoCharacterModelsFromLibrary();
+    const paul = getEditorCharacter('char_paul');
+    expect(paul?.modelAssetId).toBe('super-wings/Paul+transformer+3d+model');
+    expect(paul?.planeModelAssetId).toBe('super-wings/Paul pose 3d model');
   });
 
   it('duplicates with a fresh id', () => {

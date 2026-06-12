@@ -1,4 +1,4 @@
-import { useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
+import { syncAutoCharacterModelsFromLibrary, useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
 import { useEditorLocationStore } from '../../stores/game/editorLocationStore';
 import { useEditorRegionStore } from '../../stores/game/editorRegionStore';
 import { useEditorAeroYokaiStore } from '../../stores/game/editorAeroYokaiStore';
@@ -20,6 +20,7 @@ import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
 import { useModelStudioStore } from '../../stores/modelStudioStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
 import { ALL_WORLD_PATHS } from '../../data/game/worldRoutes';
+import { allSuperWingsPoseAssetIds } from '../../data/game/superWingsModels';
 import type { PathDefinition } from '../../types/path';
 
 // Bigger default size for the character craft — set via Model Studio (the single source of truth for model
@@ -38,6 +39,9 @@ function seedCraftScale(): void {
     seedScale(c.planeModelAssetId, DEFAULT_CRAFT_SCALE);
     for (const pm of c.poseModels ?? []) seedScale(pm.assetId, DEFAULT_CRAFT_SCALE);
   }
+  for (const assetId of allSuperWingsPoseAssetIds()) {
+    seedScale(assetId, DEFAULT_CRAFT_SCALE);
+  }
   // NPC models (destination greeters / side-quest residents) — Model-Studio-scaled, default-only.
   for (const n of useEditorGameNpcStore.getState().items) {
     seedScale(n.modelAssetId, DEFAULT_NPC_SCALE);
@@ -55,6 +59,7 @@ function seedPath(path: PathDefinition): void {
 // edits — mergeMissingFromSeed only adds missing ids). Safe to run on every boot / existing save.
 export function seedGameContent(): void {
   useEditorCharacterStore.getState().mergeMissingFromSeed();
+  syncAutoCharacterModelsFromLibrary();
   useEditorRegionStore.getState().mergeMissingFromSeed();
   useEditorAeroYokaiStore.getState().mergeMissingFromSeed();
   useEditorLocationStore.getState().mergeMissingFromSeed();

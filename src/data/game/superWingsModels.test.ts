@@ -1,31 +1,109 @@
 import { describe, it, expect } from 'vitest';
-import { SUPER_WINGS_MODELS, poseModelsFor, heroPoseAssetIds, id } from './superWingsModels';
+import {
+  SUPER_WINGS_MODELS,
+  deriveSuperWingsModelCatalog,
+  heroPoseAssetIds,
+  id,
+  poseModelsFor,
+  primaryPlaneModelAssetIdFor,
+  primaryRobotModelAssetIdFor,
+  type SuperWingsAssetInput,
+} from './superWingsModels';
 
-const HEROES = Object.keys(SUPER_WINGS_MODELS);
+const HEROES = ['char_jett', 'char_jerome', 'char_donnie', 'char_paul', 'char_bello', 'char_chase', 'char_flip', 'char_todd'];
+
+function asset(idValue: string): SuperWingsAssetInput {
+  return { id: idValue, label: idValue.split('/').pop() ?? idValue };
+}
 
 describe('super-wings model catalog', () => {
-  it('covers all 8 heroes', () => {
-    expect(HEROES).toHaveLength(8);
-    expect(HEROES).toEqual(expect.arrayContaining(['char_jett', 'char_jerome', 'char_donnie', 'char_paul', 'char_bello', 'char_chase', 'char_flip', 'char_todd']));
-  });
+  it('auto-derives all seeded heroes from the model library', () => {
+    expect(Object.keys(SUPER_WINGS_MODELS)).toEqual(expect.arrayContaining(HEROES));
 
-  it('poseModelsFor returns the transformer + airplane + poses with unique ids and super-wings asset ids', () => {
-    for (const h of HEROES) {
-      const list = poseModelsFor(h);
-      expect(list.length).toBeGreaterThan(0); // at least the transformer
-      const ids = list.map((p) => p.id);
-      expect(new Set(ids).size).toBe(ids.length); // ids unique (handles same-tidy filename collisions)
-      for (const pm of list) {
-        expect(pm.assetId.startsWith('super-wings/')).toBe(true);
-        expect(pm.label.length).toBeGreaterThan(0);
+    for (const hero of HEROES) {
+      const list = poseModelsFor(hero);
+      expect(list.length).toBeGreaterThan(0);
+      const ids = list.map((pose) => pose.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      for (const pose of list) {
+        expect(pose.assetId.startsWith('super-wings/')).toBe(true);
+        expect(pose.label.length).toBeGreaterThan(0);
       }
-      // first entry is the robot/transformer
-      expect(list[0].assetId).toBe(id(SUPER_WINGS_MODELS[h].transformer));
     }
   });
 
-  it('heroPoseAssetIds returns prefixed pose ids', () => {
-    expect(heroPoseAssetIds('char_flip').every((a) => a.startsWith('super-wings/'))).toBe(true);
-    expect(heroPoseAssetIds('char_jett')).toEqual([]); // Jett has only a transformer
+  it('pins robot and plane primaries while keeping pose lists auto-derived', () => {
+    expect(primaryRobotModelAssetIdFor('char_paul')).toBe(id('Paul+transformer+3d+model'));
+    expect(primaryPlaneModelAssetIdFor('char_paul')).toBe(id('Paul airplane 3d model'));
+    expect(poseModelsFor('char_paul')[0]?.assetId).toBe(id('Paul+transformer+3d+model'));
+  });
+
+  it('heroPoseAssetIds returns auto-derived pose ids only', () => {
+    expect(heroPoseAssetIds('char_flip').every((assetId) => assetId.startsWith('super-wings/'))).toBe(true);
+    expect(heroPoseAssetIds('char_flip')).toContain(id('Flip pose 3d model'));
+    expect(heroPoseAssetIds('char_flip')).not.toContain(id('Flip+landing+1+robot'));
+    expect(heroPoseAssetIds('char_jett')).toEqual([]);
+  });
+
+  it('groups an injected new filename by character name prefix', () => {
+    const catalog = deriveSuperWingsModelCatalog(
+      [
+        asset(id('Jett+transformer+3d+model')),
+        asset(id('Jett new rescue pose 3d model')),
+        asset('super-wings/futuristic aircraft hangar 3d model'),
+      ],
+      {},
+      ['jett'],
+    );
+
+    expect(catalog.char_jett?.allAssetIds).toEqual([
+      id('Jett+transformer+3d+model'),
+      id('Jett new rescue pose 3d model'),
+    ]);
+  });
+
+  it('matches character name prefixes case-insensitively', () => {
+    const catalog = deriveSuperWingsModelCatalog(
+      [asset(id('paul+transformer+3d+model')), asset(id('Paul pose 3d model'))],
+      {},
+      ['paul'],
+    );
+
+    expect(catalog.char_paul?.robotAssetId).toBe(id('paul+transformer+3d+model'));
+    expect(catalog.char_paul?.poseAssetIds).toEqual([id('Paul pose 3d model')]);
+  });
+
+  it('can derive a future character when its name is requested', () => {
+    const catalog = deriveSuperWingsModelCatalog(
+      [asset(id('Nova+transformer+3d+model')), asset(id('Nova pose 3d model'))],
+      {},
+      ['nova'],
+    );
+
+    expect(catalog.char_nova?.allAssetIds).toEqual([id('Nova+transformer+3d+model'), id('Nova pose 3d model')]);
+  });
+
+  it('supports manual pin and hide overrides without a hand-written pose catalog', () => {
+    const hidden = id('Jett hidden pose 3d model');
+    const pinnedPlane = id('Jett alternate airplane 3d model');
+    const catalog = deriveSuperWingsModelCatalog(
+      [
+        asset(id('Jett+transformer+3d+model')),
+        asset(id('Jett pose 3d model')),
+        asset(hidden),
+        asset(pinnedPlane),
+      ],
+      {
+        char_jett: {
+          planeAssetId: pinnedPlane,
+          hiddenAssetIds: [hidden],
+        },
+      },
+      ['jett'],
+    );
+
+    expect(catalog.char_jett?.planeAssetId).toBe(pinnedPlane);
+    expect(catalog.char_jett?.allAssetIds).not.toContain(hidden);
+    expect(catalog.char_jett?.poseAssetIds).toEqual([id('Jett pose 3d model')]);
   });
 });

@@ -1,86 +1,202 @@
+import { MODEL_ASSET_LIST } from '../modelLibrary';
+import type { ModelAsset } from '../modelLibrary';
 import type { CharacterPoseModel } from '../../types/game/character';
 
-// Post-content — the full super-wings GLB catalog per hero, ids taken EXACTLY from the files in
-// public/models/super-wings/ (spaces and '+' preserved; double-spaces are real). Single source reused by the
-// character seed (poseModels) and the hero set-pieces. Per the character-model-naming rule, every model whose
-// filename starts with a hero's name belongs to that hero.
 const SW = 'super-wings/';
+
+export const SUPER_WINGS_CHARACTER_NAMES = ['jett', 'jerome', 'donnie', 'paul', 'bello', 'chase', 'flip', 'todd'] as const;
+export type SuperWingsCharacterName = (typeof SUPER_WINGS_CHARACTER_NAMES)[number];
+
+type PoseKind = 'robot' | 'plane' | 'pose' | 'extra';
 
 export interface HeroModelSet {
   characterId: string;
-  transformer: string;   // robot model
-  airplane?: string;     // plane/vehicle model (where a dedicated one exists)
-  poses: string[];       // pose/look variants (filenames as-is, sans the SW prefix)
-  extras?: string[];     // landing / segments etc.
+  name: string;
+  robotAssetId?: string;
+  planeAssetId?: string;
+  poseAssetIds: string[];
+  extraAssetIds: string[];
+  allAssetIds: string[];
 }
 
-// poses/extras values are the raw filename (minus extension); the SW prefix is added by id().
-export const SUPER_WINGS_MODELS: Record<string, HeroModelSet> = {
-  char_jett: { characterId: 'char_jett', transformer: 'Jett+transformer+3d+model', poses: [] },
-  char_jerome: {
-    characterId: 'char_jerome', transformer: 'Jerome+transformer+3d+model',
-    poses: ['Jerome pose 3d model', 'Jerome pose 02 3d model', 'Jerome+pose+03+3d+model', 'Jerome+pose+04+3d+model', 'Jerome pose 05 3d model', 'Jerome pose 06 3d model', 'Jerome pose 07 3d model', 'Jerome+pose+08+3d+model', 'Jerome+pose+09+3d+model', 'Jerome+pose+12+3d+model', 'Jerome+pose+13+3d+model'],
-  },
+export interface SuperWingsModelOverride {
+  robotAssetId?: string;
+  planeAssetId?: string;
+  hiddenAssetIds?: readonly string[];
+}
+
+export type SuperWingsModelOverrides = Record<string, SuperWingsModelOverride>;
+export type SuperWingsAssetInput = Pick<ModelAsset, 'id' | 'label'>;
+
+const DEFAULT_OVERRIDES: SuperWingsModelOverrides = {
+  char_jett: { robotAssetId: 'super-wings/Jett+transformer+3d+model' },
+  char_jerome: { robotAssetId: 'super-wings/Jerome+transformer+3d+model' },
   char_donnie: {
-    characterId: 'char_donnie', transformer: 'Donnie+transformer+3d+model', airplane: 'Donnie airplane 3d model',
-    poses: ['Donnie pose  3d model', 'Donnie pose 02 3d model', 'Donnie pose 03 3d model', 'Donnie pose 04 3d model', 'Donnie+poses+03+3d+model', 'Donnie+poses+04+3d+model'],
+    robotAssetId: 'super-wings/Donnie+transformer+3d+model',
+    planeAssetId: 'super-wings/Donnie airplane 3d model',
   },
   char_paul: {
-    characterId: 'char_paul', transformer: 'paul+transformer+3d+model', airplane: 'Paul airplane 3d model',
-    poses: ['Paul pose 3d model', 'Paul pose 02 3d model', 'Paul+pose+03+3d+model', 'Paul+pose+04+3d+model'],
+    robotAssetId: 'super-wings/Paul+transformer+3d+model',
+    planeAssetId: 'super-wings/Paul airplane 3d model',
   },
-  char_bello: {
-    characterId: 'char_bello', transformer: 'Bello+transformer+3d+model',
-    poses: ['Bello+pose+3d+model', 'Bello+pose+02+3d+model', 'Bello+pose+03+3d+model', 'Bello+pose+04+3d+model', 'Bello+pose+05+3d+model', 'Bello+pose+06+3d+model', 'Bello+pose+07+3d+model'],
-  },
-  char_chase: {
-    characterId: 'char_chase', transformer: 'Chase+transformer+3d+model',
-    poses: ['Chase+pose+3d+model', 'Chase pose 3d model', 'Chase+pose+02+3d+model', 'Chase+pose+04+3d+model', 'Chase+pose+05+3d+model'],
-  },
+  char_bello: { robotAssetId: 'super-wings/Bello+transformer+3d+model' },
+  char_chase: { robotAssetId: 'super-wings/Chase+transformer+3d+model' },
   char_flip: {
-    characterId: 'char_flip', transformer: 'Flip+transformer+3d+model', airplane: 'Flip airplane 3d model',
-    poses: ['Flip pose 3d model', 'Flip pose 02 3d model', 'Flip+pose+02+3d+model', 'Flip pose 03 3d model', 'Flip+pose+04+3d+model', 'Flip+poses+3d+model', 'Flip+poses+02+3d+model', 'Flip+poses+03+3d+model'],
-    extras: ['Flip+landing+1+robot', 'Flip+segments+3d+model'],
+    robotAssetId: 'super-wings/Flip+transformer+3d+model',
+    planeAssetId: 'super-wings/Flip airplane 3d model',
   },
-  char_todd: {
-    characterId: 'char_todd', transformer: 'Todd+transformer+3d+model',
-    poses: ['Todd+pose+3d+model', 'Todd+pose+02+3d+model', 'Todd+pose+03+3d+model', 'Todd+pose+04+3d+model', 'Todd+pose+05+3d+model', 'Todd+pose+06+3d+model', 'Todd+pose+07+3d+model'],
-  },
+  char_todd: { robotAssetId: 'super-wings/Todd+transformer+3d+model' },
 };
 
-export const id = (filename: string): string => SW + filename;
-
-function tidy(filename: string): string {
-  return filename.replace(/3d models?/i, '').replace(/[+_]/g, ' ').replace(/\s+/g, ' ').trim();
-}
-function slug(filename: string): string {
-  return tidy(filename).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+function displayName(name: string): string {
+  return name ? `${name[0]?.toUpperCase() ?? ''}${name.slice(1).toLowerCase()}` : '';
 }
 
-/** Build the character's poseModels list (transformer → airplane → poses → extras), with unique ids. */
-export function poseModelsFor(characterId: string): CharacterPoseModel[] {
-  const set = SUPER_WINGS_MODELS[characterId];
-  if (!set) return [];
-  const entries: { filename: string; kind: string }[] = [
-    { filename: set.transformer, kind: 'robot' },
-    ...(set.airplane ? [{ filename: set.airplane, kind: 'plane' }] : []),
-    ...set.poses.map((p) => ({ filename: p, kind: 'pose' })),
-    ...(set.extras ?? []).map((e) => ({ filename: e, kind: 'extra' })),
-  ];
+function characterIdForName(name: string): string {
+  return `char_${name.toLowerCase()}`;
+}
+
+function characterNameFromId(characterId: string): string {
+  return characterId.replace(/^char_/, '').toLowerCase();
+}
+
+function filenameFromAssetId(assetId: string): string {
+  return assetId.startsWith(SW) ? assetId.slice(SW.length) : assetId;
+}
+
+export const id = (filename: string): string => (filename.startsWith(SW) ? filename : `${SW}${filename}`);
+
+function tidyAssetId(assetId: string): string {
+  return filenameFromAssetId(assetId).replace(/3d models?/i, '').replace(/[+_]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function slug(assetId: string): string {
+  return tidyAssetId(assetId).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function startsWithCharacterName(assetId: string, name: string): boolean {
+  return filenameFromAssetId(assetId).toLowerCase().startsWith(name.toLowerCase());
+}
+
+function classifyAsset(assetId: string): PoseKind {
+  const file = filenameFromAssetId(assetId).toLowerCase();
+  if (file.includes('transformer')) return 'robot';
+  if (file.includes('airplane') || file.includes('plane')) return 'plane';
+  if (file.includes('landing') || file.includes('segment')) return 'extra';
+  return 'pose';
+}
+
+function orderWeight(assetId: string, pinnedRobot?: string, pinnedPlane?: string): number {
+  if (assetId === pinnedRobot) return 0;
+  if (assetId === pinnedPlane) return 1;
+  const kind = classifyAsset(assetId);
+  if (kind === 'robot') return 2;
+  if (kind === 'plane') return 3;
+  if (kind === 'pose') return 4;
+  return 5;
+}
+
+function uniqueSortedAssetIds(assetIds: string[], pinnedRobot?: string, pinnedPlane?: string): string[] {
+  return [...new Set(assetIds)].sort((a, b) => {
+    const aw = orderWeight(a, pinnedRobot, pinnedPlane);
+    const bw = orderWeight(b, pinnedRobot, pinnedPlane);
+    return aw === bw ? tidyAssetId(a).localeCompare(tidyAssetId(b)) : aw - bw;
+  });
+}
+
+function firstExistingPin(pin: string | undefined, assets: Set<string>): string | undefined {
+  return pin && assets.has(pin) ? pin : undefined;
+}
+
+function firstOfKind(assetIds: readonly string[], kind: PoseKind): string | undefined {
+  return assetIds.find((assetId) => classifyAsset(assetId) === kind);
+}
+
+function toPoseModels(assetIds: readonly string[]): CharacterPoseModel[] {
   const seen = new Set<string>();
-  return entries.map(({ filename, kind }) => {
-    const baseId = slug(filename);
+  return assetIds.map((assetId) => {
+    const kind = classifyAsset(assetId);
+    const baseId = slug(assetId);
     let unique = baseId;
     let n = 2;
-    while (seen.has(unique)) unique = `${baseId}_${n++}`;
+    while (seen.has(unique)) {
+      unique = `${baseId}_${n}`;
+      n += 1;
+    }
     seen.add(unique);
-    const label = kind === 'robot' ? `Robot (${tidy(filename)})` : kind === 'plane' ? `Plane (${tidy(filename)})` : tidy(filename);
-    return { id: unique, label, assetId: id(filename) };
+    const name = tidyAssetId(assetId);
+    const label = kind === 'robot' ? `Robot (${name})` : kind === 'plane' ? `Plane (${name})` : name;
+    return { id: unique, label, assetId };
   });
+}
+
+export function deriveSuperWingsModelCatalog(
+  assets: readonly SuperWingsAssetInput[],
+  overrides: SuperWingsModelOverrides = DEFAULT_OVERRIDES,
+  characterNames: readonly string[] = SUPER_WINGS_CHARACTER_NAMES,
+): Record<string, HeroModelSet> {
+  const superWingsAssetIds = assets.map((asset) => asset.id).filter((assetId) => assetId.startsWith(SW));
+  const assetIdSet = new Set(superWingsAssetIds);
+  const catalog: Record<string, HeroModelSet> = {};
+
+  for (const rawName of characterNames) {
+    const name = rawName.toLowerCase();
+    const characterId = characterIdForName(name);
+    const override = overrides[characterId];
+    const hidden = new Set(override?.hiddenAssetIds ?? []);
+    const visibleIds = superWingsAssetIds.filter((assetId) => startsWithCharacterName(assetId, name) && !hidden.has(assetId));
+    if (visibleIds.length === 0) continue;
+
+    const robotPin = firstExistingPin(override?.robotAssetId, assetIdSet);
+    const planePin = firstExistingPin(override?.planeAssetId, assetIdSet);
+    const allAssetIds = uniqueSortedAssetIds(visibleIds, robotPin, planePin);
+    const robotAssetId = robotPin ?? firstOfKind(allAssetIds, 'robot');
+    const planeAssetId = planePin ?? firstOfKind(allAssetIds, 'plane');
+    const poseAssetIds = allAssetIds.filter((assetId) => assetId !== robotAssetId && assetId !== planeAssetId && classifyAsset(assetId) === 'pose');
+    const extraAssetIds = allAssetIds.filter((assetId) => assetId !== robotAssetId && assetId !== planeAssetId && classifyAsset(assetId) === 'extra');
+
+    catalog[characterId] = {
+      characterId,
+      name: displayName(name),
+      robotAssetId,
+      planeAssetId,
+      poseAssetIds,
+      extraAssetIds,
+      allAssetIds,
+    };
+  }
+
+  return catalog;
+}
+
+function deriveSingleCharacterSet(characterId: string): HeroModelSet | undefined {
+  const name = characterNameFromId(characterId);
+  return deriveSuperWingsModelCatalog(MODEL_ASSET_LIST, DEFAULT_OVERRIDES, [name])[characterId];
+}
+
+export const SUPER_WINGS_MODELS: Record<string, HeroModelSet> = deriveSuperWingsModelCatalog(MODEL_ASSET_LIST);
+
+function modelSetFor(characterId: string): HeroModelSet | undefined {
+  return SUPER_WINGS_MODELS[characterId] ?? deriveSingleCharacterSet(characterId);
+}
+
+export function poseModelsFor(characterId: string): CharacterPoseModel[] {
+  return toPoseModels(modelSetFor(characterId)?.allAssetIds ?? []);
+}
+
+export function primaryRobotModelAssetIdFor(characterId: string): string | undefined {
+  return modelSetFor(characterId)?.robotAssetId;
+}
+
+export function primaryPlaneModelAssetIdFor(characterId: string): string | undefined {
+  return modelSetFor(characterId)?.planeAssetId;
+}
+
+export function allSuperWingsPoseAssetIds(): string[] {
+  return [...new Set(Object.values(SUPER_WINGS_MODELS).flatMap((set) => set.allAssetIds))];
 }
 
 /** A flat list of hero pose ids (for set-piece placement of "posing heroes"). */
 export function heroPoseAssetIds(characterId: string): string[] {
-  const set = SUPER_WINGS_MODELS[characterId];
-  return set ? set.poses.map(id) : [];
+  return modelSetFor(characterId)?.poseAssetIds ?? [];
 }
