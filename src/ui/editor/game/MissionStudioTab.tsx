@@ -19,6 +19,13 @@ import { getControlledCharacterName } from '../../../game/characters/control/con
 import { getGroundAbilityConfig } from '../../../game/destination/groundAbilityConfig';
 import { useGroundAbilityStore } from '../../../stores/game/groundAbilityStore';
 import { phaserBridge, usePhaserOverlayStore } from '../../../game/phaser/phaserBridge';
+import {
+  createMissionRuntimeSnapshot,
+  inspectMissionRuntime,
+  restoreMissionRuntimeSnapshot,
+  type MissionRuntimeDiagnostics,
+  type MissionRuntimeSnapshot,
+} from '../../../game/missions/missionRuntimeSnapshot';
 import { useDialogueStore } from '../../../stores/dialogueStore';
 import { getDialogueTree, listDialogueTreeIds } from '../../../game/dialogue/dialogueRegistry';
 import { MINI_GAME_IDS } from '../../../data/game/miniGames';
@@ -85,6 +92,8 @@ export const MissionStudioTab = () => {
   const [npcChoice, setNpcChoice] = useState(AUTO);
   const [dialogueChoice, setDialogueChoice] = useState(AUTO);
   const [miniGameChoice, setMiniGameChoice] = useState<string>(MINI_GAME_IDS[0] ?? '');
+  const [runtimeSnapshot, setRuntimeSnapshot] = useState<MissionRuntimeSnapshot | null>(null);
+  const [diagnostics, setDiagnostics] = useState<MissionRuntimeDiagnostics | null>(null);
 
   const mission = useMemo(() => missions.find((m) => m.id === valueOrNull(missionChoice)) ?? missions.find((m) => m.id === currentMissionId) ?? missions[0], [currentMissionId, missionChoice, missions]);
   const objective: MissionObjective | undefined = mission?.objectives.find((o) => o.id === objectiveChoice) ?? mission?.objectives[0];
@@ -119,6 +128,18 @@ export const MissionStudioTab = () => {
   const abilityRuntime = useGroundAbilityStore();
   const triggerCloud = () => useGroundAbilityStore.getState().triggerCloud(abilityConfig.cloudRally, performance.now() / 1000);
   const triggerSurge = () => useGroundAbilityStore.getState().triggerSurge(abilityConfig.rescueSurge, [0, 0, 1], performance.now() / 1000);
+  const captureSnapshot = () => {
+    const snap = createMissionRuntimeSnapshot();
+    setRuntimeSnapshot(snap);
+    setDiagnostics(inspectMissionRuntime());
+  };
+  const restoreSnapshot = () => {
+    if (!runtimeSnapshot) return;
+    const result = restoreMissionRuntimeSnapshot(runtimeSnapshot);
+    const next = inspectMissionRuntime();
+    setDiagnostics({ ...next, warnings: result.ok ? next.warnings : result.warnings, ok: result.ok && next.ok });
+  };
+  const runDiagnostics = () => setDiagnostics(inspectMissionRuntime());
 
   return (
     <div className="space-y-3 text-xs">
@@ -191,6 +212,31 @@ export const MissionStudioTab = () => {
                 <span className="font-mono text-sky-200">{p.tier} · {p.aiState}</span>
               </button>
             ))}
+          </div>
+          <div className="rounded border border-slate-800 bg-slate-900/45 p-2">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-[10px] uppercase tracking-wide text-slate-500">Runtime snapshot / diagnostics</span>
+              <span className={`rounded px-2 py-0.5 text-[10px] ${diagnostics?.ok ?? true ? 'bg-emerald-900/30 text-emerald-200' : 'bg-rose-900/40 text-rose-200'}`}>
+                {diagnostics ? diagnostics.ok ? 'OK' : `${diagnostics.warnings.length} warning(s)` : 'Not inspected'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <Button tone="sky" onClick={captureSnapshot}>Capture Snapshot</Button>
+              <Button tone="emerald" disabled={!runtimeSnapshot} onClick={restoreSnapshot}>Restore Snapshot</Button>
+              <Button tone="violet" onClick={runDiagnostics}>Inspect</Button>
+              <Button tone="amber" disabled={!runtimeSnapshot} onClick={() => setRuntimeSnapshot(null)}>Clear Snapshot</Button>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+              <span className="text-slate-500">Snapshot</span><span className="truncate font-mono text-slate-200">{runtimeSnapshot?.id ?? '-'}</span>
+              <span className="text-slate-500">Diag phase</span><span className="truncate font-mono text-slate-200">{diagnostics?.phase ?? '-'}</span>
+              <span className="text-slate-500">Presence tiers</span><span className="truncate font-mono text-slate-200">{diagnostics ? `${diagnostics.activePresenceCount}/${diagnostics.standbyPresenceCount}/${diagnostics.remotePresenceCount}` : '-'}</span>
+              <span className="text-slate-500">Dispatches</span><span className="truncate font-mono text-slate-200">{diagnostics?.dispatchCount ?? '-'}</span>
+            </div>
+            {diagnostics && diagnostics.warnings.length > 0 && (
+              <div className="mt-2 max-h-20 overflow-y-auto rounded bg-rose-950/20 p-1">
+                {diagnostics.warnings.map((warning) => <div key={warning} className="text-[10px] text-rose-200">{warning}</div>)}
+              </div>
+            )}
           </div>
         </div>
       </div>
