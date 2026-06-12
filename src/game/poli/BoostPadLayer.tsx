@@ -101,6 +101,7 @@ const EditPad = ({ pad }: { pad: BoostPadConfig }) => {
       position={pos}
       color="#22d3ee"
       onMove={(p) => updatePadPosition(pad.id, p)}
+      onDelete={() => useEditorBoostPadStore.getState().removePad(pad.id)}
     >
       <group rotation={pad.rotation ?? [0, 0, 0]}>
         <PadVisual pad={pad} />

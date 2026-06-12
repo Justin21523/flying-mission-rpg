@@ -40,8 +40,11 @@ const SlotVisual = ({ enc, slot, index }: { enc: EditorEncounter; slot: EditorEn
   const move = (pos: [number, number, number]) => useEditorEncounterStore.getState().updateEncounter(enc.id, {
     enemyTeam: enc.enemyTeam.map((s, j) => (j === index ? { ...s, position: pos } : s)),
   });
+  const remove = () => useEditorEncounterStore.getState().updateEncounter(enc.id, {
+    enemyTeam: enc.enemyTeam.filter((_, j) => j !== index),
+  });
   return (
-    <DataBackedPlacement objKey={`enc:${enc.id}:slot:${index}`} position={slot.position ?? spread(enc, index)} color={color} onMove={move}>
+    <DataBackedPlacement objKey={`enc:${enc.id}:slot:${index}`} position={slot.position ?? spread(enc, index)} color={color} onMove={move} onDelete={remove}>
       {model ? <SceneGlbModel assetId={model} fallback={<Banner color={color} />} /> : <Banner color={color} />}
       <Text position={[0, 2.3, 0]} fontSize={0.28} color="#fca5a5" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000">{slot.isBoss ? '👑 ' : '⚔ '}{name} Lv{slot.level}</Text>
     </DataBackedPlacement>

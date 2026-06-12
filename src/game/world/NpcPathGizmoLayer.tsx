@@ -42,6 +42,10 @@ const NpcMovementGizmos = ({ npc }: { npc: EditorNpc }) => {
     const next = paths.map((p, j) => (j === pi ? { ...p, points: p.points.map((q, k) => (k === ki ? { ...q, pos } : q)) } : p));
     update(npc.id, { paths: next });
   };
+  const removePoint = (pi: number, ki: number) => {
+    const next = paths.map((p, j) => (j === pi ? { ...p, points: p.points.filter((_, k) => k !== ki) } : p));
+    update(npc.id, { paths: next });
+  };
   return (
     <>
       {paths.map((path, pi) => path.points.map((pt, ki) => (
@@ -51,6 +55,7 @@ const NpcMovementGizmos = ({ npc }: { npc: EditorNpc }) => {
           position={pt.pos}
           color="#22d3ee"
           onMove={(p) => movePoint(pi, ki, p)}
+          onDelete={() => removePoint(pi, ki)}
         >
           <mesh position={[0, 0.4, 0]}>
             <sphereGeometry args={[0.3, 12, 10]} />

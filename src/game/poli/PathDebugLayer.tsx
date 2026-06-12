@@ -34,6 +34,7 @@ const PathNodes = ({ def }: { def: PathDefinition }) => {
             position={n.position}
             color={color}
             onMove={(p) => updatePathNode(def.id, n.id, p)}
+            onDelete={() => useEditorPathStore.getState().removeNode(def.id, n.id)}
           >
             <mesh position={[0, 0.4, 0]} renderOrder={998} onUpdate={(self) => { const mm = self.material as { depthTest?: boolean }; mm.depthTest = false; }}>
               <sphereGeometry args={[0.7, 14, 12]} />

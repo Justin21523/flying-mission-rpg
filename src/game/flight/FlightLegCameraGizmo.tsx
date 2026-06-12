@@ -7,6 +7,7 @@ import { DataBackedPlacement } from '../edit/DataBackedPlacement';
 import { flightHandle } from './flightHandle';
 import { localFromConfig, configFromLocal } from './legCamConfig';
 import type { FlightTuning } from '../../types/game/flightControl';
+import { DEFAULT_FLIGHT_TUNING } from '../../data/game/flightTuning';
 
 // Edit-only draggable proxy for the per-leg flight camera. Shown while previewing with the camera gizmo on
 // (scrub/pause the preview so the craft is stationary, then drag). It sits at the camera eye relative to the
@@ -39,9 +40,23 @@ export const FlightLegCameraGizmo = () => {
       : { flyAroundCamDistance: c.distance, flyAroundCamHeight: c.height, flyAroundCamAngleDeg: c.angleDeg };
     useEditorFlightStore.getState().update(patch);
   };
+  const onDelete = () => {
+    const patch: Partial<FlightTuning> = world
+      ? {
+          worldCamDistance: DEFAULT_FLIGHT_TUNING.worldCamDistance,
+          worldCamHeight: DEFAULT_FLIGHT_TUNING.worldCamHeight,
+          worldCamAngleDeg: DEFAULT_FLIGHT_TUNING.worldCamAngleDeg,
+        }
+      : {
+          flyAroundCamDistance: DEFAULT_FLIGHT_TUNING.flyAroundCamDistance,
+          flyAroundCamHeight: DEFAULT_FLIGHT_TUNING.flyAroundCamHeight,
+          flyAroundCamAngleDeg: DEFAULT_FLIGHT_TUNING.flyAroundCamAngleDeg,
+        };
+    useEditorFlightStore.getState().update(patch);
+  };
 
   return (
-    <DataBackedPlacement objKey="flight#legcam" position={[_eye.x, _eye.y, _eye.z]} onMove={onMove} color="#a855f7">
+    <DataBackedPlacement objKey="flight#legcam" position={[_eye.x, _eye.y, _eye.z]} onMove={onMove} onDelete={onDelete} color="#a855f7">
       <mesh><boxGeometry args={[0.5, 0.4, 0.7]} /><meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.5} /></mesh>
       <Html center distanceFactor={14} position={[0, 0.7, 0]}>
         <div className="pointer-events-none whitespace-nowrap rounded bg-slate-950/80 px-1 text-[9px] text-violet-200">{world ? 'world cam' : 'base cam'}</div>

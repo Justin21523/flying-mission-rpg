@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useWorldSelectStore } from './worldSelectStore';
 
-const reset = () => useWorldSelectStore.setState({ selectedKey: null, extraKeys: [], onDelete: null });
+const reset = () => useWorldSelectStore.setState({ selectedKey: null, extraKeys: [], onDelete: null, deleteHandlers: {} });
 
 describe('worldSelectStore multi-select', () => {
   beforeEach(reset);
@@ -45,5 +45,16 @@ describe('worldSelectStore multi-select', () => {
     expect(s.isSelected('a')).toBe(true);
     expect(s.isSelected('b')).toBe(true);
     expect(s.isSelected('z')).toBe(false);
+  });
+
+  it('deleteSelected deletes primary and extras through their handlers', () => {
+    const deleted: string[] = [];
+    const s = useWorldSelectStore.getState();
+    s.select('a', () => deleted.push('a'));
+    s.toggle('b', () => deleted.push('b'));
+    expect(useWorldSelectStore.getState().deleteSelected()).toBe(true);
+    expect(deleted).toEqual(['a', 'b']);
+    expect(useWorldSelectStore.getState().selectedKey).toBeNull();
+    expect(useWorldSelectStore.getState().extraKeys).toEqual([]);
   });
 });

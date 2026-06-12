@@ -53,7 +53,7 @@ const PlayZone = ({ z }: { z: SurfaceZoneDef }) => {
 const EditZone = ({ z }: { z: SurfaceZoneDef }) => {
   const updateZonePosition = useEditorSurfaceStore((s) => s.updateZonePosition);
   return (
-    <DataBackedPlacement objKey={`${z.id}#surfzone`} position={z.position} color="#22d3ee" onMove={(p) => updateZonePosition(z.id, p)}>
+    <DataBackedPlacement objKey={`${z.id}#surfzone`} position={z.position} color="#22d3ee" onMove={(p) => updateZonePosition(z.id, p)} onDelete={() => useEditorSurfaceStore.getState().removeZone(z.id)}>
       <ZonePad z={z} />
     </DataBackedPlacement>
   );

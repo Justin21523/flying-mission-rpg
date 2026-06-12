@@ -56,7 +56,7 @@ const CameraAnchor = ({ cueKey, cue, xform }: { cueKey: string; cue: FlightCue; 
     });
   };
   return (
-    <DataBackedPlacement objKey={`${cueKey}#camcue#${cue.id}`} position={[eye.x, eye.y, eye.z]} onMove={onMove} color="#a855f7">
+    <DataBackedPlacement objKey={`${cueKey}#camcue#${cue.id}`} position={[eye.x, eye.y, eye.z]} onMove={onMove} onDelete={() => useEditorFlightCueStore.getState().remove(cueKey, cue.id)} color="#a855f7">
       <mesh><boxGeometry args={[0.5, 0.4, 0.7]} /><meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.5} /></mesh>
       <Html center distanceFactor={14} position={[0, 0.7, 0]}>
         <div className="pointer-events-none whitespace-nowrap rounded bg-slate-950/80 px-1 text-[9px] text-violet-200">{cue.label || 'camera'} · u{Math.round(cue.atU * 100)}</div>
@@ -73,7 +73,7 @@ const EventMarker = ({ cueKey, cue, base }: { cueKey: string; cue: FlightCue; ba
     useEditorFlightCueStore.getState().update(cueKey, cue.id, { eventOffset: [p[0] - base[0], p[1] - base[1], p[2] - base[2]] });
   };
   return (
-    <DataBackedPlacement objKey={`${cueKey}#cue#${cue.id}`} position={pos} onMove={onMove} color="#f59e0b">
+    <DataBackedPlacement objKey={`${cueKey}#cue#${cue.id}`} position={pos} onMove={onMove} onDelete={() => useEditorFlightCueStore.getState().remove(cueKey, cue.id)} color="#f59e0b">
       {asset ? (
         <NormalizedGlbModel assetId={cue.eventAssetId!} target={(cue.eventScale ?? 1) * 1.5} />
       ) : (

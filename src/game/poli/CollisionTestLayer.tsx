@@ -98,7 +98,7 @@ const PlayObj = ({ o }: { o: CollisionObjectDef }) => {
 const EditObj = ({ o }: { o: CollisionObjectDef }) => {
   const updateObjectPosition = useEditorCollisionStore((s) => s.updateObjectPosition);
   return (
-    <DataBackedPlacement objKey={`${o.id}#collobj`} position={o.position} color={o.color ?? '#94a3b8'} onMove={(p) => updateObjectPosition(o.id, p)}>
+    <DataBackedPlacement objKey={`${o.id}#collobj`} position={o.position} color={o.color ?? '#94a3b8'} onMove={(p) => updateObjectPosition(o.id, p)} onDelete={() => useEditorCollisionStore.getState().removeObject(o.id)}>
       <ObjVisual o={o} />
     </DataBackedPlacement>
   );

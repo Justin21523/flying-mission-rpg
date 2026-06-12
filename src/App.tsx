@@ -247,7 +247,7 @@ export const App = () => {
         // DataBackedPlacement selection deletes via its own store; otherwise the kit-selected placement.
         if (deleteGameSelection()) return;
         const ws = useWorldSelectStore.getState();
-        if (ws.selectedKey && ws.onDelete) { ws.onDelete(); ws.select(null); }
+        if (ws.deleteSelected()) return;
         else useSceneEditStore.getState().deleteSelected();
       }
       else if (e.code === 'Escape') { useSceneEditStore.getState().clearSelection(); useWorldSelectStore.getState().select(null); }

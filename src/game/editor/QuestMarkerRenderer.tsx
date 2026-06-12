@@ -54,7 +54,8 @@ const QuestMarkerEntity = ({ marker, editMode }: { marker: Marker; editMode: boo
   if (editMode) {
     return (
       <DataBackedPlacement objKey={`qm:${marker.questId}:${marker.objId}`} position={marker.pos} color={marker.color ?? '#fbbf24'}
-        onMove={(pos) => useEditorQuestStore.getState().updateObjective(marker.questId, marker.objId, { markerPosition: pos })}>
+        onMove={(pos) => useEditorQuestStore.getState().updateObjective(marker.questId, marker.objId, { markerPosition: pos })}
+        onDelete={() => useEditorQuestStore.getState().updateObjective(marker.questId, marker.objId, { markerPosition: undefined, markerModelAssetId: undefined, markerAnimation: undefined, markerColor: undefined })}>
         {visual}
       </DataBackedPlacement>
     );

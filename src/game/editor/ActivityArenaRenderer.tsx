@@ -40,7 +40,8 @@ const ParticipantVisual = ({ ea, slot, index }: { ea: EditorActivity; slot: Acti
   const name = combatant?.name ?? slot.role;
   return (
     <DataBackedPlacement objKey={`act:${ea.def.id}:p:${index}`} position={slot.position} color={color}
-      onMove={(pos) => useEditorActivityStore.getState().updateParticipant(index, { position: pos })}>
+      onMove={(pos) => useEditorActivityStore.getState().updateParticipant(index, { position: pos })}
+      onDelete={() => useEditorActivityStore.getState().removeParticipant(index)}>
       {model ? <SceneGlbModel assetId={model} fallback={<Capsule color={color} />} /> : <Capsule color={color} />}
       <Text position={[0, 2, 0]} fontSize={0.3} color={color} anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000">{`${slot.role}: ${name}`}</Text>
     </DataBackedPlacement>
@@ -51,7 +52,8 @@ const PointVisual = ({ ea, field, pos, index }: { ea: EditorActivity; field: Are
   const color = ARENA_POINT_COLOR[field];
   return (
     <DataBackedPlacement objKey={`act:${ea.def.id}:${field}:${index}`} position={pos} color={color}
-      onMove={(p) => useEditorActivityStore.getState().updatePoint(field, index, p)}>
+      onMove={(p) => useEditorActivityStore.getState().updatePoint(field, index, p)}
+      onDelete={() => useEditorActivityStore.getState().removePoint(field, index)}>
       <mesh position={[0, 0.4, 0]}><sphereGeometry args={[0.35, 16, 16]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} /></mesh>
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.5, 0.7, 24]} /><meshBasicMaterial color={color} transparent opacity={0.6} /></mesh>
       <Text position={[0, 1.1, 0]} fontSize={0.26} color={color} anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000">{ARENA_POINT_LABEL[field]}{index > 0 ? ` ${index + 1}` : ''}</Text>
