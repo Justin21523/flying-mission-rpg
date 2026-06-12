@@ -5,6 +5,7 @@ import { useMissionStore } from '../../../stores/game/useMissionStore';
 import { getEditorCharacter } from '../../../stores/game/editorCharacterStore';
 import { updateCompanionAi } from './CompanionAiController';
 import { pickObjectiveTarget } from './companionObjectiveTargets';
+import { applyCompanionObjectiveAssist } from './objectiveAssistRules';
 import { robotHandle } from '../../destination/robotHandle';
 import { getDestinationParts } from '../../../stores/game/editorDestinationStore';
 import { getEditorGameNpcs } from '../../../stores/game/editorGameNpcStore';
@@ -29,6 +30,7 @@ function activityText(p: CharacterPresence): string {
   const name = getEditorCharacter(p.characterId)?.name ?? p.characterId;
   if (p.aiState === 'assist-objective') return `${name} is working the objective`;
   if (p.aiState === 'move-to-point') return `${name} is heading to a task`;
+  if (p.missionContribution) return `${name}: ${p.missionContribution}`;
   return `${name} is following`;
 }
 
@@ -44,7 +46,7 @@ export const CompanionAiHost = () => {
       const player = { x: robotHandle.pos.x, z: robotHandle.pos.z };
       const zones = followAvoidZones();
       const others = state.presences.map((p) => ({ x: p.position[0], z: p.position[2] }));
-      const completed: string[] = [];
+      const completed: { characterId: string; objectiveId: string }[] = [];
 
       // Claim objectives already being worked, so a second companion picks a different one.
       const claimed = new Set<string>();
@@ -74,14 +76,21 @@ export const CompanionAiHost = () => {
         }
 
         const res = updateCompanionAi(working, ai, player, others, zones, index + 1, TICK_DT);
-        if (res.completedObjectiveId) completed.push(res.completedObjectiveId);
+        if (res.completedObjectiveId) completed.push({ characterId: presence.characterId, objectiveId: res.completedObjectiveId });
         return res.presence;
       });
 
       useSupportRuntimeStore.setState({ presences: next });
-      for (const objId of completed) useMissionStore.getState().setObjective(objId, true, 1);
-      const busy = next.find((p) => p.characterId !== controlled && (p.aiState === 'assist-objective' || p.aiState === 'move-to-point'));
-      useSupportRuntimeStore.getState().setLastAssistText(busy ? activityText(busy) : null);
+      const assistMessages: string[] = [];
+      for (const item of completed) {
+        const profile = getSupportProfileForCharacter(item.characterId);
+        if (!profile) continue;
+        const event = applyCompanionObjectiveAssist(item.characterId, item.objectiveId, profile);
+        if (event) assistMessages.push(event.message);
+      }
+      const postAssist = useSupportRuntimeStore.getState().presences;
+      const busy = postAssist.find((p) => p.characterId !== controlled && (p.aiState === 'assist-objective' || p.aiState === 'move-to-point' || !!p.missionContribution));
+      useSupportRuntimeStore.getState().setLastAssistText(assistMessages[0] ?? (busy ? activityText(busy) : null));
     }, 100);
     return () => window.clearInterval(id);
   }, []);

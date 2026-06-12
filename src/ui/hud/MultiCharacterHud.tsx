@@ -29,8 +29,11 @@ export const MultiCharacterHud = () => {
       <div className="space-y-1">
         {presences.map((p) => (
           <button key={p.characterId} onClick={() => switchControlToCharacter(p.characterId)} className="flex w-full justify-between gap-2 rounded bg-slate-900/70 px-2 py-1 text-left hover:bg-slate-800">
-            <span className="truncate">{getEditorCharacter(p.characterId)?.name ?? p.characterId}</span>
-            <span className="font-mono text-[10px] text-sky-200">{p.tier} · {ACTIVITY[p.aiState] ?? p.aiState}</span>
+            <span className="min-w-0">
+              <span className="block truncate">{getEditorCharacter(p.characterId)?.name ?? p.characterId}</span>
+              {p.missionContribution && <span className="block truncate text-[10px] text-emerald-200">{p.missionContribution}</span>}
+            </span>
+            <span className="shrink-0 text-right font-mono text-[10px] text-sky-200">{p.tier} · {ACTIVITY[p.aiState] ?? p.aiState}{p.contributionScore ? ` · ${p.contributionScore}` : ''}</span>
           </button>
         ))}
       </div>

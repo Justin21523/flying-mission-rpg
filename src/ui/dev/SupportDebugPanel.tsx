@@ -30,7 +30,7 @@ export const SupportDebugPanel = () => {
       </div>
       <div className="mt-1 max-h-20 overflow-y-auto rounded bg-slate-900/60 p-1 text-[10px]">
         {dispatches.map((d) => <div key={d.characterId}>{d.characterId}: {d.status} · {Math.ceil(d.etaSeconds)}s</div>)}
-        {presences.map((p) => <div key={p.characterId}>{p.characterId}: {p.tier} · {p.aiState}</div>)}
+        {presences.map((p) => <div key={p.characterId}>{p.characterId}: {p.tier} · {p.aiState} · score {p.contributionScore ?? 0}{p.assistRuleId ? ` · ${p.assistRuleId}` : ''}</div>)}
         {dispatches.length === 0 && presences.length === 0 && <div className="text-slate-500">No support runtime.</div>}
       </div>
       <div className="mt-2 flex flex-wrap gap-1">
