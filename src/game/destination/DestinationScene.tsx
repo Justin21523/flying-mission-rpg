@@ -24,6 +24,7 @@ import { DestinationYokaiLayer } from './DestinationYokaiLayer';
 import { KillFxLayer } from '../player/KillFxLayer';
 import { SupportCompanionLayer } from '../characters/runtime/SupportCompanionLayer';
 import { CompanionAiHost } from '../characters/ai/CompanionAiHost';
+import { ControlSwitchInput } from '../characters/control/ControlSwitchInput';
 
 // The destination vertical slice (DESCENT → LANDING → NPC_GREETING → MISSION_GAMEPLAY → MISSION_COMPLETE).
 // One scene for all five phases: the POLI editable ground ('aero_destination' — sculpt/PBR/environment
@@ -61,6 +62,7 @@ export const DestinationScene = () => {
       {!editMode && GROUND_PHASES.has(phase) && (
         <>
           <CompanionAiHost />
+          <ControlSwitchInput />
           <GroundAbilityFx />
           <GroundAfterimageLayer />
           <GroundJetExhaustLayer />

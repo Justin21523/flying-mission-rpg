@@ -152,6 +152,10 @@ export interface CharacterPresence {
   controllerActive: boolean;
   colliderActive: boolean;
   missionContribution?: string;
+  // ── autonomous-AI task state (runtime) ──
+  taskObjectiveId?: string;       // the mission objective this companion is currently working
+  taskTarget?: [number, number];  // its world [x, z] (resolved from the objective's destination part / NPC)
+  workElapsed?: number;           // seconds spent "working" at the objective (→ complete past WORK_TIME)
 }
 
 export interface SupportDispatchEntry {

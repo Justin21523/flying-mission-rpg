@@ -1,6 +1,16 @@
 import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { switchControlToCharacter } from '../../game/characters/control/ControlOwnershipService';
+import type { CompanionAiState } from '../../types/game/support';
+
+// Friendly label for what an AI companion is doing right now.
+const ACTIVITY: Partial<Record<CompanionAiState, string>> = {
+  'assist-objective': '🔧 working',
+  'move-to-point': '→ to task',
+  'follow-player': 'following',
+  standby: 'standby',
+  idle: 'idle',
+};
 
 export const MultiCharacterHud = () => {
   const ownership = useSupportRuntimeStore((s) => s.ownership);
@@ -20,12 +30,12 @@ export const MultiCharacterHud = () => {
         {presences.map((p) => (
           <button key={p.characterId} onClick={() => switchControlToCharacter(p.characterId)} className="flex w-full justify-between gap-2 rounded bg-slate-900/70 px-2 py-1 text-left hover:bg-slate-800">
             <span className="truncate">{getEditorCharacter(p.characterId)?.name ?? p.characterId}</span>
-            <span className="font-mono text-[10px] text-sky-200">{p.tier} · {p.aiState}</span>
+            <span className="font-mono text-[10px] text-sky-200">{p.tier} · {ACTIVITY[p.aiState] ?? p.aiState}</span>
           </button>
         ))}
       </div>
       {lastAssistText && <div className="mt-1 rounded bg-sky-900/40 px-2 py-1 text-[10px] text-sky-100">{lastAssistText}</div>}
-      <div className="mt-1 text-[10px] text-slate-500">Tab: support · click any teammate to switch.</div>
+      <div className="mt-1 text-[10px] text-slate-500">Tab: support · V: switch control · click a teammate to take over.</div>
     </div>
   );
 };
