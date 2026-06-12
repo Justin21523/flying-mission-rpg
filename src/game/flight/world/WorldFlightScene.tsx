@@ -2,6 +2,10 @@ import { useCallback, useEffect } from 'react';
 import { useUiStore } from '../../../stores/uiStore';
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
 import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
+import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
+import { useEditorMissionStore } from '../../../stores/game/editorMissionStore';
+import { useFlightStore } from '../../../stores/game/useFlightStore';
+import { useMissionStore } from '../../../stores/game/useMissionStore';
 import type { FlightTuning } from '../../../types/game/flightControl';
 import { EditModeAmbience } from '../../edit/EditModeAmbience';
 import { WorldFlightEnvironment } from './WorldFlightEnvironment';
@@ -43,6 +47,11 @@ export const WorldFlightScene = () => {
   const tuning = useEditorFlightStore((s) => s.tuning);
   const preview = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
   const previewFlightCam = useFlightPreviewStore((s) => (s.playing || s.u > 0.001) && s.cameraMode === 'flight');
+  useFlightStore((s) => s.currentRouteId);
+  useMissionStore((s) => s.currentMissionId);
+  useEditorRouteStore((s) => s.items);
+  useEditorMissionStore((s) => s.items);
+  const activePathId = getActivePathId();
 
   useEffect(() => {
     return () => {
@@ -71,10 +80,10 @@ export const WorldFlightScene = () => {
     <>
       {layers.ambience === 'edit' ? <EditModeAmbience /> : <WorldFlightEnvironment />}
 
-      {layers.pathDebug && <PathDebugLayer areaId="world" />}
+      {layers.pathDebug && <PathDebugLayer areaId="world" pathId={activePathId} />}
 
       {layers.routeFollower && <RouteFollower />}
-      {!editMode && <FlightCuePlayController pathId={getActivePathId()} />}
+      {!editMode && <FlightCuePlayController pathId={activePathId} />}
       {layers.clouds && <CloudField />}
       {layers.speed && <SpeedField />}
       {layers.events && (
@@ -87,8 +96,8 @@ export const WorldFlightScene = () => {
 
       {layers.segmentGizmos && <WorldFlightDebugGizmos />}
       {layers.editableCraft && !preview && <WorldFlightCraftEditable />}
-      {editMode && <FlightPreviewController pathId={getActivePathId()} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} />}
-      {editMode && <FlightCuePreview pathId={getActivePathId()} />}
+      {editMode && <FlightPreviewController pathId={activePathId} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} />}
+      {editMode && <FlightCuePreview pathId={activePathId} />}
       {editMode && <FlightLegCameraGizmo />}
 
       {/* EDIT: orbit camera, unless previewing with Camera = Flight (shows the authored worldCam* framing +

@@ -4,8 +4,9 @@ import { useEditorPathStore } from '../../stores/editorPathStore';
 import { debugPoints } from '../path/pathCurve';
 import { DataBackedPlacement } from '../edit/DataBackedPlacement';
 import type { PathDefinition } from '../../types/path';
+import { visiblePathDefinitions } from './pathDebugVisibility';
 
-// POLI (Phase B) — debug rendering for curve-based paths. Edit Mode: every path in the area draws as a bright
+// POLI (Phase B) — debug rendering for curve-based paths. Edit Mode: matching paths draw as a bright
 // CatmullRom line with a draggable handle per node (drag → updatePathNode → the cached curve rebuilds, so the
 // line follows live); entry nodes are tinted green. Play Mode: lines render only when PATH_DEBUG is on (a
 // testing aid). Sibling layer in AreaRenderer (kit seam #1). Full node authoring (add/remove/tangents) = Phase D.
@@ -49,9 +50,9 @@ const PathNodes = ({ def }: { def: PathDefinition }) => {
   );
 };
 
-export const PathDebugLayer = ({ areaId }: { areaId: string }) => {
+export const PathDebugLayer = ({ areaId, pathId }: { areaId: string; pathId?: string }) => {
   const editMode = useUiStore((s) => s.editMode);
-  const paths = useEditorPathStore((s) => s.paths).filter((p) => (p.areaId ?? 'rescue_hq') === areaId);
+  const paths = visiblePathDefinitions(useEditorPathStore((s) => s.paths), areaId, pathId);
   if (paths.length === 0) return null;
   if (!editMode && !PATH_DEBUG) return null;
 

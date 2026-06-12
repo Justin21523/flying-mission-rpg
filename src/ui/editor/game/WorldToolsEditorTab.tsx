@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { nanoid } from 'nanoid';
 import { useEditorRouteStore } from '../../../stores/game/editorRouteStore';
 import { useFlightStore } from '../../../stores/game/useFlightStore';
+import { useGameStore } from '../../../stores/game/useGameStore';
 import type { FlightRoute } from '../../../types/game/flight';
-import { lbl } from '../editorShared';
+import { Field, inp, lbl } from '../editorShared';
 import { RouteFields } from './worldTools/RouteFields';
 import { PathNodeList } from './worldTools/PathNodeList';
 import { SegmentList } from './worldTools/SegmentList';
@@ -47,12 +48,21 @@ export const WorldToolsEditorTab = () => {
   const duplicate = useEditorRouteStore((s) => s.duplicate);
   const remove = useEditorRouteStore((s) => s.remove);
   const activeRouteId = useFlightStore((s) => s.currentRouteId);
+  const routeProgress = useFlightStore((s) => s.progress);
+  const phase = useGameStore((s) => s.phase);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sub, setSub] = useState<Sub>('route');
 
   const route = routes.find((r) => r.id === selectedId) ?? routes[0] ?? null;
   const update = (patch: Partial<FlightRoute>) => { if (route) updateRoute(route.id, patch); };
   const makeActive = () => { if (route) useFlightStore.getState().setRoute(route.id); };
+  const jumpToWorldFlight = () => {
+    if (!route) return;
+    useFlightStore.getState().setRoute(route.id);
+    useFlightStore.getState().setProgress(0);
+    useGameStore.getState().jumpTo('WORLD_FLIGHT');
+  };
+  const setRouteProgress = (value: number) => useFlightStore.getState().setProgress(Number.isFinite(value) ? value : 0);
 
   return (
     <div className="space-y-3 text-xs">
@@ -77,6 +87,18 @@ export const WorldToolsEditorTab = () => {
             {activeRouteId && activeRouteId !== route.id && (
               <span className="text-[10px] text-slate-500">active: {routes.find((r) => r.id === activeRouteId)?.name ?? activeRouteId}</span>
             )}
+            <button onClick={jumpToWorldFlight} className="rounded bg-violet-700/40 px-2 py-1 text-[11px] text-violet-100 hover:bg-violet-700/60">Edit in WORLD_FLIGHT</button>
+            <span className="ml-auto text-[10px] text-slate-500">phase: {phase}</span>
+          </div>
+
+          <div className="rounded border border-sky-800/40 bg-sky-950/10 p-2">
+            <Field label="Active route test progress">
+              <div className="flex items-center gap-2">
+                <input type="range" min={0} max={1} step={0.01} value={routeProgress} onChange={(e) => setRouteProgress(parseFloat(e.target.value))} className="min-w-0 flex-1" />
+                <input type="number" min={0} max={1} step={0.01} value={routeProgress.toFixed(2)} onChange={(e) => setRouteProgress(parseFloat(e.target.value))} className={`${inp} w-20 text-right`} />
+                <button onClick={() => setRouteProgress(0)} className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700">Reset</button>
+              </div>
+            </Field>
           </div>
 
           <div className="flex flex-wrap gap-1">

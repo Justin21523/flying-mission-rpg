@@ -39,10 +39,10 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   worldFlightDurationSec: 15,
   launchDurationSec: 5.5,
   launchTunnelLength: 260,
-  worldCraftScale: 3.4,
+  worldCraftScale: 4.4,
   worldCraftOffset: [0, 0, 0],
-  worldCamDistance: 1.0,
-  worldCamHeight: 0.65,
+  worldCamDistance: 0.5,
+  worldCamHeight: 0.5,
   worldCamAngleDeg: 0,
   // Base fly-around defaults = the previously-shared values (camera dist/height + worldCraft scale/yaw),
   // so the loop looks identical until an author dials it independently of the world leg.
