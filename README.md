@@ -33,7 +33,8 @@ engineering base later batches build the hangar / flight / transformation on.
 | `npm run preview` | preview the production build |
 | `npm run test` | Vitest unit/integration tests (run once) |
 | `npm run test:watch` | Vitest in watch mode |
-| `npm run e2e` | Playwright end-to-end (boots the dev server, drives a browser) |
+| `npm run e2e` / `npm run test:e2e` | Playwright end-to-end (boots the dev server on :4317, drives a browser) |
+| `npm run test:e2e:ui` | Playwright in interactive UI mode |
 | `npm run format` | Prettier write over `src/` |
 
 E2E needs a browser the first time: `npx playwright install chromium`.
@@ -82,13 +83,91 @@ Large binary asset packs are **git-ignored** (the folders + their `README`/`.git
 drop-in contract is documented). `public/models/` is likewise not version-controlled — drop your models in
 locally. `docs/` (design source-of-truth) **is** tracked.
 
-## Known limitations (Batch 0)
+## Game flow (vertical slice)
 
-- No gameplay yet: no mission system, character selection, real base, flight, or transformation — those are
-  Batch 1+. The grey-box scene + the dormant `world` mode are all that render today.
-- The inherited POLI kit code is still on disk under scene mode `world`; it is reference only and will be
-  replaced subsystem-by-subsystem.
-- Tests are a smoke baseline (a store unit test + a canvas-boot e2e). Full coverage + the AI auto-playtester
-  land in Batch 13.
+The typed `GameStateMachine` (`src/game/core/GameStateMachine.ts`) drives one legal transition at a time:
+
+```
+MISSION_CONTROL → MISSION_BRIEFING → CHARACTER_SELECTION → HANGAR → PLATFORM_ALIGNMENT →
+LAUNCH_PREPARATION → LAUNCH_TUNNEL → BASE_FLY_AROUND → CLOUD_ASCENT → WORLD_FLIGHT →
+DESTINATION_APPROACH → TRANSFORMATION → DESCENT → LANDING → NPC_GREETING → MISSION_GAMEPLAY →
+MISSION_COMPLETE → RETURN_TRANSFORMATION → RETURN_FLIGHT → BASE_APPROACH → HANGAR_RETURN → MISSION_RESULTS
+```
+
+Per-phase detail (entry/exit/controller/scene/cleanup) is in `docs/GAME_FLOW.md`.
+
+## Debug & Edit Mode
+
+- **F1** — Edit Mode (authoring gizmos + Editor Hub). Works in both scene modes.
+- **Leva dev panel** → toggle **FSM debug** to reveal the debug overlays:
+  - **🤖 Auto Playtester** — runs the whole core flow automatically (debug/test only; see below).
+  - **⚡ Performance** — FPS / frame time / pool & effect counts / quality (gate: Settings → Graphics → perf HUD).
+  - **🩺 Runtime Health** — ok/warning/error, stuck-phase, save status, residual effects, export diagnostics JSON.
+  - **💾 Save Debug** — save now / reload / clear / export / import / reset progress / unlock all / reset settings.
+
+### Auto Playtester
+A **debug/test-only** automated player (`src/game/testing/`) that drives the core flow one legal transition at
+a time, issuing real inputs (synthetic key events for the 3D controllers) and the existing debug fast-forward
+hooks for the long flight / transformation, asserting each step. It is **never** a normal-player feature.
+Trigger it from the panel, or from the console / Playwright via `window.__autoPlaytester.start()`. Details in
+`docs/AUTO_PLAYTESTER.md`.
+
+## Save system
+
+A **versioned** save (`schemaVersion`, `progress`, `stats`, `settingsSnapshot`, `lastSession`) lives in
+`localStorage` behind a storage abstraction (`src/game/save/`). It is created on first run, migrated on schema
+bumps (v1 → v2 included), validated with zod (corrupt → safe default), and debounce-persisted (never per-frame).
+The settings stores remain the runtime source of truth; the save **mirrors** them (and re-applies on import).
+The POLI `world`-mode multi-slot save is a separate, untouched system. Details in `docs/SAVE_SYSTEM.md`.
+
+## LLM provider
+
+LLM only generates **flavour text** (mission / dialogue), validated by zod, with a local-template fallback — it
+**never** controls game rules. The only provider is a local **llama.cpp** server (Qwen2.5-14B-Instruct);
+disabled by default so the game is fully playable offline. No API keys are hardcoded. See `docs/LLM_PROVIDER.md`.
+
+## Testing
+
+- **Unit / runtime** (`vitest`, `*.test.ts` beside the code): state machine, save + migration, progress/stats,
+  settings persistence, world-flight, transformation, objectives, Phaser bridge, support runtime, audio,
+  quality presets, and the AutoPlaytester runner.
+- **E2E** (`playwright`, `e2e/`): `core-flow` (AutoPlaytester reaches MISSION_COMPLETE), `settings` + `save`
+  persistence across reload, and the boot smoke test.
+
+## Replacing assets / GLTF character pipeline
+
+Drop-in folders are auto-discovered (see the table above). Character model refs are centralised in
+`src/data/assets/assetRegistry.ts` (`resolveCharacterModel(id, 'plane'|'robot')`, placeholder fallback so the
+build never fails for not-yet-shipped art). Point a character's `modelAssetId` / `planeModelAssetId` and
+transformation clip names from the **🛩 Characters** / **✨ Transform** Edit-Mode tabs — no code change. Full
+pipeline in `docs/ASSET_REPLACEMENT.md` + `docs/GLTF_CHARACTER_PIPELINE.md`.
+
+## Manual QA checklist (vertical slice)
+
+- [ ] Homepage mounts the canvas
+- [ ] Mission Control → pick a mission · Character Selection → pick a character
+- [ ] Hangar → align to platform → launch
+- [ ] World flight reaches the destination
+- [ ] Transformation completes (vehicle → robot); replay doesn't stack effects
+- [ ] Descent → safe landing → NPC greeting
+- [ ] Start + complete an objective (repair objective opens/closes the Phaser mini-game)
+- [ ] Mission Complete shows
+- [ ] Settings (quality / volume / reduce motion) persist across reload
+- [ ] Save export → import round-trips; Runtime Health shows `ok`
+- [ ] Auto Playtester completes a full run
+- [ ] `npm run check` + `npm run test` + `npm run build` + `npm run e2e` green
+
+## Known limitations
+
+- Character / NPC / destination art is **placeholder** (primitives + swappable GLTF interfaces); ship real
+  GLTFs via the asset registry + Edit-Mode tabs.
+- Destination scenes are largely grey-box; audio is **procedural/synth** (no audio files) — both are designed
+  for drop-in replacement.
+- Full-control support dispatch is a runtime shell (deep cross-phase re-entry deferred); see
+  `docs/KNOWN_LIMITATIONS.md`.
+- The LLM provider defaults to disabled (local llama.cpp only). The inherited POLI `world` mode remains on disk
+  as reference.
+- The Auto Playtester uses debug fast-forward hooks for the long flight/transformation segments (it still walks
+  every phase via legal transitions — it never fakes the ending).
 
 Personal / non-commercial / research use only. No copyrighted content.

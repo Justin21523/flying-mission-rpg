@@ -44,10 +44,22 @@ import { useGameStore } from './stores/game/useGameStore';
 import { useGraphicsSettingsStore } from './stores/graphicsSettingsStore';
 import { usePoll } from './ui/usePoll';
 import { PerformanceDebugPanel } from './ui/debug/PerformanceDebugPanel';
+import { AutoPlaytesterDirector } from './game/testing/AutoPlaytesterDirector';
+import { AutoPlaytesterPanel } from './ui/debug/AutoPlaytesterPanel';
 import { RouteColorGradeOverlay } from './ui/flight/RouteColorGradeOverlay';
 import { initAudioRuntime } from './game/audio/audioRuntime';
 import { installVisibilityWatcher, setPaused } from './game/performance/SceneVisibilityController';
 import { applyQualityToSupportLimits } from './game/performance/QualityPresetController';
+import { useSaveStore } from './stores/useSaveStore';
+import { installProgressObservers } from './game/progress/progressObservers';
+import { flushOnUnload } from './game/save/SaveManager';
+import { captureSettingsSnapshot } from './game/save/settingsSnapshot';
+import { useAutoPlaytesterStore } from './stores/game/autoPlaytesterStore';
+import { RuntimeHealthPanel } from './ui/debug/RuntimeHealthPanel';
+import { SaveDebugPanel } from './ui/debug/SaveDebugPanel';
+import { installStateMachineDiagnostics } from './game/diagnostics/StateMachineDiagnostics';
+import { registerGauge } from './game/diagnostics/SubscriptionLeakDetector';
+import { getAudioManager } from './game/audio/AudioManager';
 
 // On-ground base phases render the 3D hangar (BaseScene) + BaseHud; flight phases render FlightScene + FlightHud.
 const BASE_PHASES = new Set(['HANGAR', 'PLATFORM_ALIGNMENT', 'LAUNCH_PREPARATION']);
@@ -118,6 +130,7 @@ export const App = () => {
   // Edit Mode panels stay available in both modes. Toggle via the Leva dev panel.
   const world = useDevStore((s) => s.sceneMode) === 'world';
   const fsmDebug = useDevStore((s) => s.fsmDebug);
+  const autoEnabled = useAutoPlaytesterStore((s) => s.enabled);
   const phase = useGameStore((s) => s.phase);
   const basePhase = BASE_PHASES.has(phase);
   const flightPhase = FLIGHT_PHASES.has(phase);
@@ -161,6 +174,20 @@ export const App = () => {
 
   // Start global editor Undo/Redo tracking (snapshots every authoring edit for Ctrl+Z / Ctrl+Shift+Z).
   useEffect(() => { initEditorUndo(); }, []);
+
+  // Batch 13 — boot the aero-rescue main save: hydrate progress/stats from disk, mirror the authoritative
+  // live settings into the save snapshot (stores stay the source of truth — we do NOT overwrite them on
+  // boot), install the event-driven progress observers, and flush a debounced save on unload.
+  useEffect(() => {
+    useSaveStore.getState().hydrate();
+    useSaveStore.getState().setSettingsSnapshot(captureSettingsSnapshot());
+    const offProgress = installProgressObservers();
+    const offDiag = installStateMachineDiagnostics();
+    const offGauge = registerGauge('audioLoops', () => getAudioManager().playingCount());
+    const onUnload = (): void => flushOnUnload();
+    window.addEventListener('beforeunload', onUnload);
+    return () => { offProgress(); offDiag(); offGauge(); window.removeEventListener('beforeunload', onUnload); flushOnUnload(); };
+  }, []);
 
   // Batch 12 — audio runtime (registers presets + decoupled controllers), tab-visibility gating, and the
   // quality→Batch-8 support-limit sync (the quality preset owns the Active/Standby/AI-tick budgets). Also
@@ -312,6 +339,13 @@ export const App = () => {
       <ScreenFade />
       {/* Batch 12 — perf panel (gated by showPerfHud) + safe-tint route color grade (world-flight phases). */}
       <PerformanceDebugPanel />
+      {/* Batch 13 — AutoPlaytester (debug/test only): director always mounted (ticks only when enabled),
+          panel shown in dev/edit mode or when an auto run is active. */}
+      <AutoPlaytesterDirector />
+      {(fsmDebug || editMode || autoEnabled) && <AutoPlaytesterPanel />}
+      {/* Batch 13 — runtime health + save debug tools (FSM-debug only, to avoid cluttering Edit Mode). */}
+      {fsmDebug && <RuntimeHealthPanel />}
+      {fsmDebug && <SaveDebugPanel />}
       {!editMode && !world && <RouteColorGradeOverlay />}
       <PlayerPosDebug />
       {/* Single R3F canvas (error boundary + Suspense loading inside). DPR capped lower (high-DPI screens
