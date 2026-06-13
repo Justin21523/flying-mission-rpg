@@ -1,6 +1,8 @@
 // Tunable flight-handling parameters — editable in Edit Mode (🛩 Flight tab) so the feel can be dialed
 // without code. Per-character stats (flightSpeed / agility / controlDifficulty) further scale these at
 // runtime. Flight feel is a core pillar — keep it smooth.
+import type { FlightTimelineTrack } from './flightTimeline';
+
 export type FlightMode = 'simple' | 'advanced';
 export const FLIGHT_MODES: readonly FlightMode[] = ['simple', 'advanced'];
 
@@ -54,4 +56,5 @@ export interface FlightTuning {
   flyAroundCraftScale: number; // base-loop craft scale
   flyAroundCraftYawDeg: number; // base-loop craft facing offset
   flyAroundCraftOffset: [number, number, number]; // base-loop craft placement offset from the path start
+  flyAroundTimeTracks?: FlightTimelineTrack[]; // per-u Edit Mode craft/camera keyframes for the base loop
 }

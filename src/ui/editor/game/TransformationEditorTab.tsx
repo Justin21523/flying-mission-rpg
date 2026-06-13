@@ -8,12 +8,20 @@ import { validateTimeline } from '../../../game/transformation/transformationVal
 import { bakeOverrideToDef, liveOffset, scaleNumber, radiansToDegrees, resolveStageClipModelId } from '../../../game/transformation/transformationOverrides';
 import { listTransformationEditTargets, resolveTransformationEditTarget } from '../../../game/transformation/transformationEditTargets';
 import { modelSlotVisibilityDiagnostics, stageClipDiagnostic, stageScrubTimes, stageTargetDiagnostic } from '../../../game/transformation/transformationAuthoringDiagnostics';
+import {
+  findTimeTrack,
+  keyframeTransformForTarget,
+  removeTimeKeyframeAt,
+  removeTimeTrack,
+  targetFromTransformationKey,
+  upsertTimeKeyframe,
+} from '../../../game/transformation/transformationTimeTracks';
 import { transformModelSlotKey, transformPartKey, transformRootKey, transformStageModelKey, transformStageMoveKey, transformStagePartMoveKey } from '../../../game/transformation/transformPartKey';
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
 import {
   FORM_STRATEGIES, TRANSFORMATION_STAGE_TYPES, TRANSFORMATION_PART_KEYS, PART_GEOMETRY_KINDS, MODEL_SLOTS, EASINGS,
-  CAMERA_SHOT_TYPES, EFFECT_TYPES, TRANSFORMATION_MODES,
+  CAMERA_SHOT_TYPES, EFFECT_TYPES, TRANSFORMATION_MODES, CAMERA_ROTATION_MODES,
 } from '../../../types/game/transformation';
 import type {
   ModelSlot, TransformationDefinition, TransformationStage, TransformationCameraShot,
@@ -58,6 +66,29 @@ const makeNew = (): TransformationDefinition => ({
   momentumTransferConfig: { preserveHorizontalVelocity: true, horizontalVelocityMultiplier: 0.4, initialDescentVelocity: 10, clampMaxDescentSpeed: 30, faceCameraOnExit: true },
 });
 
+function defaultParamsForStageType(type: TransformationStage['type']): TransformationStage['params'] {
+  switch (type) {
+    case 'enter-stage': return { fromPosition: [0, 3, 0], fromScale: 0.7 };
+    case 'camera-shot': return { cameraShotType: 'orbit', distance: 7, height: 2, angle: 0, fov: 55 };
+    case 'part-transform': return { partKey: 'wing_left', toPosition: [0, 0, 0], toRotation: [0, 0, 0], toScale: 1 };
+    case 'animation-clip': return { modelSlot: 'robot', clipSpeed: 1, loop: true };
+    case 'model-visibility': return { modelSlot: 'robot', visible: true };
+    case 'model-swap': return { modelSlot: 'robot', visible: true };
+    case 'model-move': return { modelSlot: 'robot', toPosition: [0, 0, 0], toRotation: [0, 0, 0], toScale: 1 };
+    case 'effect-burst': return { color: '#ffffff', intensity: 1, scale: 1.8, repeat: 12 };
+    case 'energy-ring': return { color: '#7fd0ff', intensity: 1, scale: 2.4 };
+    case 'clone-hero-burst': return { modelSlot: 'robot', color: '#7fd0ff', intensity: 1, scale: 14, repeat: 54, ghostSpread: 12, ghostPersist: true, clipSpeed: 1, loop: false, holdFinal: true };
+    case 'cloud-ripple-burst': return { color: '#dbeafe', intensity: 1, scale: 7.5, ringCount: 5, particleCount: 170, spawnOffset: [0, -0.35, 0] };
+    case 'speed-line-burst': return { intensity: 1.2, scale: 1 };
+    case 'voice-cue': return { text: 'Transform!' };
+    case 'finish-pose': return { color: '#ffffff', intensity: 1 };
+    case 'interactive-showcase': return { color: '#fde047', intensity: 1 };
+    case 'backdrop-shift': return { backdropIntensity: 1 };
+    case 'exit-stage': return { targetPhase: 'DESCENT', intensity: 8, toScale: 1 };
+    default: return {};
+  }
+}
+
 const Vec3 = ({ label, value, onChange }: { label: string; value: [number, number, number]; onChange: (v: [number, number, number]) => void }) => (
   <Field label={label}>
     <div className="flex gap-1">
@@ -72,8 +103,12 @@ const SelectedTargetDiagnostics = ({ def, update }: { def: TransformationDefinit
   const selectedKey = useSceneEditStore((s) => s.selectedKey);
   const selectionLockKey = useSceneEditStore((s) => s.selectionLockKey);
   const overrides = useSceneEditStore((s) => s.overrides);
+  const previewTime = useTransformationPreviewStore((s) => s.time);
   const targets = listTransformationEditTargets(def);
   const target = resolveTransformationEditTarget(def, selectedKey);
+  const timeTarget = selectedKey ? targetFromTransformationKey(def, selectedKey) : null;
+  const timeTrack = timeTarget ? findTimeTrack(def, timeTarget) : undefined;
+  const keyframed = timeTarget ? keyframeTransformForTarget(def, timeTarget, previewTime) : undefined;
   const override = selectedKey ? overrides[selectedKey] : undefined;
   const hasOverride = !!override && (override.position !== undefined || override.rotation !== undefined || override.scale !== undefined);
   const selectTarget = (key: string) => useSceneEditStore.getState().requestSelect(key);
@@ -98,6 +133,20 @@ const SelectedTargetDiagnostics = ({ def, update }: { def: TransformationDefinit
     }
     update(next);
   };
+  const writeKeyframe = (patch: { position?: TransformationVec3; rotation?: TransformationVec3; scale?: number }) => {
+    if (!timeTarget) return;
+    update({ timeTracks: upsertTimeKeyframe(def.timeTracks, timeTarget, previewTime, patch) });
+  };
+  const editVec = (field: 'position' | 'rotation', axis: 0 | 1 | 2, value: number) => {
+    const source = keyframed ?? { position: [0, 0, 0] as TransformationVec3, rotation: [0, 0, 0] as TransformationVec3, scale: 1 };
+    const next = [...source[field]] as TransformationVec3;
+    next[axis] = value;
+    if (field === 'position') writeKeyframe({ position: next });
+    else writeKeyframe({ rotation: next });
+  };
+  const editScale = (value: number) => writeKeyframe({ scale: value });
+  const deleteCurrentKey = () => { if (timeTarget) update({ timeTracks: removeTimeKeyframeAt(def.timeTracks, timeTarget, previewTime) }); };
+  const deleteTrack = () => { if (timeTarget) update({ timeTracks: removeTimeTrack(def.timeTracks, timeTarget) }); };
   return (
     <div className="rounded border border-violet-800/50 bg-violet-950/10 p-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -118,6 +167,34 @@ const SelectedTargetDiagnostics = ({ def, update }: { def: TransformationDefinit
         <button onClick={bakeAll} disabled={!targets.some((item) => overrides[item.key])} className="rounded bg-sky-700/30 px-2 py-1 text-[10px] text-sky-100 hover:bg-sky-700/50 disabled:opacity-40">Bake All Pending</button>
         <button onClick={toggleLock} disabled={!selectedKey && !selectionLockKey} className="rounded bg-violet-700/30 px-2 py-1 text-[10px] text-violet-100 hover:bg-violet-700/50 disabled:opacity-40">{selectionLockKey ? 'Unlock Target' : 'Lock Target'}</button>
       </div>
+      {timeTarget && (
+        <div className="mt-2 rounded border border-slate-800 bg-slate-950/35 p-1.5">
+          <div className="mb-1 flex flex-wrap items-center gap-1">
+            <span className={lbl}>Current-time keyframe</span>
+            <span className="rounded bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">{round(previewTime)}s</span>
+            <span className={`rounded px-2 py-0.5 text-[10px] ${timeTrack ? 'bg-emerald-950/30 text-emerald-200' : 'bg-slate-900 text-slate-400'}`}>{timeTrack ? `${timeTrack.keyframes.length} keys` : 'no keys'}</span>
+          </div>
+          <Field label="Position (x / y / z)">
+            <div className="flex gap-1">
+              {([0, 1, 2] as const).map((axis) => (
+                <input key={axis} type="number" step={0.1} value={round((keyframed?.position ?? [0, 0, 0])[axis])} onChange={(e) => editVec('position', axis, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
+              ))}
+            </div>
+          </Field>
+          <Field label="Rotation° (x / y / z)">
+            <div className="flex gap-1">
+              {([0, 1, 2] as const).map((axis) => (
+                <input key={axis} type="number" step={1} value={round((keyframed?.rotation ?? [0, 0, 0])[axis])} onChange={(e) => editVec('rotation', axis, num(e.target.value))} className={inp + ' w-0 flex-1 text-center'} />
+              ))}
+            </div>
+          </Field>
+          <div className="flex flex-wrap items-end gap-1.5">
+            <div className="w-32"><NumRow label="Scale" value={round(keyframed?.scale ?? 1)} step={0.1} min={0.01} onChange={editScale} /></div>
+            <button onClick={deleteCurrentKey} disabled={!timeTrack} className="rounded bg-amber-700/30 px-2 py-1 text-[10px] text-amber-100 hover:bg-amber-700/50 disabled:opacity-40">Delete Key</button>
+            <button onClick={deleteTrack} disabled={!timeTrack} className="rounded bg-rose-700/25 px-2 py-1 text-[10px] text-rose-200 hover:bg-rose-700/40 disabled:opacity-40">Reset Track</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -457,10 +534,33 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
           <Field label="Target model override">
             <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v, clipName: undefined })} noneLabel="(use slot/auto)" />
           </Field>
-          <ClipSelect modelId={stageClipModelId(def, s)} stage={s} value={p.clipName} onChange={(v) => patch({ clipName: v })} />
+          <ClipSelect modelId={stageClipModelId(def, s)} stage={s} value={p.clipName} onChange={(v) => { patch({ clipName: v }); if (v) useTransformationPreviewStore.getState().playRange(s.startTime, s.startTime + Math.max(0.1, s.duration), false); }} />
           <NumRow label="Clip speed" value={p.clipSpeed ?? 1} step={0.1} onChange={(v) => patch({ clipSpeed: v })} />
           <Check label="Loop" checked={p.loop ?? false} onChange={(v) => patch({ loop: v })} />
           <Check label="Hold final frame" checked={p.holdFinal ?? false} onChange={(v) => patch({ holdFinal: v })} />
+        </>
+      );
+    case 'enter-stage':
+      return (
+        <>
+          <Vec3 label="Enter from position" value={p.fromPosition ?? [0, 3, 0]} onChange={(v) => patch({ fromPosition: v })} />
+          <Vec3 label="Enter from rotation°" value={p.fromRotation ?? [0, 0, 0]} onChange={(v) => patch({ fromRotation: v })} />
+          <NumRow label="Enter from scale ×" value={p.fromScale ?? 0.7} step={0.05} min={0.05} onChange={(v) => patch({ fromScale: v })} />
+        </>
+      );
+    case 'camera-shot':
+      return (
+        <>
+          <SelectRow label="Camera type" value={p.cameraShotType ?? 'orbit'} options={opts(CAMERA_SHOT_TYPES)} onChange={(v) => patch({ cameraShotType: v as typeof p.cameraShotType })} />
+          <SelectRow label="Target part" value={p.partKey ?? ''} options={[{ value: '', label: '(centre)' }, ...opts(TRANSFORMATION_PART_KEYS)]} onChange={(v) => patch({ partKey: (v || undefined) as typeof p.partKey })} />
+          <SelectRow label="Rotation mode" value={p.rotationMode ?? 'inherit'} options={opts(CAMERA_ROTATION_MODES)} onChange={(v) => patch({ rotationMode: v as typeof p.rotationMode })} />
+          <NumRow label="Rotate speed °/s" value={p.rotateSpeedDeg ?? 23} step={5} onChange={(v) => patch({ rotateSpeedDeg: v })} />
+          <NumRow label="Distance" value={p.distance ?? 7} step={0.5} onChange={(v) => patch({ distance: v })} />
+          <NumRow label="Height" value={p.height ?? 2} step={0.25} onChange={(v) => patch({ height: v })} />
+          <NumRow label="Angle°" value={p.angle ?? 0} step={10} onChange={(v) => patch({ angle: v })} />
+          <NumRow label="FOV" value={p.fov ?? 55} step={1} min={10} onChange={(v) => patch({ fov: v })} />
+          <NumRow label="Shake" value={p.shakeIntensity ?? 0} step={0.05} min={0} onChange={(v) => patch({ shakeIntensity: v })} />
+          <Vec3 label="Look at offset" value={p.lookAtOffset ?? [0, 0.4, 0]} onChange={(v) => patch({ lookAtOffset: v })} />
         </>
       );
     case 'backdrop-shift':
@@ -468,10 +568,41 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
     case 'effect-burst':
     case 'energy-ring':
     case 'speed-line-burst':
+    case 'cloud-ripple-burst':
       return (
         <>
+          {s.type !== 'speed-line-burst' && <SelectRow label="Follow part" value={p.followTargetPart ?? ''} options={[{ value: '', label: '(centre)' }, ...opts(TRANSFORMATION_PART_KEYS)]} onChange={(v) => patch({ followTargetPart: (v || undefined) as typeof p.followTargetPart })} />}
           <ColorRow label="Colour" value={p.color ?? '#ffffff'} onChange={(v) => patch({ color: v })} />
           <NumRow label="Intensity" value={p.intensity ?? 1} step={0.1} onChange={(v) => patch({ intensity: v })} />
+          <NumRow label={s.type === 'cloud-ripple-burst' ? 'Radius' : 'Scale'} value={p.scale ?? (s.type === 'cloud-ripple-burst' ? 7.5 : 1)} step={0.1} min={0} onChange={(v) => patch({ scale: v })} />
+          {s.type === 'effect-burst' && <NumRow label="Particle count" value={p.repeat ?? 12} step={1} min={1} onChange={(v) => patch({ repeat: v })} />}
+          {s.type === 'cloud-ripple-burst' && <NumRow label="Particle count" value={p.particleCount ?? 170} step={10} min={12} onChange={(v) => patch({ particleCount: v })} />}
+          {s.type === 'cloud-ripple-burst' && <NumRow label="Ring count" value={p.ringCount ?? 5} step={1} min={1} onChange={(v) => patch({ ringCount: v })} />}
+          {s.type !== 'speed-line-burst' && <Vec3 label="Spawn offset" value={p.spawnOffset ?? [0, 0, 0]} onChange={(v) => patch({ spawnOffset: v })} />}
+        </>
+      );
+    case 'clone-hero-burst':
+      return (
+        <>
+          <SelectRow
+            label="Target slot"
+            value={p.modelSlot ?? ''}
+            options={[{ value: '', label: '(auto)' }, ...opts(MODEL_SLOTS)]}
+            onChange={(v) => patch({ modelSlot: (v || undefined) as ModelSlot | undefined, modelRef: undefined, clipName: undefined })}
+          />
+          <Field label="Target model override">
+            <ModelPicker value={p.modelRef} onChange={(v) => patch({ modelRef: v, clipName: undefined })} noneLabel="(use slot/auto)" />
+          </Field>
+          <ClipSelect modelId={stageClipModelId(def, s)} stage={s} value={p.clipName} onChange={(v) => { patch({ clipName: v }); if (v) useTransformationPreviewStore.getState().playRange(s.startTime, s.startTime + Math.max(0.1, s.duration), false); }} />
+          <NumRow label="Clip speed" value={p.clipSpeed ?? 1} step={0.1} onChange={(v) => patch({ clipSpeed: v })} />
+          <Check label="Loop" checked={p.loop ?? false} onChange={(v) => patch({ loop: v })} />
+          <Check label="Hold final frame" checked={p.holdFinal ?? true} onChange={(v) => patch({ holdFinal: v })} />
+          <ColorRow label="Glow colour" value={p.color ?? '#7fd0ff'} onChange={(v) => patch({ color: v })} />
+          <NumRow label="Glow intensity" value={p.intensity ?? 1} step={0.1} min={0} onChange={(v) => patch({ intensity: v })} />
+          <NumRow label="Max clone scale" value={p.scale ?? 14} step={0.5} min={1} onChange={(v) => patch({ scale: v })} />
+          <NumRow label="Star count" value={p.repeat ?? 54} step={6} min={12} onChange={(v) => patch({ repeat: v })} />
+          <NumRow label="Star radius" value={p.ghostSpread ?? 12} step={0.5} min={0} onChange={(v) => patch({ ghostSpread: v })} />
+          <Check label="Fade near boundary" checked={p.ghostPersist ?? true} onChange={(v) => patch({ ghostPersist: v })} />
         </>
       );
     case 'voice-cue':
@@ -482,6 +613,14 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
           <TextRow label="Target phase" value={p.targetPhase ?? 'DESCENT'} onChange={(v) => patch({ targetPhase: v })} />
           <NumRow label="Descent distance (slow sink)" value={p.intensity ?? 6} step={1} min={0} onChange={(v) => patch({ intensity: v })} />
           <NumRow label="Shrink to × (fly-out; 1 = none)" value={p.toScale ?? 1} step={0.05} min={0} onChange={(v) => patch({ toScale: v })} />
+        </>
+      );
+    case 'finish-pose':
+    case 'interactive-showcase':
+      return (
+        <>
+          <ColorRow label="Highlight colour" value={p.color ?? '#ffffff'} onChange={(v) => patch({ color: v })} />
+          <NumRow label="Highlight intensity" value={p.intensity ?? 1} step={0.1} min={0} onChange={(v) => patch({ intensity: v })} />
         </>
       );
     default:
@@ -515,23 +654,78 @@ const StageAuthoringDiagnostics = ({ s }: { s: TransformationStage }) => {
   const target = stageTargetDiagnostic(s);
   const times = stageScrubTimes(s);
   const scrub = (time: number) => useTransformationPreviewStore.getState().scrub(time);
+  const playStage = () => useTransformationPreviewStore.getState().playRange(times.start, Math.max(times.start + 0.1, times.end));
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px]">
       <span className="rounded bg-slate-950/60 px-2 py-0.5 text-slate-400">target: <span className="text-slate-200">{target.label}</span></span>
       <button onClick={() => scrub(times.start)} className="rounded bg-slate-800 px-2 py-0.5 text-slate-200 hover:bg-slate-700">Scrub Start</button>
       <button onClick={() => scrub(times.middle)} className="rounded bg-slate-800 px-2 py-0.5 text-slate-200 hover:bg-slate-700">Scrub Mid</button>
       <button onClick={() => scrub(times.end)} className="rounded bg-slate-800 px-2 py-0.5 text-slate-200 hover:bg-slate-700">Scrub End</button>
+      <button onClick={playStage} className="rounded bg-fuchsia-800/50 px-2 py-0.5 text-fuchsia-100 hover:bg-fuchsia-700/60">Play Stage</button>
     </div>
   );
 };
 
 const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
-  const add = () => update({ stages: [...def.stages, { id: `s_${nanoid(4)}`, type: 'part-transform', startTime: 0, duration: 0.5, enabled: true, params: {} }] });
-  const seekStage = (id: string, override?: number) => { const st = def.stages.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(override ?? st?.startTime ?? 0); };
-  const patch = (id: string, p: Partial<TransformationStage>) => { update({ stages: def.stages.map((s) => (s.id === id ? { ...s, ...p } : s)) }); seekStage(id, p.startTime); };
-  const patchParams = (id: string, pp: Partial<TransformationStage['params']>) => { update({ stages: def.stages.map((s) => (s.id === id ? { ...s, params: { ...s.params, ...pp } } : s)) }); seekStage(id); };
+  const add = () => {
+    const startTime = useTransformationPreviewStore.getState().time;
+    update({ stages: [...def.stages, { id: `s_${nanoid(4)}`, type: 'part-transform', startTime, duration: 0.5, enabled: true, params: defaultParamsForStageType('part-transform') }] });
+  };
+  const shouldReplayStage = (stage: TransformationStage): boolean =>
+    stage.type === 'clone-hero-burst'
+    || stage.type === 'cloud-ripple-burst'
+    || stage.type === 'effect-burst'
+    || stage.type === 'energy-ring'
+    || stage.type === 'speed-line-burst'
+    || stage.type === 'animation-clip';
+  const replayStage = (stage: TransformationStage) => {
+    useTransformationPreviewStore.getState().playRange(stage.startTime, stage.startTime + Math.max(0.1, stage.duration), false);
+  };
+  const stagePreviewTime = (stage: TransformationStage, override?: number): number => {
+    if (override !== undefined) return override;
+    if (stage.type === 'clone-hero-burst' || stage.type === 'cloud-ripple-burst' || stage.type === 'effect-burst' || stage.type === 'energy-ring' || stage.type === 'camera-shot') {
+      return stage.startTime + Math.max(0.08, stage.duration * 0.38);
+    }
+    return stage.startTime;
+  };
+  const previewAfterStageEdit = (stage: TransformationStage, override?: number) => {
+    if (override !== undefined) {
+      useTransformationPreviewStore.getState().scrub(stagePreviewTime(stage, override));
+      return;
+    }
+    if (shouldReplayStage(stage)) {
+      replayStage(stage);
+      return;
+    }
+    useTransformationPreviewStore.getState().scrub(stagePreviewTime(stage));
+  };
+  const patch = (id: string, p: Partial<TransformationStage>) => {
+    const nextStages = def.stages.map((s) => (s.id === id ? { ...s, ...p } : s));
+    update({ stages: nextStages });
+    const nextStage = nextStages.find((s) => s.id === id);
+    if (nextStage) previewAfterStageEdit(nextStage, p.startTime);
+  };
+  const patchParams = (id: string, pp: Partial<TransformationStage['params']>) => {
+    const nextStages = def.stages.map((s) => (s.id === id ? { ...s, params: { ...s.params, ...pp } } : s));
+    update({ stages: nextStages });
+    const nextStage = nextStages.find((s) => s.id === id);
+    if (nextStage) previewAfterStageEdit(nextStage);
+  };
   const remove = (id: string) => update({ stages: def.stages.filter((s) => s.id !== id) });
   const duplicateStage = (stage: TransformationStage) => update({ stages: [...def.stages, { ...stage, id: `s_${nanoid(4)}`, label: stage.label ? `${stage.label} Copy` : undefined, startTime: stage.startTime + 0.1, params: { ...stage.params } }] });
+  const revealTarget = (stage: TransformationStage) => {
+    if (stage.type !== 'animation-clip' && stage.type !== 'clone-hero-burst') return;
+    const target = stage.params.modelRef
+      ? { modelRef: stage.params.modelRef, visible: true }
+      : { modelSlot: stage.params.modelSlot ?? 'robot', visible: true };
+    update({
+      stages: [
+        ...def.stages,
+        { id: `s_${nanoid(4)}`, type: stage.params.modelRef ? 'model-swap' : 'model-visibility', startTime: stage.startTime, duration: 0.05, enabled: true, essential: stage.essential, label: `reveal for ${stage.label ?? stage.id}`, params: target },
+      ],
+    });
+    useTransformationPreviewStore.getState().scrub(stage.startTime);
+  };
   return (
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Stages · {def.stages.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Stage</button></div>
@@ -539,7 +733,15 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
         {def.stages.map((s, i) => (
           <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
-              <SelectRow label="Type" value={s.type} options={opts(TRANSFORMATION_STAGE_TYPES)} onChange={(v) => patch(s.id, { type: v as TransformationStage['type'] })} />
+              <SelectRow
+                label="Type"
+                value={s.type}
+                options={opts(TRANSFORMATION_STAGE_TYPES)}
+                onChange={(v) => {
+                  const type = v as TransformationStage['type'];
+                  patch(s.id, { type, params: defaultParamsForStageType(type) });
+                }}
+              />
               <TextRow label="Label" value={s.label ?? ''} onChange={(v) => patch(s.id, { label: v })} />
               <NumRow label="Start" value={s.startTime} step={0.1} min={0} onChange={(v) => patch(s.id, { startTime: v })} />
               <NumRow label="Duration" value={s.duration} step={0.1} min={0} onChange={(v) => patch(s.id, { duration: v })} />
@@ -555,6 +757,7 @@ const StagesEditor = ({ def, update }: { def: TransformationDefinition; update: 
               <StageGizmoControls def={def} s={s} />
               <MoveButtons index={i} count={def.stages.length} onMove={(d) => update({ stages: moveItem(def.stages, i, d) })} />
               <button onClick={() => duplicateStage(s)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
+              {(s.type === 'animation-clip' || s.type === 'clone-hero-burst') && <button onClick={() => revealTarget(s)} className="rounded bg-sky-800/60 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700">Reveal Target</button>}
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>
           </div>
@@ -569,8 +772,25 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
   const patch = (id: string, p: Partial<TransformationCameraShot>) => { update({ cameraShots: def.cameraShots.map((s) => (s.id === id ? { ...s, ...p } : s)) }); const sh = def.cameraShots.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(p.startTime ?? sh?.startTime ?? 0); };
   const remove = (id: string) => update({ cameraShots: def.cameraShots.filter((s) => s.id !== id) });
   const duplicateShot = (shot: TransformationCameraShot) => update({ cameraShots: [...def.cameraShots, { ...shot, id: `c_${nanoid(4)}`, startTime: shot.startTime + 0.1 }] });
+  const previewShot = (shot: TransformationCameraShot) => {
+    useTransformationPreviewStore.getState().setPreviewCamera(true);
+    useTransformationPreviewStore.getState().scrub(shot.startTime);
+  };
+  const playShot = (shot: TransformationCameraShot) => useTransformationPreviewStore.getState().playRange(shot.startTime, shot.startTime + Math.max(0.1, shot.duration));
+  const timelineRotationModes = CAMERA_ROTATION_MODES.filter((mode) => mode !== 'inherit');
   return (
     <div>
+      <div className="mb-2 rounded border border-slate-800 bg-slate-900/50 p-1.5">
+        <div className={lbl}>Main camera rotation</div>
+        <div className="mt-1 grid grid-cols-2 gap-1.5">
+          <SelectRow label="Default rotation" value={def.cameraRotationMode ?? 'auto'} options={opts(timelineRotationModes)} onChange={(v) => update({ cameraRotationMode: v as TransformationDefinition['cameraRotationMode'] })} />
+          <NumRow label="Default speed °/s" value={def.cameraRotateSpeedDeg ?? 17} step={5} onChange={(v) => update({ cameraRotateSpeedDeg: v })} />
+        </div>
+        <div className="mt-1 flex flex-wrap gap-1">
+          <button onClick={() => useTransformationPreviewStore.getState().setPreviewCamera(true)} className="rounded bg-sky-800/50 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700/60">Preview Camera</button>
+          <button onClick={() => useTransformationPreviewStore.getState().setPreviewCamera(false)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">Free Orbit</button>
+        </div>
+      </div>
       <div className="flex items-center justify-between"><div className={lbl}>Camera shots · {def.cameraShots.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Shot</button></div>
       <div className="mt-1 space-y-1.5">
         {def.cameraShots.map((s, i) => (
@@ -585,9 +805,13 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
               <NumRow label="Angle°" value={s.angle} step={10} onChange={(v) => patch(s.id, { angle: v })} />
               <NumRow label="FOV" value={s.fov} step={1} onChange={(v) => patch(s.id, { fov: v })} />
               <NumRow label="Shake" value={s.shakeIntensity ?? 0} step={0.05} min={0} onChange={(v) => patch(s.id, { shakeIntensity: v })} />
+              <SelectRow label="Rotation mode" value={s.rotationMode ?? 'inherit'} options={opts(CAMERA_ROTATION_MODES)} onChange={(v) => patch(s.id, { rotationMode: v as TransformationCameraShot['rotationMode'] })} />
+              <NumRow label="Rotate speed °/s" value={s.rotateSpeedDeg ?? 23} step={5} onChange={(v) => patch(s.id, { rotateSpeedDeg: v })} />
             </div>
             <div className="mt-1 flex items-center gap-1.5">
               <MoveButtons index={i} count={def.cameraShots.length} onMove={(d) => update({ cameraShots: moveItem(def.cameraShots, i, d) })} />
+              <button onClick={() => previewShot(s)} className="rounded bg-sky-800/50 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700/60">Preview</button>
+              <button onClick={() => playShot(s)} className="rounded bg-fuchsia-800/50 px-2 py-0.5 text-[11px] text-fuchsia-100 hover:bg-fuchsia-700/60">Play Shot</button>
               <button onClick={() => duplicateShot(s)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>
@@ -600,9 +824,42 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
 
 const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update: (p: Partial<TransformationDefinition>) => void }) => {
   const add = () => update({ effectTracks: [...def.effectTracks, { id: `e_${nanoid(4)}`, type: 'glow-pulse', startTime: 0, duration: 1 }] });
-  const patch = (id: string, p: Partial<TransformationEffectTrack>) => { update({ effectTracks: def.effectTracks.map((s) => (s.id === id ? { ...s, ...p } : s)) }); const fx = def.effectTracks.find((s) => s.id === id); useTransformationPreviewStore.getState().scrub(p.startTime ?? fx?.startTime ?? 0); };
+  const shouldReplayEffect = (effect: TransformationEffectTrack): boolean =>
+    effect.type === 'ghost-burst'
+    || effect.type === 'cloud-ripple-burst'
+    || effect.type === 'particle-burst'
+    || effect.type === 'energy-ring'
+    || effect.type === 'speed-line-burst'
+    || effect.type === 'sparkle';
+  const effectPreviewTime = (effect: TransformationEffectTrack, patchValue: Partial<TransformationEffectTrack>): number => {
+    const startTime = patchValue.startTime ?? effect.startTime;
+    const duration = patchValue.duration ?? effect.duration;
+    if (effect.type === 'ghost-burst' || patchValue.type === 'ghost-burst' || effect.type === 'cloud-ripple-burst' || patchValue.type === 'cloud-ripple-burst') {
+      return startTime + Math.max(0.08, duration * 0.38);
+    }
+    return startTime;
+  };
+  const patch = (id: string, p: Partial<TransformationEffectTrack>) => {
+    const nextTracks = def.effectTracks.map((s) => (s.id === id ? { ...s, ...p } : s));
+    update({ effectTracks: nextTracks });
+    const fx = nextTracks.find((s) => s.id === id);
+    if (!fx) {
+      useTransformationPreviewStore.getState().scrub(0);
+      return;
+    }
+    if (p.startTime !== undefined) {
+      useTransformationPreviewStore.getState().scrub(effectPreviewTime(fx, {}));
+      return;
+    }
+    if (shouldReplayEffect(fx)) {
+      useTransformationPreviewStore.getState().playRange(fx.startTime, fx.startTime + Math.max(0.1, fx.duration), false);
+      return;
+    }
+    useTransformationPreviewStore.getState().scrub(effectPreviewTime(fx, {}));
+  };
   const remove = (id: string) => update({ effectTracks: def.effectTracks.filter((s) => s.id !== id) });
   const duplicateEffect = (effect: TransformationEffectTrack) => update({ effectTracks: [...def.effectTracks, { ...effect, id: `e_${nanoid(4)}`, startTime: effect.startTime + 0.1 }] });
+  const playEffect = (effect: TransformationEffectTrack) => useTransformationPreviewStore.getState().playRange(effect.startTime, effect.startTime + Math.max(0.1, effect.duration), false);
   return (
     <div>
       <div className="flex items-center justify-between"><div className={lbl}>Effect tracks · {def.effectTracks.length}</div><button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Effect</button></div>
@@ -615,18 +872,30 @@ const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update:
               <NumRow label="Start" value={s.startTime} step={0.1} min={0} onChange={(v) => patch(s.id, { startTime: v })} />
               <NumRow label="Duration" value={s.duration} step={0.1} min={0} onChange={(v) => patch(s.id, { duration: v })} />
               <NumRow label="Intensity" value={s.intensity ?? 1} step={0.1} onChange={(v) => patch(s.id, { intensity: v })} />
-              <NumRow label="Scale" value={s.scale ?? 1} step={0.1} onChange={(v) => patch(s.id, { scale: v })} />
+              {s.type !== 'ghost-burst' && <NumRow label="Scale" value={s.scale ?? 1} step={0.1} onChange={(v) => patch(s.id, { scale: v })} />}
             </div>
             <ColorRow label="Colour" value={s.color ?? '#ffffff'} onChange={(v) => patch(s.id, { color: v })} />
             {s.type === 'ghost-burst' && (
               <div className="mt-1 grid grid-cols-2 gap-1.5 rounded bg-slate-950/40 p-1.5">
-                <NumRow label="Clone count" value={s.ghostCount ?? s.repeat ?? 6} step={1} min={1} onChange={(v) => patch(s.id, { ghostCount: v })} />
-                <NumRow label="Clone spread" value={s.ghostSpread ?? 14} step={1} min={0} onChange={(v) => patch(s.id, { ghostSpread: v })} />
-                <div className="col-span-2"><Check label="Persist until track ends" checked={s.ghostPersist ?? true} onChange={(v) => patch(s.id, { ghostPersist: v })} /></div>
+                <SelectRow label="Target slot" value={s.modelSlot ?? ''} options={[{ value: '', label: '(auto)' }, ...opts(MODEL_SLOTS)]} onChange={(v) => patch(s.id, { modelSlot: (v || undefined) as TransformationEffectTrack['modelSlot'], modelRef: undefined })} />
+                <NumRow label="Max clone scale" value={s.scale ?? 14} step={0.5} min={1} onChange={(v) => patch(s.id, { scale: v })} />
+                <NumRow label="Star count" value={s.repeat ?? 54} step={6} min={12} onChange={(v) => patch(s.id, { repeat: v })} />
+                <NumRow label="Star radius" value={s.ghostSpread ?? 12} step={0.5} min={0} onChange={(v) => patch(s.id, { ghostSpread: v })} />
+                <div className="col-span-2"><Vec3 label="Spawn offset" value={s.spawnOffset ?? [0, 0, 0]} onChange={(v) => patch(s.id, { spawnOffset: v })} /></div>
+                <div className="col-span-2"><Check label="Fade near boundary" checked={s.ghostPersist ?? true} onChange={(v) => patch(s.id, { ghostPersist: v })} /></div>
+              </div>
+            )}
+            {s.type === 'cloud-ripple-burst' && (
+              <div className="mt-1 grid grid-cols-2 gap-1.5 rounded bg-slate-950/40 p-1.5">
+                <NumRow label="Particle count" value={s.particleCount ?? s.repeat ?? 170} step={10} min={12} onChange={(v) => patch(s.id, { particleCount: v })} />
+                <NumRow label="Ring count" value={s.ringCount ?? 5} step={1} min={1} onChange={(v) => patch(s.id, { ringCount: v })} />
+                <div className="col-span-2"><Vec3 label="Spawn offset" value={s.spawnOffset ?? [0, 0, 0]} onChange={(v) => patch(s.id, { spawnOffset: v })} /></div>
               </div>
             )}
             <div className="mt-1 flex items-center gap-1.5">
               <MoveButtons index={i} count={def.effectTracks.length} onMove={(d) => update({ effectTracks: moveItem(def.effectTracks, i, d) })} />
+              <button onClick={() => useTransformationPreviewStore.getState().scrub(effectPreviewTime(s, {}))} className="rounded bg-sky-800/50 px-2 py-0.5 text-[11px] text-sky-100 hover:bg-sky-700/60">Preview</button>
+              <button onClick={() => playEffect(s)} className="rounded bg-fuchsia-800/50 px-2 py-0.5 text-[11px] text-fuchsia-100 hover:bg-fuchsia-700/60">Play Effect</button>
               <button onClick={() => duplicateEffect(s)} className="rounded bg-slate-800 px-2 py-0.5 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
               <button onClick={() => remove(s.id)} className="rounded bg-rose-700/20 px-2 py-0.5 text-[11px] text-rose-300 hover:bg-rose-700/30">🗑 Remove</button>
             </div>
@@ -642,6 +911,7 @@ const PreviewControls = ({ def }: { def: TransformationDefinition }) => {
   return (
     <div className="space-y-2">
       <SelectRow label="Mode" value={ps.mode} options={opts(TRANSFORMATION_MODES)} onChange={(v) => ps.setMode(v as typeof ps.mode)} />
+      <Check label="Preview transformation camera" checked={ps.previewCamera} onChange={(v) => ps.setPreviewCamera(v)} />
       <input type="range" min={0} max={def.totalDurationSec} step={0.02} value={ps.time} onChange={(e) => ps.scrub(num(e.target.value))} className="w-full" />
       <div className="flex flex-wrap gap-1">
         <button onClick={() => ps.play()} className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700">▶ Play</button>

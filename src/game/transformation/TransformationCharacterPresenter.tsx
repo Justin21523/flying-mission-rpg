@@ -1,6 +1,6 @@
 import { useRef, type ReactNode, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
-import type { Group } from 'three';
+import { Quaternion, Vector3, type Group } from 'three';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { NormalizedGlbModel } from '../world/NormalizedGlbModel';
 import { getModelAsset } from '../../data/modelLibrary';
@@ -15,6 +15,9 @@ import type { TransformationDefinition, TransformationPart, PartGeometryKind, Mo
 // preview (both read txFrame.snapshot), so the two always match. The root spins with the showcase yaw.
 const DEG = Math.PI / 180;
 const DEFAULT_OFFSET: TransformationTransformOffset = { position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 };
+const _ghostPos = new Vector3();
+const _ghostQuat = new Quaternion();
+const _ghostScale = new Vector3();
 
 // Apply the authored slot offset + the runner's animated motion to a model group (play / preview playback).
 // Allocation-free: writes components directly, never creates objects in the frame loop.
@@ -55,6 +58,31 @@ function clipForSlot(clips: ActiveModelClip[], slot: ModelSlot): ActiveModelClip
 function clipForRef(clips: ActiveModelClip[], modelRef: string): ActiveModelClip | undefined {
   for (let i = clips.length - 1; i >= 0; i -= 1) if (clips[i]?.modelRef === modelRef) return clips[i];
   return undefined;
+}
+
+function clipTimeForSlot(slot: ModelSlot): number | undefined {
+  return clipForSlot(txFrame.snapshot?.activeModelClips ?? [], slot)?.localTime;
+}
+
+function clipTimeForRef(modelRef: string): number | undefined {
+  return clipForRef(txFrame.snapshot?.activeModelClips ?? [], modelRef)?.localTime;
+}
+
+function captureGhostActor(key: ModelSlot | 'activeRef', group: Group | null, modelId: string | undefined): void {
+  if (!group || !modelId || !group.visible) {
+    delete txFrame.ghostActors[key];
+    return;
+  }
+  group.updateWorldMatrix(true, false);
+  group.getWorldPosition(_ghostPos);
+  group.getWorldQuaternion(_ghostQuat);
+  group.getWorldScale(_ghostScale);
+  txFrame.ghostActors[key] = {
+    modelId,
+    position: [_ghostPos.x, _ghostPos.y, _ghostPos.z],
+    quaternion: [_ghostQuat.x, _ghostQuat.y, _ghostQuat.z, _ghostQuat.w],
+    scale: [_ghostScale.x, _ghostScale.y, _ghostScale.z],
+  };
 }
 
 const PartMesh = ({ part, color }: { part: TransformationPart; color: string }) => {
@@ -141,13 +169,11 @@ export const TransformationCharacterPresenter = ({
   def,
   editDef,
   editMode = false,
-  previewPlaying = false,
   charModelId,
 }: {
   def: TransformationDefinition;
   editDef?: TransformationDefinition;
   editMode?: boolean;
-  previewPlaying?: boolean;
   charModelId?: string;
 }) => {
   const root = useRef<Group>(null);
@@ -158,12 +184,12 @@ export const TransformationCharacterPresenter = ({
   // Re-render when the active extra model / clip changes (sparse — bumped by the director/preview driver),
   // so multi-model sequences (any number of model-swap stages) and animation-clip switches mount live.
   useTxVersion((s) => s.v);
-  // Edit-AT-REST authoring view: show the real model slots that HAVE a model so they're visible + clickable,
-  // and keep the root static so the gizmo target doesn't drift. Play / preview-playback follow the snapshot.
-  const editRest = editMode && !previewPlaying;
   const hasRobot = !!(def.robotModelRef ?? charModelId);
   const hasPlane = !!def.planeModelRef;
   const hasShared = !!def.sharedModelRef;
+  const robotModelId = def.robotModelRef ?? charModelId;
+  const planeModelId = def.planeModelRef;
+  const sharedModelId = def.sharedModelRef;
   const robotOffset = offsetForSlot(def, 'robot');
   const planeOffset = offsetForSlot(def, 'plane');
   const sharedOffset = offsetForSlot(def, 'shared');
@@ -173,17 +199,24 @@ export const TransformationCharacterPresenter = ({
     if (root.current) {
       const rootPosition = def.rootPosition ?? ZERO3;
       const rootRotation = def.rootRotation ?? ZERO3;
+      const rootMotion = snap?.rootMotion ?? DEFAULT_OFFSET;
       const baseYaw = (def.baseYawDeg ?? 0) * DEG; // authored whole-character facing (always applied)
-      root.current.position.set(rootPosition[0], rootPosition[1] + (editRest ? 0 : -(snap?.rootYOffset ?? 0)), rootPosition[2]);
-      root.current.rotation.set(rootRotation[0] * DEG, rootRotation[1] * DEG + baseYaw + (editRest ? 0 : txFrame.showcaseYaw), rootRotation[2] * DEG);
-      const exit = editRest ? 1 : (snap?.exitScaleMul ?? 1); // shrink fly-out
-      root.current.scale.setScalar((def.modelScale ?? 1) * exit);
+      root.current.position.set(rootPosition[0] + rootMotion.position[0], rootPosition[1] + rootMotion.position[1] - (snap?.rootYOffset ?? 0), rootPosition[2] + rootMotion.position[2]);
+      root.current.rotation.set((rootRotation[0] + rootMotion.rotation[0]) * DEG, (rootRotation[1] + rootMotion.rotation[1]) * DEG + baseYaw + txFrame.showcaseYaw, (rootRotation[2] + rootMotion.rotation[2]) * DEG);
+      const exit = snap?.exitScaleMul ?? 1; // shrink fly-out
+      root.current.scale.setScalar((def.modelScale ?? 1) * rootMotion.scale * exit);
     }
-    if (editRest) {
-      if (robot.current) robot.current.visible = hasRobot;
-      if (plane.current) plane.current.visible = hasPlane;
-      if (shared.current) shared.current.visible = hasShared;
-      return; // gizmo controls the slot transforms at rest
+    if (editMode) {
+      const vis = snap?.modelVisible;
+      if (robot.current) { robot.current.visible = vis?.robot ?? hasRobot; applySlotMotion(robot.current, DEFAULT_OFFSET, snap?.modelMotion.robot); }
+      if (plane.current) { plane.current.visible = vis?.plane ?? hasPlane; applySlotMotion(plane.current, DEFAULT_OFFSET, snap?.modelMotion.plane); }
+      if (shared.current) { shared.current.visible = vis?.shared ?? hasShared; applySlotMotion(shared.current, DEFAULT_OFFSET, snap?.modelMotion.shared); }
+      if (extra.current) { extra.current.visible = snap?.activeModelVisible ?? true; applySlotMotion(extra.current, DEFAULT_OFFSET, snap?.refMotion); }
+      captureGhostActor('robot', robot.current, robotModelId);
+      captureGhostActor('plane', plane.current, planeModelId);
+      captureGhostActor('shared', shared.current, sharedModelId);
+      captureGhostActor('activeRef', extra.current, snap?.activeModelRef ?? undefined);
+      return;
     }
     const vis = snap?.modelVisible;
     if (robot.current) { robot.current.visible = vis?.robot ?? false; applySlotMotion(robot.current, robotOffset, snap?.modelMotion.robot); }
@@ -191,6 +224,10 @@ export const TransformationCharacterPresenter = ({
     if (shared.current) { shared.current.visible = vis?.shared ?? false; applySlotMotion(shared.current, sharedOffset, snap?.modelMotion.shared); }
     // arbitrary swapped-in model — driven by model-move (refMotion) + model-visibility (activeModelVisible).
     if (extra.current) { extra.current.visible = snap?.activeModelVisible ?? true; applySlotMotion(extra.current, offsetForStageModel(def, snap?.activeModelStageId), snap?.refMotion); }
+    captureGhostActor('robot', robot.current, robotModelId);
+    captureGhostActor('plane', plane.current, planeModelId);
+    captureGhostActor('shared', shared.current, sharedModelId);
+    captureGhostActor('activeRef', extra.current, snap?.activeModelRef ?? undefined);
   });
   const color = def.particleColor;
   const clips = txFrame.snapshot?.activeModelClips ?? [];
@@ -208,13 +245,13 @@ export const TransformationCharacterPresenter = ({
       ))}
       {/* model slots — robot defaults to the character's GLB; plane/shared from the timeline refs */}
       <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'robot')} editOffset={offsetForSlot(editSource, 'robot')} runtimeOffset={robotOffset} groupRef={robot} hitbox={{ center: [0, 1.1, 0], size: [2.2, 2.8, 2.2] }}>
-        {(def.robotModelRef ?? charModelId) && <AnimatedGlbModel assetId={(def.robotModelRef ?? charModelId)!} animation={robotClip?.clipName} animationSpeed={robotClip?.clipSpeed} loop={robotClip?.loop} autoPlayFirstClip={!!robotClip} noCull />}
+        {(def.robotModelRef ?? charModelId) && <AnimatedGlbModel assetId={(def.robotModelRef ?? charModelId)!} animation={robotClip?.clipName} animationSpeed={robotClip?.clipSpeed} getAnimationTime={() => clipTimeForSlot('robot')} loop={robotClip?.loop} autoPlayFirstClip={!!robotClip} noCull />}
       </EditableModelGroup>
       <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'plane')} editOffset={offsetForSlot(editSource, 'plane')} runtimeOffset={planeOffset} groupRef={plane} hitbox={{ center: [0, 0.7, 0], size: [3.2, 1.6, 3.2] }}>
-        {def.planeModelRef && <AnimatedGlbModel assetId={def.planeModelRef} animation={planeClip?.clipName} animationSpeed={planeClip?.clipSpeed} loop={planeClip?.loop} autoPlayFirstClip={!!planeClip} noCull />}
+        {def.planeModelRef && <AnimatedGlbModel assetId={def.planeModelRef} animation={planeClip?.clipName} animationSpeed={planeClip?.clipSpeed} getAnimationTime={() => clipTimeForSlot('plane')} loop={planeClip?.loop} autoPlayFirstClip={!!planeClip} noCull />}
       </EditableModelGroup>
       <EditableModelGroup editMode={editMode} objKey={transformModelSlotKey(def.id, 'shared')} editOffset={offsetForSlot(editSource, 'shared')} runtimeOffset={sharedOffset} groupRef={shared} hitbox={{ center: [0, 1, 0], size: [2.6, 2.4, 2.6] }}>
-        {def.sharedModelRef && <AnimatedGlbModel assetId={def.sharedModelRef} animation={sharedClip?.clipName} animationSpeed={sharedClip?.clipSpeed} loop={sharedClip?.loop} autoPlayFirstClip={!!sharedClip} noCull />}
+        {def.sharedModelRef && <AnimatedGlbModel assetId={def.sharedModelRef} animation={sharedClip?.clipName} animationSpeed={sharedClip?.clipSpeed} getAnimationTime={() => clipTimeForSlot('shared')} loop={sharedClip?.loop} autoPlayFirstClip={!!sharedClip} noCull />}
       </EditableModelGroup>
       {/* arbitrary extra model (model-swap stage with a modelRef — supports chained multi-model sequences) */}
       {extraRef && (
@@ -227,7 +264,7 @@ export const TransformationCharacterPresenter = ({
           hitbox={{ center: [0, 1, 0], size: [2.4, 2.4, 2.4] }}
           initialVisible
         >
-          <AnimatedGlbModel assetId={extraRef} animation={extraClip?.clipName} animationSpeed={extraClip?.clipSpeed} loop={extraClip?.loop} autoPlayFirstClip={!!extraClip} noCull />
+          <AnimatedGlbModel assetId={extraRef} animation={extraClip?.clipName} animationSpeed={extraClip?.clipSpeed} getAnimationTime={() => clipTimeForRef(extraRef)} loop={extraClip?.loop} autoPlayFirstClip={!!extraClip} noCull />
         </EditableModelGroup>
       )}
     </group>

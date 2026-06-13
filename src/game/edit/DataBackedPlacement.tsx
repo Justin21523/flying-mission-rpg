@@ -4,7 +4,7 @@ import type { Group } from 'three';
 import type { TransformControls as TransformControlsImpl } from 'three-stdlib';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useWorldSelectStore } from '../../stores/worldSelectStore';
-import { gizmoState, pointerOnGizmo } from './gizmoState';
+import { gizmoState, pointerOnGizmo, releaseGizmoPointer } from './gizmoState';
 import { registerNode, unregisterNode, snapshotExtras, applyBatchDelta, getNode, type BatchStart } from './nodeDragRegistry';
 
 // Kit — a gizmo-movable world placement whose moves write BACK into the owning data store (not a
@@ -41,6 +41,22 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
 
   // Drag-start snapshot of the primary + every extra, so batch deltas are stable across the drag.
   const starts = useRef<BatchStart | null>(null);
+
+  useEffect(() => {
+    const release = () => {
+      starts.current = null;
+      releaseGizmoPointer();
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('blur', release);
+    return () => {
+      window.removeEventListener('pointerup', release);
+      window.removeEventListener('blur', release);
+      if (gizmoState.controls === ctrlRef.current) gizmoState.controls = null;
+      ctrlRef.current = null;
+      releaseGizmoPointer();
+    };
+  }, []);
 
   const handleSelect = (e: ThreeEvent<PointerEvent>) => {
     if (e.button !== undefined && e.button !== 0) return; // left button only
@@ -83,6 +99,10 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
           onMouseDown={() => {
             const extraKeys = useWorldSelectStore.getState().extraKeys;
             starts.current = { primary: [obj.position.x, obj.position.y, obj.position.z], extras: snapshotExtras(extraKeys) };
+          }}
+          onMouseUp={() => {
+            starts.current = null;
+            releaseGizmoPointer();
           }}
           onObjectChange={() => {
             const cur: [number, number, number] = [obj.position.x, obj.position.y, obj.position.z];

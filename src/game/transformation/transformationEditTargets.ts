@@ -31,6 +31,10 @@ export function listTransformationEditTargets(def: TransformationDefinition): Tr
     if (stage.type === 'model-swap' && stage.params.modelRef) targets.push({ key: transformStageModelKey(def.id, stage.id), label: `${stage.label ?? stage.id} stage model`, kind: 'stage', canBake: true });
     if (stage.type === 'model-move') targets.push({ key: transformStageMoveKey(def.id, stage.id), label: `${stage.label ?? stage.id} model move`, kind: 'stage', canBake: true });
     if (stage.type === 'part-transform') targets.push({ key: transformStagePartMoveKey(def.id, stage.id), label: `${stage.label ?? stage.id} part target`, kind: 'stage', canBake: true });
+    if (stage.type === 'camera-shot') {
+      targets.push({ key: transformCameraShotKey(def.id, stage.id), label: `${stage.label ?? stage.id} stage camera anchor`, kind: 'camera', canBake: true });
+      targets.push({ key: transformCameraLookKey(def.id, stage.id), label: `${stage.label ?? stage.id} stage look target`, kind: 'camera', canBake: true });
+    }
   }
 
   for (const effect of def.effectTracks ?? []) targets.push({ key: transformEffectKey(def.id, effect.id), label: `${effect.type} effect anchor`, kind: 'effect', canBake: true });

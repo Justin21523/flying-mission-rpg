@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TransformControls, Line } from '@react-three/drei';
 import type { Group } from 'three';
 import type { TransformControls as TransformControlsImpl } from 'three-stdlib';
 import { useEditorCameraStore } from '../../stores/game/editorCameraStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { DEFAULT_PHASE_CAMERA, cameraOffsetFromConfig, cameraConfigFromView } from '../../types/game/cameraConfig';
-import { gizmoState } from '../edit/gizmoState';
+import { gizmoState, releaseGizmoPointer } from '../edit/gizmoState';
 
 // 🎥 Camera tab → 🎮 Gizmo: a draggable camera proxy that authors a phase's FollowCamera framing by EYE. The
 // proxy sits at anchor(=look target at [0, targetHeight, 0]) + cameraOffsetFromConfig(cfg); dragging it
@@ -18,6 +18,19 @@ export const PhaseCameraGizmo = () => {
   const phase = useGameStore((s) => s.phase);
   const [obj, setObj] = useState<Group | null>(null);
   const ctrlRef = useRef<TransformControlsImpl | null>(null);
+
+  useEffect(() => {
+    const release = () => releaseGizmoPointer();
+    window.addEventListener('pointerup', release);
+    window.addEventListener('blur', release);
+    return () => {
+      window.removeEventListener('pointerup', release);
+      window.removeEventListener('blur', release);
+      if (gizmoState.controls === ctrlRef.current) gizmoState.controls = null;
+      ctrlRef.current = null;
+      releaseGizmoPointer();
+    };
+  }, []);
 
   if (!editingPhase || editingPhase !== phase) return null;
   const c = cfg ?? DEFAULT_PHASE_CAMERA;
@@ -60,6 +73,7 @@ export const PhaseCameraGizmo = () => {
           }}
           object={obj}
           mode="translate"
+          onMouseUp={releaseGizmoPointer}
           onObjectChange={apply}
         />
       )}

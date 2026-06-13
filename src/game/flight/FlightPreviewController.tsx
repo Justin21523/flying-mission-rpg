@@ -13,6 +13,8 @@ import { characterModelForForm } from '../destination/characterModel';
 import type { AnimState } from '../anim/animRunner';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { sampleUForDirection, type FlightLegDirection } from './flightLeg';
+import { resolveFlightCraftTransform } from './flightTimelineTransforms';
+import type { FlightTimelineTrack, FlightTimelineVec3 } from '../../types/game/flightTimeline';
 
 // EDIT-ONLY flight timeline preview — flies a preview craft along the scene's path at the store's u (0..1),
 // scrub/play from the 🛩 Flight → Flight Preview panel. Mirrors RouteFollower's curve+bank math but is driven
@@ -27,11 +29,17 @@ export const FlightPreviewController = ({
   craftScale,
   craftYaw,
   direction = 'forward',
+  fallbackOffset = [0, 0, 0],
+  timeTracks,
+  showCraft = true,
 }: {
   pathId: string;
   craftScale: number;
   craftYaw: number;
   direction?: FlightLegDirection;
+  fallbackOffset?: FlightTimelineVec3;
+  timeTracks?: readonly FlightTimelineTrack[];
+  showCraft?: boolean;
 }) => {
   const craft = useRef<Group>(null);
   const charId = useCharacterStore((s) => s.selectedCharacterId);
@@ -58,8 +66,12 @@ export const FlightPreviewController = ({
     _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
     c.lookAt(_look);
     if (np.bankDeg) c.rotateZ(np.bankDeg * DEG2RAD);
+    const authored = resolveFlightCraftTransform({ pathId, direction, u, fallbackOffset, fallbackScale: craftScale, tracks: timeTracks });
+    c.position.set(...authored.position);
+    c.rotation.set(authored.rotation[0] * DEG2RAD, authored.rotation[1] * DEG2RAD, authored.rotation[2] * DEG2RAD);
+    c.scale.setScalar(authored.scale);
     flightPreviewHandle.u = u;
-    flightPreviewHandle.altitude = _pos.y;
+    flightPreviewHandle.altitude = authored.position[1];
     flightPreviewHandle.pathSpeed = (cc.length || 0) * useFlightPreviewStore.getState().speed;
     // Publish the previewed craft transform so FlightCamera (Camera = Flight) frames it with the authored
     // worldCam*/flyAroundCam* distance/height. speedNorm = 0 keeps the framing at the calm base (no FOV/
@@ -67,6 +79,7 @@ export const FlightPreviewController = ({
     flightHandle.pos.copy(c.position);
     flightHandle.quat.copy(c.quaternion);
     flightHandle.speedNorm = 0;
+    flightHandle.routeU = u;
     if (useFlightPreviewStore.getState().follow) focusCameraOn(_pos.x, _pos.y, _pos.z);
   });
 
@@ -78,8 +91,8 @@ export const FlightPreviewController = ({
   );
   const modelId = characterModelForForm(character, 'plane');
   return (
-    <group ref={craft}>
-      <group rotation={[0, craftYaw * DEG2RAD, 0]} scale={craftScale}>
+    <group ref={craft} visible={showCraft}>
+      <group rotation={[0, craftYaw * DEG2RAD, 0]}>
         {modelId ? <AnimatedGlbModel assetId={modelId} animation={cueClip || character?.flightAnimation} rules={cueClip ? undefined : character?.animationRules} getAnimState={cueClip ? undefined : getAnimState} fallback={fallback} noCull /> : fallback}
       </group>
     </group>

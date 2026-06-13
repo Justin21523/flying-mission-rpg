@@ -38,23 +38,24 @@ export const TransformationBackdrop = ({ backdropColor = '#101820', glowColor = 
     const m = mesh.current;
     if (!m) return;
     camera.getWorldPosition(_c);
-    const intensity = txFrame.snapshot?.backdropIntensity ?? 1;
-    const speed = 24 * Math.max(0.15, intensity); // upward streak speed → descending sensation
+    const backdropIntensity = txFrame.snapshot?.backdropIntensity ?? 1;
+    const speedLineIntensity = Math.max(backdropIntensity, txFrame.snapshot?.speedLineIntensity ?? 0);
+    const speed = 24 * Math.max(0.15, speedLineIntensity); // upward streak speed → descending sensation
     for (let i = 0; i < COUNT; i++) {
       const p = POS[i];
       p.y += speed * dt; // move UP (world streams up = craft falls)
       if (p.y - _c.y > Y_SPAN / 2) p.y -= Y_SPAN; // recycle to the bottom
       _dummy.position.set(_c.x + p.x, p.y, _c.z + p.z);
-      _dummy.scale.set(1, 1 + intensity * 1.5, 1);
+      _dummy.scale.set(1, 1 + speedLineIntensity * 1.5, 1);
       _dummy.updateMatrix();
       m.setMatrixAt(i, _dummy.matrix);
     }
     m.instanceMatrix.needsUpdate = true;
-    if (streakMat.current) streakMat.current.opacity = 0.7 * Math.min(1, intensity); // fade out with the backdrop
-    if (light.current) light.current.intensity = (0.6 + Math.abs(Math.sin(state.clock.elapsedTime * 6)) * 0.8) * intensity;
+    if (streakMat.current) streakMat.current.opacity = 0.7 * Math.min(1, speedLineIntensity); // fade out with the backdrop
+    if (light.current) light.current.intensity = (0.6 + Math.abs(Math.sin(state.clock.elapsedTime * 6)) * 0.8) * Math.max(backdropIntensity, speedLineIntensity);
     // background colour: theme colour while active → open sky as the backdrop fades (still airborne)
     if (bgRef.current) {
-      _bg.copy(baseColor).lerp(SKY, 1 - Math.min(1, intensity));
+      _bg.copy(baseColor).lerp(SKY, 1 - Math.min(1, backdropIntensity));
       bgRef.current.copy(_bg);
     }
   });

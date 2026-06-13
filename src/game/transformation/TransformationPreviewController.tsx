@@ -25,13 +25,13 @@ export const TransformationPreviewController = ({ def }: { def: TransformationDe
     r.seek(useTransformationPreviewStore.getState().time);
     const snap = r.getSnapshot();
     txFrame.snapshot = snap;
-    useTxVersion.getState().bump(`${snap.activeEffects.map((e) => e.id).join(',')}|${snap.activeModelRef ?? ''}:${snap.activeModelStageId ?? ''}|${snap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
+    useTxVersion.getState().bump(`${snap.activeEffects.map((e) => `${e.id}:${e.type}:${e.modelSlot ?? ''}:${e.modelRef ?? ''}`).join(',')}|${snap.activeModelRef ?? ''}:${snap.activeModelStageId ?? ''}|${snap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
     Object.assign(transformationHandle, {
       timelineId: def.id, characterId: def.characterId ?? '', mode, time: snap.time, duration: snap.duration,
       progress: snap.progress, phase: snap.phase, stageLabel: snap.activeStageLabel, form: snap.modelVisible.robot ? 'robot' : 'transforming',
       planeCtrl: false, robotCtrl: snap.modelVisible.robot, planeCol: false, robotCol: snap.modelVisible.robot, effects: snap.activeEffects.length,
     });
-  });
+  }, -100);
 
   return null;
 };

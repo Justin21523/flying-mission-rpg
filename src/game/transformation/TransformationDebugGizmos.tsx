@@ -2,7 +2,7 @@ import { Html } from '@react-three/drei';
 import { EditableObject } from '../edit/EditableObject';
 import { transformPartKey, transformRootKey, transformStageModelKey, transformEffectKey, transformStageMoveKey, transformCameraShotKey, transformStagePartMoveKey, transformCameraLookKey } from './transformPartKey';
 import { cameraShotAnchor } from './transformationOverrides';
-import type { TransformationDefinition, TransformationTransformOffset } from '../../types/game/transformation';
+import type { TransformationDefinition, TransformationStage, TransformationTransformOffset } from '../../types/game/transformation';
 
 const DEG = Math.PI / 180;
 const DEFAULT_OFFSET: TransformationTransformOffset = { position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 };
@@ -24,6 +24,33 @@ const ModelAnchor = ({ objKey, label, color, offset }: { objKey: string; label: 
       <mesh>
         <boxGeometry args={[0.32, 0.32, 0.32]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.45} />
+      </mesh>
+      <Label text={label} />
+    </group>
+  </EditableObject>
+);
+
+const cameraStageAnchor = (stage: TransformationStage): [number, number, number] =>
+  cameraShotAnchor(stage.params.distance ?? 7, stage.params.height ?? 2, stage.params.angle ?? 0);
+
+const CameraAnchor = ({ objKey, label, position }: { objKey: string; label: string; position: [number, number, number] }) => (
+  <EditableObject objKey={objKey} base={{ position, rotation: [0, 0, 0], scale: 1 }}>
+    <group>
+      <mesh>
+        <coneGeometry args={[0.16, 0.34, 8]} />
+        <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.6} />
+      </mesh>
+      <Label text={label} />
+    </group>
+  </EditableObject>
+);
+
+const CameraLookAnchor = ({ objKey, label, position }: { objKey: string; label: string; position: [number, number, number] }) => (
+  <EditableObject objKey={objKey} base={{ position, rotation: [0, 0, 0], scale: 1 }}>
+    <group>
+      <mesh>
+        <sphereGeometry args={[0.12, 10, 10]} />
+        <meshStandardMaterial color="#c084fc" emissive="#c084fc" emissiveIntensity={0.5} />
       </mesh>
       <Label text={label} />
     </group>
@@ -100,27 +127,17 @@ export const TransformationDebugGizmos = ({ def }: { def: TransformationDefiniti
     ))}
     {/* camera-shot orbit anchors — drag to set distance/height/angle. */}
     {(def.cameraShots ?? []).map((sh) => (
-      <EditableObject key={sh.id} objKey={transformCameraShotKey(def.id, sh.id)} base={{ position: cameraShotAnchor(sh.distance, sh.height, sh.angle), rotation: [0, 0, 0], scale: 1 }}>
-        <group>
-          <mesh>
-            <coneGeometry args={[0.16, 0.34, 8]} />
-            <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.6} />
-          </mesh>
-          <Label text={`cam ${sh.type}`} />
-        </group>
-      </EditableObject>
+      <CameraAnchor key={`shot:${sh.id}`} objKey={transformCameraShotKey(def.id, sh.id)} label={`cam ${sh.type}`} position={cameraShotAnchor(sh.distance, sh.height, sh.angle)} />
+    ))}
+    {def.stages.filter((stage) => stage.type === 'camera-shot').map((stage) => (
+      <CameraAnchor key={`stage-shot:${stage.id}`} objKey={transformCameraShotKey(def.id, stage.id)} label={`stage cam ${stage.label ?? stage.id}`} position={cameraStageAnchor(stage)} />
     ))}
     {/* camera-shot look-at targets — drag the point the camera aims at. */}
     {(def.cameraShots ?? []).map((sh) => (
-      <EditableObject key={sh.id} objKey={transformCameraLookKey(def.id, sh.id)} base={{ position: sh.lookAtOffset ?? [0, 0.4, 0], rotation: [0, 0, 0], scale: 1 }}>
-        <group>
-          <mesh>
-            <sphereGeometry args={[0.12, 10, 10]} />
-            <meshStandardMaterial color="#c084fc" emissive="#c084fc" emissiveIntensity={0.5} />
-          </mesh>
-          <Label text={`look ${sh.type}`} />
-        </group>
-      </EditableObject>
+      <CameraLookAnchor key={`look:${sh.id}`} objKey={transformCameraLookKey(def.id, sh.id)} label={`look ${sh.type}`} position={sh.lookAtOffset ?? [0, 0.4, 0]} />
+    ))}
+    {def.stages.filter((stage) => stage.type === 'camera-shot').map((stage) => (
+      <CameraLookAnchor key={`stage-look:${stage.id}`} objKey={transformCameraLookKey(def.id, stage.id)} label={`stage look ${stage.label ?? stage.id}`} position={stage.params.lookAtOffset ?? [0, 0.4, 0]} />
     ))}
   </>
 );

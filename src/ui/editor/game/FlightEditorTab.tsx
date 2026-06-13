@@ -7,7 +7,7 @@ import { FLIGHT_PATH_ID } from '../../../data/game/flightPath';
 
 // 🛩 Flight — live-editable flight handling. Takes effect immediately so the feel can be tuned without
 // code (per-character flightSpeed/agility further scale speed/turn at runtime).
-type NumKey = { [K in keyof FlightTuning]: FlightTuning[K] extends number ? K : never }[keyof FlightTuning];
+type NumKey = { [K in keyof FlightTuning]-?: NonNullable<FlightTuning[K]> extends number ? K : never }[keyof FlightTuning];
 const FIELDS: { key: NumKey; label: string; step: number }[] = [
   { key: 'maxSpeed', label: 'Max speed', step: 1 },
   { key: 'cruiseSpeed', label: 'Cruise speed', step: 1 },

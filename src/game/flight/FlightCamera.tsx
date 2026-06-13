@@ -6,6 +6,8 @@ import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { flightHandle } from './flightHandle';
 import { flightCueHandle } from './flightCueHandle';
+import { getActiveRoute } from './world/worldRoute';
+import { applyCameraTimeTrack } from './flightTimeTracks';
 
 const DEG = Math.PI / 180;
 
@@ -48,11 +50,16 @@ export const FlightCamera = () => {
     // (distance/duration), which would peg the FOV at max and visually shrink the craft.
     // WORLD_FLIGHT uses its own (very close) framing so the character reads BIG during the long flight;
     // the launch/fly-around phases keep the regular pair. Both editable in 🛩 Flight.
-    const world = useGameStore.getState().phase === 'WORLD_FLIGHT';
+    const phase = useGameStore.getState().phase;
+    const world = phase === 'WORLD_FLIGHT' || phase === 'RETURN_FLIGHT';
     let pull = world ? 0 : tuning.camPullback * Math.min(1, flightHandle.speedNorm);
-    let dist = world ? tuning.worldCamDistance : tuning.flyAroundCamDistance;
-    let height = world ? tuning.worldCamHeight : tuning.flyAroundCamHeight;
-    let angle = (world ? tuning.worldCamAngleDeg : tuning.flyAroundCamAngleDeg) * DEG; // per-leg orbit angle
+    const baseCamera = world
+      ? { distance: tuning.worldCamDistance, height: tuning.worldCamHeight, angleDeg: tuning.worldCamAngleDeg }
+      : { distance: tuning.flyAroundCamDistance, height: tuning.flyAroundCamHeight, angleDeg: tuning.flyAroundCamAngleDeg };
+    const authoredCamera = applyCameraTimeTrack(baseCamera, world ? getActiveRoute()?.timeTracks : tuning.flyAroundTimeTracks, flightHandle.routeU);
+    let dist = authoredCamera.distance;
+    let height = authoredCamera.height;
+    let angle = authoredCamera.angleDeg * DEG; // per-leg orbit angle
     // A camera cue (edit preview) overrides the framing: its distance/height/orbit-angle steer the shot.
     if (flightCueHandle.camActive) { dist = flightCueHandle.distance; height = flightCueHandle.height; angle = flightCueHandle.angleDeg * DEG; pull = 0; }
     _off.set(dist * Math.sin(angle), height, dist * Math.cos(angle) + pull).applyQuaternion(_q).add(flightHandle.pos);

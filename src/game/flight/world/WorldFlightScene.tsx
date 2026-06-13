@@ -7,7 +7,6 @@ import { useEditorMissionStore } from '../../../stores/game/editorMissionStore';
 import { useGameStore } from '../../../stores/game/useGameStore';
 import { useFlightStore } from '../../../stores/game/useFlightStore';
 import { useMissionStore } from '../../../stores/game/useMissionStore';
-import type { FlightTuning } from '../../../types/game/flightControl';
 import { EditModeAmbience } from '../../edit/EditModeAmbience';
 import { WorldFlightEnvironment } from './WorldFlightEnvironment';
 import { SceneEditorGizmo } from '../../edit/SceneEditorGizmo';
@@ -25,7 +24,7 @@ import { FlightEventRenderer } from './FlightEventRenderer';
 import { FlightEventPreview } from './FlightEventPreview';
 import { WorldFlightDebugGizmos } from './WorldFlightDebugGizmos';
 import { WorldFlightCraftEditable } from './WorldFlightCraftEditable';
-import { WORLD_CRAFT_KEY, routeStartNode } from './worldCraftKey';
+import { WORLD_CRAFT_KEY } from './worldCraftKey';
 import { FlightPreviewController } from '../FlightPreviewController';
 import { FlightCuePreview } from '../FlightCuePreview';
 import { FlightCuePlayController } from '../FlightCuePlayController';
@@ -39,6 +38,9 @@ import { FlightCelebrationLayer } from './FlightCelebrationLayer';
 import { FlightLegCameraGizmo } from '../FlightLegCameraGizmo';
 import { useWorldFlightEditorStore } from '../../../stores/game/worldFlightEditorStore';
 import { resolveFlightLeg } from '../flightLeg';
+import { offsetFromWorldPosition } from '../flightTimelineTransforms';
+import { upsertFlightTimeKeyframe } from '../flightTimeTracks';
+import type { FlightTimelineKeyframe } from '../../../types/game/flightTimeline';
 
 const RAD2DEG = 180 / Math.PI;
 
@@ -55,7 +57,6 @@ export const WorldFlightScene = () => {
   const pathOverlayMode = useWorldFlightEditorStore((s) => s.pathOverlayMode);
   const layers = worldFlightSceneLayers(editMode, editViewMode);
   const tuning = useEditorFlightStore((s) => s.tuning);
-  const preview = useFlightPreviewStore((s) => s.playing || s.u > 0.001);
   const previewFlightCam = useFlightPreviewStore((s) => (s.playing || s.u > 0.001) && s.cameraMode === 'flight');
   useFlightStore((s) => s.currentRouteId);
   useMissionStore((s) => s.currentMissionId);
@@ -81,14 +82,35 @@ export const WorldFlightScene = () => {
     if (key !== WORLD_CRAFT_KEY) return;
     const ov = useSceneEditStore.getState().overrides[key];
     if (!ov) return;
-    const start = routeStartNode();
-    const patch: Partial<FlightTuning> = {};
-    if (ov.position) patch.worldCraftOffset = [ov.position[0] - start[0], ov.position[1] - start[1], ov.position[2] - start[2]];
-    if (ov.rotation) patch.worldCraftYawDeg = ov.rotation[1] * RAD2DEG;
-    if (ov.scale !== undefined) patch.worldCraftScale = asScaleNum(ov.scale);
-    useEditorFlightStore.getState().update(patch);
+    if (!selectedRoute) return;
+    const route = useEditorRouteStore.getState().items.find((item) => item.id === selectedRoute.id);
+    if (!route) return;
+    const u = useFlightPreviewStore.getState().u;
+    const frame: Omit<FlightTimelineKeyframe, 'u'> = {};
+    if (ov.position) frame.position = offsetFromWorldPosition(sceneLeg.pathId, sceneLeg.direction, u, ov.position);
+    if (ov.rotation) frame.rotation = [ov.rotation[0] * RAD2DEG, ov.rotation[1] * RAD2DEG, ov.rotation[2] * RAD2DEG];
+    if (ov.scale !== undefined) frame.scale = asScaleNum(ov.scale) ?? undefined;
+    useEditorRouteStore.getState().update(route.id, {
+      timeTracks: upsertFlightTimeKeyframe(route.timeTracks, { kind: 'craft' }, u, frame),
+    });
     useSceneEditStore.getState().setOverride(key, { position: undefined, rotation: undefined, scale: undefined });
-  }, []);
+  }, [sceneLeg.direction, sceneLeg.pathId, selectedRoute]);
+  const writeCraftKey = useCallback((key: string) => {
+    if (key !== WORLD_CRAFT_KEY) return;
+    const ov = useSceneEditStore.getState().overrides[key];
+    if (!ov) return;
+    if (!selectedRoute) return;
+    const route = useEditorRouteStore.getState().items.find((item) => item.id === selectedRoute.id);
+    if (!route) return;
+    const u = useFlightPreviewStore.getState().u;
+    const frame: Omit<FlightTimelineKeyframe, 'u'> = {};
+    if (ov.position) frame.position = offsetFromWorldPosition(sceneLeg.pathId, sceneLeg.direction, u, ov.position);
+    if (ov.rotation) frame.rotation = [ov.rotation[0] * RAD2DEG, ov.rotation[1] * RAD2DEG, ov.rotation[2] * RAD2DEG];
+    if (ov.scale !== undefined) frame.scale = asScaleNum(ov.scale) ?? undefined;
+    useEditorRouteStore.getState().update(route.id, {
+      timeTracks: upsertFlightTimeKeyframe(route.timeTracks, { kind: 'craft' }, u, frame),
+    });
+  }, [sceneLeg.direction, sceneLeg.pathId, selectedRoute]);
 
   return (
     <>
@@ -112,15 +134,15 @@ export const WorldFlightScene = () => {
       {layers.eventPreview && <FlightEventPreview />}
 
       {layers.segmentGizmos && <WorldFlightDebugGizmos />}
-      {layers.editableCraft && !preview && <WorldFlightCraftEditable />}
-      {editMode && <FlightPreviewController pathId={editLeg.pathId} direction={editLeg.direction} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} />}
+      {layers.editableCraft && <WorldFlightCraftEditable pathId={editLeg.pathId} direction={editLeg.direction} timeTracks={selectedRoute?.timeTracks} />}
+      {editMode && <FlightPreviewController pathId={editLeg.pathId} direction={editLeg.direction} craftScale={tuning.worldCraftScale} craftYaw={tuning.worldCraftYawDeg} fallbackOffset={tuning.worldCraftOffset} timeTracks={selectedRoute?.timeTracks} showCraft={false} />}
       {editMode && <FlightCuePreview pathId={editLeg.pathId} cueKey={editLeg.cueKey} direction={editLeg.direction} />}
       {editMode && <FlightLegCameraGizmo />}
 
       {/* EDIT: orbit camera, unless previewing with Camera = Flight (shows the authored worldCam* framing +
           craft scale live). PLAY: the flight camera. */}
       {!editMode ? <FlightCamera /> : previewFlightCam ? <FlightCamera /> : <FollowCamera />}
-      {layers.sceneGizmo && <SceneEditorGizmo onCommit={bakeCraft} />}
+      {layers.sceneGizmo && <SceneEditorGizmo onCommit={bakeCraft} onChange={writeCraftKey} />}
     </>
   );
 };

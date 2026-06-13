@@ -28,7 +28,7 @@ export function liveOffset(base: TransformationTransformOffset | undefined, over
   };
 }
 
-function cameraShotFromAnchor(shot: TransformationCameraShot, position: TransformationVec3): TransformationCameraShot {
+export function cameraShotFromAnchor(shot: TransformationCameraShot, position: TransformationVec3): TransformationCameraShot {
   const [x, y, z] = position;
   return {
     ...shot,
@@ -36,6 +36,21 @@ function cameraShotFromAnchor(shot: TransformationCameraShot, position: Transfor
     angle: Math.round(Math.atan2(x, z) * RAD2DEG * 100) / 100,
     height: Math.round(y * 100) / 100,
   };
+}
+
+function cameraStageParamsFromAnchor(stage: TransformationStage, position: TransformationVec3): Pick<TransformationStage['params'], 'distance' | 'angle' | 'height'> {
+  const placed = cameraShotFromAnchor({
+    id: stage.id,
+    type: stage.params.cameraShotType ?? 'orbit',
+    startTime: stage.startTime,
+    duration: stage.duration,
+    targetPart: stage.params.partKey,
+    distance: stage.params.distance ?? 7,
+    height: stage.params.height ?? 2,
+    angle: stage.params.angle ?? 0,
+    fov: stage.params.fov ?? 55,
+  }, position);
+  return { distance: placed.distance, angle: placed.angle, height: placed.height };
 }
 
 function mergeStageOverride(def: TransformationDefinition, stage: TransformationStage, overrides: Record<string, EditOverride>): TransformationStage {
@@ -56,6 +71,14 @@ function mergeStageOverride(def: TransformationDefinition, stage: Transformation
       const o = liveOffset({ position: stage.params.toPosition ?? [0, 0, 0], rotation: stage.params.toRotation ?? [0, 0, 0], scale: stage.params.toScale ?? 1 }, ov);
       return { ...stage, params: { ...stage.params, toPosition: o.position, toRotation: o.rotation, toScale: o.scale } };
     }
+  }
+  if (stage.type === 'camera-shot') {
+    const anchor = overrides[transformCameraShotKey(def.id, stage.id)];
+    const look = overrides[transformCameraLookKey(def.id, stage.id)];
+    const anchorParams = anchor?.position ? cameraStageParamsFromAnchor(stage, anchor.position) : {};
+    return look?.position || anchor?.position
+      ? { ...stage, params: { ...stage.params, ...anchorParams, ...(look?.position && { lookAtOffset: look.position }) } }
+      : stage;
   }
   return stage;
 }
@@ -133,6 +156,13 @@ export function bakeOverrideToDef(def: TransformationDefinition, key: string, ov
     if (s.type === 'part-transform' && key === transformStagePartMoveKey(def.id, s.id)) {
       const o = liveOffset({ position: s.params.toPosition ?? [0, 0, 0], rotation: s.params.toRotation ?? [0, 0, 0], scale: s.params.toScale ?? 1 }, override);
       return { stages: def.stages.map((x) => (x.id === s.id ? { ...x, params: { ...x.params, toPosition: o.position, toRotation: o.rotation, toScale: o.scale } } : x)) };
+    }
+    if (s.type === 'camera-shot' && key === transformCameraShotKey(def.id, s.id) && override.position) {
+      const params = cameraStageParamsFromAnchor(s, override.position);
+      return { stages: def.stages.map((x) => (x.id === s.id ? { ...x, params: { ...x.params, ...params } } : x)) };
+    }
+    if (s.type === 'camera-shot' && key === transformCameraLookKey(def.id, s.id) && override.position) {
+      return { stages: def.stages.map((x) => (x.id === s.id ? { ...x, params: { ...x.params, lookAtOffset: override.position } } : x)) };
     }
   }
   for (const fx of def.effectTracks ?? []) {

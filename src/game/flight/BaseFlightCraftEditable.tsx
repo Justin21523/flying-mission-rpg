@@ -1,10 +1,13 @@
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
-import { getFlightTuning } from '../../stores/game/editorFlightStore';
+import { useEditorFlightStore } from '../../stores/game/editorFlightStore';
+import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { characterModelForForm } from '../destination/characterModel';
 import { EditableObject } from '../edit/EditableObject';
 import { BASE_CRAFT_KEY, baseLoopStartNode } from './baseCraftKey';
+import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
+import { resolveFlightCraftTransform } from './flightTimelineTransforms';
 
 // Edit-only selectable craft for the BASE fly-around loop: shows the character's plane model at the loop
 // start so the author can click it and adjust facing/scale/offset with the shared SceneEditorGizmo. The
@@ -15,13 +18,23 @@ const DEG = Math.PI / 180;
 export const BaseFlightCraftEditable = () => {
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
-  const tuning = getFlightTuning();
+  const tuning = useEditorFlightStore((s) => s.tuning);
+  const u = useFlightPreviewStore((s) => s.u);
   const start = baseLoopStartNode();
-  const off = tuning.flyAroundCraftOffset;
+  const resolved = resolveFlightCraftTransform({
+    pathId: FLIGHT_PATH_ID,
+    direction: 'forward',
+    u,
+    fallbackOffset: tuning.flyAroundCraftOffset,
+    fallbackScale: tuning.flyAroundCraftScale,
+    tracks: tuning.flyAroundTimeTracks,
+  });
   const base = {
-    position: [start[0] + off[0], start[1] + off[1], start[2] + off[2]] as [number, number, number],
-    rotation: [0, tuning.flyAroundCraftYawDeg * DEG, 0] as [number, number, number],
-    scale: tuning.flyAroundCraftScale,
+    position: resolved.position[0] === 0 && resolved.position[1] === 0 && resolved.position[2] === 0
+      ? [start[0] + tuning.flyAroundCraftOffset[0], start[1] + tuning.flyAroundCraftOffset[1], start[2] + tuning.flyAroundCraftOffset[2]] as [number, number, number]
+      : resolved.position,
+    rotation: [resolved.rotation[0] * DEG, resolved.rotation[1] * DEG, resolved.rotation[2] * DEG] as [number, number, number],
+    scale: resolved.scale,
   };
   const modelId = characterModelForForm(character, 'plane');
   const fallback = (
@@ -32,7 +45,9 @@ export const BaseFlightCraftEditable = () => {
   );
   return (
     <EditableObject objKey={BASE_CRAFT_KEY} base={base}>
-      {modelId ? <AnimatedGlbModel assetId={modelId} animation={character?.flightAnimation} rules={character?.animationRules} fallback={fallback} noCull /> : fallback}
+      <group rotation={[0, tuning.flyAroundCraftYawDeg * DEG, 0]}>
+        {modelId ? <AnimatedGlbModel assetId={modelId} animation={character?.flightAnimation} rules={character?.animationRules} fallback={fallback} noCull /> : fallback}
+      </group>
     </EditableObject>
   );
 };

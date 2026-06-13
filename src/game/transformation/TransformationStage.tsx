@@ -21,6 +21,7 @@ import { TransformationDirector } from './TransformationDirector';
 import { TransformationPreviewController } from './TransformationPreviewController';
 import { TransformationDebugGizmos } from './TransformationDebugGizmos';
 import { mergeTransformationOverrides, bakeOverrideToDef } from './transformationOverrides';
+import { applyTransformationTimeTracks, keyframeForTarget, targetFromTransformationKey, upsertTimeKeyframe } from './transformationTimeTracks';
 import type { TransformationDefinition } from '../../types/game/transformation';
 
 // The TRANSFORMATION scene (phase TRANSFORMATION). PLAY: TransformationDirector drives the runner + form
@@ -52,7 +53,9 @@ export const TransformationStage = () => {
   const editMode = useUiStore((s) => s.editMode);
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const previewId = useTransformationPreviewStore((s) => s.timelineId);
+  const previewTime = useTransformationPreviewStore((s) => s.time);
   const previewPlaying = useTransformationPreviewStore((s) => s.playing);
+  const previewCamera = useTransformationPreviewStore((s) => s.previewCamera);
   useEditorTransformationStore((s) => s.items); // reactive to edits
   const timelines = getEditorTransformations();
 
@@ -70,6 +73,7 @@ export const TransformationStage = () => {
 
   const overrides = useSceneEditStore((s) => s.overrides);
   const editDef = def;
+  const editDefAtTime = editDef && editMode ? applyTransformationTimeTracks(editDef, previewTime) : editDef;
   if (def) def = mergeTransformationOverrides(def, overrides);
 
   useEffect(() => {
@@ -78,31 +82,48 @@ export const TransformationStage = () => {
 
   // On a finished gizmo drag, bake the override into the authored TransformationDefinition (modelSlotOffsets /
   // part base / stage modelOffset) and clear the sceneEditStore override — so offsets live in authored data.
-  const bakeKey = useCallback((key: string) => {
+  const writeTimeKey = useCallback((key: string, clearOverride: boolean) => {
     const target = editDef;
     if (!target) return;
+    const latest = getEditorTransformations().find((timeline) => timeline.id === target.id) ?? target;
     const ov = useSceneEditStore.getState().overrides[key];
     if (!ov) return;
-    const patch = bakeOverrideToDef(target, key, ov);
+    const trackTarget = targetFromTransformationKey(latest, key);
+    if (trackTarget) {
+      const frame = keyframeForTarget(latest, trackTarget, ov);
+      if (frame) {
+        const { time: _unusedTime, ...payload } = frame;
+        void _unusedTime;
+        useEditorTransformationStore.getState().update(latest.id, {
+          timeTracks: upsertTimeKeyframe(latest.timeTracks, trackTarget, useTransformationPreviewStore.getState().time, payload),
+        });
+      }
+      if (clearOverride) useSceneEditStore.getState().setOverride(key, { position: undefined, rotation: undefined, scale: undefined });
+      return;
+    }
+    const patch = bakeOverrideToDef(latest, key, ov);
     if (!patch) return; // not a transformation key — leave it to its own owner
-    useEditorTransformationStore.getState().update(target.id, patch);
-    useSceneEditStore.getState().setOverride(key, { position: undefined, rotation: undefined, scale: undefined });
+    useEditorTransformationStore.getState().update(latest.id, patch);
+    if (clearOverride) useSceneEditStore.getState().setOverride(key, { position: undefined, rotation: undefined, scale: undefined });
   }, [editDef]);
+  const bakeKey = useCallback((key: string) => writeTimeKey(key, true), [writeTimeKey]);
+  const updateKey = useCallback((key: string) => writeTimeKey(key, false), [writeTimeKey]);
 
   if (!def) return null;
+  const presenterDef = editMode ? applyTransformationTimeTracks(def, previewTime) : def;
 
   return (
     <>
       <TransformationBackdrop backdropColor={def.backdropColor} glowColor={def.particleColor} />
-      <TransformationCharacterPresenter def={def} editDef={editDef} editMode={editMode} previewPlaying={previewPlaying} charModelId={charModelId} />
-      {editMode && !previewPlaying ? <TransformationEditOrbitCamera /> : <TransformationCameraController />}
+      <TransformationCharacterPresenter def={presenterDef} editDef={editDefAtTime} editMode={editMode} charModelId={charModelId} />
+      {editMode && !previewPlaying && !previewCamera ? <TransformationEditOrbitCamera /> : <TransformationCameraController />}
       <TransformationEffects />
       <PoseSwitchFxLayer />
       {editMode ? (
         <>
           <TransformationPreviewController def={def} />
-          <TransformationDebugGizmos def={editDef ?? def} />
-          <SceneEditorGizmo onCommit={bakeKey} />
+          <TransformationDebugGizmos def={editDefAtTime ?? def} />
+          <SceneEditorGizmo onCommit={bakeKey} onChange={updateKey} />
         </>
       ) : (
         <TransformationDirector />

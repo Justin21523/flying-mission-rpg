@@ -14,6 +14,17 @@ describe('transformationEditTargets', () => {
     expect(keys.some((key) => key.includes('__camera_shot__'))).toBe(true);
   });
 
+  it('lists camera-shot stage anchors and look targets', () => {
+    const def = makeTimeline({
+      cameraShots: [],
+      stages: [{ id: 'stage_cam', type: 'camera-shot', startTime: 0, duration: 1, enabled: true, params: { cameraShotType: 'orbit', distance: 7, height: 2, angle: 0, fov: 55 } }],
+    });
+    const keys = listTransformationEditTargets(def).map((target) => target.key);
+
+    expect(keys.some((key) => key.includes('__camera_shot__stage_cam'))).toBe(true);
+    expect(keys.some((key) => key.includes('__camera_look__stage_cam'))).toBe(true);
+  });
+
   it('resolves selected target metadata', () => {
     const def = makeTimeline();
     const target = resolveTransformationEditTarget(def, transformRootKey(def.id));

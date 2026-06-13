@@ -1,4 +1,5 @@
 import type { FlightEventKind } from './flightEvent';
+import type { FlightTimelineTrack } from './flightTimeline';
 
 // Weather + difficulty are shared by flight routes and missions.
 export type WeatherKind = 'clear' | 'cloudy' | 'rain' | 'storm' | 'wind' | 'fog';
@@ -67,4 +68,5 @@ export interface FlightRoute {
   segments?: RouteSegment[];
   editorEnvironment?: RouteEnvironmentOverride;
   approachStartU?: number; // where the approach band begins (default 0.85)
+  timeTracks?: FlightTimelineTrack[]; // per-u Edit Mode craft/camera keyframes for this route
 }

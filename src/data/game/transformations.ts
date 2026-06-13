@@ -73,9 +73,9 @@ function effects(particle: string, ring: string): TransformationEffectTrack[] {
   return [
     { id: 'fx_flash', type: 'white-flash', startTime: 15.2, duration: 0.6, color: '#ffffff', intensity: 1 },
     { id: 'fx_ring', type: 'energy-ring', startTime: 15.4, duration: 1.4, color: ring, scale: 2.4 },
-    // the beauty shot — translucent CHARACTER-MODEL clones bursting outward from the body centre, constant
-    // opacity (no fade), spreading until they reach the view edge
-    { id: 'fx_ghost', type: 'ghost-burst', startTime: 15.5, duration: 4.0, color: particle, intensity: 1, scale: 1.6, repeat: 6 },
+    // the beauty shot — one translucent copy of the real character model starts exactly over the body,
+    // expands in place to the view edge, then fades while stars burst outward.
+    { id: 'fx_ghost', type: 'ghost-burst', startTime: 15.5, duration: 4.0, color: particle, intensity: 1, scale: 14, repeat: 54, ghostSpread: 12, ghostPersist: true, modelSlot: 'robot' },
     { id: 'fx_glow', type: 'glow-pulse', startTime: 15.6, duration: 1.8, color: particle, intensity: 1 },
     { id: 'fx_ring2', type: 'energy-ring', startTime: 16.4, duration: 1.2, color: ring, scale: 3.2 },
     { id: 'fx_spark', type: 'sparkle', startTime: 17.0, duration: 1.4, color: particle, followTargetPart: 'head' },

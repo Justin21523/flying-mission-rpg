@@ -11,6 +11,7 @@ export type FlightPreviewCameraMode = 'flight' | 'orbit';
 interface FlightPreviewState {
   u: number; // 0..1 along the path
   playing: boolean;
+  rangeEnd: number | null;
   speed: number; // u per second (≈ 1/seconds end-to-end)
   follow: boolean; // orbit target rides the craft (still user-rotatable)
   cameraMode: FlightPreviewCameraMode;
@@ -18,6 +19,7 @@ interface FlightPreviewState {
   activeCueClip: string; // animation-cue clip currently active ('' = none) — drives the preview craft's clip
   activeEnv: ResolvedFlightEnv | null; // active environment cue → drives the real sky + cloud density
   play: () => void;
+  playRange: (startU: number, endU: number) => void;
   pause: () => void;
   stop: () => void;
   scrub: (u: number) => void;
@@ -41,16 +43,18 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const useFlightPreviewStore = create<FlightPreviewState>((set) => ({
   u: 0,
   playing: false,
+  rangeEnd: null,
   speed: 0.12,
   follow: true,
   cameraMode: 'flight',
   camGizmo: false,
   activeCueClip: '',
   activeEnv: null,
-  play: () => set({ playing: true }),
-  pause: () => set({ playing: false }),
-  stop: () => set({ playing: false, u: 0, activeCueClip: '', activeEnv: null }),
-  scrub: (u) => set({ u: clamp01(u), playing: false }),
+  play: () => set({ playing: true, rangeEnd: null }),
+  playRange: (startU, endU) => set({ u: clamp01(startU), playing: true, rangeEnd: Math.max(clamp01(startU), clamp01(endU)) }),
+  pause: () => set({ playing: false, rangeEnd: null }),
+  stop: () => set({ playing: false, rangeEnd: null, u: 0, activeCueClip: '', activeEnv: null }),
+  scrub: (u) => set({ u: clamp01(u), playing: false, rangeEnd: null }),
   setSpeed: (speed) => set({ speed: Math.max(0.01, speed) }),
   toggleFollow: () => set((s) => ({ follow: !s.follow })),
   setCameraMode: (cameraMode) => set({ cameraMode }),
@@ -61,6 +65,10 @@ export const useFlightPreviewStore = create<FlightPreviewState>((set) => ({
     set((s) => {
       if (!s.playing) return s;
       let u = s.u + dt * s.speed;
+      if (s.rangeEnd !== null) {
+        const end = clamp01(s.rangeEnd);
+        return u >= end ? { u: end, playing: false, rangeEnd: null } : { u: clamp01(u) };
+      }
       if (u >= 1) u -= 1; // loop for continuous debugging
       return { u: clamp01(u) };
     }),

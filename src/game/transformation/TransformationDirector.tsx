@@ -41,6 +41,7 @@ export const TransformationDirector = () => {
   const revDur = useRef(1);
   // Batch 12.1 — track which effect tracks are already active so we fire an audio cue once on entry.
   const prevFx = useRef<Set<string>>(new Set());
+  const prevVoice = useRef<string | null>(null);
 
   useEffect(() => {
     const character = charId ? getEditorCharacter(charId) : undefined;
@@ -68,6 +69,7 @@ export const TransformationDirector = () => {
     txFrame.charModelId = character?.modelAssetId;
     txFrame.showcaseYaw = 0;
     prevFx.current = new Set();
+    prevVoice.current = null;
     if (!reverse) emitAudioEvent({ type: 'transformation-stage', stage: 'start' });
 
     const down = (e: KeyboardEvent) => {
@@ -111,7 +113,7 @@ export const TransformationDirector = () => {
       if (revT.current <= switchAt && form.current.getCurrentForm() !== 'plane') form.current.switchToPlaneForm();
       const rsnap = r.getSnapshot();
       txFrame.snapshot = rsnap;
-      useTxVersion.getState().bump(`${rsnap.activeEffects.map((e) => e.id).join(',')}|${rsnap.activeModelRef ?? ''}:${rsnap.activeModelStageId ?? ''}|${rsnap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
+      useTxVersion.getState().bump(`${rsnap.activeEffects.map((e) => `${e.id}:${e.type}:${e.modelSlot ?? ''}:${e.modelRef ?? ''}`).join(',')}|${rsnap.activeModelRef ?? ''}:${rsnap.activeModelStageId ?? ''}|${rsnap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
       const rfc = form.current;
       Object.assign(transformationHandle, {
         timelineId: def.id, characterId: charId ?? '', mode: r.mode, time: rsnap.time, duration: rsnap.duration,
@@ -151,7 +153,13 @@ export const TransformationDirector = () => {
         if (fx.type === 'energy-ring' || fx.type === 'white-flash') emitAudioEvent({ type: 'transformation-stage', stage: fx.type });
       }
     }
-    useTxVersion.getState().bump(`${snap.activeEffects.map((e) => e.id).join(',')}|${snap.activeModelRef ?? ''}:${snap.activeModelStageId ?? ''}|${snap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
+    if (snap.activeVoiceText && snap.activeVoiceText !== prevVoice.current) {
+      prevVoice.current = snap.activeVoiceText;
+      emitAudioEvent({ type: 'transformation-stage', stage: 'voice-cue' });
+    } else if (!snap.activeVoiceText) {
+      prevVoice.current = null;
+    }
+    useTxVersion.getState().bump(`${snap.activeEffects.map((e) => `${e.id}:${e.type}:${e.modelSlot ?? ''}:${e.modelRef ?? ''}`).join(',')}|${snap.activeModelRef ?? ''}:${snap.activeModelStageId ?? ''}|${snap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
     const fc = form.current;
     Object.assign(transformationHandle, {
       timelineId: def.id, characterId: charId ?? '', mode: r.mode, time: snap.time, duration: snap.duration,
@@ -170,7 +178,7 @@ export const TransformationDirector = () => {
       descentEntry.faceCamera = m.faceCameraOnExit;
       useGameStore.getState().requestTransition('DESCENT');
     }
-  });
+  }, -100);
 
   return null;
 };

@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import type { RunnerSnapshot } from './TransformationTimelineRunner';
-import type { TransformationDefinition } from '../../types/game/transformation';
+import type { ModelSlot, TransformationDefinition } from '../../types/game/transformation';
+
+export interface TransformationGhostActor {
+  modelId: string;
+  position: [number, number, number];
+  quaternion: [number, number, number, number];
+  scale: [number, number, number];
+}
+
+export type TransformationGhostActorKey = ModelSlot | 'activeRef';
+export type TransformationGhostActors = Partial<Record<TransformationGhostActorKey, TransformationGhostActor>>;
 
 // Bumped by the director/preview-driver ONLY when the active-effect id-set changes (sparse), so the effects
 // layer re-renders to mount/unmount effect children without per-frame React churn.
@@ -17,8 +27,9 @@ export const txFrame: {
   def: TransformationDefinition | null;
   charModelId?: string; // the character's GLB shown as the "robot" reveal
   ghostScale: number; // current character/root × robot-slot scale for transformation clone effects
+  ghostActors: TransformationGhostActors; // visible actor world transforms used by clone-overlay effects
   showcaseYaw: number; // player-controlled rotation during the interactive showcase
-} = { snapshot: null, def: null, ghostScale: 1, showcaseYaw: 0 };
+} = { snapshot: null, def: null, ghostScale: 1, ghostActors: {}, showcaseYaw: 0 };
 
 export interface TransformationHandle {
   timelineId: string;
@@ -46,5 +57,6 @@ export function resetTransformationRuntime(): void {
   txFrame.def = null;
   txFrame.charModelId = undefined;
   txFrame.ghostScale = 1;
+  txFrame.ghostActors = {};
   txFrame.showcaseYaw = 0;
 }

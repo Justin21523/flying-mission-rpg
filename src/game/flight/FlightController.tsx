@@ -18,6 +18,7 @@ import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
 import type { AnimState } from '../anim/animRunner';
 import { flightHandle } from './flightHandle';
 import { nextSpeed, isStalling } from './flightModel';
+import { resolveFlightCraftTransform } from './flightTimelineTransforms';
 
 // First flight system. Arcade-smooth, euler-integrated (pitch clamped, roll auto-levels) so the craft can
 // never flip/loop out of control. Character stats drive speed/turn. Reads live-editable tuning + navpoints.
@@ -48,7 +49,6 @@ export const FlightController = () => {
   const charId = useCharacterStore((s) => s.selectedCharacterId);
   const character = charId ? getEditorCharacter(charId) : undefined;
   const craftYaw = useEditorFlightStore((s) => s.tuning.flyAroundCraftYawDeg);
-  const craftScale = useEditorFlightStore((s) => s.tuning.flyAroundCraftScale);
   // Live anim state for character rules (reuse pickLoopRule) — a single mutated object (no per-frame alloc).
   const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0 });
   const getAnimState = useCallback(() => { animState.current.speed = flightHandle.speedNorm; return animState.current; }, []);
@@ -131,6 +131,7 @@ export const FlightController = () => {
       flightHandle.altitude = flightHandle.pos.y;
       craft.position.copy(flightHandle.pos);
       craft.quaternion.copy(flightHandle.quat);
+      craft.scale.setScalar(tuning.flyAroundCraftScale);
       speed.current = Math.max(tuning.cruiseSpeed * speedMult, flightHandle.speed * 0.5); // hand-off speed
       if (t >= 1) useGameStore.getState().requestTransition('BASE_FLY_AROUND');
       return;
@@ -163,6 +164,18 @@ export const FlightController = () => {
         _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
         craft.lookAt(_look);
         if (np.bankDeg) craft.rotateZ((np.bankDeg * Math.PI) / 180); // per-node bank bias (0 = none)
+        const authored = resolveFlightCraftTransform({
+          pathId: FLIGHT_PATH_ID,
+          direction: 'forward',
+          u: pathU.current,
+          fallbackOffset: tuning.flyAroundCraftOffset,
+          fallbackScale: tuning.flyAroundCraftScale,
+          tracks: tuning.flyAroundTimeTracks,
+        });
+        craft.position.set(...authored.position);
+        craft.rotation.set(authored.rotation[0] * Math.PI / 180, authored.rotation[1] * Math.PI / 180, authored.rotation[2] * Math.PI / 180);
+        craft.scale.setScalar(authored.scale);
+        flightHandle.pos.copy(craft.position);
         flightHandle.quat.copy(craft.quaternion);
         flightHandle.speed = pathSpeed * Math.abs(fwd);
         flightHandle.speedNorm = kk['KeyW'] ? 0.9 : kk['KeyS'] ? 0.1 : 0.35; // camera feel (boost-based)
@@ -233,12 +246,13 @@ export const FlightController = () => {
     flightHandle.altitude = flightHandle.pos.y;
     craft.position.copy(flightHandle.pos);
     craft.quaternion.copy(flightHandle.quat);
+    craft.scale.setScalar(tuning.flyAroundCraftScale);
   });
 
   return (
     <group ref={aircraft}>
       {/* editable facing offset + extra flight size (🛩 Flight → Craft yaw / Craft size). */}
-      <group rotation={[0, (craftYaw * Math.PI) / 180, 0]} scale={craftScale}>
+      <group rotation={[0, (craftYaw * Math.PI) / 180, 0]}>
         {characterModelForForm(character, 'plane') ? (
           <AnimatedGlbModel
             assetId={characterModelForForm(character, 'plane')!}

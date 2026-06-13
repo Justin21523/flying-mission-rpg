@@ -18,6 +18,8 @@ interface AnimatedGlbModelProps {
   assetId: string;
   animation?: string;
   animationSpeed?: number;
+  animationTime?: number;
+  getAnimationTime?: () => number | undefined;
   loop?: boolean;
   autoPlayFirstClip?: boolean;
   fallback?: React.ReactNode;
@@ -35,6 +37,8 @@ const AnimatedInner = ({
   assetId,
   animation,
   animationSpeed = 1,
+  animationTime,
+  getAnimationTime,
   loop = true,
   autoPlayFirstClip = true,
   noCull,
@@ -44,6 +48,8 @@ const AnimatedInner = ({
   assetId: string;
   animation?: string;
   animationSpeed?: number;
+  animationTime?: number;
+  getAnimationTime?: () => number | undefined;
   loop?: boolean;
   autoPlayFirstClip?: boolean;
   noCull?: boolean;
@@ -61,6 +67,7 @@ const AnimatedInner = ({
   const ruled = rules.length > 0;
   const actionsRef = useRef<Map<string, AnimationAction>>(new Map());
   const curRef = useRef<AnimationAction | null>(null);
+  const singleActionRef = useRef<AnimationAction | null>(null);
   const firstClipRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -83,9 +90,10 @@ const AnimatedInner = ({
           action.setLoop(loop ? LoopRepeat : LoopOnce, loop ? Infinity : 1);
           action.clampWhenFinished = true;
           action.play();
+          singleActionRef.current = action;
         }
       }
-      return () => { mixer.stopAllAction(); mixerRef.current = null; actionsRef.current = new Map(); curRef.current = null; };
+      return () => { mixer.stopAllAction(); mixerRef.current = null; actionsRef.current = new Map(); curRef.current = null; singleActionRef.current = null; };
     } catch {
       // Static model still renders — animation is best-effort only.
       return;
@@ -95,6 +103,17 @@ const AnimatedInner = ({
   useFrame((_, dt) => {
     const mixer = mixerRef.current;
     if (!mixer) return;
+    const timelineTime = getAnimationTime ? getAnimationTime() : animationTime;
+    if (!ruled && timelineTime !== undefined) {
+      const action = singleActionRef.current;
+      const duration = action?.getClip().duration ?? 0;
+      if (action && duration > 0) {
+        const t = loop ? timelineTime % duration : Math.max(0, Math.min(duration, timelineTime));
+        action.time = t;
+        mixer.update(0);
+      }
+      return;
+    }
     mixer.update(dt);
     if (!ruled) return;
     // Rule-driven clip selection. Caller-supplied live state (flying/moving/ability/form/speed) drives it
@@ -135,12 +154,12 @@ class ModelErrorBoundary extends React.Component<{ fallback: React.ReactNode; ch
   }
 }
 
-export function AnimatedGlbModel({ assetId, animation, animationSpeed, loop, autoPlayFirstClip, fallback = null, noCull, rules, getAnimState }: AnimatedGlbModelProps) {
+export function AnimatedGlbModel({ assetId, animation, animationSpeed, animationTime, getAnimationTime, loop, autoPlayFirstClip, fallback = null, noCull, rules, getAnimState }: AnimatedGlbModelProps) {
   if (!resolveModelAsset(assetId)) return <>{fallback}</>;
   return (
     <ModelErrorBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
-        <AnimatedInner assetId={assetId} animation={animation} animationSpeed={animationSpeed} loop={loop} autoPlayFirstClip={autoPlayFirstClip} noCull={noCull} rules={rules} getAnimState={getAnimState} />
+        <AnimatedInner assetId={assetId} animation={animation} animationSpeed={animationSpeed} animationTime={animationTime} getAnimationTime={getAnimationTime} loop={loop} autoPlayFirstClip={autoPlayFirstClip} noCull={noCull} rules={rules} getAnimState={getAnimState} />
       </Suspense>
     </ModelErrorBoundary>
   );

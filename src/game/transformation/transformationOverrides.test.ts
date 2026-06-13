@@ -160,6 +160,19 @@ describe('bakeOverrideToDef', () => {
     expect(cs?.height).toBeCloseTo(4, 1);
     expect(cs?.angle).toBeCloseTo(0, 1); // (0,_,8) → atan2(0,8)=0
   });
+  it('bakes a camera-shot stage override into params distance/angle/height', () => {
+    const d = def({ stages: [{ id: 'stage_cam', type: 'camera-shot', startTime: 0, duration: 1, enabled: true, params: { cameraShotType: 'orbit', distance: 5, height: 2, angle: 0, fov: 50 } }] });
+    const patch = bakeOverrideToDef(d, transformCameraShotKey('xf1', 'stage_cam'), { position: [8, 4, 0] });
+    const stage = patch?.stages?.find((s) => s.id === 'stage_cam');
+    expect(stage?.params.distance).toBeCloseTo(8, 1);
+    expect(stage?.params.height).toBeCloseTo(4, 1);
+    expect(stage?.params.angle).toBeCloseTo(90, 1);
+  });
+  it('bakes a camera-shot stage look override into params lookAtOffset', () => {
+    const d = def({ stages: [{ id: 'stage_cam', type: 'camera-shot', startTime: 0, duration: 1, enabled: true, params: { cameraShotType: 'orbit', distance: 5, height: 2, angle: 0, fov: 50 } }] });
+    const patch = bakeOverrideToDef(d, transformCameraLookKey('xf1', 'stage_cam'), { position: [0, 1.5, 0] });
+    expect(patch?.stages?.find((s) => s.id === 'stage_cam')?.params.lookAtOffset).toEqual([0, 1.5, 0]);
+  });
   it('returns null for an unrelated key', () => {
     expect(bakeOverrideToDef(def(), 'base#structure#whatever', { position: [0, 0, 0] })).toBeNull();
   });

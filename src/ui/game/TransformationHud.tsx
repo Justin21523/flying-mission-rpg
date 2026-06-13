@@ -9,6 +9,7 @@ export const TransformationHud = () => {
   const h = transformationHandle;
   const showcase = h.phase === 'showcase';
   const prompt = txFrame.def?.interactionShowcase?.promptText;
+  const voiceText = txFrame.snapshot?.activeVoiceText;
 
   return (
     <>
@@ -39,6 +40,11 @@ export const TransformationHud = () => {
       {showcase && (
         <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex flex-col items-center gap-1">
           <div className="rounded-full bg-fuchsia-950/85 px-4 py-1.5 text-xs font-semibold text-fuchsia-100 backdrop-blur">Showcase — {prompt ?? 'A/D rotate · Enter continue · Esc skip'}</div>
+        </div>
+      )}
+      {voiceText && !showcase && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center">
+          <div className="max-w-md rounded-full bg-slate-950/85 px-4 py-1.5 text-xs font-semibold text-sky-100 backdrop-blur">{voiceText}</div>
         </div>
       )}
     </>

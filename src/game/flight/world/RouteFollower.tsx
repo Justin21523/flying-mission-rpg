@@ -8,7 +8,7 @@ import { getFlightTuning, useEditorFlightStore } from '../../../stores/game/edit
 import { getPath } from '../../../stores/editorPathStore';
 import { getCurve, samplePos, sampleTangent } from '../../path/pathCurve';
 import { sampleNodeParams } from '../pathNodeParams';
-import { getActiveFlightLeg } from './worldRoute';
+import { getActiveFlightLeg, getActiveRoute } from './worldRoute';
 import { worldFlightDev } from './worldFlightDev';
 import { useWorldFlightRuntimeStore } from '../../../stores/game/worldFlightRuntimeStore';
 import { useGameStore } from '../../../stores/game/useGameStore';
@@ -19,6 +19,7 @@ import { useFlightScoreStore } from '../../../stores/game/flightScoreStore';
 import type { AnimState } from '../../anim/animRunner';
 import { flightHandle } from '../flightHandle';
 import { sampleUForDirection } from '../flightLeg';
+import { resolveFlightCraftTransform } from '../flightTimelineTransforms';
 
 // The craft cruises FORWARD along the active route's 航道 (editorPathStore path) — it always flies ahead
 // (never reverses); W boosts, S eases off. NOTE: three's Object3D.lookAt on a non-camera Group points its
@@ -44,7 +45,6 @@ export const RouteFollower = () => {
   const character = charId ? getEditorCharacter(charId) : undefined;
   const cueClip = useFlightPreviewStore((s) => s.activeCueClip); // an animation cue forces this clip in play
   const craftYaw = useEditorFlightStore((s) => s.tuning.worldCraftYawDeg);
-  const craftScale = useEditorFlightStore((s) => s.tuning.worldCraftScale);
   const homebound = useGameStore((s) => s.phase === 'RETURN_FLIGHT');
   const leg = getActiveFlightLeg(homebound ? 'return' : 'outbound');
   const animState = useRef<AnimState>({ flying: true, moving: true, form: 'vehicle', speed: 0 });
@@ -116,11 +116,27 @@ export const RouteFollower = () => {
     _pos.addScaledVector(_right, lateral.current);
     _pos.y += vert.current;
 
-    flightHandle.pos.copy(_pos);
     c.position.copy(_pos);
     _look.copy(_pos).sub(_tan); // non-camera lookAt points +Z at target → aim behind so −Z = forward
     c.lookAt(_look);
     c.rotateZ(bank.current); // roll around the forward axis → bank into the turn
+    const authored = resolveFlightCraftTransform({
+      pathId: leg.pathId,
+      direction: leg.direction,
+      u: u.current,
+      fallbackOffset: tuning.worldCraftOffset,
+      fallbackScale: tuning.worldCraftScale,
+      tracks: getActiveRoute()?.timeTracks,
+    });
+    c.position.set(
+      authored.position[0] + _right.x * lateral.current,
+      authored.position[1] + vert.current,
+      authored.position[2] + _right.z * lateral.current,
+    );
+    c.rotation.set(authored.rotation[0] * DEG2RAD, authored.rotation[1] * DEG2RAD, authored.rotation[2] * DEG2RAD);
+    c.rotateZ(bank.current - (np.bankDeg * DEG2RAD));
+    c.scale.setScalar(authored.scale);
+    flightHandle.pos.copy(c.position);
     flightHandle.quat.copy(c.quaternion);
     flightHandle.speed = pathSpeed;
     // boost-based feel for the camera (raw pathSpeed = distance/duration would peg the FOV at max)
@@ -145,7 +161,7 @@ export const RouteFollower = () => {
   return (
     <group ref={craft}>
       {/* editable facing offset + extra flight size (🛩 Flight → Craft yaw / Craft size). */}
-      <group rotation={[0, craftYaw * DEG2RAD, 0]} scale={craftScale}>
+      <group rotation={[0, craftYaw * DEG2RAD, 0]}>
         {characterModelForForm(character, 'plane') ? <AnimatedGlbModel assetId={characterModelForForm(character, 'plane')!} animation={cueClip || character?.flightAnimation} rules={cueClip ? undefined : character?.animationRules} getAnimState={cueClip ? undefined : getAnimState} fallback={fallback} noCull /> : fallback}
       </group>
     </group>

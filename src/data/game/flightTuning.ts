@@ -52,4 +52,5 @@ export const DEFAULT_FLIGHT_TUNING: FlightTuning = {
   flyAroundCraftScale: 3.4,
   flyAroundCraftYawDeg: 180,
   flyAroundCraftOffset: [0, 0, 0],
+  flyAroundTimeTracks: [],
 };

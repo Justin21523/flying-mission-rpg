@@ -5,13 +5,13 @@ import { txFrame } from './transformationRuntime';
 import { useAudioStore } from '../../stores/audioStore';
 import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
 import { effectiveQualityPreset } from '../performance/QualityPresetController';
+import { cameraAngleRadians } from './transformationCameraMotion';
 
 // Drives the camera from the runner's active camera shot (orbit / close-up / low-angle / top-down / side-pan
 // / pull-back / finish-hero). Positions around the character at the origin by angle/distance/height, sets fov,
 // adds optional shake. Smoothly restores a sane camera on unmount so the next scene's camera is unaffected.
 const _pos = new Vector3();
 const _look = new Vector3();
-const DEG = Math.PI / 180;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
 
 export const TransformationCameraController = () => {
@@ -30,14 +30,13 @@ export const TransformationCameraController = () => {
     const cam = state.camera as PerspectiveCamera;
     const dt = Math.min(dtRaw, 0.05);
     const k = 1 - Math.exp(-6 * dt);
-    const shot = txFrame.snapshot?.activeCameraShot;
+    const shot = txFrame.snapshot?.activeCameraShot ?? null;
     const t = state.clock.elapsedTime;
 
     let distance = 7, height = 2, fov = 55, shake = 0;
-    let angle = t * 0.3; // gentle default orbit when no shot is active
+    const angle = cameraAngleRadians({ activeCameraShot: shot, elapsedTime: t, definition: txFrame.def ?? undefined });
     const off = shot?.lookAtOffset ?? [0, 0.4, 0];
     if (shot) {
-      angle = shot.angle * DEG + (shot.type === 'orbit' || shot.type === 'finish-hero-shot' ? t * 0.4 : 0);
       distance = shot.distance;
       height = shot.height;
       fov = shot.fov;
