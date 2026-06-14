@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { MODEL_ASSET_LIST } from '../../../data/modelLibrary';
-import { buildSuperWingsModelIntakeRows, type SuperWingsIntakeStatus, type SuperWingsModelIntakeRow } from '../../../data/game/superWingsModels';
+import { buildHeroModelIntakeRows, type HeroIntakeStatus, type HeroModelIntakeRow } from '../../../data/game/heroModels';
 import { useModelStudioStore } from '../../../stores/modelStudioStore';
 import { inp, lbl } from '../editorShared';
 
-function statusClass(status: SuperWingsIntakeStatus): string {
+function statusClass(status: HeroIntakeStatus): string {
   if (status === 'assigned') return 'bg-emerald-700/30 text-emerald-100';
   if (status === 'hidden') return 'bg-amber-700/30 text-amber-100';
   return 'bg-slate-700/50 text-slate-200';
@@ -14,7 +14,7 @@ const Chip = ({ children, className = 'bg-slate-800 text-slate-300' }: { childre
   <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${className}`}>{children}</span>
 );
 
-const Row = ({ row, scaleOverride }: { row: SuperWingsModelIntakeRow; scaleOverride?: number }) => (
+const Row = ({ row, scaleOverride }: { row: HeroModelIntakeRow; scaleOverride?: number }) => (
   <tr className="border-b border-slate-800/70 align-top">
     <td className="max-w-[18rem] px-2 py-1.5">
       <div className="truncate text-[11px] font-semibold text-slate-100" title={row.assetId}>{row.label}</div>
@@ -41,8 +41,8 @@ const Row = ({ row, scaleOverride }: { row: SuperWingsModelIntakeRow; scaleOverr
 export const ModelIntakeQaTab = () => {
   const overrides = useModelStudioStore((s) => s.overrides);
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<SuperWingsIntakeStatus | 'all'>('all');
-  const rows = useMemo(() => buildSuperWingsModelIntakeRows(MODEL_ASSET_LIST), []);
+  const [status, setStatus] = useState<HeroIntakeStatus | 'all'>('all');
+  const rows = useMemo(() => buildHeroModelIntakeRows(MODEL_ASSET_LIST), []);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((row) => {
@@ -70,7 +70,7 @@ export const ModelIntakeQaTab = () => {
 
       <div className="grid grid-cols-[1fr_10rem] gap-2">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search asset, label, or character..." className={inp} />
-        <select value={status} onChange={(event) => setStatus(event.target.value as SuperWingsIntakeStatus | 'all')} className={inp}>
+        <select value={status} onChange={(event) => setStatus(event.target.value as HeroIntakeStatus | 'all')} className={inp}>
           <option value="all">all statuses</option>
           <option value="assigned">assigned</option>
           <option value="hidden">hidden</option>
@@ -94,7 +94,7 @@ export const ModelIntakeQaTab = () => {
             {filtered.map((row) => <Row key={row.assetId} row={row} scaleOverride={overrides[row.assetId]?.scale} />)}
           </tbody>
         </table>
-        {filtered.length === 0 && <div className="p-3 text-[11px] text-slate-500">No Super Wings models match this filter.</div>}
+        {filtered.length === 0 && <div className="p-3 text-[11px] text-slate-500">No Aero Mission models match this filter.</div>}
       </div>
       <p className="text-[10px] text-slate-500">Read-only view of automatic intake. Pin/hide overrides stay in the model derivation module; Model Studio controls transforms and scale.</p>
     </div>

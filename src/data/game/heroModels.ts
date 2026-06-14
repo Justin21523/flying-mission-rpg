@@ -2,13 +2,13 @@ import { MODEL_ASSET_LIST } from '../modelLibrary';
 import type { ModelAsset } from '../modelLibrary';
 import type { CharacterPoseModel } from '../../types/game/character';
 
-const SW = 'super-wings/';
+const SW = 'aero-mission/';
 
 export const SUPER_WINGS_CHARACTER_NAMES = ['jett', 'jerome', 'donnie', 'paul', 'bello', 'chase', 'flip', 'todd'] as const;
-export type SuperWingsCharacterName = (typeof SUPER_WINGS_CHARACTER_NAMES)[number];
+export type HeroCharacterName = (typeof SUPER_WINGS_CHARACTER_NAMES)[number];
 
-export type SuperWingsPoseKind = 'robot' | 'plane' | 'pose' | 'extra';
-export type SuperWingsIntakeStatus = 'assigned' | 'hidden' | 'unassigned';
+export type HeroPoseKind = 'robot' | 'plane' | 'pose' | 'extra';
+export type HeroIntakeStatus = 'assigned' | 'hidden' | 'unassigned';
 
 export interface HeroModelSet {
   characterId: string;
@@ -20,20 +20,20 @@ export interface HeroModelSet {
   allAssetIds: string[];
 }
 
-export interface SuperWingsModelOverride {
+export interface HeroModelOverride {
   robotAssetId?: string;
   planeAssetId?: string;
   hiddenAssetIds?: readonly string[];
 }
 
-export type SuperWingsModelOverrides = Record<string, SuperWingsModelOverride>;
-export type SuperWingsAssetInput = Pick<ModelAsset, 'id' | 'label'>;
+export type HeroModelOverrides = Record<string, HeroModelOverride>;
+export type HeroAssetInput = Pick<ModelAsset, 'id' | 'label'>;
 
-export interface SuperWingsModelIntakeRow {
+export interface HeroModelIntakeRow {
   assetId: string;
   label: string;
-  status: SuperWingsIntakeStatus;
-  kind: SuperWingsPoseKind;
+  status: HeroIntakeStatus;
+  kind: HeroPoseKind;
   characterId?: string;
   characterName?: string;
   isPrimaryRobot: boolean;
@@ -42,24 +42,24 @@ export interface SuperWingsModelIntakeRow {
   isInPoseModels: boolean;
 }
 
-export const SUPER_WINGS_MODEL_OVERRIDES: SuperWingsModelOverrides = {
-  char_jett: { robotAssetId: 'super-wings/Jett+transformer+3d+model' },
-  char_jerome: { robotAssetId: 'super-wings/Jerome+transformer+3d+model' },
+export const SUPER_WINGS_MODEL_OVERRIDES: HeroModelOverrides = {
+  char_jett: { robotAssetId: 'aero-mission/Jett+transformer+3d+model' },
+  char_jerome: { robotAssetId: 'aero-mission/Jerome+transformer+3d+model' },
   char_donnie: {
-    robotAssetId: 'super-wings/Donnie+transformer+3d+model',
-    planeAssetId: 'super-wings/Donnie airplane 3d model',
+    robotAssetId: 'aero-mission/Donnie+transformer+3d+model',
+    planeAssetId: 'aero-mission/Donnie airplane 3d model',
   },
   char_paul: {
-    robotAssetId: 'super-wings/Paul+transformer+3d+model',
-    planeAssetId: 'super-wings/Paul airplane 3d model',
+    robotAssetId: 'aero-mission/Paul+transformer+3d+model',
+    planeAssetId: 'aero-mission/Paul airplane 3d model',
   },
-  char_bello: { robotAssetId: 'super-wings/Bello+transformer+3d+model' },
-  char_chase: { robotAssetId: 'super-wings/Chase+transformer+3d+model' },
+  char_bello: { robotAssetId: 'aero-mission/Bello+transformer+3d+model' },
+  char_chase: { robotAssetId: 'aero-mission/Chase+transformer+3d+model' },
   char_flip: {
-    robotAssetId: 'super-wings/Flip+transformer+3d+model',
-    planeAssetId: 'super-wings/Flip airplane 3d model',
+    robotAssetId: 'aero-mission/Flip+transformer+3d+model',
+    planeAssetId: 'aero-mission/Flip airplane 3d model',
   },
-  char_todd: { robotAssetId: 'super-wings/Todd+transformer+3d+model' },
+  char_todd: { robotAssetId: 'aero-mission/Todd+transformer+3d+model' },
 };
 
 function displayName(name: string): string {
@@ -92,7 +92,7 @@ function startsWithCharacterName(assetId: string, name: string): boolean {
   return filenameFromAssetId(assetId).toLowerCase().startsWith(name.toLowerCase());
 }
 
-export function classifySuperWingsAsset(assetId: string): SuperWingsPoseKind {
+export function classifyHeroAsset(assetId: string): HeroPoseKind {
   const file = filenameFromAssetId(assetId).toLowerCase();
   if (file.includes('transformer')) return 'robot';
   if (file.includes('airplane') || file.includes('plane')) return 'plane';
@@ -103,7 +103,7 @@ export function classifySuperWingsAsset(assetId: string): SuperWingsPoseKind {
 function orderWeight(assetId: string, pinnedRobot?: string, pinnedPlane?: string): number {
   if (assetId === pinnedRobot) return 0;
   if (assetId === pinnedPlane) return 1;
-  const kind = classifySuperWingsAsset(assetId);
+  const kind = classifyHeroAsset(assetId);
   if (kind === 'robot') return 2;
   if (kind === 'plane') return 3;
   if (kind === 'pose') return 4;
@@ -122,14 +122,14 @@ function firstExistingPin(pin: string | undefined, assets: Set<string>): string 
   return pin && assets.has(pin) ? pin : undefined;
 }
 
-function firstOfKind(assetIds: readonly string[], kind: SuperWingsPoseKind): string | undefined {
-  return assetIds.find((assetId) => classifySuperWingsAsset(assetId) === kind);
+function firstOfKind(assetIds: readonly string[], kind: HeroPoseKind): string | undefined {
+  return assetIds.find((assetId) => classifyHeroAsset(assetId) === kind);
 }
 
 function toPoseModels(assetIds: readonly string[]): CharacterPoseModel[] {
   const seen = new Set<string>();
   return assetIds.map((assetId) => {
-    const kind = classifySuperWingsAsset(assetId);
+    const kind = classifyHeroAsset(assetId);
     const baseId = slug(assetId);
     let unique = baseId;
     let n = 2;
@@ -144,13 +144,13 @@ function toPoseModels(assetIds: readonly string[]): CharacterPoseModel[] {
   });
 }
 
-export function deriveSuperWingsModelCatalog(
-  assets: readonly SuperWingsAssetInput[],
-  overrides: SuperWingsModelOverrides = SUPER_WINGS_MODEL_OVERRIDES,
+export function deriveHeroModelCatalog(
+  assets: readonly HeroAssetInput[],
+  overrides: HeroModelOverrides = SUPER_WINGS_MODEL_OVERRIDES,
   characterNames: readonly string[] = SUPER_WINGS_CHARACTER_NAMES,
 ): Record<string, HeroModelSet> {
-  const superWingsAssetIds = assets.map((asset) => asset.id).filter((assetId) => assetId.startsWith(SW));
-  const assetIdSet = new Set(superWingsAssetIds);
+  const heroAssetIds = assets.map((asset) => asset.id).filter((assetId) => assetId.startsWith(SW));
+  const assetIdSet = new Set(heroAssetIds);
   const catalog: Record<string, HeroModelSet> = {};
 
   for (const rawName of characterNames) {
@@ -158,7 +158,7 @@ export function deriveSuperWingsModelCatalog(
     const characterId = characterIdForName(name);
     const override = overrides[characterId];
     const hidden = new Set(override?.hiddenAssetIds ?? []);
-    const visibleIds = superWingsAssetIds.filter((assetId) => startsWithCharacterName(assetId, name) && !hidden.has(assetId));
+    const visibleIds = heroAssetIds.filter((assetId) => startsWithCharacterName(assetId, name) && !hidden.has(assetId));
     if (visibleIds.length === 0) continue;
 
     const robotPin = firstExistingPin(override?.robotAssetId, assetIdSet);
@@ -166,8 +166,8 @@ export function deriveSuperWingsModelCatalog(
     const allAssetIds = uniqueSortedAssetIds(visibleIds, robotPin, planePin);
     const robotAssetId = robotPin ?? firstOfKind(allAssetIds, 'robot');
     const planeAssetId = planePin ?? firstOfKind(allAssetIds, 'plane');
-    const poseAssetIds = allAssetIds.filter((assetId) => assetId !== robotAssetId && assetId !== planeAssetId && classifySuperWingsAsset(assetId) === 'pose');
-    const extraAssetIds = allAssetIds.filter((assetId) => assetId !== robotAssetId && assetId !== planeAssetId && classifySuperWingsAsset(assetId) === 'extra');
+    const poseAssetIds = allAssetIds.filter((assetId) => assetId !== robotAssetId && assetId !== planeAssetId && classifyHeroAsset(assetId) === 'pose');
+    const extraAssetIds = allAssetIds.filter((assetId) => assetId !== robotAssetId && assetId !== planeAssetId && classifyHeroAsset(assetId) === 'extra');
 
     catalog[characterId] = {
       characterId,
@@ -189,24 +189,24 @@ function characterMatchForAsset(assetId: string, characterNames: readonly string
   return { characterId: characterIdForName(name), name: displayName(name) };
 }
 
-export function buildSuperWingsModelIntakeRows(
-  assets: readonly SuperWingsAssetInput[],
-  overrides: SuperWingsModelOverrides = SUPER_WINGS_MODEL_OVERRIDES,
+export function buildHeroModelIntakeRows(
+  assets: readonly HeroAssetInput[],
+  overrides: HeroModelOverrides = SUPER_WINGS_MODEL_OVERRIDES,
   characterNames: readonly string[] = SUPER_WINGS_CHARACTER_NAMES,
-): SuperWingsModelIntakeRow[] {
-  const catalog = deriveSuperWingsModelCatalog(assets, overrides, characterNames);
+): HeroModelIntakeRow[] {
+  const catalog = deriveHeroModelCatalog(assets, overrides, characterNames);
   return assets
     .filter((asset) => asset.id.startsWith(SW))
     .map((asset) => {
       const match = characterMatchForAsset(asset.id, characterNames);
       const set = match ? catalog[match.characterId] : undefined;
       const hidden = match ? (overrides[match.characterId]?.hiddenAssetIds ?? []).includes(asset.id) : false;
-      const status: SuperWingsIntakeStatus = hidden ? 'hidden' : match && set ? 'assigned' : 'unassigned';
+      const status: HeroIntakeStatus = hidden ? 'hidden' : match && set ? 'assigned' : 'unassigned';
       return {
         assetId: asset.id,
         label: asset.label,
         status,
-        kind: classifySuperWingsAsset(asset.id),
+        kind: classifyHeroAsset(asset.id),
         characterId: match?.characterId,
         characterName: match?.name,
         isPrimaryRobot: set?.robotAssetId === asset.id,
@@ -226,10 +226,10 @@ export function buildSuperWingsModelIntakeRows(
 
 function deriveSingleCharacterSet(characterId: string): HeroModelSet | undefined {
   const name = characterNameFromId(characterId);
-  return deriveSuperWingsModelCatalog(MODEL_ASSET_LIST, SUPER_WINGS_MODEL_OVERRIDES, [name])[characterId];
+  return deriveHeroModelCatalog(MODEL_ASSET_LIST, SUPER_WINGS_MODEL_OVERRIDES, [name])[characterId];
 }
 
-export const SUPER_WINGS_MODELS: Record<string, HeroModelSet> = deriveSuperWingsModelCatalog(MODEL_ASSET_LIST);
+export const SUPER_WINGS_MODELS: Record<string, HeroModelSet> = deriveHeroModelCatalog(MODEL_ASSET_LIST);
 
 function modelSetFor(characterId: string): HeroModelSet | undefined {
   return SUPER_WINGS_MODELS[characterId] ?? deriveSingleCharacterSet(characterId);
@@ -247,7 +247,7 @@ export function primaryPlaneModelAssetIdFor(characterId: string): string | undef
   return modelSetFor(characterId)?.planeAssetId;
 }
 
-export function allSuperWingsPoseAssetIds(): string[] {
+export function allHeroPoseAssetIds(): string[] {
   return [...new Set(Object.values(SUPER_WINGS_MODELS).flatMap((set) => set.allAssetIds))];
 }
 

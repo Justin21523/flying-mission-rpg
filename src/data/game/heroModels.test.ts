@@ -1,23 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
   SUPER_WINGS_MODELS,
-  buildSuperWingsModelIntakeRows,
-  deriveSuperWingsModelCatalog,
+  buildHeroModelIntakeRows,
+  deriveHeroModelCatalog,
   heroPoseAssetIds,
   id,
   poseModelsFor,
   primaryPlaneModelAssetIdFor,
   primaryRobotModelAssetIdFor,
-  type SuperWingsAssetInput,
-} from './superWingsModels';
+  type HeroAssetInput,
+} from './heroModels';
 
 const HEROES = ['char_jett', 'char_jerome', 'char_donnie', 'char_paul', 'char_bello', 'char_chase', 'char_flip', 'char_todd'];
 
-function asset(idValue: string): SuperWingsAssetInput {
+function asset(idValue: string): HeroAssetInput {
   return { id: idValue, label: idValue.split('/').pop() ?? idValue };
 }
 
-describe('super-wings model catalog', () => {
+describe('aero-mission model catalog', () => {
   it('auto-derives all seeded heroes from the model library', () => {
     expect(Object.keys(SUPER_WINGS_MODELS)).toEqual(expect.arrayContaining(HEROES));
 
@@ -27,7 +27,7 @@ describe('super-wings model catalog', () => {
       const ids = list.map((pose) => pose.id);
       expect(new Set(ids).size).toBe(ids.length);
       for (const pose of list) {
-        expect(pose.assetId.startsWith('super-wings/')).toBe(true);
+        expect(pose.assetId.startsWith('aero-mission/')).toBe(true);
         expect(pose.label.length).toBeGreaterThan(0);
       }
     }
@@ -40,18 +40,18 @@ describe('super-wings model catalog', () => {
   });
 
   it('heroPoseAssetIds returns auto-derived pose ids only', () => {
-    expect(heroPoseAssetIds('char_flip').every((assetId) => assetId.startsWith('super-wings/'))).toBe(true);
+    expect(heroPoseAssetIds('char_flip').every((assetId) => assetId.startsWith('aero-mission/'))).toBe(true);
     expect(heroPoseAssetIds('char_flip')).toContain(id('Flip pose 3d model'));
     expect(heroPoseAssetIds('char_flip')).not.toContain(id('Flip+landing+1+robot'));
     expect(heroPoseAssetIds('char_jett')).toContain(id('Jett+pose+3d+model'));
   });
 
   it('groups an injected new filename by character name prefix', () => {
-    const catalog = deriveSuperWingsModelCatalog(
+    const catalog = deriveHeroModelCatalog(
       [
         asset(id('Jett+transformer+3d+model')),
         asset(id('Jett new rescue pose 3d model')),
-        asset('super-wings/futuristic aircraft hangar 3d model'),
+        asset('aero-mission/futuristic aircraft hangar 3d model'),
       ],
       {},
       ['jett'],
@@ -64,7 +64,7 @@ describe('super-wings model catalog', () => {
   });
 
   it('matches character name prefixes case-insensitively', () => {
-    const catalog = deriveSuperWingsModelCatalog(
+    const catalog = deriveHeroModelCatalog(
       [asset(id('paul+transformer+3d+model')), asset(id('Paul pose 3d model'))],
       {},
       ['paul'],
@@ -75,7 +75,7 @@ describe('super-wings model catalog', () => {
   });
 
   it('can derive a future character when its name is requested', () => {
-    const catalog = deriveSuperWingsModelCatalog(
+    const catalog = deriveHeroModelCatalog(
       [asset(id('Nova+transformer+3d+model')), asset(id('Nova pose 3d model'))],
       {},
       ['nova'],
@@ -87,7 +87,7 @@ describe('super-wings model catalog', () => {
   it('supports manual pin and hide overrides without a hand-written pose catalog', () => {
     const hidden = id('Jett hidden pose 3d model');
     const pinnedPlane = id('Jett alternate airplane 3d model');
-    const catalog = deriveSuperWingsModelCatalog(
+    const catalog = deriveHeroModelCatalog(
       [
         asset(id('Jett+transformer+3d+model')),
         asset(id('Jett pose 3d model')),
@@ -110,12 +110,12 @@ describe('super-wings model catalog', () => {
 
   it('builds intake QA rows for assigned, hidden, and unassigned assets', () => {
     const hidden = id('Jett hidden pose 3d model');
-    const rows = buildSuperWingsModelIntakeRows(
+    const rows = buildHeroModelIntakeRows(
       [
         asset(id('Jett+transformer+3d+model')),
         asset(id('Jett pose 3d model')),
         asset(hidden),
-        asset('super-wings/futuristic aircraft hangar 3d model'),
+        asset('aero-mission/futuristic aircraft hangar 3d model'),
       ],
       {
         char_jett: {
@@ -140,7 +140,7 @@ describe('super-wings model catalog', () => {
       isHidden: true,
       isInPoseModels: false,
     });
-    expect(rows.find((row) => row.assetId === 'super-wings/futuristic aircraft hangar 3d model')).toMatchObject({
+    expect(rows.find((row) => row.assetId === 'aero-mission/futuristic aircraft hangar 3d model')).toMatchObject({
       status: 'unassigned',
       characterId: undefined,
       isInPoseModels: false,

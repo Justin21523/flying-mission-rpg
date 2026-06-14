@@ -1,4 +1,4 @@
-import { primaryPlaneModelAssetIdFor, primaryRobotModelAssetIdFor } from '../../data/game/superWingsModels';
+import { primaryPlaneModelAssetIdFor, primaryRobotModelAssetIdFor } from '../../data/game/heroModels';
 import type { CharacterDefinition } from '../../types/game/character';
 
 export function resetRobotModelToAuto(characterId: string): Partial<CharacterDefinition> {

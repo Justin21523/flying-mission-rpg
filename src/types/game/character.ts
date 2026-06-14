@@ -162,7 +162,7 @@ export interface CharacterDefinition {
   missionSuitability: string[]; // MissionType ids this character suits
   transformationId?: string; // TransformationDefinition id
   cardImage?: string; // reference card filename in src/assets/cards (Character Select art)
-  modelAssetId?: string; // kit model-library id — the ROBOT / ground model (e.g. 'super-wings/Jett+...')
+  modelAssetId?: string; // kit model-library id — the ROBOT / ground model (e.g. 'aero-mission/Jett+...')
   planeModelAssetId?: string; // optional separate PLANE/vehicle model used in flight (falls back to modelAssetId)
   modelScale?: number; // authored ground/destination model scale (Edit-Mode editable; unset = seed default).
   // All of this character's available models/poses (transformer / airplane / pose variants). The 🛩

@@ -1,7 +1,7 @@
 import type { CharacterDefinition } from '../../types/game/character';
-import { poseModelsFor, primaryPlaneModelAssetIdFor, primaryRobotModelAssetIdFor } from './superWingsModels';
+import { poseModelsFor, primaryPlaneModelAssetIdFor, primaryRobotModelAssetIdFor } from './heroModels';
 
-// Seed roster — based on the project's existing Super Wings characters and the reference cards in
+// Seed roster — based on the project's existing Aero Mission characters and the reference cards in
 // src/assets/cards (role / colour / abilities taken from each card). Stats are a gameplay adaptation
 // (tune freely in Edit Mode). All abilities are child-friendly helpers — no combat. Tagged by how the
 // data was sourced; never presented as official canon. All display text is English.

@@ -7,7 +7,7 @@ export const FLIGHT_BOUNDARY_FALLBACK = 240;
 
 export const SEED_EXTERIOR_PARTS: ExteriorPart[] = [
   { id: 'ext_spawn', kind: 'flight_spawn', label: 'Flight Spawn (tunnel exit)', position: [0, 26, 60], rotation: [0, 0, 0], scale: 1, size: [2, 1, 3], color: '#22d3ee', collision: 'none' },
-  { id: 'ext_tower', kind: 'center_tower', label: 'Space Station Base', assetId: 'super-wings/futuristic space station 3d model', modelTarget: 70, position: [0, 10, 0], rotation: [0, 0, 0], scale: 1, size: [7, 56, 7], color: '#5a6478', collision: 'none' },
+  { id: 'ext_tower', kind: 'center_tower', label: 'Space Station Base', assetId: 'aero-mission/futuristic space station 3d model', modelTarget: 70, position: [0, 10, 0], rotation: [0, 0, 0], scale: 1, size: [7, 56, 7], color: '#5a6478', collision: 'none' },
   { id: 'ext_ring', kind: 'ring', label: 'Outer Ring', position: [0, 22, 0], rotation: [0, 0, 0], scale: 1, size: [30, 1.2, 30], color: '#7c8db0', collision: 'none' },
   { id: 'ext_skygate', kind: 'sky_gate', label: 'Sky Gate (high-altitude entrance)', position: [0, 78, 0], rotation: [0, 0, 0], scale: 1, size: [10, 1.5, 10], color: '#fbbf24', collision: 'none' },
   { id: 'ext_cloud0', kind: 'cloud', label: 'Cloud 0', position: [30, 38, -20], rotation: [0, 0, 0], scale: 2.4, size: [1, 1, 1], color: '#ffffff', collision: 'none' },

@@ -3,7 +3,7 @@ import { createEditorCollection } from './createEditorCollection';
 import type { CharacterDefinition } from '../../types/game/character';
 import { SEED_CHARACTERS } from '../../data/game/characters';
 import { getModelAsset } from '../../data/modelLibrary';
-import { poseModelsFor, primaryPlaneModelAssetIdFor, primaryRobotModelAssetIdFor } from '../../data/game/superWingsModels';
+import { poseModelsFor, primaryPlaneModelAssetIdFor, primaryRobotModelAssetIdFor } from '../../data/game/heroModels';
 
 export const useEditorCharacterStore = createEditorCollection<CharacterDefinition>({
   storageKey: 'aero-rescue-editor-character-v4',

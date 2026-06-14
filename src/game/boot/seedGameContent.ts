@@ -20,7 +20,7 @@ import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
 import { useModelStudioStore } from '../../stores/modelStudioStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
 import { ALL_WORLD_PATHS } from '../../data/game/worldRoutes';
-import { allSuperWingsPoseAssetIds } from '../../data/game/superWingsModels';
+import { allHeroPoseAssetIds } from '../../data/game/heroModels';
 import type { PathDefinition } from '../../types/path';
 
 // Bigger default size for the character craft — set via Model Studio (the single source of truth for model
@@ -39,7 +39,7 @@ function seedCraftScale(): void {
     seedScale(c.planeModelAssetId, DEFAULT_CRAFT_SCALE);
     for (const pm of c.poseModels ?? []) seedScale(pm.assetId, DEFAULT_CRAFT_SCALE);
   }
-  for (const assetId of allSuperWingsPoseAssetIds()) {
+  for (const assetId of allHeroPoseAssetIds()) {
     seedScale(assetId, DEFAULT_CRAFT_SCALE);
   }
   // NPC models (destination greeters / side-quest residents) — Model-Studio-scaled, default-only.

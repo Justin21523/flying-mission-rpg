@@ -1,5 +1,5 @@
 import type { TransformationDefinition, TransformationStage, TransformationCameraShot, TransformationEffectTrack, TransformationPart } from '../../types/game/transformation';
-import { heroPoseAssetIds } from './superWingsModels';
+import { heroPoseAssetIds } from './heroModels';
 
 // Seed transformation timelines — one per roster character (id matches CharacterDefinition.transformationId).
 // Default strategy = modular-parts-procedural: primitive parts unfold, then the character's real robot model

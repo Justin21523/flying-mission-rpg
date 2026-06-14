@@ -11,7 +11,7 @@ const baseAsset = (id: string, path: string): ModelAsset => ({
   position: [0, 0, 0],
   rotation: [0, 0, 0],
   clips: {},
-  category: 'super-wings',
+  category: 'aero-mission',
 });
 
 const pose = (assetId: string): CharacterPoseModel => ({ id: assetId.replace(/\W+/g, '_'), label: assetId, assetId });
@@ -21,15 +21,15 @@ describe('poseModelPreloadPaths', () => {
     const paths = poseModelPreloadPaths(
       [pose('a'), pose('missing'), pose('b'), pose('a')],
       (assetId) => {
-        if (assetId === 'a') return baseAsset('a', '/models/super-wings/Jett pose 3d model.glb');
-        if (assetId === 'b') return baseAsset('b', '/models/super-wings/Jett+transformer+3d+model.glb');
+        if (assetId === 'a') return baseAsset('a', '/models/aero-mission/Jett pose 3d model.glb');
+        if (assetId === 'b') return baseAsset('b', '/models/aero-mission/Jett+transformer+3d+model.glb');
         return undefined;
       },
     );
 
     expect(paths).toEqual([
-      '/models/super-wings/Jett%20pose%203d%20model.glb',
-      '/models/super-wings/Jett+transformer+3d+model.glb',
+      '/models/aero-mission/Jett%20pose%203d%20model.glb',
+      '/models/aero-mission/Jett+transformer+3d+model.glb',
     ]);
   });
 });
