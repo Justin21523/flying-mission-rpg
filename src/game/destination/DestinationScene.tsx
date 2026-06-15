@@ -17,6 +17,7 @@ import { LandingSettle } from './LandingSettle';
 import { ObjectiveDirectorHost } from '../missions/ObjectiveDirectorHost';
 import { AdvancedMissionZoneDirectorHost } from '../advanced-mission-zone/AdvancedMissionZoneDirectorHost';
 import { ZoneMarkerLayer } from '../advanced-mission-zone/ZoneMarkerLayer';
+import { CombatRuntimeLayer } from '../combat/CombatRuntimeLayer';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
 import { GroundAbilityFx } from './GroundAbilityFx';
@@ -37,6 +38,8 @@ import { PoseSwitchFxLayer } from '../characters/PoseSwitchFxLayer';
 const GROUND_PHASES = new Set(['NPC_GREETING', 'MISSION_GAMEPLAY', 'ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'ZONE_COMPLETE', 'SUPPORT_SELECTION', 'MISSION_COMPLETE']);
 // Advanced Mission Zone gameplay phases — drive the zone director host + markers.
 const ZONE_PHASES = new Set(['ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'ZONE_COMPLETE']);
+// Combat Runtime phases — where skills / dummy targets / damage are active (not during ZONE_COMPLETE toast).
+const COMBAT_PHASES = new Set(['ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'MISSION_GAMEPLAY']);
 
 export const DestinationScene = () => {
   const editMode = useUiStore((s) => s.editMode);
@@ -70,6 +73,7 @@ export const DestinationScene = () => {
       {/* Advanced Mission Zone — markers (edit + play) and the per-frame director host (play only). */}
       <ZoneMarkerLayer />
       {!editMode && ZONE_PHASES.has(phase) && <AdvancedMissionZoneDirectorHost />}
+      {!editMode && COMBAT_PHASES.has(phase) && <CombatRuntimeLayer />}
       {!editMode && GROUND_PHASES.has(phase) && (
         <>
           <CompanionAiHost />

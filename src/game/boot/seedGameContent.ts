@@ -12,6 +12,7 @@ import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventSt
 import { useEditorDestinationStore } from '../../stores/game/editorDestinationStore';
 import { useEditorMissionZoneStore } from '../../stores/game/editorMissionZoneStore';
 import { useEditorZoneSegmentStore } from '../../stores/game/editorZoneSegmentStore';
+import { useEditorCombatStatsStore, useEditorCombatSkillStore, useEditorDamageableStore, useEditorCombatEffectStore } from '../../stores/game/editorCombatStore';
 import { useEditorSupportStore } from '../../stores/game/editorSupportStore';
 import { useEditorQualityStore } from '../../stores/game/editorQualityStore';
 import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetStore';
@@ -75,6 +76,10 @@ export function seedGameContent(): void {
   useEditorDestinationStore.getState().mergeMissingFromSeed();
   useEditorMissionZoneStore.getState().mergeMissingFromSeed();
   useEditorZoneSegmentStore.getState().mergeMissingFromSeed();
+  useEditorCombatStatsStore.getState().mergeMissingFromSeed();
+  useEditorCombatSkillStore.getState().mergeMissingFromSeed();
+  useEditorDamageableStore.getState().mergeMissingFromSeed();
+  useEditorCombatEffectStore.getState().mergeMissingFromSeed();
   useEditorSupportStore.getState().mergeMissingFromSeed();
   useEditorQualityStore.getState().mergeMissingFromSeed();
   useEditorAudioPresetStore.getState().mergeMissingFromSeed();

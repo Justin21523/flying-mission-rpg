@@ -27,6 +27,8 @@ import { LandingHud } from './ui/game/LandingHud';
 import { MissionHud } from './ui/game/MissionHud';
 import { MissionZoneHud } from './ui/game/MissionZoneHud';
 import { MissionZoneDebugPanel } from './ui/dev/MissionZoneDebugPanel';
+import { CombatHud } from './ui/combat/CombatHud';
+import { CombatDebugPanel } from './ui/dev/CombatDebugPanel';
 import { HuntHud } from './ui/game/HuntHud';
 import { MissionCompleteHud } from './ui/game/MissionCompleteHud';
 import { HangarReturnHud } from './ui/game/HangarReturnHud';
@@ -149,6 +151,8 @@ export const App = () => {
   // Advanced Mission Zone gameplay phases (New Batch A) — share the ground/support HUD stack with the legacy
   // mission phases, but swap the objective HUD for the zone HUD.
   const zonePhase = phase === 'ADVANCED_MISSION_ZONE' || phase === 'ZONE_SEGMENT_GAMEPLAY' || phase === 'ZONE_COMPLETE';
+  // Combat Runtime (New Batch B) — HUD + skills active in zone gameplay + legacy mission gameplay.
+  const combatPhase = phase === 'ADVANCED_MISSION_ZONE' || phase === 'ZONE_SEGMENT_GAMEPLAY' || phase === 'MISSION_GAMEPLAY';
   const missionPhase = phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'SUPPORT_SELECTION' || zonePhase;
   const missionDonePhase = phase === 'MISSION_COMPLETE';
   const hangarReturnPhase = phase === 'HANGAR_RETURN';
@@ -320,6 +324,7 @@ export const App = () => {
       {!editMode && !world && landingPhase && <LandingHud />}
       {!editMode && !world && missionPhase && !zonePhase && <MissionHud />}
       {!editMode && !world && zonePhase && <MissionZoneHud />}
+      {!editMode && !world && combatPhase && <CombatHud />}
       {!editMode && !world && (missionPhase || missionDonePhase) && !zonePhase && <QuestTracker />}
       {!editMode && !world && missionPhase && <SupportDispatchDirectorHost />}
       {!editMode && !world && missionPhase && <SupportSelectionPanel />}
@@ -343,6 +348,7 @@ export const App = () => {
       {(fsmDebug || editMode) && (descentPhase || landingPhase || missionPhase || missionDonePhase) && <DestinationDebugPanel />}
       {(fsmDebug || editMode) && missionPhase && <SupportDebugPanel />}
       {(fsmDebug || editMode) && zonePhase && <MissionZoneDebugPanel />}
+      {(fsmDebug || editMode) && combatPhase && <CombatDebugPanel />}
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}
