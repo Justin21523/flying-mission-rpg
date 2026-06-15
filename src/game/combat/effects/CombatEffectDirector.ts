@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 import { useCombatStore } from '../../../stores/game/useCombatStore';
 import { getCombatEffect } from '../../../stores/game/editorCombatStore';
+import { resolveCinematicEffect, playEffect as playCinematicEffect } from '../../vfx/CinematicVfxDirector';
 
 // Model-first effect orchestration. playEffect registers an ActiveEffectInstance (placed in world at cast
 // time); the CombatEffectLayer renders it via the geometry / model-component renderers; expired instances
@@ -15,7 +16,14 @@ export interface EffectContext {
 
 export function playEffect(effectDefId: string, ctx: EffectContext): string | null {
   const def = getCombatEffect(effectDefId);
-  if (!def) return null;
+  if (!def) {
+    // Batch F.5 — a skill's effectDefinitionId may resolve to a layered CINEMATIC effect; route it through the
+    // unified cinematic VFX runtime (one effect system, not two).
+    if (resolveCinematicEffect(effectDefId)) {
+      return playCinematicEffect(effectDefId, { x: ctx.x, y: ctx.y, z: ctx.z, heading: ctx.headingRad });
+    }
+    return null;
+  }
   const instanceId = `efx_${nanoid(6)}`;
   useCombatStore.getState().addEffect({
     instanceId,

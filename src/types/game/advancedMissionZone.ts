@@ -19,6 +19,7 @@ export type ZoneSegmentType =
   | 'incident'
   | 'elite-placeholder'
   | 'boss-placeholder'
+  | 'boss'
   | 'extraction';
 
 export const ZONE_SEGMENT_TYPES: readonly ZoneSegmentType[] = [
@@ -31,6 +32,7 @@ export const ZONE_SEGMENT_TYPES: readonly ZoneSegmentType[] = [
   'incident',
   'elite-placeholder',
   'boss-placeholder',
+  'boss',
   'extraction',
 ];
 
@@ -71,11 +73,27 @@ export type ZoneConditionDefinition =
   | { id: string; type: 'debug-complete' }
   | { id: string; type: 'placeholder-clear-area'; areaId: string }
   | { id: string; type: 'segment-completed'; segmentId: string }
+  // Batch C — real enemy/obstacle conditions (the future-* variants below remain as aliases).
+  | { id: string; type: 'defeat-enemy-group'; enemyGroupId: string }
+  | { id: string; type: 'destroy-obstacle'; obstacleId: string }
+  | { id: string; type: 'clear-obstacle'; obstacleId: string }
+  | { id: string; type: 'repair-device'; deviceId: string }
   | { id: string; type: 'future-defeat-enemy-group'; enemyGroupId: string }
   | { id: string; type: 'future-destroy-obstacle'; obstacleId: string }
   | { id: string; type: 'future-repair-device'; deviceId: string }
   | { id: string; type: 'future-resolve-incident'; incidentId: string }
-  | { id: string; type: 'future-defeat-boss'; bossId: string };
+  | { id: string; type: 'future-defeat-boss'; bossId: string }
+  // Batch E — support-combat conditions (completed by companion support abilities).
+  | { id: string; type: 'use-support-ability'; abilityId: string; targetId?: string }
+  | { id: string; type: 'support-repair-device'; deviceId: string }
+  | { id: string; type: 'support-clear-obstacle'; obstacleId: string }
+  | { id: string; type: 'support-scan-target'; targetId: string }
+  | { id: string; type: 'support-protect-area'; areaId: string; seconds: number }
+  // Batch F — boss-encounter conditions (completed by the BossDirector).
+  | { id: string; type: 'defeat-boss'; bossId: string }
+  | { id: string; type: 'complete-boss-phase'; bossId: string; phaseId: string }
+  | { id: string; type: 'destroy-boss-weakpoint'; bossId: string; weakpointId: string }
+  | { id: string; type: 'clear-boss-summon-wave'; bossId: string; waveId: string };
 
 export type ZoneConditionType = ZoneConditionDefinition['type'];
 
@@ -88,11 +106,24 @@ export const ZONE_CONDITION_TYPES: readonly ZoneConditionType[] = [
   'debug-complete',
   'placeholder-clear-area',
   'segment-completed',
+  'defeat-enemy-group',
+  'destroy-obstacle',
+  'clear-obstacle',
+  'repair-device',
   'future-defeat-enemy-group',
   'future-destroy-obstacle',
   'future-repair-device',
   'future-resolve-incident',
   'future-defeat-boss',
+  'use-support-ability',
+  'support-repair-device',
+  'support-clear-obstacle',
+  'support-scan-target',
+  'support-protect-area',
+  'defeat-boss',
+  'complete-boss-phase',
+  'destroy-boss-weakpoint',
+  'clear-boss-summon-wave',
 ];
 
 // Condition types that are deliberately not satisfiable yet (placeholders for future combat/incident

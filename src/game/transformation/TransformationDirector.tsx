@@ -6,7 +6,7 @@ import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { getEditorTransformations } from '../../stores/game/editorTransformationStore';
 import { getGameSettings } from '../../stores/game/useSettingsStore';
 import { flightHandle } from '../flight/flightHandle';
-import { TransformationTimelineRunner } from './TransformationTimelineRunner';
+import { TransformationTimelineRunner, snapshotEffectSig } from './TransformationTimelineRunner';
 import { CharacterFormController } from './CharacterFormController';
 import { validateTimeline } from './transformationValidation';
 import { txFrame, transformationHandle, useTxVersion, resetTransformationRuntime } from './transformationRuntime';
@@ -113,7 +113,7 @@ export const TransformationDirector = () => {
       if (revT.current <= switchAt && form.current.getCurrentForm() !== 'plane') form.current.switchToPlaneForm();
       const rsnap = r.getSnapshot();
       txFrame.snapshot = rsnap;
-      useTxVersion.getState().bump(`${rsnap.activeEffects.map((e) => `${e.id}:${e.type}:${e.modelSlot ?? ''}:${e.modelRef ?? ''}`).join(',')}|${rsnap.activeModelRef ?? ''}:${rsnap.activeModelStageId ?? ''}|${rsnap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
+      useTxVersion.getState().bump(snapshotEffectSig(rsnap));
       const rfc = form.current;
       Object.assign(transformationHandle, {
         timelineId: def.id, characterId: charId ?? '', mode: r.mode, time: rsnap.time, duration: rsnap.duration,
@@ -159,7 +159,7 @@ export const TransformationDirector = () => {
     } else if (!snap.activeVoiceText) {
       prevVoice.current = null;
     }
-    useTxVersion.getState().bump(`${snap.activeEffects.map((e) => `${e.id}:${e.type}:${e.modelSlot ?? ''}:${e.modelRef ?? ''}`).join(',')}|${snap.activeModelRef ?? ''}:${snap.activeModelStageId ?? ''}|${snap.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(',')}`);
+    useTxVersion.getState().bump(snapshotEffectSig(snap));
     const fc = form.current;
     Object.assign(transformationHandle, {
       timelineId: def.id, characterId: charId ?? '', mode: r.mode, time: snap.time, duration: snap.duration,

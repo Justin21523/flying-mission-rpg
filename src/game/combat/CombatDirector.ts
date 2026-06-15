@@ -1,15 +1,20 @@
 import { useCombatStore } from '../../stores/game/useCombatStore';
-import { useCombatTargetStore, liveTargets } from '../../stores/game/combatTargetStore';
+import { useCombatTargetStore, liveTargets, displaceTarget } from '../../stores/game/combatTargetStore';
+import { useCombatSpawnStore, queueSpawnImpact } from '../../stores/game/combatSpawnStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
-import { getCombatSkill, getDamageable, getCombatStatsPreset } from '../../stores/game/editorCombatStore';
-import { statsFromPreset, type DamageEvent } from '../../types/game/combat';
+import { activeSupportShieldReduction } from '../../stores/game/useSupportCombatStore';
+import { getCombatSkill, getCombatStatsPreset } from '../../stores/game/editorCombatStore';
+import { getEffectiveDamageable } from './enemyRuntime';
+import { statsFromPreset, type DamageEvent, type DamageEventTemplate } from '../../types/game/combat';
 import { robotHandle } from '../destination/robotHandle';
-import { castSkill, type SkillCaster, type SkillCastDeps, type SkillCastOutcome } from './SkillRuntime';
+import { castSkill, type SkillCaster, type SkillCastDeps, type SkillCastOutcome, type CastOptions } from './SkillRuntime';
 import { regenEnergy } from './EnergyManager';
 import { regenShield, applyPlayerDamage } from './ShieldManager';
 import { resolveDamage } from './DamageResolver';
 import { playEffect, cleanupExpired } from './effects/CombatEffectDirector';
+import { spawnFromSkill, buildDefenseState, resolveDefense } from './skillBehaviors';
+import { tickCombatSpawns } from './combatSpawns';
 
 // Main combat entry point — wires SkillRuntime + the pure modules to the real stores and the live player
 // position (robotHandle). UI never calls the resolver directly; React only calls these functions.
@@ -37,6 +42,7 @@ export function initializeCombatForZone(): void {
 
 export function shutdownCombat(): void {
   useCombatTargetStore.getState().reset();
+  useCombatSpawnStore.getState().reset();
   useCombatStore.getState().resetCombat();
 }
 
@@ -55,22 +61,43 @@ function makeDeps(): SkillCastDeps {
     getStats: (id) => useCombatStore.getState().playerStatsByCharacterId[id],
     setEnergy: (id, energy) => useCombatStore.getState().updateCombatStats(id, { energy }),
     startCooldown: (skillId, untilMs) => useCombatStore.getState().startCooldown(skillId, untilMs),
-    getTargets: () => liveTargets.filter((t) => !t.defeatedAt).map((t) => ({ id: t.id, x: t.x, y: t.y, z: t.z, definitionId: t.definitionId })),
-    getDamageable: (defId) => getDamageable(defId),
+    getTargets: () => liveTargets.filter((t) => !t.defeatedAt).map((t) => ({ id: t.id, x: t.x, y: t.y, z: t.z, definitionId: t.definitionId, scanned: t.scanned })),
+    getDamageable: (defId) => getEffectiveDamageable(defId),
     getVitals: (targetId) => { const t = liveTargets.find((x) => x.id === targetId); return t ? { hp: t.hp, shield: t.shield } : undefined; },
     applyResult: (result) => useCombatTargetStore.getState().applyResult(result),
     pushDamageResult: (result) => useCombatStore.getState().pushDamageResult(result),
     playEffect: (effectDefId, skillInstanceId, caster) => playEffect(effectDefId, { skillInstanceId, x: caster.x, y: caster.y, z: caster.z, headingRad: caster.headingRad }),
+    spawnFromSkill: (skill, caster) => spawnFromSkill(skill, caster),
+    applyDefense: (skill, caster) => useCombatStore.getState().setDefense(caster.characterId, buildDefenseState(skill, nowMs())),
+    displaceTarget: (id, dx, dz) => displaceTarget(id, dx, dz),
   };
 }
 
-export function castSkillById(skillId: string, casterId?: string): SkillCastOutcome | null {
+// Apply a damage template to a single live combat target (used by enemy projectile/AoE impacts via the
+// spawn tick — player-faction spawns hitting enemies).
+export function damageTargetByTemplate(targetId: string, template: DamageEventTemplate): void {
+  const t = liveTargets.find((x) => x.id === targetId);
+  if (!t || t.defeatedAt) return;
+  const def = getEffectiveDamageable(t.definitionId);
+  if (!def) return;
+  const event: DamageEvent = {
+    id: `dmg_${Math.random().toString(36).slice(2, 8)}`,
+    sourceId: 'spawn', sourceType: 'player', targetId, targetType: 'dummy',
+    amount: template.amount, damageType: template.damageType, attackTags: template.attackTags,
+    canCrit: template.canCrit, critMultiplier: template.critMultiplier, hitPoint: [t.x, t.y, t.z],
+  };
+  const result = resolveDamage(event, def, { hp: t.hp, shield: t.shield });
+  useCombatTargetStore.getState().applyResult(result);
+  useCombatStore.getState().pushDamageResult(result);
+}
+
+export function castSkillById(skillId: string, casterId?: string, options?: CastOptions): SkillCastOutcome | null {
   const skill = getCombatSkill(skillId);
   if (!skill) return null;
   const characterId = casterId ?? activeCombatantId();
   if (!characterId) return null;
   const caster: SkillCaster = { characterId, x: robotHandle.pos.x, y: robotHandle.pos.y, z: robotHandle.pos.z, headingRad: robotHandle.heading };
-  return castSkill(skill, caster, makeDeps());
+  return castSkill(skill, caster, makeDeps(), options);
 }
 
 // Apply incoming damage to the player (debug / future enemy attacks). Dummies go through applyResult.
@@ -80,7 +107,20 @@ export function applyDamageToPlayer(amount: number, characterId?: string): void 
   const cs = useCombatStore.getState();
   const stats = cs.playerStatsByCharacterId[id];
   if (!stats || cs.godMode || stats.invulnerable) return;
-  const next = applyPlayerDamage(stats, amount);
+
+  // Active defense (front-shield / barrier / iframe / absorb / reflect) reduces or redirects the hit.
+  const defense = resolveDefense(cs.activeDefenseByCharacterId[id], amount, nowMs());
+  if (defense.energyGain > 0) cs.updateCombatStats(id, { energy: Math.min(stats.maxEnergy, stats.energy + defense.energyGain) });
+  if (defense.reflectAmount > 0) {
+    const enemy = liveTargets.find((t) => !t.defeatedAt);
+    if (enemy) damageTargetByTemplate(enemy.id, { amount: defense.reflectAmount, damageType: 'energy', attackTags: ['reflect'] });
+  }
+  // Batch E — Shield Support dome reduces incoming damage while active.
+  const reduction = activeSupportShieldReduction();
+  const reduced = reduction > 0 ? defense.finalAmount * (1 - reduction) : defense.finalAmount;
+  if (defense.iframed || reduced <= 0) return;
+
+  const next = applyPlayerDamage(stats, reduced);
   lastShieldDamageMs[id] = nowMs();
   cs.updateCombatStats(id, { hp: next.hp, shield: next.shield, downed: next.hp <= 0 });
 }
@@ -89,7 +129,7 @@ export function applyDamageToPlayer(amount: number, characterId?: string): void 
 export function applyDamageToTarget(event: DamageEvent): void {
   const t = liveTargets.find((x) => x.id === event.targetId);
   if (!t) return;
-  const def = getDamageable(t.definitionId);
+  const def = getEffectiveDamageable(t.definitionId);
   if (!def) return;
   const result = resolveDamage(event, def, { hp: t.hp, shield: t.shield });
   useCombatTargetStore.getState().applyResult(result);
@@ -113,5 +153,17 @@ export function update(dt: number): void {
     }
   }
   cleanupExpired(nowMs());
+
+  // Tick model-driven spawns (projectiles / summons / terrain) + sweep expired/impacted.
+  tickCombatSpawns(dt, {
+    nowMs: nowMs(),
+    enemyTargets: () => liveTargets.filter((t) => !t.defeatedAt).map((t) => ({ id: t.id, x: t.x, y: t.y, z: t.z })),
+    playerPos: () => ({ x: robotHandle.pos.x, z: robotHandle.pos.z }),
+    targetPos: (tid) => { const t = liveTargets.find((x) => x.id === tid); return t ? { x: t.x, z: t.z } : undefined; },
+    damageTarget: (tid, tpl) => damageTargetByTemplate(tid, tpl),
+    damagePlayer: (amt) => applyDamageToPlayer(amt),
+    impact: (s) => queueSpawnImpact(s.x, s.y, s.z),
+  });
+  useCombatSpawnStore.getState().sweep();
   useCombatTargetStore.getState().removeDead();
 }

@@ -14,7 +14,7 @@ export const SCENE_SET_PIECES: Record<string, SceneSetPiece[]> = {
     { assetId: 'decor/stylized tree 3d model', position: [-8, 0, 12], scale: 1.5 },
     { assetId: 'decor/stylized tree 3d model', position: [9, 0, 13], scale: 1.4 },
     { assetId: 'props/standing signpost 3d model', position: [2, 0, 6] },
-    { assetId: 'aero-mission/Jett+transformer+3d+model', position: [4, 0, 2], scale: 2, rotationY: 180 }, // hero on duty
+    { assetId: 'super-wings/Jett+transformer+3d+model', position: [4, 0, 2], scale: 2, rotationY: 180 }, // hero on duty
   ],
   central_plaza: [
     { assetId: 'roads/stylized town square 3d model', position: [0, 0, 0], scale: 2 },
@@ -22,8 +22,8 @@ export const SCENE_SET_PIECES: Record<string, SceneSetPiece[]> = {
     { assetId: 'props/wooden bench 3d model', position: [-6, 0, 4], rotationY: -90 },
     { assetId: 'decor/round leafy bush 3d model', position: [8, 0, -6] },
     { assetId: 'decor/round leafy bush 3d model', position: [-8, 0, -6] },
-    { assetId: 'aero-mission/Flip pose 3d model', position: [3, 0, -2], scale: 2, rotationY: 200 }, // posing hero
-    { assetId: 'aero-mission/Donnie pose 02 3d model', position: [-3, 0, -2], scale: 2, rotationY: 160 },
+    { assetId: 'super-wings/Flip pose 3d model', position: [3, 0, -2], scale: 2, rotationY: 200 }, // posing hero
+    { assetId: 'super-wings/Donnie pose 02 3d model', position: [-3, 0, -2], scale: 2, rotationY: 160 },
   ],
   harbor_front: [
     { assetId: 'buildings/cartoon harbor entrance 3d model', position: [0, 0, -10], scale: 2 },
@@ -38,7 +38,7 @@ export const SCENE_SET_PIECES: Record<string, SceneSetPiece[]> = {
     { assetId: 'coasts/red white buoy 3d model', position: [-8, 0, 10] },
     { assetId: 'coasts/lifeguard tower 3d model', position: [12, 0, -6], scale: 1.4 },
     { assetId: 'coasts/coastal road 3d model', position: [0, 0, -14], scale: 1.6 },
-    { assetId: 'aero-mission/Paul airplane 3d model', position: [10, 0, 4], scale: 2, rotationY: -40 }, // rescue plane on the sand
+    { assetId: 'super-wings/Paul airplane 3d model', position: [10, 0, 4], scale: 2, rotationY: -40 }, // rescue plane on the sand
   ],
   school_district: [
     { assetId: 'buildings/architectural building 3d model', position: [0, 0, -10], scale: 2 },
@@ -63,7 +63,7 @@ export const SCENE_SET_PIECES: Record<string, SceneSetPiece[]> = {
     { assetId: 'props/stacked cardboard boxes 3d model', position: [8, 0, 6] },
     { assetId: 'npcs/3d+construction+worker', position: [3, 0, 4] },
     { assetId: 'npcs/cartoon forklift 3d model', position: [-4, 0, 8], scale: 1.2, rotationY: 30 },
-    { assetId: 'aero-mission/Todd+pose+3d+model', position: [6, 0, 2], scale: 2, rotationY: 200 }, // builder hero
+    { assetId: 'super-wings/Todd+pose+3d+model', position: [6, 0, 2], scale: 2, rotationY: 200 }, // builder hero
   ],
   industrial_yard: [
     { assetId: 'props/shipping container 3d model', position: [-8, 0, -6], scale: 1.4 },

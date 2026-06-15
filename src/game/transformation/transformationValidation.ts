@@ -1,15 +1,15 @@
 import type { TransformationDefinition } from '../../types/game/transformation';
-import { TRANSFORMATION_PART_KEYS } from '../../types/game/transformation';
 
 // Pure validation (no zod, matches the repo). Returns human-readable errors ([] = valid). Surfaced in the
 // editor; the runtime/director skip invalid timelines rather than crashing. `knownCharacterIds` is optional
 // so callers that have the character store can also check the binding.
-const PARTS = new Set<string>(TRANSFORMATION_PART_KEYS);
 const FORM_STAGE_TYPES = new Set(['model-visibility', 'model-swap', 'animation-clip', 'part-transform']);
 
 export function validateTimeline(def: TransformationDefinition, knownCharacterIds?: ReadonlySet<string>): string[] {
   const e: string[] = [];
   const EPS = 0.001;
+  // Parts are user-defined per timeline — validate references against THIS definition's own parts.
+  const PARTS = new Set<string>((def.parts ?? []).map((p) => p.key));
   if (!def.id?.trim()) e.push('Timeline id is empty.');
   if (def.characterId && knownCharacterIds && !knownCharacterIds.has(def.characterId)) e.push(`Unknown characterId "${def.characterId}".`);
   if (!(def.totalDurationSec > 0)) e.push('Total duration must be > 0.');

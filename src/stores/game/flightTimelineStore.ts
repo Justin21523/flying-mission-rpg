@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getActiveFlightPhase } from './flightPhaseStore';
+import { getNodeTimes } from '../../game/flight/flightPhaseRuntime';
 
 // Seconds-based Flight Phase timeline / editor-UI runtime. Drives the bottom-left playback overlay, the
 // scrubber, keyframe/event selection and the editor camera view presets. Edit-only state; the actual flight
@@ -41,6 +42,10 @@ interface FlightTimelineState {
   setTotalDuration: (d: number) => void;
   nextKeyframe: () => void;
   prevKeyframe: () => void;
+  nextNode: () => void;
+  prevNode: () => void;
+  nextCameraKeyframe: () => void;
+  prevCameraKeyframe: () => void;
   resetPreview: () => void;
   // selection / view
   selectNode: (id: string | null) => void;
@@ -62,6 +67,18 @@ export function activeMarkerTimes(): number[] {
   const ts = [0, p.totalDuration, ...p.cameraKeyframes.map((k) => k.time), ...p.events.map((e) => e.time)];
   return [...new Set(ts.map((t) => Math.round(t * 1000) / 1000))].sort((a, b) => a - b);
 }
+const sortedTimes = (xs: number[]) => [...new Set(xs.map((t) => Math.round(t * 1000) / 1000))].sort((a, b) => a - b);
+function nodeTimesNow(): number[] {
+  const p = getActiveFlightPhase();
+  return p ? sortedTimes(getNodeTimes(p.path)) : [];
+}
+function cameraTimesNow(): number[] {
+  const p = getActiveFlightPhase();
+  return p ? sortedTimes(p.cameraKeyframes.map((k) => k.time)) : [];
+}
+const stepTo = (times: number[], cur: number, dir: 1 | -1, max: number): number => (dir > 0
+  ? (times.find((t) => t > cur + 1e-3) ?? max)
+  : ([...times].reverse().find((t) => t < cur - 1e-3) ?? 0));
 
 export const useFlightTimelineStore = create<FlightTimelineState>((set, get) => ({
   currentTime: 0,
@@ -102,10 +119,25 @@ export const useFlightTimelineStore = create<FlightTimelineState>((set, get) => 
   setTotalDuration: (d) => set((s) => (Math.abs(s.totalDuration - d) > 1e-3 ? { totalDuration: d, currentTime: Math.min(s.currentTime, d) } : s)),
   nextKeyframe: () => set((s) => { const next = activeMarkerTimes().find((t) => t > s.currentTime + 1e-3); return { currentTime: next ?? s.totalDuration, playing: false }; }),
   prevKeyframe: () => set((s) => { const prev = [...activeMarkerTimes()].reverse().find((t) => t < s.currentTime - 1e-3); return { currentTime: prev ?? 0, playing: false }; }),
+  nextNode: () => set((s) => ({ currentTime: stepTo(nodeTimesNow(), s.currentTime, 1, s.totalDuration), playing: false })),
+  prevNode: () => set((s) => ({ currentTime: stepTo(nodeTimesNow(), s.currentTime, -1, s.totalDuration), playing: false })),
+  nextCameraKeyframe: () => set((s) => ({ currentTime: stepTo(cameraTimesNow(), s.currentTime, 1, s.totalDuration), playing: false })),
+  prevCameraKeyframe: () => set((s) => ({ currentTime: stepTo(cameraTimesNow(), s.currentTime, -1, s.totalDuration), playing: false })),
   resetPreview: () => set({ playing: false, currentTime: 0, selectedNodeId: null, selectedKeyframeId: null, selectedEventId: null }),
 
-  selectNode: (selectedNodeId) => set({ selectedNodeId, selectedKeyframeId: null, selectedEventId: null }),
-  selectKeyframe: (selectedKeyframeId) => set({ selectedKeyframeId, selectedNodeId: null, selectedEventId: null }),
+  // Node + its OWNED camera keyframe stay co-selected, so the 🎥 Node camera panel + its gizmos remain live
+  // while you drag the camera. Selecting a node also activates that node's camera keyframe (handles show).
+  selectNode: (selectedNodeId) => set(() => {
+    const p = getActiveFlightPhase();
+    const owned = selectedNodeId ? p?.cameraKeyframes.find((k) => k.nodeId === selectedNodeId) : undefined;
+    return { selectedNodeId, selectedKeyframeId: owned?.keyframeId ?? null, selectedEventId: null };
+  }),
+  selectKeyframe: (selectedKeyframeId) => set((s) => {
+    if (!selectedKeyframeId) return { selectedKeyframeId: null, selectedNodeId: null, selectedEventId: null };
+    const k = getActiveFlightPhase()?.cameraKeyframes.find((x) => x.keyframeId === selectedKeyframeId);
+    const keepNode = !!(k?.nodeId && k.nodeId === s.selectedNodeId); // grabbing a node's own camera keeps the node panel open
+    return { selectedKeyframeId, selectedNodeId: keepNode ? s.selectedNodeId : null, selectedEventId: null };
+  }),
   selectEvent: (selectedEventId) => set({ selectedEventId, selectedNodeId: null, selectedKeyframeId: null }),
   setViewMode: (viewMode) => set((s) => ({ viewMode, viewNonce: s.viewNonce + 1 })),
   reapplyView: () => set((s) => ({ viewNonce: s.viewNonce + 1 })),

@@ -26,6 +26,10 @@ function describeCondition(c: ZoneConditionDefinition): string {
     case 'debug-complete': return 'Debug complete';
     case 'placeholder-clear-area': return 'Secure the area';
     case 'segment-completed': return `Finish ${c.segmentId.replace(/_/g, ' ')}`;
+    case 'defeat-enemy-group': return `Defeat ${c.enemyGroupId.replace(/_/g, ' ')}`;
+    case 'destroy-obstacle': return `Destroy ${c.obstacleId.replace(/_/g, ' ')}`;
+    case 'clear-obstacle': return `Clear ${c.obstacleId.replace(/_/g, ' ')}`;
+    case 'repair-device': return `Repair ${c.deviceId.replace(/_/g, ' ')}`;
     case 'future-defeat-enemy-group': return 'Defeat the enemies (coming soon)';
     case 'future-destroy-obstacle': return 'Destroy the obstacle (coming soon)';
     case 'future-repair-device': return 'Repair the device (coming soon)';

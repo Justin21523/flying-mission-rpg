@@ -4,6 +4,7 @@ import type {
 import type { Vec3Tuple } from '../../types/path';
 import { WORLD_PATH } from './worldRoutes';
 import { routeToFlightPath } from '../../game/flight/routeToFlightPhase';
+import { getNodeTimes } from '../../game/flight/flightPhaseRuntime';
 
 // Default "Base Orbit" flight phase — fly out of the base, orbit it once, climb for a panorama, turn toward
 // the mission and boost away. Fully editable in Edit Mode (seeded into flightPhaseStore; drag/edit/focus/
@@ -46,10 +47,11 @@ const NODES: FlightPathNode[] = [
 ];
 
 const CAMERA_KEYS: FlightCameraKeyframe[] = [
-  { keyframeId: 'cam_launch', time: 0, position: [0, 22, 78], rotation: [0, 0, 0], fov: 55, transitionType: 'easeInOut', followTargetId: 'craft' },
-  { keyframeId: 'cam_reveal', time: 6, position: [70, 50, 80], rotation: [0, 0, 0], lookAtTarget: [0, 30, 0], fov: 50, transitionType: 'easeInOut' },
-  { keyframeId: 'cam_aerial', time: 12, position: [40, 96, 60], rotation: [0, 0, 0], lookAtTarget: [0, 30, 0], fov: 46, transitionType: 'easeInOut' },
-  { keyframeId: 'cam_boost', time: 18, position: [0, 24, 78], rotation: [0, 0, 0], fov: 62, transitionType: 'easeOut', followTargetId: 'craft' },
+  // launch = chase the craft (follow); reveal = look at the front orbit node; aerial = orbit the base; boost = chase again.
+  { keyframeId: 'cam_launch', time: 0, position: [0, 22, 78], rotation: [0, 0, 0], fov: 55, transitionType: 'easeInOut', followTargetId: 'craft', cameraMode: 'follow', distance: 14, height: 5, followOffset: [0, 1, 0], damping: 0.35, transitionDuration: 0.8 },
+  { keyframeId: 'cam_reveal', time: 6, position: [70, 50, 80], rotation: [0, 0, 0], lookAtTarget: [0, 30, 0], fov: 50, transitionType: 'easeInOut', cameraMode: 'lookAtNode', nodeId: 'n_front', transitionDuration: 1 },
+  { keyframeId: 'cam_aerial', time: 12, position: [40, 96, 60], rotation: [0, 0, 0], lookAtTarget: [0, 30, 0], fov: 46, transitionType: 'easeInOut', cameraMode: 'orbit', nodeId: 'n_high', orbitRadius: 60, orbitHeight: 40, startAngle: 20, endAngle: 110, transitionDuration: 1.2 },
+  { keyframeId: 'cam_boost', time: 18, position: [0, 24, 78], rotation: [0, 0, 0], fov: 62, transitionType: 'easeOut', followTargetId: 'craft', cameraMode: 'follow', distance: 16, height: 6, damping: 0.25, transitionDuration: 0.6 },
 ];
 
 const ev = (eventId: string, time: number, eventType: FlightTimelineEvent['eventType'], payload: Record<string, unknown> = {}): FlightTimelineEvent => ({
@@ -96,6 +98,38 @@ export const BASE_ORBIT_PHASE: FlightPhaseConfig = {
 const aerialPath = routeToFlightPath(WORLD_PATH, 'flight_aerial_path', 'Aerial cruise — to mission');
 const returnPath = routeToFlightPath(WORLD_PATH, 'flight_return_path', 'Return leg — to base', true);
 
+// A node-bound camera example: a keyframe "owned" by node #idx, placed at its arrival time, offset behind/above
+// the node and looking at it. Demonstrates per-node camera authoring on the path-based phases.
+const nodeCam = (
+  path: typeof aerialPath,
+  idx: number,
+  keyframeId: string,
+  mode: FlightCameraKeyframe['cameraMode'],
+  extra: Partial<FlightCameraKeyframe> = {},
+): FlightCameraKeyframe | null => {
+  const n = path.nodes[idx];
+  if (!n) return null;
+  const time = getNodeTimes(path)[idx] ?? 0;
+  const pos: Vec3Tuple = [n.position[0] + 22, n.position[1] + 14, n.position[2] + 22];
+  return {
+    keyframeId, time, nodeId: n.nodeId, cameraMode: mode,
+    position: pos, rotation: [0, 0, 0], lookAtTarget: [...n.position] as Vec3Tuple,
+    fov: 52, transitionType: 'easeInOut', transitionDuration: 1,
+    ...(mode === 'follow' ? { distance: 15, height: 6, damping: 0.3, followOffset: [0, 1, 0] } : {}),
+    ...extra,
+  };
+};
+
+const aerialCams = [
+  nodeCam(aerialPath, 0, 'aer_cam_start', 'follow'),
+  nodeCam(aerialPath, Math.floor(aerialPath.nodes.length / 2), 'aer_cam_mid', 'lookAtNode'),
+].filter((k): k is FlightCameraKeyframe => k !== null);
+
+const returnCams = [
+  nodeCam(returnPath, 0, 'ret_cam_start', 'lookAtNextNode'),
+  nodeCam(returnPath, Math.max(0, returnPath.nodes.length - 1), 'ret_cam_end', 'follow'),
+].filter((k): k is FlightCameraKeyframe => k !== null);
+
 export const AERIAL_CRUISE_PHASE: FlightPhaseConfig = {
   phaseId: 'flight_aerial_cruise',
   phaseName: 'Aerial Cruise',
@@ -108,7 +142,7 @@ export const AERIAL_CRUISE_PHASE: FlightPhaseConfig = {
   startMode: 'atFirstNode',
   endMode: 'nextPhase',
   loopPreview: false,
-  cameraKeyframes: [],
+  cameraKeyframes: aerialCams,
   events: [
     ev('aev_brief', 1, 'missionBriefing', { text: 'Cruising to the mission zone — hold W to advance, A/D to steer.' }),
   ],
@@ -127,7 +161,7 @@ export const RETURN_LEG_PHASE: FlightPhaseConfig = {
   startMode: 'atFirstNode',
   endMode: 'nextPhase',
   loopPreview: false,
-  cameraKeyframes: [],
+  cameraKeyframes: returnCams,
   events: [],
   editableInEditMode: true,
 };

@@ -10,18 +10,20 @@ export const TRANSFORMATION_MODES: readonly TransformationMode[] = ['full', 'int
 export type FormStrategy = 'dual-model-swap' | 'single-model-multi-animation' | 'modular-parts-procedural' | 'hybrid';
 export const FORM_STRATEGIES: readonly FormStrategy[] = ['dual-model-swap', 'single-model-multi-animation', 'modular-parts-procedural', 'hybrid'];
 
-// The character's transformable body parts (placeholder primitives now; real GLTF sockets later).
-export type TransformationPartKey =
-  | 'body' | 'wing_left' | 'wing_right' | 'arm_left' | 'arm_right' | 'leg_left' | 'leg_right' | 'head' | 'thruster_back';
-export const TRANSFORMATION_PART_KEYS: readonly TransformationPartKey[] = [
+// A transformable body part. `key` is now an ARBITRARY id (any string) — parts are fully user-defined: add any
+// number of them, each with its own name, geometry/primitive or GLB model. TRANSFORMATION_PART_KEYS are only
+// suggested defaults used by the seeds; stage/camera/effect part-pickers read the definition's own parts list.
+export type TransformationPartKey = string;
+export const TRANSFORMATION_PART_KEYS: readonly string[] = [
   'body', 'wing_left', 'wing_right', 'arm_left', 'arm_right', 'leg_left', 'leg_right', 'head', 'thruster_back',
 ];
 
-export type PartGeometryKind = 'core' | 'wing' | 'limb' | 'head' | 'thruster';
-export const PART_GEOMETRY_KINDS: readonly PartGeometryKind[] = ['core', 'wing', 'limb', 'head', 'thruster'];
+export type PartGeometryKind = 'core' | 'wing' | 'limb' | 'head' | 'thruster' | 'box' | 'sphere' | 'cylinder';
+export const PART_GEOMETRY_KINDS: readonly PartGeometryKind[] = ['core', 'wing', 'limb', 'head', 'thruster', 'box', 'sphere', 'cylinder'];
 
 export interface TransformationPart {
   key: TransformationPartKey;
+  name?: string; // display label (key stays the stable id referenced by stages)
   geometry: PartGeometryKind;
   basePosition: [number, number, number];
   baseRotation: [number, number, number]; // degrees
@@ -250,6 +252,7 @@ export interface TransformationDefinition {
   stages: TransformationStage[];
   cameraShots: TransformationCameraShot[];
   effectTracks: TransformationEffectTrack[];
+  effects?: import('./transformationEffects').TransformationEffectConfig[]; // v2 registry-driven effects (additive)
   timeTracks?: TransformationTimeTrack[];
   audioCues: TransformationAudioCue[];
   interactionShowcase: TransformationInteractionShowcase;

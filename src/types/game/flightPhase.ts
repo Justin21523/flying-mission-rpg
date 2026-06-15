@@ -62,15 +62,32 @@ export interface FlightPathConfig {
   totalDuration: number;      // derived — seconds end-to-end (incl. waits)
 }
 
+// How a camera shot is composed. follow = ride the craft (gameplay); lookAtNode/lookAtNextNode = fixed spot
+// aimed at the bound/next path node; fixed = static world shot; orbit = circle the target.
+export type FlightCameraMode = 'follow' | 'lookAtNode' | 'lookAtNextNode' | 'fixed' | 'orbit';
+export const FLIGHT_CAMERA_MODES: FlightCameraMode[] = ['follow', 'lookAtNode', 'lookAtNextNode', 'fixed', 'orbit'];
+
 export interface FlightCameraKeyframe {
   keyframeId: string;
   time: number;               // seconds along the phase timeline
-  position: Vec3Tuple;        // world-space camera position
+  cameraMode?: FlightCameraMode; // default derived from followTargetId ('craft' → follow, else fixed)
+  nodeId?: string;            // when set, this keyframe is OWNED by a path node (its time = the node's arrival)
+  position: Vec3Tuple;        // world-space camera position (base for follow/orbit)
   rotation: Vec3Tuple;        // degrees (used when lookAtTarget is absent)
   lookAtTarget?: Vec3Tuple;   // world-space point to look at (wins over rotation)
   fov: number;
   transitionType: FlightTransition;
+  transitionDuration?: number; // seconds (authoring hint)
   followTargetId?: string;    // 'craft' makes the shot ride the craft; else a fixed world shot
+  followOffset?: Vec3Tuple;   // follow: camera offset from the craft (local-ish world units)
+  distance?: number;          // follow: trail distance behind the craft
+  height?: number;            // follow: height above the craft
+  damping?: number;           // follow: position smoothing (0 = snappy, 1 = very smooth)
+  orbitRadius?: number;       // orbit: circle radius around the target
+  orbitHeight?: number;       // orbit: height above the target
+  orbitSpeed?: number;        // orbit: revolutions/sec (when no start/end angle sweep)
+  startAngle?: number;        // orbit: start angle (deg)
+  endAngle?: number;          // orbit: end angle (deg) — swept across the keyframe span
 }
 
 export interface FlightTimelineEvent {

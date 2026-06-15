@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
-import { useFlightPhaseStore } from '../../../../stores/game/flightPhaseStore';
+import { useFlightPhaseStore, cameraKeyframeForNode, copyCameraSettings, getCameraClipboard } from '../../../../stores/game/flightPhaseStore';
 import { useFlightTimelineStore, FLIGHT_VIEW_MODES, type FlightViewMode } from '../../../../stores/game/flightTimelineStore';
 import { useWorldSelectStore } from '../../../../stores/worldSelectStore';
 import { useGameStore } from '../../../../stores/game/useGameStore';
 import { focusCameraOnFramed } from '../../../../game/edit/cameraFocus';
 import { getNodeTimes } from '../../../../game/flight/flightPhaseRuntime';
 import { fireFlightEvent } from '../../../../game/flight/flightPhaseEventFire';
-import { FLIGHT_POSES, FLIGHT_TRANSITIONS, FLIGHT_EVENT_TYPES } from '../../../../types/game/flightPhase';
-import type { FlightCameraKeyframe, FlightCurveType, FlightPathNode, FlightTimelineEvent } from '../../../../types/game/flightPhase';
+import { editCameraHandle } from '../../../../game/camera/editCameraHandle';
+import { FLIGHT_POSES, FLIGHT_TRANSITIONS, FLIGHT_EVENT_TYPES, FLIGHT_CAMERA_MODES } from '../../../../types/game/flightPhase';
+import type { FlightCameraKeyframe, FlightCameraMode, FlightCurveType, FlightPathNode, FlightPhaseConfig, FlightTimelineEvent } from '../../../../types/game/flightPhase';
 
 const FLIGHT_CURVE_HELP = [
   { value: 'catmullRom', label: 'catmullRom (smooth)' },
@@ -33,6 +34,61 @@ const Vec3 = ({ label, value, onChange, step = 0.5 }: { label: string; value: [n
     </div>
   </Field>
 );
+
+// Per-node camera: binds to the node's owned keyframe (cameraKeyframeForNode). Enable creates a keyframe at the
+// node's time; all edits write the SAME cameraKeyframes the preview + play read → instant + consistent.
+const NodeCameraPanel = ({ phase, node }: { phase: FlightPhaseConfig; node: FlightPathNode }) => {
+  const store = useFlightPhaseStore.getState();
+  const tl = useFlightTimelineStore();
+  const kf = cameraKeyframeForNode(phase, node.nodeId);
+  if (!kf) {
+    return (
+      <div className="mt-1 rounded border border-fuchsia-800/40 bg-slate-950/40 p-1.5">
+        <button onClick={() => { const id = store.addCameraKeyForNode(phase.phaseId, node.nodeId); if (id) tl.selectKeyframe(id); }} className="w-full rounded bg-fuchsia-700/30 px-2 py-1 text-[11px] text-fuchsia-100 hover:bg-fuchsia-700/50">🎥 Enable camera for this node</button>
+      </div>
+    );
+  }
+  const up = (patch: Partial<FlightCameraKeyframe>) => store.updateCameraKey(phase.phaseId, kf.keyframeId, patch);
+  const mode = kf.cameraMode ?? 'fixed';
+  const dupFromPrev = () => {
+    const i = phase.path.nodes.findIndex((n) => n.nodeId === node.nodeId);
+    for (let j = i - 1; j >= 0; j -= 1) {
+      const prev = cameraKeyframeForNode(phase, phase.path.nodes[j].nodeId);
+      if (prev) { const rest = { ...prev } as Partial<FlightCameraKeyframe>; delete rest.keyframeId; delete rest.time; delete rest.nodeId; up(rest); return; }
+    }
+  };
+  return (
+    <div className="mt-1 space-y-1 rounded border border-fuchsia-700/50 bg-fuchsia-950/20 p-1.5">
+      <div className="flex items-center justify-between">
+        <span className={lbl}>🎥 Node camera</span>
+        <button onClick={() => store.removeCameraKey(phase.phaseId, kf.keyframeId)} className="rounded bg-rose-800/40 px-2 py-0.5 text-[10px] text-rose-200 hover:bg-rose-800/60">Remove</button>
+      </div>
+      <SelectRow label="Camera mode" value={mode} options={FLIGHT_CAMERA_MODES.map((m) => ({ value: m, label: m }))} onChange={(v) => up({ cameraMode: v as FlightCameraMode })} />
+      <Vec3 label="Camera position (x / y / z)" value={kf.position} onChange={(v) => up({ position: v })} />
+      {(mode === 'fixed' || mode === 'lookAtNode' || mode === 'lookAtNextNode') && <Vec3 label="Look-at (x / y / z)" value={kf.lookAtTarget ?? [...node.position] as [number, number, number]} onChange={(v) => up({ lookAtTarget: v })} />}
+      {mode === 'follow' && <Vec3 label="Follow offset (x / y / z)" value={kf.followOffset ?? [0, 0, 0]} onChange={(v) => up({ followOffset: v })} />}
+      <div className="grid grid-cols-3 gap-1.5">
+        <NumRow label="FOV" value={kf.fov} step={1} min={10} max={120} onChange={(v) => up({ fov: v })} />
+        {(mode === 'follow') && <NumRow label="Distance" value={kf.distance ?? 12} step={0.5} min={0} onChange={(v) => up({ distance: v })} />}
+        {(mode === 'follow') && <NumRow label="Height" value={kf.height ?? 5} step={0.5} onChange={(v) => up({ height: v })} />}
+        {(mode === 'orbit') && <NumRow label="Orbit R" value={kf.orbitRadius ?? 14} step={1} min={1} onChange={(v) => up({ orbitRadius: v })} />}
+        {(mode === 'orbit') && <NumRow label="Orbit H" value={kf.orbitHeight ?? 6} step={1} onChange={(v) => up({ orbitHeight: v })} />}
+        <NumRow label="Damping" value={kf.damping ?? 0.4} step={0.05} min={0} max={1} onChange={(v) => up({ damping: v })} />
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <SelectRow label="Transition" value={kf.transitionType} options={FLIGHT_TRANSITIONS.map((t) => ({ value: t, label: t }))} onChange={(v) => up({ transitionType: v as FlightCameraKeyframe['transitionType'] })} />
+        <NumRow label="Transition (s)" value={kf.transitionDuration ?? 0.6} step={0.1} min={0} onChange={(v) => up({ transitionDuration: v })} />
+      </div>
+      <div className="flex flex-wrap gap-1">
+        <button onClick={() => { tl.scrub(kf.time); if (!tl.cameraPreview) tl.toggleCameraPreview(); }} className="rounded bg-fuchsia-700/30 px-2 py-0.5 text-[10px] text-fuchsia-100 hover:bg-fuchsia-700/50">👁 Preview</button>
+        <button onClick={() => up({ cameraMode: 'fixed', position: [editCameraHandle.camX, editCameraHandle.camY, editCameraHandle.camZ], lookAtTarget: [editCameraHandle.targetX, editCameraHandle.targetY, editCameraHandle.targetZ] })} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Apply editor cam</button>
+        <button onClick={dupFromPrev} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Dup from prev</button>
+        <button onClick={() => copyCameraSettings(kf)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Copy</button>
+        <button onClick={() => { const c = getCameraClipboard(); if (c) up(c); }} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Paste</button>
+      </div>
+    </div>
+  );
+};
 
 export const FlightPhaseEditor = () => {
   const phases = useFlightPhaseStore((s) => s.phases);
@@ -159,6 +215,7 @@ export const FlightPhaseEditor = () => {
             <SelectRow label="Flight pose" value={selNode.flightPose} options={FLIGHT_POSES.map((p) => ({ value: p, label: p }))} onChange={(v) => patchNode(selNode.nodeId, { flightPose: v as FlightPathNode['flightPose'] })} />
           </div>
           <SelectRow label="Camera target (keyframe)" value={selNode.cameraTargetId ?? ''} options={[{ value: '', label: '— none —' }, ...phase.cameraKeyframes.map((k) => ({ value: k.keyframeId, label: `${k.time.toFixed(1)}s` }))]} onChange={(v) => patchNode(selNode.nodeId, { cameraTargetId: v || undefined })} />
+          <NodeCameraPanel phase={phase} node={selNode} />
           {/* Curve handles — only shape the path in bezier mode; Manual seeds them from neighbours, Auto clears. */}
           {path.curveType === 'bezier' && (
             <div className="mt-1 space-y-1 rounded border border-fuchsia-800/40 bg-slate-950/40 p-1.5">
@@ -195,7 +252,10 @@ export const FlightPhaseEditor = () => {
             </div>
           ))}
         </div>
-        {selKey && (
+        {selKey && selKey.nodeId && (
+          <p className="mt-1 rounded bg-slate-900/60 px-2 py-1 text-[10px] text-slate-400">🎥 This camera is bound to node <b className="text-fuchsia-200">{path.nodes.find((n) => n.nodeId === selKey.nodeId)?.nodeName ?? selKey.nodeId}</b> — edit it in the node's <b>🎥 Node camera</b> panel above.</p>
+        )}
+        {selKey && !selKey.nodeId && (
           <div className="mt-1 space-y-1 rounded border border-fuchsia-800/40 bg-slate-950/40 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <NumRow label="Time (s)" value={selKey.time} step={0.1} min={0} onChange={(v) => store.updateCameraKey(phase.phaseId, selKey.keyframeId, { time: v })} />

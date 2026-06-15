@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
@@ -415,14 +415,15 @@ const GhostBurst = ({ fx }: { fx: ActiveEffect }) => {
   const starPositions = useMemo(() => new Float32Array(starCount * 3), [starCount]);
   const starTexture = useMemo(() => makeSoftTexture(), []);
   useEffect(() => () => { starTexture.dispose(); }, [starTexture]);
-  const [sourceModelId, setSourceModelId] = useState<string | undefined>(() => ghostSourceModelId(fx));
+  // Resolve the overlay model ONCE (stable) — re-resolving + setState in useFrame remounted the GLB clone every
+  // frame (key={sourceModelId}), which re-suspended useGLTF and stalled/flickered the whole effect.
+  const sourceModelId = useMemo(() => ghostSourceModelId(fx), [fx]);
   const asset = resolveModelAsset(sourceModelId);
 
   useFrame(() => {
     const live = liveEffect(fx);
     const liveActor = resolveGhostActor(live);
     const nextModelId = liveActor?.modelId ?? fallbackGhostModelId(live);
-    if (nextModelId && nextModelId !== sourceModelId) setSourceModelId(nextModelId);
     const k = Math.max(0, Math.min(1, live.progress));
     const grow = 1 - (1 - k) * (1 - k) * (1 - k);
     const maxScale = Math.max(1, live.scale ?? 14);

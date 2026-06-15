@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import { createEditorCollection } from './createEditorCollection';
 import type { TransformationDefinition, TransformationEffectTrack } from '../../types/game/transformation';
 import { SEED_TRANSFORMATIONS } from '../../data/game/transformations';
+import { effectTrackToConfig } from '../../game/transformation/effects/migrateEffects';
 
 function upgradeHeroCloneEffect(effect: TransformationEffectTrack): TransformationEffectTrack {
   if (effect.type !== 'ghost-burst') return effect;
@@ -24,7 +25,17 @@ function upgradeHeroCloneEffects(def: TransformationDefinition): TransformationD
     if (upgraded !== effect) changed = true;
     return upgraded;
   });
-  return changed ? { ...def, effectTracks } : def;
+  let next = changed ? { ...def, effectTracks } : def;
+  // Backfill the v2 registry effects (clone-burst combo) for transformations persisted before they existed.
+  if (!next.effects || next.effects.length === 0) {
+    const seed = SEED_TRANSFORMATIONS.find((s) => s.id === def.id);
+    if (seed?.effects?.length) next = { ...next, effects: seed.effects };
+  }
+  // Unify v1 + v2: migrate any remaining legacy effectTracks into the single `effects` list, then clear them.
+  if (next.effectTracks && next.effectTracks.length > 0) {
+    next = { ...next, effects: [...(next.effects ?? []), ...next.effectTracks.map(effectTrackToConfig)], effectTracks: [] };
+  }
+  return next;
 }
 
 const transformationStore = createEditorCollection<TransformationDefinition>({

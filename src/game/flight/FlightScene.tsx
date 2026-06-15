@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useUiStore } from '../../stores/uiStore';
 import { useGameStore } from '../../stores/game/useGameStore';
+import { usePlayerStore } from '../../stores/playerStore';
 import { useFlightPhaseStore, setActivePhaseForGamePhase } from '../../stores/game/flightPhaseStore';
 import { useFlightTimelineStore } from '../../stores/game/flightTimelineStore';
 import { DynamicAmbience } from '../world/DynamicAmbience';
@@ -9,6 +10,7 @@ import { EditModeAmbience } from '../edit/EditModeAmbience';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
 import { ExteriorLayer } from './ExteriorLayer';
+import { SceneSetPieceLayer } from '../world/SceneSetPieceLayer';
 import { LaunchTunnel } from './LaunchTunnel';
 import { FlightController } from './FlightController';
 import { FlightCamera } from './FlightCamera';
@@ -35,6 +37,7 @@ export const FlightScene = () => {
     return (p?.cameraKeyframes.length ?? 0) > 0;
   });
   const baseOrbit = phase === 'BASE_FLY_AROUND';
+  const areaId = usePlayerStore((s) => s.currentAreaId);
   // Bind the editor/runtime to the base-orbit Flight Phase whenever this scene is mounted.
   useEffect(() => { setActivePhaseForGamePhase('BASE_FLY_AROUND'); }, []);
 
@@ -42,13 +45,18 @@ export const FlightScene = () => {
     <>
       {editMode ? <EditModeAmbience /> : <DynamicAmbience />}
       <ExteriorLayer />
+      {/* Free-form scenery: models added from the left "➕ Add Model" palette spawn here as editable set-pieces
+          (move/rotate/scale/duplicate/delete via gizmo), so you build up the base environment without a panel. */}
+      <SceneSetPieceLayer areaId={areaId} />
 
       {/* EDIT — Flight Phase authoring */}
       {editMode && <FlightPathGizmoLayer />}
       {editMode && <FlightPhasePreviewController />}
       {editMode && <FlightPhaseEventRuntime />}
       {editMode && <FlightEditorViewController />}
-      {editMode && (cameraPreview && hasCameraKeys ? <FlightPhaseCameraController /> : <FollowCamera />)}
+      {/* Camera preview ON → exactly the Play camera (authored keyframes, else third-person follow); OFF →
+          the free editor orbit camera. */}
+      {editMode && (cameraPreview ? (hasCameraKeys ? <FlightPhaseCameraController /> : <FlightCamera />) : <FollowCamera />)}
       {editMode && <SceneEditorGizmo />}
 
       {/* PLAY — BASE_FLY_AROUND is GUIDED along the authored path (W/S throttle + A/D steer), so editing nodes

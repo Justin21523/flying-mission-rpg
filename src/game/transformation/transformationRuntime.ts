@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { RunnerSnapshot } from './TransformationTimelineRunner';
 import type { ModelSlot, TransformationDefinition } from '../../types/game/transformation';
+import { resetCameraFx } from './effects/cameraFx';
 
 export interface TransformationGhostActor {
   modelId: string;
@@ -59,4 +60,5 @@ export function resetTransformationRuntime(): void {
   txFrame.ghostScale = 1;
   txFrame.ghostActors = {};
   txFrame.showcaseYaw = 0;
+  resetCameraFx(); // clear any v2 camera FX (shake/fov/slow) on Stop/Restart/scene exit
 }

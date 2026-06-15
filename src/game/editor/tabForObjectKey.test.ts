@@ -6,7 +6,7 @@ describe('tabForObjectKey', () => {
   it('maps sceneEditStore area keys to tabs', () => {
     expect(tabForObjectKey('transform#structure#xf1__wing_left')).toBe('gxform');
     expect(tabForObjectKey('base#structure#b1')).toBe('gbase');
-    expect(tabForObjectKey('exterior#structure#e1')).toBe('gexterior');
+    expect(tabForObjectKey('exterior#structure#e1')).toBeNull(); // Exterior tab removed → edited via 3D inspector
     expect(tabForObjectKey('destination#structure#dst_parcel')).toBe('gdest');
     expect(tabForObjectKey('destination#npc#npc_mina')).toBe('gnpc');
   });

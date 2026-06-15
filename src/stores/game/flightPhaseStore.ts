@@ -4,7 +4,7 @@ import type {
   FlightCameraKeyframe, FlightPathNode, FlightPhaseConfig, FlightTimelineEvent,
 } from '../../types/game/flightPhase';
 import { FLIGHT_PHASE_SEED } from '../../data/game/flightPhase';
-import { syncPhaseDerived } from '../../game/flight/flightPhaseRuntime';
+import { syncPhaseDerived, getNodeTimes } from '../../game/flight/flightPhaseRuntime';
 
 // Authoritative Flight Phase store — the SINGLE source of truth for the base-exterior fly-around / orbit
 // phase. Edit Mode panels, 3D node/camera gizmos, the preview controller AND play all read/write here, so
@@ -25,6 +25,7 @@ interface FlightPhaseStoreState {
   reorderNode: (phaseId: string, nodeId: string, dir: -1 | 1) => void;
   // camera keyframes
   addCameraKey: (phaseId: string, time: number) => string | null;
+  addCameraKeyForNode: (phaseId: string, nodeId: string) => string | null;
   updateCameraKey: (phaseId: string, keyframeId: string, patch: Partial<FlightCameraKeyframe>) => void;
   removeCameraKey: (phaseId: string, keyframeId: string) => void;
   // events
@@ -46,6 +47,13 @@ const seed = (): FlightPhaseConfig[] => FLIGHT_PHASE_SEED.map((p) => syncPhaseDe
 
 function persist(phases: FlightPhaseConfig[]): void {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ phases })); } catch { /* ignore */ }
+}
+// Debounced persistence — a gizmo drag fires ~60 store writes/sec; writing localStorage every frame causes
+// visible jank (and makes the panel numbers feel "unstable"). Coalesce them; the in-memory store stays live.
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePersist(phases: FlightPhaseConfig[]): void {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => { persistTimer = null; persist(phases); }, 200);
 }
 function load(): FlightPhaseConfig[] {
   try {
@@ -73,7 +81,7 @@ export const useFlightPhaseStore = create<FlightPhaseStoreState>((set, get) => {
   // Apply a path mutation to one phase, recompute derived totals, persist.
   const mutate = (phaseId: string, fn: (p: FlightPhaseConfig) => FlightPhaseConfig) => {
     const phases = get().phases.map((p) => (p.phaseId === phaseId ? syncPhaseDerived(fn(p)) : p));
-    set({ phases }); persist(phases);
+    set({ phases }); schedulePersist(phases);
   };
   const withNodes = (p: FlightPhaseConfig, nodes: FlightPathNode[]): FlightPhaseConfig => ({ ...p, path: { ...p.path, nodes } });
   return {
@@ -140,7 +148,27 @@ export const useFlightPhaseStore = create<FlightPhaseStoreState>((set, get) => {
     addCameraKey: (phaseId, time) => {
       let id: string | null = null;
       mutate(phaseId, (p) => {
-        const k: FlightCameraKeyframe = { keyframeId: uid('cam'), time: Math.max(0, time), position: [0, 30, 70], rotation: [0, 0, 0], fov: 52, transitionType: 'easeInOut', followTargetId: 'craft' };
+        const k: FlightCameraKeyframe = { keyframeId: uid('cam'), time: Math.max(0, time), cameraMode: 'follow', position: [0, 30, 70], rotation: [0, 0, 0], fov: 52, transitionType: 'easeInOut', followTargetId: 'craft', distance: 12, height: 5, damping: 0.4, followOffset: [0, 0, 0] };
+        id = k.keyframeId;
+        return { ...p, cameraKeyframes: [...p.cameraKeyframes, k].sort((a, b) => a.time - b.time) };
+      });
+      return id;
+    },
+    // Create a camera keyframe OWNED by a node, at the node's arrival time (lookAtNode shot looking at the node).
+    addCameraKeyForNode: (phaseId, nodeId) => {
+      let id: string | null = null;
+      mutate(phaseId, (p) => {
+        if (p.cameraKeyframes.some((k) => k.nodeId === nodeId)) return p; // one camera per node
+        const idx = p.path.nodes.findIndex((n) => n.nodeId === nodeId);
+        const node = p.path.nodes[idx];
+        if (!node) return p;
+        const time = getNodeTimes(p.path)[idx] ?? 0;
+        const np = node.position;
+        const k: FlightCameraKeyframe = {
+          keyframeId: uid('cam'), nodeId, time, cameraMode: 'lookAtNode',
+          position: [np[0] + 8, np[1] + 6, np[2] + 12], rotation: [0, 0, 0], lookAtTarget: [...np] as [number, number, number],
+          fov: 52, transitionType: 'easeInOut', distance: 12, height: 5, damping: 0.4, followOffset: [0, 0, 0],
+        };
         id = k.keyframeId;
         return { ...p, cameraKeyframes: [...p.cameraKeyframes, k].sort((a, b) => a.time - b.time) };
       });
@@ -194,3 +222,18 @@ export function setActivePhaseForGamePhase(gamePhase: string): void {
   const match = s.phases.find((p) => p.gamePhase === gamePhase);
   if (match && s.activePhaseId !== match.phaseId) s.setActivePhase(match.phaseId);
 }
+
+// The camera keyframe a node owns (if any) — the node-camera panel + gizmos bind to it.
+export function cameraKeyframeForNode(phase: FlightPhaseConfig | undefined, nodeId: string): FlightCameraKeyframe | undefined {
+  return phase?.cameraKeyframes.find((k) => k.nodeId === nodeId);
+}
+
+// Module-level clipboard for Copy/Paste camera settings between nodes (shot params only, not id/time/node).
+type CameraClip = Omit<FlightCameraKeyframe, 'keyframeId' | 'time' | 'nodeId'>;
+let cameraClipboard: CameraClip | null = null;
+export function copyCameraSettings(k: FlightCameraKeyframe): void {
+  const rest = { ...k } as Partial<FlightCameraKeyframe>;
+  delete rest.keyframeId; delete rest.time; delete rest.nodeId;
+  cameraClipboard = rest as CameraClip;
+}
+export function getCameraClipboard(): CameraClip | null { return cameraClipboard; }

@@ -3,6 +3,8 @@ import type {
   TransformationPartKey, ModelSlot, Easing, FormStrategy, EffectType,
 } from '../../types/game/transformation';
 import { applyTransformationTimeTracks } from './transformationTimeTracks';
+import { evaluateEffectsAtTime } from './effects/evaluateEffectsAtTime';
+import { isV1EffectType, type ActiveEffectV2 } from '../../types/game/transformationEffects';
 
 // Pure, deterministic timeline runner (no R3F → unit-testable). Holds a timeline + mode, advances time on
 // tick(dt), and resolves a full snapshot (parts / model visibility / clip / camera shot / effects / backdrop)
@@ -55,6 +57,7 @@ export interface RunnerSnapshot {
   activeModelClips: ActiveModelClip[];
   activeCameraShot: TransformationCameraShot | null;
   activeEffects: ActiveEffect[];
+  activeEffectsV2: import('../../types/game/transformationEffects').ActiveEffectV2[]; // registry-driven v2 effects
   backdropIntensity: number;
   speedLineIntensity: number;
   activeVoiceText: string | null;
@@ -155,6 +158,18 @@ function effectFromStage(stage: TransformationStage, time: number): ActiveEffect
     particleCount: stage.params.particleCount,
     localTime,
     progress: progressFor(stage, time),
+  };
+}
+
+// A v1-typed authored config → a v1 ActiveEffect rendered by the bespoke EffectViz (look preserved). Clone /
+// model / v2 types render via the registry (TransformationEffectLayerV2) instead.
+function configToV1Active(a: ActiveEffectV2): ActiveEffect {
+  const c = a.config; const p = c.parameters;
+  return {
+    id: c.effectId, type: c.effectType as EffectType, startTime: c.startTime, duration: c.duration,
+    color: c.color, intensity: c.intensity, scale: p.scale, repeat: p.repeat ?? p.particleCount,
+    ghostSpread: p.ghostSpread, ghostPersist: p.ghostPersist, ringCount: p.ringCount, particleCount: p.particleCount,
+    spawnOffset: c.positionOffset, localTime: a.localTime, progress: a.progress,
   };
 }
 
@@ -340,6 +355,14 @@ export class TransformationTimelineRunner {
       const fx = effectFromStage(st, t);
       if (fx) activeEffects.push(fx);
     }
+    // Unified authored effects: route v1-typed ones to the bespoke (EffectViz) path so the look is preserved,
+    // everything else (clone/model/v2) to the registry path. Plus the stage-derived hero clone renders as the
+    // new inflate clone (registry) — EffectViz returns null for ghost-burst.
+    const activeEffectsV2: ActiveEffectV2[] = [];
+    for (const a of evaluateEffectsAtTime(def, t)) {
+      if (isV1EffectType(a.config.effectType)) activeEffects.push(configToV1Active(a));
+      else activeEffectsV2.push(a);
+    }
     for (const fx of activeEffects) {
       if (fx.type !== 'ghost-burst') continue;
       if (fx.modelSlot) modelVisible[fx.modelSlot] = true;
@@ -436,6 +459,7 @@ export class TransformationTimelineRunner {
       activeModelClips,
       activeCameraShot,
       activeEffects,
+      activeEffectsV2,
       backdropIntensity,
       speedLineIntensity,
       activeVoiceText,
@@ -446,4 +470,15 @@ export class TransformationTimelineRunner {
       exitScaleMul,
     };
   }
+}
+
+// Signature of the active-effect SET (v1 effects + models + clips + v2 effects) — the director/preview-driver
+// bumps useTxVersion with this so the effect layers re-mount/unmount only when the set changes (not per frame).
+export function snapshotEffectSig(s: RunnerSnapshot): string {
+  return [
+    s.activeEffects.map((e) => `${e.id}:${e.type}:${e.modelSlot ?? ''}:${e.modelRef ?? ''}`).join(','),
+    `${s.activeModelRef ?? ''}:${s.activeModelStageId ?? ''}`,
+    s.activeModelClips.map((c) => `${c.stageId}:${c.modelSlot ?? c.modelRef ?? ''}:${c.clipName}`).join(','),
+    s.activeEffectsV2.map((e) => e.config.effectId).join(','),
+  ].join('|');
 }

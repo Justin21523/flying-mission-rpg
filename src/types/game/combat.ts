@@ -22,7 +22,7 @@ export const DAMAGE_TYPES: readonly DamageType[] = [
 ];
 
 export type CombatSourceType = 'player' | 'enemy' | 'support' | 'environment' | 'debug';
-export type CombatTargetType = 'player' | 'enemy' | 'npc' | 'obstacle' | 'device' | 'dummy';
+export type CombatTargetType = 'player' | 'enemy' | 'npc' | 'obstacle' | 'device' | 'dummy' | 'boss';
 
 // ---- Player / combatant stats ----
 
@@ -152,6 +152,70 @@ export interface HitVolumeDefinition {
 export type CombatSkillType =
   | 'basic' | 'special' | 'aoe' | 'defense' | 'dash' | 'utility' | 'ultimate-placeholder';
 
+// Player-facing category (drives the skill bar grouping). Batch D.
+export type SkillCategory = 'normal' | 'heavy' | 'ranged' | 'aoe' | 'defense' | 'special' | 'ultimate';
+export const SKILL_CATEGORIES: readonly SkillCategory[] = ['normal', 'heavy', 'ranged', 'aoe', 'defense', 'special', 'ultimate'];
+
+export type SkillFaction = 'player' | 'enemy' | 'boss';
+
+// How a skill delivers its hit. Drives the behavior dispatch in skillBehaviors.ts. Hit-volume types use the
+// caster's HitVolumeRuntime query; projectile/summon/terrain spawn real GLB models via combatSpawnStore.
+export type AttackType =
+  | 'melee' | 'heavy' | 'charge' | 'dash'
+  | 'projectile' | 'homing' | 'lobbed' | 'air-support'
+  | 'shockwave' | 'line-pierce' | 'fan' | 'ring-aoe' | 'dot-zone'
+  | 'summon' | 'trap' | 'terrain'
+  | 'pull' | 'push' | 'boss-weakpoint' | 'none';
+export const ATTACK_TYPES: readonly AttackType[] = [
+  'melee', 'heavy', 'charge', 'dash', 'projectile', 'homing', 'lobbed', 'air-support',
+  'shockwave', 'line-pierce', 'fan', 'ring-aoe', 'dot-zone', 'summon', 'trap', 'terrain',
+  'pull', 'push', 'boss-weakpoint', 'none',
+];
+// Attack types that spawn a GLB model via combatSpawnStore (vs an instantaneous hit-volume query).
+export const SPAWN_ATTACK_TYPES: readonly AttackType[] = ['projectile', 'homing', 'lobbed', 'air-support', 'summon', 'trap', 'terrain'];
+
+export type DefenseType =
+  | 'none' | 'front-shield' | 'omni-barrier' | 'perfect-guard' | 'reflect-wall'
+  | 'absorb-energy' | 'quick-dash-iframe' | 'cover-spawn' | 'damage-reduction-zone'
+  | 'knockback-wave' | 'team-rescue';
+export const DEFENSE_TYPES: readonly DefenseType[] = [
+  'none', 'front-shield', 'omni-barrier', 'perfect-guard', 'reflect-wall', 'absorb-energy',
+  'quick-dash-iframe', 'cover-spawn', 'damage-reduction-zone', 'knockback-wave', 'team-rescue',
+];
+
+export type SpawnMovement = 'linear' | 'homing' | 'lobbed' | 'orbit' | 'seek' | 'stationary';
+
+export interface ProjectileConfig {
+  modelAssetId?: string; // GLB to render (falls back to a geometry bolt if absent)
+  speed: number;
+  lifetimeSeconds: number;
+  movement: 'linear' | 'homing' | 'lobbed';
+  radius: number; // impact radius
+  spreadDeg?: number;
+  count?: number;
+  onImpactEffectDefId?: string;
+}
+
+export interface SummonConfig {
+  modelAssetId?: string;
+  count: number;
+  lifetimeSeconds: number;
+  behavior: 'orbit' | 'seek' | 'stationary';
+  attackIntervalSeconds: number;
+  attackDamage: number;
+  attackRadius: number;
+}
+
+export interface TerrainConfig {
+  modelAssetId?: string;
+  count: number;
+  lifetimeSeconds: number;
+  radius: number;
+  blocksMovement?: boolean;
+  damagePerTick?: number;
+  tickIntervalSeconds?: number;
+}
+
 export interface DamageEventTemplate {
   amount: number;
   damageType: DamageType;
@@ -186,6 +250,29 @@ export interface CombatSkillDefinition {
   debug?: { ignoreEnergyCost?: boolean; ignoreCooldown?: boolean; showHitVolume?: boolean };
   editorMeta?: { displayName?: string; notes?: string; icon?: string; themeColor?: string };
   enabled?: boolean;
+
+  // ---- Batch D: model-driven skill fields (all optional → Batch B skills still valid) ----
+  ownerCharacterId?: string;
+  faction?: SkillFaction; // default 'player'
+  skillCategory?: SkillCategory;
+  attackType?: AttackType; // default inferred: hit-volume melee
+  defenseType?: DefenseType; // for skillCategory 'defense'
+  slot?: number; // 1..6 skill-bar slot (per owner)
+  // Model references — the heart of the model-driven design.
+  modelPrefabId?: string; // a model swung/attached for melee/heavy (e.g. character pose)
+  projectilePrefabId?: string; // convenience alias → projectile.modelAssetId
+  impactEffectPrefabId?: string;
+  summonPrefabId?: string; // convenience alias → summon.modelAssetId
+  projectile?: ProjectileConfig;
+  summon?: SummonConfig;
+  terrain?: TerrainConfig;
+  defenseValue?: number; // damage reduction (0..1) / absorb amount / iframe — meaning per defenseType
+  knockbackForce?: number;
+  stunDurationSeconds?: number;
+  speed?: number; // charge/dash travel speed
+  animationName?: string;
+  soundEffectId?: string;
+  unlockCondition?: string;
 }
 
 // ---- Model-first combat effects ----
@@ -246,6 +333,102 @@ export interface CombatEffectDefinition {
   pooling?: { poolId?: string; reusable: boolean };
   cleanup: { releaseToPool: boolean; destroyOnComplete: boolean };
   debug?: { showBounds?: boolean; showSockets?: boolean };
+}
+
+// ---- Enemy + Boss (Batch D, shared skill engine) ----
+
+export type EnemyAiBehavior = 'chaser' | 'kiter' | 'turret' | 'boss';
+
+// Batch C — named enemy archetypes with their own AI state machines (enemyAi.ts). 'generic' falls back to
+// the Batch D approach-and-cast loop.
+export type EnemyArchetype = 'generic' | 'crusher-drone' | 'pulse-turret' | 'shield-carrier';
+export const ENEMY_ARCHETYPES: readonly EnemyArchetype[] = ['generic', 'crusher-drone', 'pulse-turret', 'shield-carrier'];
+
+// All runtime AI states across the archetypes (a target uses the subset for its archetype).
+export type EnemyAiState =
+  | 'idle' | 'chasing' | 'charge-windup' | 'charging' | 'recovering'
+  | 'tracking' | 'firing' | 'cooldown'
+  | 'guarding' | 'bash' | 'shield-broken' | 'stunned' | 'defeated';
+
+export interface CrusherConfig {
+  windupSeconds: number;
+  chargeSpeed: number;
+  chargeDurationSeconds: number;
+  recoverSeconds: number;
+  damageAmount: number;
+  knockbackForce?: number;
+}
+export interface TurretConfig {
+  rotationSpeed: number; // rad/s
+  projectileSkillId: string; // enemy-faction projectile skill
+  fireCooldownSeconds: number;
+}
+export interface ShieldCarrierConfig {
+  arcDegrees: number;
+  shieldHp: number;
+  breakStaggerSeconds: number;
+  bashDamage: number;
+  bashRange: number;
+}
+
+export interface EnemyDefinition {
+  id: string;
+  name: string;
+  modelAssetId?: string; // a yokais/* (or any) GLB
+  maxHp: number;
+  maxShield?: number;
+  moveSpeed: number;
+  aggroRange: number;
+  attackRange: number;
+  aiBehavior: EnemyAiBehavior;
+  skillIds: string[]; // enemy-faction CombatSkillDefinition ids
+  weaknessTags: string[];
+  resistanceTags: string[];
+  isBoss?: boolean;
+  bossId?: string; // groups boss phases
+  scale?: number;
+  color?: string;
+  // Batch C — archetype + per-archetype AI config (optional → Batch D enemies stay valid).
+  archetype?: EnemyArchetype;
+  charge?: CrusherConfig;
+  turret?: TurretConfig;
+  shield?: ShieldCarrierConfig;
+  editorMeta?: { notes?: string };
+  enabled: boolean;
+}
+
+// ---- Enemy spawn groups (Batch C) — segment-linked encounters ----
+export interface EnemySpawnGroupDefinition {
+  id: string;
+  zoneId: string;
+  segmentId: string;
+  spawnMode: 'on-segment-enter' | 'on-condition' | 'debug-only';
+  enemies: { enemyDefinitionId: string; count: number; formation?: 'line' | 'circle' | 'cluster' }[];
+  completeWhenAllDefeated: boolean;
+  linkedZoneConditionId?: string;
+  respawn?: { enabled: boolean; maxRespawns?: number; respawnDelaySeconds?: number };
+  editorMeta?: { notes?: string };
+  enabled: boolean;
+}
+
+export interface BossPhaseDefinition {
+  id: string;
+  bossId: string;
+  name: string;
+  order: number;
+  hpThresholdPct: number; // enter this phase when hp <= this fraction of max (1 = from start)
+  skillIds: string[];
+  spawnMinions?: { enemyId: string; count: number }[];
+  enrageMoveSpeedMult?: number;
+  editorMeta?: { notes?: string };
+  enabled: boolean;
+}
+
+// Runtime active-defense state for a combatant (set by defense skills; read by applyDamageToPlayer).
+export interface ActiveDefenseState {
+  type: DefenseType;
+  untilMs: number;
+  value: number; // damage-reduction fraction / absorb amount / etc.
 }
 
 // ---- Validation ----

@@ -7,6 +7,8 @@ import { robotHandle } from '../destination/robotHandle';
 import { evaluateSegmentCompletion } from './ZoneCompletionEvaluator';
 import type { ZoneWorldProbe } from './ZoneCompletionEvaluator';
 import { activeSegment, beginFirstSegment, completeCurrentSegment, transitionToNextSegment } from './AdvancedMissionZoneDirector';
+import { clearedGroupIds, groupRemaining } from '../combat/enemySpawnDirector';
+import { destroyedObstacleIds, clearedObstacleIds, repairedObstacleIds } from '../obstacles/ObstacleDirector';
 
 // Drives the active Advanced Mission Zone each frame: enters the first segment, evaluates completion
 // conditions against the live robot position / objective progress, records proximity interactions and
@@ -19,6 +21,10 @@ function buildProbe(nowMs: number): ZoneWorldProbe {
   const rt = useMissionStore.getState().runtime;
   const completedObjectiveIds = new Set<string>();
   if (rt) for (const [id, p] of Object.entries(rt.objectiveProgress)) if (p.done) completedObjectiveIds.add(id);
+  // Enemy-group remaining counts for the active segment's defeat conditions.
+  const seg = activeSegment();
+  const enemyGroupRemaining: Record<string, { remaining: number; total: number }> = {};
+  for (const gid of seg?.placeholderEnemyGroupIds ?? []) enemyGroupRemaining[gid] = groupRemaining(gid);
   return {
     playerPos: { x: robotHandle.pos.x, z: robotHandle.pos.z },
     nowMs,
@@ -28,6 +34,22 @@ function buildProbe(nowMs: number): ZoneWorldProbe {
     clearedAreaIds: new Set(z.clearedAreaIds),
     completedSegmentIds: new Set(z.completedSegmentIds),
     godMode: z.debug.godMode,
+    clearedEnemyGroupIds: clearedGroupIds(),
+    enemyGroupRemaining,
+    destroyedObstacleIds: destroyedObstacleIds(),
+    clearedObstacleIds: clearedObstacleIds(),
+    repairedDeviceIds: repairedObstacleIds(),
+    // Batch E — support-combat recorded events.
+    usedSupportAbilityIds: new Set(z.usedSupportAbilityIds),
+    supportRepairedDeviceIds: new Set(z.supportRepairedDeviceIds),
+    supportClearedObstacleIds: new Set(z.supportClearedObstacleIds),
+    supportScannedTargetIds: new Set(z.supportScannedTargetIds),
+    protectedAreaSeconds: z.protectedAreaSeconds,
+    // Batch F — boss-encounter recorded events.
+    defeatedBossIds: new Set(z.defeatedBossIds),
+    completedBossPhaseIds: new Set(z.completedBossPhaseIds),
+    destroyedBossWeakpointIds: new Set(z.destroyedBossWeakpointIds),
+    clearedBossWaveIds: new Set(z.clearedBossWaveIds),
   };
 }
 

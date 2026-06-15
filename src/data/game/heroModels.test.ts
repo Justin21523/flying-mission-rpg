@@ -27,7 +27,7 @@ describe('aero-mission model catalog', () => {
       const ids = list.map((pose) => pose.id);
       expect(new Set(ids).size).toBe(ids.length);
       for (const pose of list) {
-        expect(pose.assetId.startsWith('aero-mission/')).toBe(true);
+        expect(pose.assetId.startsWith('super-wings/')).toBe(true);
         expect(pose.label.length).toBeGreaterThan(0);
       }
     }
@@ -40,7 +40,7 @@ describe('aero-mission model catalog', () => {
   });
 
   it('heroPoseAssetIds returns auto-derived pose ids only', () => {
-    expect(heroPoseAssetIds('char_flip').every((assetId) => assetId.startsWith('aero-mission/'))).toBe(true);
+    expect(heroPoseAssetIds('char_flip').every((assetId) => assetId.startsWith('super-wings/'))).toBe(true);
     expect(heroPoseAssetIds('char_flip')).toContain(id('Flip pose 3d model'));
     expect(heroPoseAssetIds('char_flip')).not.toContain(id('Flip+landing+1+robot'));
     expect(heroPoseAssetIds('char_jett')).toContain(id('Jett+pose+3d+model'));
@@ -51,7 +51,7 @@ describe('aero-mission model catalog', () => {
       [
         asset(id('Jett+transformer+3d+model')),
         asset(id('Jett new rescue pose 3d model')),
-        asset('aero-mission/futuristic aircraft hangar 3d model'),
+        asset('super-wings/futuristic aircraft hangar 3d model'),
       ],
       {},
       ['jett'],
@@ -115,7 +115,7 @@ describe('aero-mission model catalog', () => {
         asset(id('Jett+transformer+3d+model')),
         asset(id('Jett pose 3d model')),
         asset(hidden),
-        asset('aero-mission/futuristic aircraft hangar 3d model'),
+        asset('super-wings/futuristic aircraft hangar 3d model'),
       ],
       {
         char_jett: {
@@ -140,7 +140,7 @@ describe('aero-mission model catalog', () => {
       isHidden: true,
       isInPoseModels: false,
     });
-    expect(rows.find((row) => row.assetId === 'aero-mission/futuristic aircraft hangar 3d model')).toMatchObject({
+    expect(rows.find((row) => row.assetId === 'super-wings/futuristic aircraft hangar 3d model')).toMatchObject({
       status: 'unassigned',
       characterId: undefined,
       isInPoseModels: false,

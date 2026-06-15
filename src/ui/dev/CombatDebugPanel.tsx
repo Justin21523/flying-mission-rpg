@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { nanoid } from 'nanoid';
 import { useCombatStore } from '../../stores/game/useCombatStore';
 import { useCombatTargetStore, liveTargets } from '../../stores/game/combatTargetStore';
-import { useEditorDamageableStore } from '../../stores/game/editorCombatStore';
-import type { DamageableDefinition } from '../../types/game/combat';
+import { useEditorDamageableStore, useEditorEnemyStore, useEditorSpawnGroupStore, getSkillsForCharacter } from '../../stores/game/editorCombatStore';
+import type { DamageableDefinition, EnemyDefinition } from '../../types/game/combat';
 import { robotHandle } from '../../game/destination/robotHandle';
 import { castSkillById, applyDamageToPlayer, activeCombatantId } from '../../game/combat/CombatDirector';
+import { spawnEnemyFromDef } from '../../game/combat/enemyRuntime';
+import { spawnGroup } from '../../game/combat/enemySpawnDirector';
+import { useObstacleStore, liveObstacles } from '../../stores/game/obstacleStore';
+import * as ObstacleDirector from '../../game/obstacles/ObstacleDirector';
 
 // Developer tools for the Combat Runtime — god mode, debug flags, spawn/reset dummies, cast test skills,
 // and player vitals controls. Mounted in App.tsx for the game-state console / Edit Mode during combat phases.
@@ -28,12 +32,21 @@ function spawnDummy(def: DamageableDefinition): void {
   });
 }
 
+function spawnEnemyNearPlayer(def: EnemyDefinition): void {
+  const fx = Math.sin(robotHandle.heading), fz = Math.cos(robotHandle.heading);
+  spawnEnemyFromDef(def, robotHandle.pos.x + fx * 10 + (Math.random() - 0.5) * 6, robotHandle.pos.z + fz * 10 + (Math.random() - 0.5) * 6);
+}
+
 export const CombatDebugPanel = () => {
   const cs = useCombatStore();
   const damageables = useEditorDamageableStore((s) => s.items);
+  const enemies = useEditorEnemyStore((s) => s.items);
+  const groups = useEditorSpawnGroupStore((s) => s.items);
+  useObstacleStore((s) => s.version);
   const [snapshot, setSnapshot] = useState<string | null>(null);
   const id = cs.activeCombatantId ?? activeCombatantId();
   const stats = id ? cs.playerStatsByCharacterId[id] : undefined;
+  const charSkills = getSkillsForCharacter(id);
 
   const exportSnapshot = () => {
     const data = {
@@ -71,11 +84,40 @@ export const CombatDebugPanel = () => {
         <button onClick={() => useCombatTargetStore.getState().reset()} className={`${btn} bg-rose-700 hover:bg-rose-600`}>Reset</button>
       </div>
 
-      <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Cast test skill</div>
+      <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Spawn enemy / boss</div>
       <div className="flex flex-wrap gap-1">
-        <button onClick={() => castSkillById('skill_basic_arc_test')} className={`${btn} bg-orange-700 hover:bg-orange-600`}>Arc (J)</button>
-        <button onClick={() => castSkillById('skill_line_pierce_test')} className={`${btn} bg-sky-700 hover:bg-sky-600`}>Line (K)</button>
-        <button onClick={() => castSkillById('skill_ring_burst_test')} className={`${btn} bg-fuchsia-700 hover:bg-fuchsia-600`}>Ring (L)</button>
+        {enemies.map((en) => (
+          <button key={en.id} onClick={() => spawnEnemyNearPlayer(en)} className={`${btn} ${en.isBoss ? 'bg-fuchsia-800 hover:bg-fuchsia-700' : 'bg-rose-800 hover:bg-rose-700'}`}>{en.isBoss ? '👑 ' : ''}{en.name}</button>
+        ))}
+      </div>
+
+      <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Spawn group</div>
+      <div className="flex flex-wrap gap-1">
+        {groups.map((g) => (
+          <button key={g.id} onClick={() => { const fx = Math.sin(robotHandle.heading), fz = Math.cos(robotHandle.heading); spawnGroup(g.id, robotHandle.pos.x + fx * 12, robotHandle.pos.z + fz * 12); }} className={`${btn} bg-rose-800 hover:bg-rose-700`}>{g.id}</button>
+        ))}
+        {groups.length === 0 && <span className="text-[10px] text-slate-500">No spawn groups.</span>}
+      </div>
+
+      <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Obstacles ({liveObstacles.length})</div>
+      <div className="space-y-1">
+        {liveObstacles.map((o) => (
+          <div key={o.id} className="flex flex-wrap items-center gap-1 text-[10px]">
+            <span className="w-28 truncate text-slate-300">{o.id} · {o.state}</span>
+            <button onClick={() => ObstacleDirector.interact(o.id)} className={`${btn} bg-slate-700 hover:bg-slate-600`}>Interact</button>
+            <button onClick={() => ObstacleDirector.repair(o.id, 100)} className={`${btn} bg-emerald-700 hover:bg-emerald-600`}>Repair</button>
+            <button onClick={() => ObstacleDirector.debugClear(o.id)} className={`${btn} bg-rose-700 hover:bg-rose-600`}>Clear/Destroy</button>
+          </div>
+        ))}
+        {liveObstacles.length === 0 && <span className="text-[10px] text-slate-500">No live obstacles (enter a segment with one).</span>}
+      </div>
+
+      <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Cast {id ?? 'character'} skills</div>
+      <div className="flex flex-wrap gap-1">
+        {charSkills.map((s) => (
+          <button key={s.id} onClick={() => castSkillById(s.id)} className={`${btn} bg-sky-800 hover:bg-sky-700`} title={s.attackType}>[{s.slot}] {s.editorMeta?.displayName ?? s.name}</button>
+        ))}
+        {charSkills.length === 0 && <span className="text-[10px] text-slate-500">No skills for the active character.</span>}
       </div>
 
       <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Player</div>

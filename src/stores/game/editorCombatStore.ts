@@ -1,10 +1,19 @@
 import { nanoid } from 'nanoid';
 import { createEditorCollection } from './createEditorCollection';
-import type { CombatStatsPreset, CombatSkillDefinition, DamageableDefinition, CombatEffectDefinition } from '../../types/game/combat';
+import type { CombatStatsPreset, CombatSkillDefinition, DamageableDefinition, CombatEffectDefinition, EnemyDefinition, BossPhaseDefinition, EnemySpawnGroupDefinition } from '../../types/game/combat';
 import { SEED_COMBAT_STATS } from '../../data/combat/defaultCombatStats';
 import { SEED_COMBAT_SKILLS } from '../../data/combat/defaultSkills';
 import { SEED_DAMAGEABLES } from '../../data/combat/damageableDefinitions';
 import { SEED_COMBAT_EFFECTS } from '../../data/combat/combatEffectDefinitions';
+import { SEED_ENEMY_SKILLS } from '../../data/combat/enemySkills';
+import { SEED_CHARACTER_SKILLS } from '../../data/combat/characterSkills';
+import { SEED_ENEMIES, SEED_BOSS_PHASES } from '../../data/combat/enemyDefinitions';
+import { SEED_ENEMY_SPAWN_GROUPS } from '../../data/combat/enemySpawnGroups';
+import { SEED_KIT_SKILLS } from '../../data/character-skills/kitSkills';
+import { SEED_KIT_EFFECTS } from '../../data/character-skills/characterSkillEffects';
+import { SEED_SUPPORT_EFFECTS } from '../../data/support-combat/supportVisualEffects';
+import { SEED_BOSS_EFFECTS } from '../../data/bosses/bossVisualPresets';
+import { SEED_ARSENAL_SKILLS } from '../../data/character-abilities/allCharacterAbilities';
 
 // Editable Combat Runtime data (⚔ Combat tab). Four createEditorCollection stores — player stat presets,
 // skills, dummy damageables, and model-first effect defs. Seed-merged at boot in seedGameContent.
@@ -16,9 +25,27 @@ export const useEditorCombatStatsStore = createEditorCollection<CombatStatsPrese
 });
 
 export const useEditorCombatSkillStore = createEditorCollection<CombatSkillDefinition>({
-  storageKey: 'aero-rescue-editor-combat-skill-v1',
-  seed: SEED_COMBAT_SKILLS,
+  storageKey: 'aero-rescue-editor-combat-skill-v3',
+  seed: [...SEED_COMBAT_SKILLS, ...SEED_CHARACTER_SKILLS, ...SEED_ENEMY_SKILLS, ...SEED_KIT_SKILLS, ...SEED_ARSENAL_SKILLS],
   makeId: () => `skill_${nanoid(6)}`,
+});
+
+export const useEditorEnemyStore = createEditorCollection<EnemyDefinition>({
+  storageKey: 'aero-rescue-editor-combat-enemy-v1',
+  seed: SEED_ENEMIES,
+  makeId: () => `enemy_${nanoid(6)}`,
+});
+
+export const useEditorBossPhaseStore = createEditorCollection<BossPhaseDefinition>({
+  storageKey: 'aero-rescue-editor-combat-bossphase-v1',
+  seed: SEED_BOSS_PHASES,
+  makeId: () => `phase_${nanoid(6)}`,
+});
+
+export const useEditorSpawnGroupStore = createEditorCollection<EnemySpawnGroupDefinition>({
+  storageKey: 'aero-rescue-editor-combat-spawngroup-v1',
+  seed: SEED_ENEMY_SPAWN_GROUPS,
+  makeId: () => `spawn_${nanoid(6)}`,
 });
 
 export const useEditorDamageableStore = createEditorCollection<DamageableDefinition>({
@@ -28,8 +55,8 @@ export const useEditorDamageableStore = createEditorCollection<DamageableDefinit
 });
 
 export const useEditorCombatEffectStore = createEditorCollection<CombatEffectDefinition>({
-  storageKey: 'aero-rescue-editor-combat-effect-v1',
-  seed: SEED_COMBAT_EFFECTS,
+  storageKey: 'aero-rescue-editor-combat-effect-v2',
+  seed: [...SEED_COMBAT_EFFECTS, ...SEED_KIT_EFFECTS, ...SEED_SUPPORT_EFFECTS, ...SEED_BOSS_EFFECTS],
   makeId: () => `fx_${nanoid(6)}`,
 });
 
@@ -50,4 +77,26 @@ export function getCombatEffect(id: string): CombatEffectDefinition | undefined 
 export function getCombatStatsPreset(characterId: string | undefined): CombatStatsPreset | undefined {
   const items = useEditorCombatStatsStore.getState().items;
   return items.find((p) => p.characterId === characterId) ?? items.find((p) => p.characterId === 'default') ?? items[0];
+}
+// A character's player-faction skills, ordered by slot (for the skill bar).
+export function getSkillsForCharacter(characterId: string | undefined): CombatSkillDefinition[] {
+  if (!characterId) return [];
+  return useEditorCombatSkillStore.getState().items
+    .filter((s) => s.enabled !== false && (s.faction ?? 'player') === 'player' && s.ownerCharacterId === characterId)
+    .sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99));
+}
+export function getEnemyDefs(): EnemyDefinition[] {
+  return useEditorEnemyStore.getState().items;
+}
+export function getEnemyDef(id: string): EnemyDefinition | undefined {
+  return useEditorEnemyStore.getState().items.find((e) => e.id === id);
+}
+export function getBossPhases(bossId: string): BossPhaseDefinition[] {
+  return useEditorBossPhaseStore.getState().items.filter((p) => p.bossId === bossId).sort((a, b) => a.order - b.order);
+}
+export function getSpawnGroup(id: string): EnemySpawnGroupDefinition | undefined {
+  return useEditorSpawnGroupStore.getState().items.find((g) => g.id === id);
+}
+export function getSpawnGroupsForSegment(segmentId: string): EnemySpawnGroupDefinition[] {
+  return useEditorSpawnGroupStore.getState().items.filter((g) => g.segmentId === segmentId && g.enabled !== false);
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { nanoid } from 'nanoid';
 import { useEditorTransformationStore } from '../../../stores/game/editorTransformationStore';
+import { EffectsV2Editor } from './transformationEffects/EffectsV2Editor';
 import { useEditorCharacterStore } from '../../../stores/game/editorCharacterStore';
 import { useTransformationPreviewStore } from '../../../stores/game/transformationPreviewStore';
 import { useSceneEditStore } from '../../../stores/sceneEditStore';
@@ -20,7 +21,7 @@ import { transformModelSlotKey, transformPartKey, transformRootKey, transformSta
 import { getModelAsset } from '../../../data/modelLibrary';
 import { useGltfClipNames } from '../useGltfClipNames';
 import {
-  FORM_STRATEGIES, TRANSFORMATION_STAGE_TYPES, TRANSFORMATION_PART_KEYS, PART_GEOMETRY_KINDS, MODEL_SLOTS, EASINGS,
+  FORM_STRATEGIES, TRANSFORMATION_STAGE_TYPES, PART_GEOMETRY_KINDS, MODEL_SLOTS, EASINGS,
   CAMERA_SHOT_TYPES, EFFECT_TYPES, TRANSFORMATION_MODES, CAMERA_ROTATION_MODES,
 } from '../../../types/game/transformation';
 import type {
@@ -35,6 +36,8 @@ import { AnimationTrackSelect } from '../AnimationTrackSelect';
 
 const num = (v: string) => parseFloat(v) || 0;
 const opts = (xs: readonly string[]) => xs.map((x) => ({ value: x, label: x }));
+// Part-picker options from the definition's OWN (user-defined) parts — value = stable key, label = display name.
+const partOptions = (def: TransformationDefinition) => (def.parts ?? []).map((p) => ({ value: p.key, label: p.name ?? p.key }));
 const round = (n: number) => Math.round(n * 100) / 100;
 
 function clearOverrideField(key: string, field: 'position' | 'rotation' | 'scale'): void {
@@ -289,11 +292,12 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
   const parts = def.parts ?? [];
   const patch = (key: string, p: Partial<TransformationPart>) => update({ parts: parts.map((x) => (x.key === key ? { ...x, ...p } : x)) });
   const remove = (key: string) => update({ parts: parts.filter((x) => x.key !== key) });
-  const unused = TRANSFORMATION_PART_KEYS.filter((k) => !parts.some((p) => p.key === k));
+  // Fully user-defined parts: add any number, each with its own name / geometry / model.
   const add = () => {
-    const key = unused[0];
-    if (key) update({ parts: [...parts, { key, geometry: 'limb', basePosition: [0, 0, 0], baseRotation: [0, 0, 0], baseScale: 1 }] });
+    const key = `part_${nanoid(5)}`;
+    update({ parts: [...parts, { key, name: `Part ${parts.length + 1}`, geometry: 'box', basePosition: [0, 0, 0], baseRotation: [0, 0, 0], baseScale: 1 }] });
   };
+  const duplicate = (p: TransformationPart) => update({ parts: [...parts, { ...p, key: `part_${nanoid(5)}`, name: `${p.name ?? p.key} copy` }] });
   const livePos = (p: TransformationPart): [number, number, number] =>
     (overrides[transformPartKey(def.id, p.key)]?.position as [number, number, number]) ?? p.basePosition;
   const liveRot = (p: TransformationPart): [number, number, number] => {
@@ -321,21 +325,22 @@ const PartsEditor = ({ def, update }: { def: TransformationDefinition; update: (
     <div>
       <div className="flex items-center justify-between">
         <div className={lbl}>Parts · {parts.length}</div>
-        <button onClick={add} disabled={unused.length === 0} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50 disabled:opacity-40">➕ Part</button>
+        <button onClick={add} className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] text-emerald-100 hover:bg-emerald-700/50">➕ Part</button>
       </div>
       <p className="mt-0.5 text-[10px] text-slate-500">Drag the blue anchors in 3D (jump to TRANSFORMATION) — positions here follow live.</p>
       <div className="mt-1 space-y-1.5">
         {parts.map((p) => (
           <div key={p.key} className={`rounded border p-1.5 ${selectedKey === transformPartKey(def.id, p.key) ? 'border-violet-500/70 bg-violet-950/30' : 'border-slate-800 bg-slate-900/60'}`}>
             <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="truncate text-[11px] font-semibold text-sky-200">{p.key}</span>
+              <span className="truncate text-[11px] font-semibold text-sky-200">{p.name ?? p.key}</span>
               <div className="flex gap-1">
                 <FocusButton position={livePos(p)} objKey={transformPartKey(def.id, p.key)} />
                 <button onClick={() => useSceneEditStore.getState().requestSelect(transformPartKey(def.id, p.key))} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">Select</button>
+                <button onClick={() => duplicate(p)} className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200 hover:bg-slate-700">⧉</button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              <Field label="Part"><span className="text-[11px] font-semibold text-sky-200">{p.key}</span></Field>
+              <TextRow label="Name" value={p.name ?? p.key} onChange={(v) => patch(p.key, { name: v })} />
               <SelectRow label="Geometry (if no model)" value={p.geometry} options={PART_GEOMETRY_KINDS.map((g) => ({ value: g, label: g }))} onChange={(v) => patch(p.key, { geometry: v as TransformationPart['geometry'] })} />
             </div>
             <Field label="Model (empty = primitive)"><ModelPicker value={p.assetId} onChange={(v) => patch(p.key, { assetId: v })} noneLabel="(primitive)" /></Field>
@@ -476,7 +481,7 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
     case 'part-transform':
       return (
         <>
-          <SelectRow label="Part" value={p.partKey ?? ''} options={[{ value: '', label: '(none)' }, ...opts(TRANSFORMATION_PART_KEYS)]} onChange={(v) => patch({ partKey: (v || undefined) as typeof p.partKey })} />
+          <SelectRow label="Part" value={p.partKey ?? ''} options={[{ value: '', label: '(none)' }, ...partOptions(def)]} onChange={(v) => patch({ partKey: (v || undefined) as typeof p.partKey })} />
           <Vec3 label="To position" value={p.toPosition ?? [0, 0, 0]} onChange={(v) => patch({ toPosition: v })} />
           <Vec3 label="To rotation°" value={p.toRotation ?? [0, 0, 0]} onChange={(v) => patch({ toRotation: v })} />
           <NumRow label="To scale" value={p.toScale ?? 1} step={0.1} onChange={(v) => patch({ toScale: v })} />
@@ -552,7 +557,7 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
       return (
         <>
           <SelectRow label="Camera type" value={p.cameraShotType ?? 'orbit'} options={opts(CAMERA_SHOT_TYPES)} onChange={(v) => patch({ cameraShotType: v as typeof p.cameraShotType })} />
-          <SelectRow label="Target part" value={p.partKey ?? ''} options={[{ value: '', label: '(centre)' }, ...opts(TRANSFORMATION_PART_KEYS)]} onChange={(v) => patch({ partKey: (v || undefined) as typeof p.partKey })} />
+          <SelectRow label="Target part" value={p.partKey ?? ''} options={[{ value: '', label: '(centre)' }, ...partOptions(def)]} onChange={(v) => patch({ partKey: (v || undefined) as typeof p.partKey })} />
           <SelectRow label="Rotation mode" value={p.rotationMode ?? 'inherit'} options={opts(CAMERA_ROTATION_MODES)} onChange={(v) => patch({ rotationMode: v as typeof p.rotationMode })} />
           <NumRow label="Rotate speed °/s" value={p.rotateSpeedDeg ?? 23} step={5} onChange={(v) => patch({ rotateSpeedDeg: v })} />
           <NumRow label="Distance" value={p.distance ?? 7} step={0.5} onChange={(v) => patch({ distance: v })} />
@@ -571,7 +576,7 @@ const StageParams = ({ s, def, patch }: { s: TransformationStage; def: Transform
     case 'cloud-ripple-burst':
       return (
         <>
-          {s.type !== 'speed-line-burst' && <SelectRow label="Follow part" value={p.followTargetPart ?? ''} options={[{ value: '', label: '(centre)' }, ...opts(TRANSFORMATION_PART_KEYS)]} onChange={(v) => patch({ followTargetPart: (v || undefined) as typeof p.followTargetPart })} />}
+          {s.type !== 'speed-line-burst' && <SelectRow label="Follow part" value={p.followTargetPart ?? ''} options={[{ value: '', label: '(centre)' }, ...partOptions(def)]} onChange={(v) => patch({ followTargetPart: (v || undefined) as typeof p.followTargetPart })} />}
           <ColorRow label="Colour" value={p.color ?? '#ffffff'} onChange={(v) => patch({ color: v })} />
           <NumRow label="Intensity" value={p.intensity ?? 1} step={0.1} onChange={(v) => patch({ intensity: v })} />
           <NumRow label={s.type === 'cloud-ripple-burst' ? 'Radius' : 'Scale'} value={p.scale ?? (s.type === 'cloud-ripple-burst' ? 7.5 : 1)} step={0.1} min={0} onChange={(v) => patch({ scale: v })} />
@@ -797,7 +802,7 @@ const CameraEditor = ({ def, update }: { def: TransformationDefinition; update: 
           <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <SelectRow label="Type" value={s.type} options={opts(CAMERA_SHOT_TYPES)} onChange={(v) => patch(s.id, { type: v as TransformationCameraShot['type'] })} />
-              <SelectRow label="Target part" value={s.targetPart ?? ''} options={[{ value: '', label: '(centre)' }, ...opts(TRANSFORMATION_PART_KEYS)]} onChange={(v) => patch(s.id, { targetPart: (v || undefined) as TransformationCameraShot['targetPart'] })} />
+              <SelectRow label="Target part" value={s.targetPart ?? ''} options={[{ value: '', label: '(centre)' }, ...partOptions(def)]} onChange={(v) => patch(s.id, { targetPart: (v || undefined) as TransformationCameraShot['targetPart'] })} />
               <NumRow label="Start" value={s.startTime} step={0.1} min={0} onChange={(v) => patch(s.id, { startTime: v })} />
               <NumRow label="Duration" value={s.duration} step={0.1} min={0} onChange={(v) => patch(s.id, { duration: v })} />
               <NumRow label="Distance" value={s.distance} step={0.5} onChange={(v) => patch(s.id, { distance: v })} />
@@ -868,7 +873,7 @@ const EffectsEditor = ({ def, update }: { def: TransformationDefinition; update:
           <div key={s.id} className="rounded bg-slate-900/60 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <SelectRow label="Type" value={s.type} options={opts(EFFECT_TYPES)} onChange={(v) => patch(s.id, { type: v as TransformationEffectTrack['type'] })} />
-              <SelectRow label="Follow part" value={s.followTargetPart ?? ''} options={[{ value: '', label: '(centre)' }, ...opts(TRANSFORMATION_PART_KEYS)]} onChange={(v) => patch(s.id, { followTargetPart: (v || undefined) as TransformationEffectTrack['followTargetPart'] })} />
+              <SelectRow label="Follow part" value={s.followTargetPart ?? ''} options={[{ value: '', label: '(centre)' }, ...partOptions(def)]} onChange={(v) => patch(s.id, { followTargetPart: (v || undefined) as TransformationEffectTrack['followTargetPart'] })} />
               <NumRow label="Start" value={s.startTime} step={0.1} min={0} onChange={(v) => patch(s.id, { startTime: v })} />
               <NumRow label="Duration" value={s.duration} step={0.1} min={0} onChange={(v) => patch(s.id, { duration: v })} />
               <NumRow label="Intensity" value={s.intensity ?? 1} step={0.1} onChange={(v) => patch(s.id, { intensity: v })} />
@@ -998,7 +1003,7 @@ export const TransformationEditorTab = () => {
               )}
               {sub === 'parts' && <PartsEditor def={def} update={upd} />}
               {sub === 'camera' && <CameraEditor def={def} update={upd} />}
-              {sub === 'effects' && <EffectsEditor def={def} update={upd} />}
+              {sub === 'effects' && <>{def.effectTracks.length > 0 && <EffectsEditor def={def} update={upd} />}<EffectsV2Editor def={def} update={upd} /></>}
               {sub === 'preview' && <PreviewControls def={def} />}
 
               <div className="flex items-center gap-1.5 border-t border-slate-800/60 pt-2">

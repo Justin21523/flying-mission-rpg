@@ -12,7 +12,9 @@ describe('editorCombatStore', () => {
   it('seed-merge is idempotent for skills', () => {
     useEditorCombatSkillStore.getState().mergeMissingFromSeed();
     const n = useEditorCombatSkillStore.getState().items.length;
-    expect(n).toBe(SEED_COMBAT_SKILLS.length);
+    // The seed now includes the Batch B placeholders + the full Batch D hero/enemy catalog.
+    expect(n).toBeGreaterThanOrEqual(SEED_COMBAT_SKILLS.length);
+    expect(getCombatSkill('skill_basic_arc_test')).toBeDefined();
     useEditorCombatSkillStore.getState().mergeMissingFromSeed();
     expect(useEditorCombatSkillStore.getState().items.length).toBe(n);
   });

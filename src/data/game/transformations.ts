@@ -1,4 +1,6 @@
 import type { TransformationDefinition, TransformationStage, TransformationCameraShot, TransformationEffectTrack, TransformationPart } from '../../types/game/transformation';
+import type { TransformationEffectConfig } from '../../types/game/transformationEffects';
+import { effectTrackToConfig } from '../../game/transformation/effects/migrateEffects';
 import { heroPoseAssetIds } from './heroModels';
 
 // Seed transformation timelines — one per roster character (id matches CharacterDefinition.transformationId).
@@ -82,6 +84,32 @@ function effects(particle: string, ring: string): TransformationEffectTrack[] {
   ];
 }
 
+// v2 registry-driven effects — the cinematic clone-burst combo (§九/§十二): a real multi-clone burst + a
+// starburst + a shockwave ring + a glow aura, around the robot reveal. Plain data (renderers fill defaults).
+function effectsV2(particle: string): TransformationEffectConfig[] {
+  const common = {
+    delay: 0, attachToBone: false, useCharacterModel: true, useCustomModel: false,
+    positionOffset: [0, 0, 0] as [number, number, number], rotationOffset: [0, 0, 0] as [number, number, number],
+    scaleMultiplier: 1, opacity: 1, fadeInDuration: 0.3, emissiveColor: particle, blendMode: 'additive' as const,
+    loop: false, previewEnabled: true, enabled: true,
+  };
+  return [
+    {
+      ...common, effectId: 'v2_clone', effectName: 'Clone Burst', effectType: 'clone_burst_effect',
+      startTime: 15.5, duration: 4, layerOrder: 0, fadeOutDuration: 1.2, color: particle, intensity: 1, soundId: 'transform',
+      parameters: {
+        cloneCount: 8, cloneOpacity: 0.35, cloneStartScale: 1, cloneEndScale: 8, cloneLifetime: 4,
+        cloneSpreadRadius: 20, cloneMoveSpeed: 6, cloneAcceleration: 2, cloneFadeInDuration: 0.3,
+        cloneFadeOutDuration: 1.2, cloneBoundaryRadius: 25, cloneDisappearOnBoundary: true, cloneFaceOutward: true,
+        cloneUseCharacterPose: true, cloneKeepOriginalPose: true, cloneColorTint: particle, cloneMaterialMode: 'translucent',
+      },
+    },
+    { ...common, effectId: 'v2_star', effectName: 'Starburst', effectType: 'starburst_effect', startTime: 15.5, duration: 1.8, layerOrder: 1, fadeOutDuration: 0.6, color: particle, intensity: 1, soundId: 'ability', parameters: { particleShape: 'starburst', particleCount: 120, particleSpeed: 14, particleColorStart: '#ffffff', particleColorEnd: particle } },
+    { ...common, effectId: 'v2_shock', effectName: 'Shockwave', effectType: 'shockwave_ring_effect', startTime: 15.6, duration: 1.2, layerOrder: 2, fadeOutDuration: 0.5, color: particle, intensity: 1, soundId: 'boost', parameters: { radius: 15 } },
+    { ...common, effectId: 'v2_glow', effectName: 'Glow Aura', effectType: 'glow_aura_effect', startTime: 15.5, duration: 2, layerOrder: 3, fadeOutDuration: 0.8, color: particle, intensity: 1, parameters: { radius: 4, pulseSpeed: 3 } },
+  ];
+}
+
 interface Knobs { id: string; characterId: string; name: string; backdrop: string; particle: string; ring: string; flavour: Flavour; poses: string[]; }
 // Optional finish-pose MODEL swap (non-essential late stage): after the robot reveal, swap to a signature
 // pose GLB so the hero lands on a distinct pose. Non-essential → quick mode + the core reveal are untouched;
@@ -105,7 +133,8 @@ function build(k: Knobs): TransformationDefinition {
     parts: STD_PARTS.map((p) => ({ ...p })),
     stages: [...STD_STAGES.map((s) => ({ ...s, params: { ...s.params } })), ...finishPoseStages(k.characterId)],
     cameraShots: shots(k.flavour),
-    effectTracks: effects(k.particle, k.ring),
+    effectTracks: [], // unified into `effects` below
+    effects: [...effectsV2(k.particle), ...effects(k.particle, k.ring).map(effectTrackToConfig)],
     audioCues: [{ id: 'a_finish', startTime: 3.0, text: `${k.name.split(' ')[0]}: transform complete!` }],
     interactionShowcase: { enabled: true, rotateSpeedDeg: 90, poses: k.poses, promptText: 'A/D rotate · 1/2/3 pose · Enter continue · Esc skip' },
     controllerSwitchConfig: { planeControllerDisableTime: 0, robotControllerEnableTime: 15.5 },

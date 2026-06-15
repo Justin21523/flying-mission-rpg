@@ -5,8 +5,10 @@ import { SEED_EXTERIOR_PARTS } from '../../data/game/exteriorLayout';
 
 // Editable base-exterior + flight-route layout (reuses the collection factory). Rendered + gizmo-edited
 // by ExteriorLayer; navpoints guide the flight.
+// v3: the base is re-seeded GROUND-STANDING (plaza at y=0, station feet on the ground, clouds lifted into a
+// high sky layer). Bumping the key replaces the old saved layout that left the base floating in the clouds.
 export const useEditorExteriorStore = createEditorCollection<ExteriorPart>({
-  storageKey: 'aero-rescue-editor-exterior-v2',
+  storageKey: 'aero-rescue-editor-exterior-v3',
   seed: SEED_EXTERIOR_PARTS,
   makeId: () => `ext_${nanoid(6)}`,
 });

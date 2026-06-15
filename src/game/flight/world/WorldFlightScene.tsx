@@ -56,7 +56,9 @@ export const WorldFlightScene = () => {
       {editMode && <FlightPhasePreviewController />}
       {editMode && <FlightPhaseEventRuntime />}
       {editMode && <FlightEditorViewController />}
-      {editMode && (cameraPreview && hasCameraKeys ? <FlightPhaseCameraController /> : <FollowCamera />)}
+      {/* Camera preview ON → exactly the Play camera (authored keyframes, else third-person follow); OFF →
+          the free editor orbit camera. */}
+      {editMode && (cameraPreview ? (hasCameraKeys ? <FlightPhaseCameraController /> : <FlightCamera />) : <FollowCamera />)}
       {editMode && <SceneEditorGizmo />}
 
       {/* PLAY — guided along the authored aerial path; gameplay decoration/events keep running off flightHandle. */}

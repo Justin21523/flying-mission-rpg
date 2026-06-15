@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Line, Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { Vector3, type Group } from 'three';
+import { Vector3, type Group, type MeshStandardMaterial } from 'three';
 import { useFlightPhaseStore } from '../../stores/game/flightPhaseStore';
 import { useFlightTimelineStore } from '../../stores/game/flightTimelineStore';
 import { useWorldSelectStore } from '../../stores/worldSelectStore';
@@ -21,6 +21,7 @@ const HIN_KEY = (pathId: string, nodeId: string) => `${pathId}#fhin#${nodeId}`;
 const HOUT_KEY = (pathId: string, nodeId: string) => `${pathId}#fhout#${nodeId}`;
 const CAM_KEY = (phaseId: string, id: string) => `${phaseId}#fcam#${id}`;
 const LOOK_KEY = (phaseId: string, id: string) => `${phaseId}#flook#${id}`;
+const OFFSET_KEY = (phaseId: string, id: string) => `${phaseId}#foff#${id}`;
 
 const _a = new Vector3();
 const _b = new Vector3();
@@ -113,27 +114,82 @@ const NodeHandles = ({ phase, node }: { phase: FlightPhaseConfig; node: FlightPa
   return <>{handle('in', node.handleIn)}{handle('out', node.handleOut)}</>;
 };
 
-const CameraKeyGizmo = ({ phase, key0 }: { phase: FlightPhaseConfig; key0: FlightCameraKeyframe }) => (
-  <DataBackedPlacement
-    objKey={CAM_KEY(phase.phaseId, key0.keyframeId)}
-    position={key0.position}
-    color="#a855f7"
-    onMove={(p) => useFlightPhaseStore.getState().updateCameraKey(phase.phaseId, key0.keyframeId, { position: p })}
-    onDelete={() => useFlightPhaseStore.getState().removeCameraKey(phase.phaseId, key0.keyframeId)}
-  >
-    <mesh renderOrder={998} onUpdate={(self) => { (self.material as { depthTest?: boolean }).depthTest = false; }}>
-      <boxGeometry args={[1.1, 0.8, 1.4]} />
-      <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={0.5} depthTest={false} />
-    </mesh>
-    <mesh position={[0, 0, 1.2]} rotation={[Math.PI / 2, 0, 0]} renderOrder={998} raycast={() => null} onUpdate={(self) => { (self.material as { depthTest?: boolean }).depthTest = false; }}>
-      <coneGeometry args={[0.7, 1.2, 4]} />
-      <meshBasicMaterial color="#c4b5fd" transparent opacity={0.6} depthTest={false} wireframe />
-    </mesh>
-    <Text position={[0, 1.1, 0]} fontSize={0.45} color="#c4b5fd" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#000" raycast={() => null} depthOffset={-10}>
-      {`🎥 ${key0.time.toFixed(1)}s`}
-    </Text>
-  </DataBackedPlacement>
-);
+// World position a keyframe looks at: its lookAtTarget, else its bound (or next) node, else its forward.
+const camLookWorld = (phase: FlightPhaseConfig, k: FlightCameraKeyframe): Vec3Tuple | null => {
+  const mode = k.cameraMode ?? (k.followTargetId === 'craft' ? 'follow' : 'fixed');
+  if (mode === 'lookAtNode' || mode === 'lookAtNextNode') {
+    const i = k.nodeId ? phase.path.nodes.findIndex((n) => n.nodeId === k.nodeId) : -1;
+    if (i >= 0) { const t = mode === 'lookAtNextNode' ? phase.path.nodes[(i + 1) % phase.path.nodes.length] : phase.path.nodes[i]; if (t) return [...t.position]; }
+  }
+  return k.lookAtTarget ? [...k.lookAtTarget] : null;
+};
+
+const CameraKeyGizmo = ({ phase, key0 }: { phase: FlightPhaseConfig; key0: FlightCameraKeyframe }) => {
+  const mat = useRef<MeshStandardMaterial>(null);
+  const node = key0.nodeId ? phase.path.nodes.find((n) => n.nodeId === key0.nodeId) : undefined;
+  const mode = key0.cameraMode ?? (key0.followTargetId === 'craft' ? 'follow' : 'fixed');
+  const look = camLookWorld(phase, key0);
+  // Highlight when this keyframe is the dominant (nearest-in-time) shot at the current timeline time.
+  useFrame(() => {
+    if (!mat.current) return;
+    const t = useFlightTimelineStore.getState().currentTime;
+    const keys = phase.cameraKeyframes;
+    let nearest = keys[0]; let best = Infinity;
+    for (const k of keys) { const d = Math.abs(k.time - t); if (d < best) { best = d; nearest = k; } }
+    const active = nearest?.keyframeId === key0.keyframeId;
+    mat.current.emissiveIntensity = active ? 1.4 : 0.5;
+  });
+  return (
+    <DataBackedPlacement
+      objKey={CAM_KEY(phase.phaseId, key0.keyframeId)}
+      position={key0.position}
+      color="#a855f7"
+      onMove={(p) => useFlightPhaseStore.getState().updateCameraKey(phase.phaseId, key0.keyframeId, { position: p })}
+      onDelete={() => useFlightPhaseStore.getState().removeCameraKey(phase.phaseId, key0.keyframeId)}
+    >
+      <mesh renderOrder={998} onUpdate={(self) => { (self.material as { depthTest?: boolean }).depthTest = false; }}>
+        <boxGeometry args={[1.1, 0.8, 1.4]} />
+        <meshStandardMaterial ref={mat} color="#a855f7" emissive="#a855f7" emissiveIntensity={0.5} depthTest={false} />
+      </mesh>
+      <mesh position={[0, 0, 1.2]} rotation={[Math.PI / 2, 0, 0]} renderOrder={998} raycast={() => null} onUpdate={(self) => { (self.material as { depthTest?: boolean }).depthTest = false; }}>
+        <coneGeometry args={[0.7, 1.2, 4]} />
+        <meshBasicMaterial color="#c4b5fd" transparent opacity={0.6} depthTest={false} wireframe />
+      </mesh>
+      {/* direction arrow + faint line toward the look target (node / lookAt) */}
+      {look && <Line points={[key0.position, look]} color="#818cf8" lineWidth={1} depthTest={false} transparent opacity={0.45} />}
+      <Text position={[0, 1.1, 0]} fontSize={0.42} color="#c4b5fd" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#000" raycast={() => null} depthOffset={-10}>
+        {`🎥 ${node ? node.nodeName : key0.time.toFixed(1) + 's'} · ${mode}`}
+      </Text>
+    </DataBackedPlacement>
+  );
+};
+
+// Follow-offset handle for the SELECTED follow-mode keyframe — anchored at its bound node (or first node) +
+// followOffset; drag → followOffset relative to that anchor. Visualizes where the trailing camera sits.
+const FollowOffsetHandle = ({ phase, key0 }: { phase: FlightPhaseConfig; key0: FlightCameraKeyframe }) => {
+  const mode = key0.cameraMode ?? (key0.followTargetId === 'craft' ? 'follow' : 'fixed');
+  if (mode !== 'follow') return null;
+  const anchorNode = (key0.nodeId ? phase.path.nodes.find((n) => n.nodeId === key0.nodeId) : undefined) ?? phase.path.nodes[0];
+  if (!anchorNode) return null;
+  const off = key0.followOffset ?? [0, 0, 0];
+  const world = add(anchorNode.position, off);
+  return (
+    <>
+      <Line points={[anchorNode.position, world]} color="#fbbf24" lineWidth={1.5} depthTest={false} transparent opacity={0.7} dashed dashSize={0.8} gapSize={0.5} />
+      <DataBackedPlacement
+        objKey={OFFSET_KEY(phase.phaseId, key0.keyframeId)}
+        position={world}
+        color="#fbbf24"
+        onMove={(p) => useFlightPhaseStore.getState().updateCameraKey(phase.phaseId, key0.keyframeId, { followOffset: sub(p, anchorNode.position) })}
+      >
+        <mesh renderOrder={999} onUpdate={(self) => { (self.material as { depthTest?: boolean }).depthTest = false; }}>
+          <octahedronGeometry args={[0.5]} />
+          <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.6} depthTest={false} />
+        </mesh>
+      </DataBackedPlacement>
+    </>
+  );
+};
 
 // Draggable lookAt-target handle for the SELECTED camera keyframe (+ a line from the camera to the target).
 const CameraLookAt = ({ phase, key0 }: { phase: FlightPhaseConfig; key0: FlightCameraKeyframe }) => {
@@ -204,6 +260,7 @@ export const FlightPathGizmoLayer = () => {
       {showPath && selNode && <NodeHandles phase={phase} node={selNode} />}
       {showCam && phase.cameraKeyframes.map((k) => <CameraKeyGizmo key={k.keyframeId} phase={phase} key0={k} />)}
       {showCam && selKey && <CameraLookAt phase={phase} key0={selKey} />}
+      {showCam && selKey && <FollowOffsetHandle phase={phase} key0={selKey} />}
       <Playhead phase={phase} />
     </group>
   );

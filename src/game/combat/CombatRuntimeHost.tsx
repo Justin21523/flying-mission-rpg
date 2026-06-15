@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { getCombatSkills } from '../../stores/game/editorCombatStore';
+import { getCombatSkills, getSkillsForCharacter } from '../../stores/game/editorCombatStore';
 import { useDialogueStore } from '../../stores/dialogueStore';
 import { phaserBridge } from '../phaser/phaserBridge';
 import { robotHandle } from '../destination/robotHandle';
@@ -8,11 +8,14 @@ import { hitVolumeActiveWindow } from './HitVolumeRuntime';
 import { recordHitVolume } from './effects/combatDebugBus';
 import { initializeCombatForZone, shutdownCombat, castSkillById, activeCombatantId, registerPlayerCombatant, update } from './CombatDirector';
 import { tickZoneCombatClear, resetZoneCombatAdapter } from './ZoneCombatAdapter';
+import { SLOT_KEYS } from './skillSlots';
+import { hasKit, castArsenalAbilityBySlot, loadKitForCharacter } from '../character-skills/CharacterSkillKitDirector';
+import { routeActionKey, useAbilityPageStore } from '../character-skills/abilityPages';
 
 // Per-frame pump for the Combat Runtime + skill input. Registers the active combatant on mount, ticks the
-// director each frame, and binds skill keys (J/K/L by default — data-driven inputBinding). Skill input is
-// ignored while a Phaser mini-game overlay or dialogue is open. Mounted only in combat phases (the parent
-// layer is phase-gated), so heavy combat work stops outside the zone.
+// director each frame, and binds the active character's skills by slot (Z/X/Y/H/B/N). A skill without an
+// owner/slot can still be bound by its explicit inputBinding. Skill input is ignored while a Phaser overlay
+// or dialogue is open, or while a modifier is held (editor shortcuts). Mounted only in combat phases.
 export const CombatRuntimeHost = () => {
   useEffect(() => {
     initializeCombatForZone();
@@ -24,10 +27,30 @@ export const CombatRuntimeHost = () => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (phaserBridge.isOpen() || useDialogueStore.getState().isActive) return;
-      const skill = getCombatSkills().find((s) => s.enabled !== false && s.inputBinding === e.code);
+      const charId = activeCombatantId();
+
+      // Batch F.5 — paged ability input: Ctrl cycles the active ability page (handled before the modifier
+      // guard, so the Control keydown itself switches the page in combat).
+      if (e.code === 'ControlLeft' || e.code === 'ControlRight') {
+        if (charId && hasKit(charId)) { useAbilityPageStore.getState().cyclePage(); return; }
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return; // let editor shortcuts (Ctrl+Z/Y …) through
+
+      // Kit characters: the 4 action keys (4 / 5 / Z / X) cast the current page's ability set (so combos +
+      // utility fire); Ctrl pages through all 11 abilities. Non-kit heroes keep the generic slot scan.
+      if (charId && hasKit(charId)) {
+        const abilitySlot = routeActionKey(e.code, useAbilityPageStore.getState().page);
+        if (abilitySlot) { loadKitForCharacter(charId); castArsenalAbilityBySlot(charId, abilitySlot); }
+        return;
+      }
+
+      // Prefer the active character's slotted skill bar; fall back to an explicit inputBinding (Batch B).
+      const slot = SLOT_KEYS[e.code];
+      const skill = (slot ? getSkillsForCharacter(charId).find((s) => s.slot === slot) : undefined)
+        ?? getCombatSkills().find((s) => s.enabled !== false && s.inputBinding === e.code);
       if (!skill) return;
       // Make sure the combatant is registered (control may have switched).
-      registerPlayerCombatant(activeCombatantId());
+      registerPlayerCombatant(charId);
       const outcome = castSkillById(skill.id);
       if (outcome?.ok) {
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -42,7 +65,7 @@ export const CombatRuntimeHost = () => {
       }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); useAbilityPageStore.getState().reset(); };
   }, []);
 
   useFrame((_, dt) => { update(Math.min(0.05, dt)); tickZoneCombatClear(); });

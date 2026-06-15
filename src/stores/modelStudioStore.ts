@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { MODEL_ASSETS, type ModelAsset, type Vec3 } from '../data/modelLibrary';
+import { getModelAsset, type ModelAsset, type Vec3 } from '../data/modelLibrary';
 import type { AnimRule } from '../types/character';
 
 export type { ModelAsset, Vec3 };
@@ -40,7 +40,9 @@ useModelStudioStore.subscribe((s) => { try { localStorage.setItem(STORAGE_KEY, J
 
 export function resolveModelAsset(assetId: string | undefined): ModelAsset | undefined {
   if (!assetId) return undefined;
-  const base = MODEL_ASSETS[assetId];
+  // Resolve through getModelAsset so renamed ids still load (alias `aero-mission/* → super-wings/*`) — this is
+  // the resolver NormalizedGlbModel uses, so the base/hangar GLBs render even from stale (localStorage) ids.
+  const base = getModelAsset(assetId);
   if (!base) return undefined;
   const o = useModelStudioStore.getState().overrides[assetId];
   if (!o) return base;

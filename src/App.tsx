@@ -29,6 +29,19 @@ import { MissionZoneHud } from './ui/game/MissionZoneHud';
 import { MissionZoneDebugPanel } from './ui/dev/MissionZoneDebugPanel';
 import { CombatHud } from './ui/combat/CombatHud';
 import { CombatDebugPanel } from './ui/dev/CombatDebugPanel';
+import { GodModePanel } from './ui/debug/GodModePanel';
+import { CharacterSkillHud } from './ui/character-skills/CharacterSkillHud';
+import { CharacterSkillDebugPanel } from './ui/debug/CharacterSkillDebugPanel';
+import { SupportCombatPanel } from './ui/support-combat/SupportCombatPanel';
+import { SupportStatusHud } from './ui/support-combat/SupportStatusHud';
+import { SupportSynergyToast } from './ui/support-combat/SupportSynergyToast';
+import { SupportCombatDebugPanel } from './ui/debug/SupportCombatDebugPanel';
+import { BossHud } from './ui/boss/BossHud';
+import { BossWarningToast } from './ui/boss/BossWarningToast';
+import { BossDebugPanel } from './ui/debug/BossDebugPanel';
+import { CinematicAbilityDebugPanel } from './ui/debug/CinematicAbilityDebugPanel';
+import { VfxShowcaseDebugPanel } from './ui/debug/VfxShowcaseDebugPanel';
+import { CinematicVfxDebugPanel } from './ui/debug/CinematicVfxDebugPanel';
 import { HuntHud } from './ui/game/HuntHud';
 import { MissionCompleteHud } from './ui/game/MissionCompleteHud';
 import { HangarReturnHud } from './ui/game/HangarReturnHud';
@@ -36,7 +49,6 @@ import { MissionResultsScreen } from './ui/game/MissionResultsScreen';
 import { MultiCharacterHud } from './ui/hud/MultiCharacterHud';
 import { PhaserOverlay } from './ui/phaser/PhaserOverlay';
 import { DestinationDebugPanel } from './ui/dev/DestinationDebugPanel';
-import { WorldFlightDebugPanel } from './ui/dev/WorldFlightDebugPanel';
 import { TransformationDebugPanel } from './ui/dev/TransformationDebugPanel';
 import { SupportDebugPanel } from './ui/dev/SupportDebugPanel';
 import { SupportSelectionPanel } from './ui/support/SupportSelectionPanel';
@@ -313,7 +325,7 @@ export const App = () => {
       {!editMode && !world && basePhase && <BaseHud />}
       {!editMode && !world && flightPhase && <FlightHud />}
       {flightPhase && <FlightPhaseEventHud />}
-      {editMode && flightPhase && <FlightPlaybackOverlay />}
+      {editMode && (flightPhase || worldFlightPhase) && <FlightPlaybackOverlay />}
       {!editMode && !world && worldFlightPhase && (
         <>
           <FlightProgressHud />
@@ -329,6 +341,19 @@ export const App = () => {
       {!editMode && !world && missionPhase && !zonePhase && <MissionHud />}
       {!editMode && !world && zonePhase && <MissionZoneHud />}
       {!editMode && !world && combatPhase && <CombatHud />}
+      {!editMode && !world && (combatPhase || zonePhase) && <GodModePanel />}
+      {!editMode && !world && combatPhase && <CharacterSkillHud />}
+      {(fsmDebug || editMode) && combatPhase && <CharacterSkillDebugPanel />}
+      {!editMode && !world && (combatPhase || zonePhase) && <SupportCombatPanel />}
+      {!editMode && !world && (combatPhase || zonePhase) && <SupportStatusHud />}
+      {!editMode && !world && (combatPhase || zonePhase) && <SupportSynergyToast />}
+      {(fsmDebug || editMode) && combatPhase && <SupportCombatDebugPanel />}
+      {!editMode && !world && (combatPhase || zonePhase) && <BossHud />}
+      {!editMode && !world && (combatPhase || zonePhase) && <BossWarningToast />}
+      {(fsmDebug || editMode) && combatPhase && <BossDebugPanel />}
+      {(fsmDebug || editMode) && combatPhase && <CinematicAbilityDebugPanel />}
+      {(fsmDebug || editMode) && combatPhase && <VfxShowcaseDebugPanel />}
+      {(fsmDebug || editMode) && combatPhase && <CinematicVfxDebugPanel />}
       {!editMode && !world && (missionPhase || missionDonePhase) && !zonePhase && <QuestTracker />}
       {!editMode && !world && missionPhase && <SupportDispatchDirectorHost />}
       {!editMode && !world && missionPhase && <SupportSelectionPanel />}
@@ -347,7 +372,6 @@ export const App = () => {
       <DevPanel />
       {/* Phase jumper: always available in Edit Mode (jump to any mid-game scene), plus the Leva toggle. */}
       {(fsmDebug || editMode) && <GameStateDebugPanel />}
-      {(fsmDebug || editMode) && worldFlightPhase && <WorldFlightDebugPanel />}
       {(fsmDebug || editMode) && transformPhase && <TransformationDebugPanel />}
       {(fsmDebug || editMode) && (descentPhase || landingPhase || missionPhase || missionDonePhase) && <DestinationDebugPanel />}
       {(fsmDebug || editMode) && missionPhase && <SupportDebugPanel />}

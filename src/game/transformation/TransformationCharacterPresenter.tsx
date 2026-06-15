@@ -116,6 +116,9 @@ const GeomFor = ({ kind }: { kind: PartGeometryKind }) => {
     case 'limb': return <boxGeometry args={[0.28, 0.9, 0.28]} />;
     case 'head': return <boxGeometry args={[0.5, 0.5, 0.5]} />;
     case 'thruster': return <cylinderGeometry args={[0.18, 0.24, 0.7, 10]} />;
+    case 'box': return <boxGeometry args={[0.6, 0.6, 0.6]} />;
+    case 'sphere': return <sphereGeometry args={[0.45, 20, 14]} />;
+    case 'cylinder': return <cylinderGeometry args={[0.35, 0.35, 0.9, 16]} />;
     default: return <boxGeometry args={[0.8, 0.8, 1.4]} />; // core
   }
 };

@@ -6,6 +6,7 @@ import { useAudioStore } from '../../stores/audioStore';
 import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
 import { effectiveQualityPreset } from '../performance/QualityPresetController';
 import { cameraAngleRadians } from './transformationCameraMotion';
+import { txCameraFx } from './effects/cameraFx';
 
 // Drives the camera from the runner's active camera shot (orbit / close-up / low-angle / top-down / side-pan
 // / pull-back / finish-hero). Positions around the character at the origin by angle/distance/height, sets fov,
@@ -43,7 +44,11 @@ export const TransformationCameraController = () => {
       shake = shot.shakeIntensity ?? 0;
     }
 
-    if (!shakeAllowed.current) shake = 0;
+    // Additive camera FX from v2 camera_* effects (shake / fov push / time-slow), on top of the authored shot.
+    if (shakeAllowed.current) shake = Math.max(shake, txCameraFx.shake);
+    else shake = 0;
+    distance *= txCameraFx.distMul;
+    fov += txCameraFx.fovDelta;
     _pos.set(Math.sin(angle) * distance, height, Math.cos(angle) * distance);
     if (shake > 0) { _pos.x += (Math.random() - 0.5) * shake; _pos.y += (Math.random() - 0.5) * shake; }
     cam.position.lerp(_pos, k);

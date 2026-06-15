@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CombatStats, DamageResult } from '../../types/game/combat';
+import type { CombatStats, DamageResult, ActiveDefenseState } from '../../types/game/combat';
 
 // Combat Runtime state store. Holds player vitals, cooldowns, debug flags, and the last damage results for
 // the HUD. The CombatDirector / SkillRuntime own the logic and write here through actions; React UI only
@@ -23,6 +23,7 @@ interface CombatState {
 
   activeCooldowns: Record<string, number>; // skillId → perf-time (ms) the cooldown ends
   activeEffects: ActiveEffectInstance[];
+  activeDefenseByCharacterId: Record<string, ActiveDefenseState>;
 
   godMode: boolean;
   ignoreEnergyCost: boolean;
@@ -37,6 +38,7 @@ interface CombatState {
   setCombatStats: (characterId: string, stats: CombatStats) => void;
   updateCombatStats: (characterId: string, partial: Partial<CombatStats>) => void;
   startCooldown: (skillId: string, untilMs: number) => void;
+  setDefense: (characterId: string, state: ActiveDefenseState) => void;
   pushDamageResult: (result: DamageResult) => void;
   addEffect: (effect: ActiveEffectInstance) => void;
   removeEffect: (instanceId: string) => void;
@@ -52,9 +54,11 @@ export const useCombatStore = create<CombatState>((set) => ({
   activeCombatantId: undefined,
   activeCooldowns: {},
   activeEffects: [],
-  godMode: false,
-  ignoreEnergyCost: false,
-  ignoreCooldown: false,
+  activeDefenseByCharacterId: {},
+  // God mode default ON (testing build) — player invincible + free skills. Toggle in the God Mode panel.
+  godMode: true,
+  ignoreEnergyCost: true,
+  ignoreCooldown: true,
   showHitVolumes: false,
   showDamageNumbers: true,
   lastDamageResults: [],
@@ -73,6 +77,8 @@ export const useCombatStore = create<CombatState>((set) => ({
 
   startCooldown: (skillId, untilMs) => set((s) => ({ activeCooldowns: { ...s.activeCooldowns, [skillId]: untilMs } })),
 
+  setDefense: (characterId, state) => set((s) => ({ activeDefenseByCharacterId: { ...s.activeDefenseByCharacterId, [characterId]: state } })),
+
   pushDamageResult: (result) => set((s) => ({ lastDamageResults: [result, ...s.lastDamageResults].slice(0, DAMAGE_LOG_CAP) })),
 
   addEffect: (effect) => set((s) => ({ activeEffects: [...s.activeEffects, effect] })),
@@ -81,5 +87,5 @@ export const useCombatStore = create<CombatState>((set) => ({
   setDebugFlag: (flag, value) => set({ [flag]: value } as Pick<CombatState, CombatDebugFlag>),
   setGodMode: (enabled) => set({ godMode: enabled }),
 
-  resetCombat: () => set({ activeCooldowns: {}, activeEffects: [], lastDamageResults: [], playerStatsByCharacterId: {}, activeCombatantId: undefined }),
+  resetCombat: () => set({ activeCooldowns: {}, activeEffects: [], activeDefenseByCharacterId: {}, lastDamageResults: [], playerStatsByCharacterId: {}, activeCombatantId: undefined }),
 }));

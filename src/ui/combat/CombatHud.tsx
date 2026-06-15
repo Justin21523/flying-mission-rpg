@@ -2,9 +2,11 @@ import { useUiStore } from '../../stores/uiStore';
 import { useDevStore } from '../../stores/devStore';
 import { useCombatStore } from '../../stores/game/useCombatStore';
 import { useCombatTargetStore, liveTargets } from '../../stores/game/combatTargetStore';
-import { useEditorCombatSkillStore } from '../../stores/game/editorCombatStore';
+import { useEditorCombatSkillStore, getSkillsForCharacter } from '../../stores/game/editorCombatStore';
+import { getKitForCharacter } from '../../stores/game/editorCharacterKitStore';
 import { cooldownFraction } from '../../game/combat/CooldownManager';
 import { useNowMs } from '../../game/combat/useNowMs';
+import { SLOT_KEY_LABEL } from '../../game/combat/skillSlots';
 
 // Combat HUD — HP / Shield / Energy bars for the active combatant, skill cooldown chips, and the latest
 // damage result. A debug strip (game-state console / Edit Mode) surfaces the debug flags + target count.
@@ -34,7 +36,12 @@ export const CombatHud = () => {
   const ignoreEnergyCost = useCombatStore((s) => s.ignoreEnergyCost);
   const ignoreCooldown = useCombatStore((s) => s.ignoreCooldown);
   const showHitVolumes = useCombatStore((s) => s.showHitVolumes);
-  const skills = useEditorCombatSkillStore((s) => s.items);
+  // Re-derive the active character's skill bar when the skill collection changes. Kit characters
+  // (Jett/Donnie/Paul/Chase) show their named-slot bar via CharacterSkillHud instead.
+  const allSkills = useEditorCombatSkillStore((s) => s.items);
+  const kitChar = !!getKitForCharacter(activeId);
+  const charSkills = kitChar ? [] : getSkillsForCharacter(activeId);
+  const skills = kitChar ? [] : (charSkills.length > 0 ? charSkills : allSkills.filter((s) => s.enabled !== false && (s.faction ?? 'player') === 'player'));
 
   const stats = activeId ? statsById[activeId] : undefined;
   const now = useNowMs(150);
@@ -57,10 +64,11 @@ export const CombatHud = () => {
         {skills.filter((s) => s.enabled !== false).map((s) => {
           const frac = cooldownFraction(cooldowns, s.id, now, s.cooldownSeconds);
           const ready = frac <= 0;
+          const key = (s.slot && SLOT_KEY_LABEL[s.slot]) || s.inputBinding.replace('Key', '') || '·';
           return (
             <div key={s.id} className={`relative overflow-hidden rounded px-2 py-1 text-[10px] ${ready ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400'}`}>
               {!ready && <div className="absolute inset-0 bg-slate-900/70" style={{ width: `${frac * 100}%` }} />}
-              <span className="relative">{s.inputBinding.replace('Key', '')} · {s.editorMeta?.displayName ?? s.name}</span>
+              <span className="relative"><b className="text-sky-300">[{key}]</b> {s.editorMeta?.displayName ?? s.name}</span>
             </div>
           );
         })}

@@ -12,7 +12,8 @@ export function tabForObjectKey(key: string | null | undefined): string | null {
   switch (area) {
     case 'transform': return 'gxform';
     case 'base': return 'gbase';
-    case 'exterior': return 'gexterior';
+    // exterior base structures are edited via the 3D gizmo/inspector now (the Exterior tab was removed in
+    // favour of the free-form ➕ Add Model palette) — no hub tab to open.
     case 'destination': return kind === 'npc' ? 'gnpc' : 'gdest';
     case 'flight': return parts[2] === 'base_craft' ? 'gflight' : 'gworld';
     default: return null;

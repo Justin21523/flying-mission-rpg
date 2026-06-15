@@ -16,6 +16,36 @@ export interface CombatTarget {
   x: number; y: number; z: number;
   defeatedAt: number; // 0 = alive; else perf-time the defeat poof started
   segmentAreaId?: string; // optional: which zone clear-area this target belongs to
+  // Batch D — enemy/boss fields (undefined for plain dummies).
+  isEnemy?: boolean;
+  enemyDefId?: string;
+  modelAssetId?: string;
+  scale?: number;
+  color?: string;
+  moveSpeed?: number;
+  aggroRange?: number;
+  attackRange?: number;
+  aiBehavior?: string;
+  skillIds?: string[];
+  skillCooldowns?: Record<string, number>;
+  bossId?: string;
+  bossPhaseIndex?: number;
+  // Batch C — archetype AI + obstacle proxy fields.
+  archetype?: string;
+  aiState?: string;
+  aiData?: Record<string, number>; // blackboard: windupUntil / chargeUntil / recoverUntil / stunUntil / fireAt …
+  facingRad?: number;
+  shieldBroken?: boolean;
+  spawnGroupId?: string;
+  isObstacle?: boolean;
+  obstacleId?: string;
+  // Batch D-kits — Chase scan marks weakpoints (precision bonus on hit); stun via aiData.stunUntil.
+  scanned?: boolean;
+  weakpointExposed?: boolean;
+  // Batch F — boss encounter targets (driven by BossDirector, NOT the enemy AI host; rendered by BossRenderer).
+  isBossEntity?: boolean;
+  isBossWeakpoint?: boolean;
+  bossWeakpointId?: string;
 }
 
 export const liveTargets: CombatTarget[] = [];
@@ -32,8 +62,16 @@ export function drainCombatHits(out: CombatHitEvent[]): number {
 
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
 
+// Shove a live target (pull/push skills, knockback). Mutates in place — no store write needed (the renderer
+// reads the live position each frame).
+export function displaceTarget(id: string, dx: number, dz: number): void {
+  const t = liveTargets.find((x) => x.id === id);
+  if (t && !t.defeatedAt) { t.x += dx; t.z += dz; }
+}
+
 interface CombatTargetState {
   version: number;
+  bump: () => void;
   spawn: (t: CombatTarget) => void;
   remove: (id: string) => void;
   reset: () => void;
@@ -44,6 +82,8 @@ interface CombatTargetState {
 
 export const useCombatTargetStore = create<CombatTargetState>((set, get) => ({
   version: 0,
+
+  bump: () => set({ version: get().version + 1 }),
 
   spawn: (t) => { liveTargets.push(t); set({ version: get().version + 1 }); },
 

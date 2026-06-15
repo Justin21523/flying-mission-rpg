@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { Vec3Tuple } from '../../types/path';
 import type {
-  FlightCameraKeyframe, FlightPathConfig, FlightPhaseConfig, FlightPose, FlightTimelineEvent,
+  FlightCameraKeyframe, FlightCameraMode, FlightPathConfig, FlightPhaseConfig, FlightPose, FlightTimelineEvent,
 } from '../../types/game/flightPhase';
 
 // Pure evaluation engine for the Flight Phase — the SINGLE source of "what is the state at time t (seconds)".
@@ -300,19 +300,36 @@ const easings = {
 };
 
 export interface ResolvedFlightCamera {
+  cameraMode: FlightCameraMode;
   position: Vec3Tuple;
   lookAt?: Vec3Tuple;
   rotation: Vec3Tuple;
   fov: number;
   followTargetId?: string;
+  followOffset?: Vec3Tuple;
+  distance?: number;
+  height?: number;
+  damping?: number;
+  orbitRadius?: number;
+  orbitHeight?: number;
+  orbitSpeed?: number;
+  startAngle?: number;
+  endAngle?: number;
+  nodeId?: string;        // bound node of the dominant keyframe (for lookAtNode/orbit targets)
+  spanProgress: number;   // 0..1 within the current keyframe (for orbit angle sweep)
+}
+
+// Default mode when a keyframe predates cameraMode: 'craft' follow vs a fixed world shot.
+export function cameraModeOf(k: FlightCameraKeyframe): FlightCameraMode {
+  return k.cameraMode ?? (k.followTargetId === 'craft' ? 'follow' : 'fixed');
 }
 
 export function resolveCameraAtTime(keyframes: readonly FlightCameraKeyframe[], time: number): ResolvedFlightCamera | null {
   if (!keyframes.length) return null;
   const ks = [...keyframes].sort((x, y) => x.time - y.time);
-  if (time <= ks[0].time) return toCam(ks[0]);
+  if (time <= ks[0].time) return toCam(ks[0], 0);
   const last = ks[ks.length - 1];
-  if (time >= last.time) return toCam(last);
+  if (time >= last.time) return toCam(last, 1);
   let i = 0;
   while (i < ks.length - 1 && ks[i + 1].time <= time) i++;
   const a = ks[i];
@@ -320,18 +337,25 @@ export function resolveCameraAtTime(keyframes: readonly FlightCameraKeyframe[], 
   const span = b.time - a.time;
   const raw = span > 0 ? (time - a.time) / span : 0;
   const t = (easings[b.transitionType] ?? easings.linear)(raw);
-  const followTargetId = t < 0.5 ? a.followTargetId : b.followTargetId;
+  const dom = t < 0.5 ? a : b; // mode + per-shot params come from the dominant keyframe
   return {
+    ...toCam(dom, raw), // carry dominant's mode/params
     position: lerpVec(a.position, b.position, t),
     rotation: lerpVec(a.rotation, b.rotation, t),
     lookAt: a.lookAtTarget && b.lookAtTarget ? lerpVec(a.lookAtTarget, b.lookAtTarget, t) : (t < 0.5 ? a.lookAtTarget : b.lookAtTarget),
     fov: lerp(a.fov, b.fov, t),
-    followTargetId,
+    followTargetId: dom.followTargetId,
+    spanProgress: raw,
   };
 }
 
-function toCam(k: FlightCameraKeyframe): ResolvedFlightCamera {
-  return { position: k.position, rotation: k.rotation, lookAt: k.lookAtTarget, fov: k.fov, followTargetId: k.followTargetId };
+function toCam(k: FlightCameraKeyframe, spanProgress: number): ResolvedFlightCamera {
+  return {
+    cameraMode: cameraModeOf(k), position: k.position, rotation: k.rotation, lookAt: k.lookAtTarget, fov: k.fov,
+    followTargetId: k.followTargetId, followOffset: k.followOffset, distance: k.distance, height: k.height, damping: k.damping,
+    orbitRadius: k.orbitRadius, orbitHeight: k.orbitHeight, orbitSpeed: k.orbitSpeed, startAngle: k.startAngle, endAngle: k.endAngle,
+    nodeId: k.nodeId, spanProgress,
+  };
 }
 
 // ----- events ------------------------------------------------------------------------------------------

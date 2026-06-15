@@ -101,6 +101,21 @@ describe('flightPhaseRuntime camera', () => {
   it('returns null with no keyframes', () => {
     expect(resolveCameraAtTime([], 5)).toBeNull();
   });
+
+  it('carries the dominant keyframe camera mode + spanProgress (incl. fractional 5.5s)', () => {
+    const modal: FlightCameraKeyframe[] = [
+      { keyframeId: 'm0', time: 0, cameraMode: 'orbit', orbitRadius: 8, position: [0, 0, 0], rotation: [0, 0, 0], fov: 50, transitionType: 'linear' },
+      { keyframeId: 'm1', time: 10, cameraMode: 'follow', position: [0, 0, 0], rotation: [0, 0, 0], fov: 50, transitionType: 'linear' },
+    ];
+    expect(resolveCameraAtTime(modal, 2)!.cameraMode).toBe('orbit'); // dominant = first half
+    expect(resolveCameraAtTime(modal, 8)!.cameraMode).toBe('follow'); // dominant = second half
+    expect(resolveCameraAtTime(modal, 5.5)!.spanProgress).toBeCloseTo(0.55, 2);
+  });
+
+  it('derives mode from followTargetId for legacy keyframes', () => {
+    expect(resolveCameraAtTime([{ keyframeId: 'c', time: 0, position: [0, 0, 0], rotation: [0, 0, 0], fov: 50, transitionType: 'linear', followTargetId: 'craft' }], 0)!.cameraMode).toBe('follow');
+    expect(resolveCameraAtTime([{ keyframeId: 'f', time: 0, position: [0, 0, 0], rotation: [0, 0, 0], fov: 50, transitionType: 'linear' }], 0)!.cameraMode).toBe('fixed');
+  });
 });
 
 describe('flightPhaseRuntime events', () => {

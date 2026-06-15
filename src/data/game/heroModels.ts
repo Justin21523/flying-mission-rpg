@@ -2,7 +2,7 @@ import { MODEL_ASSET_LIST } from '../modelLibrary';
 import type { ModelAsset } from '../modelLibrary';
 import type { CharacterPoseModel } from '../../types/game/character';
 
-const SW = 'aero-mission/';
+const SW = 'super-wings/';
 
 export const SUPER_WINGS_CHARACTER_NAMES = ['jett', 'jerome', 'donnie', 'paul', 'bello', 'chase', 'flip', 'todd'] as const;
 export type HeroCharacterName = (typeof SUPER_WINGS_CHARACTER_NAMES)[number];
@@ -43,23 +43,23 @@ export interface HeroModelIntakeRow {
 }
 
 export const SUPER_WINGS_MODEL_OVERRIDES: HeroModelOverrides = {
-  char_jett: { robotAssetId: 'aero-mission/Jett+transformer+3d+model' },
-  char_jerome: { robotAssetId: 'aero-mission/Jerome+transformer+3d+model' },
+  char_jett: { robotAssetId: 'super-wings/Jett+transformer+3d+model' },
+  char_jerome: { robotAssetId: 'super-wings/Jerome+transformer+3d+model' },
   char_donnie: {
-    robotAssetId: 'aero-mission/Donnie+transformer+3d+model',
-    planeAssetId: 'aero-mission/Donnie airplane 3d model',
+    robotAssetId: 'super-wings/Donnie+transformer+3d+model',
+    planeAssetId: 'super-wings/Donnie airplane 3d model',
   },
   char_paul: {
-    robotAssetId: 'aero-mission/Paul+transformer+3d+model',
-    planeAssetId: 'aero-mission/Paul airplane 3d model',
+    robotAssetId: 'super-wings/Paul+transformer+3d+model',
+    planeAssetId: 'super-wings/Paul airplane 3d model',
   },
-  char_bello: { robotAssetId: 'aero-mission/Bello+transformer+3d+model' },
-  char_chase: { robotAssetId: 'aero-mission/Chase+transformer+3d+model' },
+  char_bello: { robotAssetId: 'super-wings/Bello+transformer+3d+model' },
+  char_chase: { robotAssetId: 'super-wings/Chase+transformer+3d+model' },
   char_flip: {
-    robotAssetId: 'aero-mission/Flip+transformer+3d+model',
-    planeAssetId: 'aero-mission/Flip airplane 3d model',
+    robotAssetId: 'super-wings/Flip+transformer+3d+model',
+    planeAssetId: 'super-wings/Flip airplane 3d model',
   },
-  char_todd: { robotAssetId: 'aero-mission/Todd+transformer+3d+model' },
+  char_todd: { robotAssetId: 'super-wings/Todd+transformer+3d+model' },
 };
 
 function displayName(name: string): string {

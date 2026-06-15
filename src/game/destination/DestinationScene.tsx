@@ -18,6 +18,8 @@ import { ObjectiveDirectorHost } from '../missions/ObjectiveDirectorHost';
 import { AdvancedMissionZoneDirectorHost } from '../advanced-mission-zone/AdvancedMissionZoneDirectorHost';
 import { ZoneMarkerLayer } from '../advanced-mission-zone/ZoneMarkerLayer';
 import { CombatRuntimeLayer } from '../combat/CombatRuntimeLayer';
+import { ZoneEncounterHost } from '../advanced-mission-zone/ZoneEncounterHost';
+import { ObstacleRenderer } from '../obstacles/ObstacleRenderer';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
 import { GroundAbilityFx } from './GroundAbilityFx';
@@ -74,6 +76,8 @@ export const DestinationScene = () => {
       <ZoneMarkerLayer />
       {!editMode && ZONE_PHASES.has(phase) && <AdvancedMissionZoneDirectorHost />}
       {!editMode && COMBAT_PHASES.has(phase) && <CombatRuntimeLayer />}
+      {!editMode && COMBAT_PHASES.has(phase) && <ZoneEncounterHost />}
+      <ObstacleRenderer />
       {!editMode && GROUND_PHASES.has(phase) && (
         <>
           <CompanionAiHost />
