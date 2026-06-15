@@ -80,6 +80,8 @@ import { Dock } from './ui/Dock';
 import { EditorHubPanel } from './ui/EditorHubPanel';
 import { EditAssetPalette } from './ui/EditAssetPalette';
 import { EditModeInspector } from './ui/EditModeInspector';
+import { FlightPlaybackOverlay } from './ui/game/FlightPlaybackOverlay';
+import { FlightPhaseEventHud } from './ui/game/FlightPhaseEventHud';
 import { SelectionTabSync } from './ui/SelectionTabSync';
 import { TerrainBrushHud } from './ui/TerrainBrushHud';
 import { MissionAreaQuickAddOverlay } from './ui/editor/game/MissionAreaQuickAddOverlay';
@@ -310,6 +312,8 @@ export const App = () => {
       {!editMode && !world && <GameScreens />}
       {!editMode && !world && basePhase && <BaseHud />}
       {!editMode && !world && flightPhase && <FlightHud />}
+      {flightPhase && <FlightPhaseEventHud />}
+      {editMode && flightPhase && <FlightPlaybackOverlay />}
       {!editMode && !world && worldFlightPhase && (
         <>
           <FlightProgressHud />

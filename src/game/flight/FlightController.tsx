@@ -9,7 +9,7 @@ import { getFlightTuning, useEditorFlightStore } from '../../stores/game/editorF
 import { useFlightRuntimeStore } from '../../stores/game/flightRuntimeStore';
 import { getExteriorByKind } from '../../stores/game/editorExteriorStore';
 import { getPath } from '../../stores/editorPathStore';
-import { getCurve, samplePos, sampleTangent } from '../path/pathCurve';
+import { getCurve, samplePos, sampleTangent, nearestU } from '../path/pathCurve';
 import { sampleNodeParams } from './pathNodeParams';
 import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
@@ -103,11 +103,16 @@ export const FlightController = () => {
         rot.current = { pitch: 0, yaw: 0, roll: 0 };
         speed.current = tuning.cruiseSpeed * speedMult * 0.5;
       } else if (phase === 'BASE_FLY_AROUND') {
-        pathU.current = 0; // start of the guided flight path
-        // Shoot-out: keep flying straight out of the tunnel at exit speed, blending onto the path.
-        blendT.current = prevPhase.current === 'LAUNCH_TUNNEL' ? 0 : 1;
-        carry.current.copy(flightHandle.pos);
-        carrySpeed.current = Math.max(flightHandle.speed, tuning.cruiseSpeed * speedMult);
+        // FREE aerial flight around the (visible) base — full WASD piloting, NOT rail-locked. Carry the
+        // tunnel-exit speed and face the base (nose −z) so the craft bursts out and you take over.
+        rot.current = { pitch: 0, yaw: 0, roll: 0 };
+        speed.current = Math.max(flightHandle.speed, tuning.cruiseSpeed * speedMult);
+      } else if (phase === 'CLOUD_ASCENT') {
+        // Re-acquire the guided climb path nearest the player's current spot, so the ascent continues smoothly
+        // from where they were free-flying (no teleport back to the path start).
+        const def = getPath(FLIGHT_PATH_ID);
+        const cc = def ? getCurve(def) : null;
+        pathU.current = cc ? nearestU(cc.curve, flightHandle.pos, _pos) : 0.6;
       }
       prevPhase.current = phase;
     }
@@ -137,9 +142,9 @@ export const FlightController = () => {
       return;
     }
 
-    // Guided fly-around + ascent — auto-follow the editable flight path (hold W to advance; reuses POLI's
-    // CatmullRom path). Locked to the curve + faces the tangent; the 3rd-person FlightCamera follows.
-    if (phase === 'BASE_FLY_AROUND' || phase === 'CLOUD_ASCENT') {
+    // Guided ASCENT only — auto-follow the editable climb path to the sky gate (hold W to advance; reuses
+    // POLI's CatmullRom path). BASE_FLY_AROUND is now FREE flight (handled by the input section below).
+    if (phase === 'CLOUD_ASCENT') {
       const def = getPath(FLIGHT_PATH_ID);
       const cc = def ? getCurve(def) : null;
       if (cc) {
@@ -181,8 +186,7 @@ export const FlightController = () => {
         flightHandle.speedNorm = kk['KeyW'] ? 0.9 : kk['KeyS'] ? 0.1 : 0.35; // camera feel (boost-based)
         flightHandle.throttle = kk['KeyW'] ? 1 : kk['KeyS'] ? -1 : 0;
         flightHandle.altitude = _pos.y;
-        flightHandle.routeU = pathU.current; // expose base-loop progress for the cue timeline (camera/events)
-        if (phase === 'BASE_FLY_AROUND' && _pos.y > 40) useGameStore.getState().requestTransition('CLOUD_ASCENT');
+        flightHandle.routeU = pathU.current; // expose ascent progress for the cue timeline (camera/events)
         // Reaching the end of the ascent path (the Sky Gate) hands off to the long-distance world flight.
         if (phase === 'CLOUD_ASCENT' && pathU.current >= 0.985) useGameStore.getState().requestTransition('WORLD_FLIGHT');
         return;

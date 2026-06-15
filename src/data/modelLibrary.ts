@@ -48,5 +48,12 @@ export const MODEL_ASSETS: Record<string, ModelAsset> = Object.fromEntries([
 export const MODEL_ASSET_LIST: ModelAsset[] = Object.values(MODEL_ASSETS).sort((a, b) => a.label.localeCompare(b.label));
 export const MODEL_CATEGORIES: string[] = [...new Set(MODEL_ASSET_LIST.map((a) => a.category))].sort();
 export function getModelAsset(id: string | undefined): ModelAsset | undefined {
-  return id ? MODEL_ASSETS[id] : undefined;
+  if (!id) return undefined;
+  const hit = MODEL_ASSETS[id];
+  if (hit) return hit;
+  // Compatibility alias: the project was renamed to "Aero Mission" but the GLB folder stayed `super-wings/`.
+  // Some seeds + persisted (localStorage) data still reference the old `aero-mission/` prefix — map it back so
+  // the base/hangar models resolve instead of falling back to a grey block.
+  if (id.startsWith('aero-mission/')) return MODEL_ASSETS['super-wings/' + id.slice('aero-mission/'.length)];
+  return undefined;
 }

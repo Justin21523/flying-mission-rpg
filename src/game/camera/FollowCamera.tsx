@@ -14,6 +14,7 @@ import { editCameraHandle } from './editCameraHandle';
 import type { PerspectiveCamera } from 'three';
 
 const _focusOff = new Vector3();
+const FOCUS_MIN_DIST = 10; // never zoom closer than this on a framed focus (no over-zoom)
 
 // Rebuilt simple third-person follow camera.
 //
@@ -107,10 +108,17 @@ export const FollowCamera = () => {
       // OrbitControls owns the camera; mirror its focus for the Add-Model palette + honour 🎯 focus requests.
       const c = controlsRef.current;
       if (c) {
-        // Editor "jump to object": pan the target (and camera, keeping the same view offset) to the request.
+        // Editor "jump to object": pan the target (and camera) to the request. With a frame radius, reframe to
+        // a sensible distance (clamped to a minimum) so node Focus never over-zooms; without one, keep the
+        // current view offset (angle + zoom).
         if (cameraFocus.fireId !== lastFocus.current) {
           lastFocus.current = cameraFocus.fireId;
           _focusOff.copy(state.camera.position).sub(c.target);
+          if (cameraFocus.radius > 0) {
+            const want = Math.max(FOCUS_MIN_DIST, cameraFocus.radius * 2.2);
+            if (_focusOff.lengthSq() < 1e-4) _focusOff.set(0.6, 0.8, 1);
+            _focusOff.setLength(want);
+          }
           c.target.set(cameraFocus.x, cameraFocus.y, cameraFocus.z);
           state.camera.position.copy(c.target).add(_focusOff);
           c.update();

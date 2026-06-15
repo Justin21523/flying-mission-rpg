@@ -30,6 +30,16 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
   const ctrlRef = useRef<TransformControlsImpl | null>(null);
   const selected = selectedKey === objKey;
 
+  // Attach the gizmo only AFTER the target group is committed + in the scene graph (one frame later), so
+  // TransformControls never throws "The attached 3D object must be a part of the scene graph" — this happened
+  // for gizmos that mount together with their selection (e.g. flight node/handle/camera gizmos).
+  const [attached, setAttached] = useState(false);
+  useEffect(() => {
+    if (!(selected && obj)) return; // not selected → stays/returns to false via cleanup
+    const id = requestAnimationFrame(() => setAttached(true));
+    return () => { cancelAnimationFrame(id); setAttached(false); };
+  }, [selected, obj]);
+
   // Register this placement so a multi-select primary can read its live position + move it during a batch drag.
   // Refs keep the registry entry stable while position/onMove change per render.
   const latest = useRef({ position, onMove });
@@ -85,7 +95,7 @@ export function DataBackedPlacement({ objKey, position, onMove, onDelete, color 
           </mesh>
         )}
       </group>
-      {selected && obj && (
+      {selected && obj && attached && (
         <TransformControls
           // Register the active controls so pointerOnGizmo() protects the drag (clicks near a handle no longer
           // steal selection) — same as SceneEditorGizmo. Clear on unmount only if we're still the active one.

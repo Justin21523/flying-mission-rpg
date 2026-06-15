@@ -24,7 +24,7 @@ export const SEED_BASE_PARTS: BasePart[] = [
     id: 'base_hangar',
     kind: 'hangar',
     label: 'Main Hangar',
-    assetId: 'aero-mission/futuristic aircraft hangar 3d model',
+    assetId: 'super-wings/futuristic aircraft hangar 3d model',
     modelTarget: 16,
     position: [0, 0, -4],
     rotation: [0, 0, 0],

@@ -1,9 +1,7 @@
 import { useEditorFlightStore } from '../../../stores/game/editorFlightStore';
 import type { FlightTuning } from '../../../types/game/flightControl';
 import { Field, inp, lbl } from '../editorShared';
-import { PathNodesEditor } from './worldTools/PathNodesEditor';
-import { FlightPreviewPanel } from './FlightPreviewPanel';
-import { FLIGHT_PATH_ID } from '../../../data/game/flightPath';
+import { FlightPhaseEditor } from './flightPhase/FlightPhaseEditor';
 
 // 🛩 Flight — live-editable flight handling. Takes effect immediately so the feel can be tuned without
 // code (per-character flightSpeed/agility further scale speed/turn at runtime).
@@ -83,6 +81,11 @@ export const FlightEditorTab = () => {
   const reset = useEditorFlightStore((s) => s.reset);
   return (
     <div className="space-y-2 text-xs">
+      <div className="rounded border border-sky-600/50 bg-sky-950/25 p-2">
+        <div className={lbl}>🛰 Flight Phase — multi-phase timeline editor</div>
+        <p className="mt-0.5 text-[10px] text-slate-500">Pick a phase (base orbit / aerial cruise / return), then ▶ Edit in 3D. Drag node / camera gizmos; the bottom-left playback bar scrubs the selected phase; edits reflect instantly at the current second.</p>
+        <div className="mt-1.5"><FlightPhaseEditor /></div>
+      </div>
       <CameraPanel />
       <div className="flex items-center justify-between">
         <div className={lbl}>Flight Tuning</div>
@@ -138,12 +141,6 @@ export const FlightEditorTab = () => {
         </div>
       </Field>
       <p className="text-[10px] text-slate-500">Live. Character flightSpeed/agility scale speed/turn on top of these. The craft is selectable in WORLD/BASE flight Edit Mode (gizmo → facing/scale/offset).</p>
-
-      <FlightPreviewPanel />
-
-      <div className={lbl}>Base fly-around loop — path nodes</div>
-      <p className="text-[10px] text-slate-500">Drag the nodes in 3D (BASE_FLY_AROUND edit) — per-node Speed× / Bank° shape the loop. The world route nodes live in 🛫 Aero World.</p>
-      <PathNodesEditor pathId={FLIGHT_PATH_ID} editPhase="BASE_FLY_AROUND" />
     </div>
   );
 };

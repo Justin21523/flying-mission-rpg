@@ -1,93 +1,65 @@
-import { useCallback } from 'react';
+import { useEffect } from 'react';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useUiStore } from '../../stores/uiStore';
 import { useGameStore } from '../../stores/game/useGameStore';
-import { useSceneEditStore } from '../../stores/sceneEditStore';
-import { useEditorFlightStore } from '../../stores/game/editorFlightStore';
-import type { FlightTuning } from '../../types/game/flightControl';
-import { asScaleNum } from '../edit/sceneEditMerge';
+import { useFlightPhaseStore, setActivePhaseForGamePhase } from '../../stores/game/flightPhaseStore';
+import { useFlightTimelineStore } from '../../stores/game/flightTimelineStore';
 import { DynamicAmbience } from '../world/DynamicAmbience';
 import { EditModeAmbience } from '../edit/EditModeAmbience';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
-import { PathDebugLayer } from '../poli/PathDebugLayer';
 import { ExteriorLayer } from './ExteriorLayer';
 import { LaunchTunnel } from './LaunchTunnel';
 import { FlightController } from './FlightController';
 import { FlightCamera } from './FlightCamera';
-import { BaseFlightCraftEditable } from './BaseFlightCraftEditable';
-import { BASE_CRAFT_KEY } from './baseCraftKey';
-import { FlightPreviewController } from './FlightPreviewController';
-import { FlightCuePreview } from './FlightCuePreview';
-import { FlightCuePlayController } from './FlightCuePlayController';
-import { FlightLegCameraGizmo } from './FlightLegCameraGizmo';
 import { FlightAudioHost } from '../audio/FlightAudioHost';
-import { useFlightPreviewStore } from '../../stores/game/flightPreviewStore';
-import { FLIGHT_PATH_ID } from '../../data/game/flightPath';
-import { offsetFromWorldPosition } from './flightTimelineTransforms';
-import { upsertFlightTimeKeyframe } from './flightTimeTracks';
-import type { FlightTimelineKeyframe } from '../../types/game/flightTimeline';
+import { FlightPathGizmoLayer } from './FlightPathGizmoLayer';
+import { FlightPhasePreviewController } from './FlightPhasePreviewController';
+import { FlightPhaseCameraController } from './FlightPhaseCameraController';
+import { FlightPhaseEventRuntime } from './FlightPhaseEventRuntime';
+import { FlightEditorViewController } from './FlightEditorViewController';
 
-const RAD2DEG = 180 / Math.PI;
-
-// Open-flight scene (LAUNCH_TUNNEL → BASE_FLY_AROUND → CLOUD_ASCENT). Reuses the kit ambience/sky + gizmo.
-// PLAY: flight controller + flight camera + Bloom; the launch tunnel shows during LAUNCH_TUNNEL.
-// EDIT: orbit camera + gizmo so the exterior/navpoints + the base-loop nodes + the selectable craft are
-// editable (flight suspended). The craft gizmo bakes into flight tuning (flyAroundCraftOffset/Yaw/Scale).
+// Open-flight scene (LAUNCH_TUNNEL → BASE_FLY_AROUND → CLOUD_ASCENT).
+// EDIT: orbit camera + the new Flight Phase editor — draggable path-node gizmos, a timeline-driven preview
+// craft (scrub the bottom-left overlay to any second), camera-keyframe gizmos, view presets, and camera/event
+// preview. The kit SceneEditorGizmo stays for the exterior set-pieces.
+// PLAY: LAUNCH_TUNNEL + CLOUD_ASCENT keep the free-flight controller; BASE_FLY_AROUND is the authored cinematic
+// — the craft flies the base-orbit path on its seconds timeline, the authored camera keyframes frame it, and
+// timeline events fire (the seeded nextPhase event advances to CLOUD_ASCENT).
 export const FlightScene = () => {
   const editMode = useUiStore((s) => s.editMode);
   const phase = useGameStore((s) => s.phase);
-  const tuning = useEditorFlightStore((s) => s.tuning);
-  const previewFlightCam = useFlightPreviewStore((s) => (s.playing || s.u > 0.001) && s.cameraMode === 'flight');
-
-  const bakeCraft = useCallback((key: string) => {
-    if (key !== BASE_CRAFT_KEY) return;
-    const ov = useSceneEditStore.getState().overrides[key];
-    if (!ov) return;
-    const u = useFlightPreviewStore.getState().u;
-    const patch: Partial<FlightTuning> = {};
-    const frame: Omit<FlightTimelineKeyframe, 'u'> = {};
-    if (ov.position) frame.position = offsetFromWorldPosition(FLIGHT_PATH_ID, 'forward', u, ov.position);
-    if (ov.rotation) frame.rotation = [ov.rotation[0] * RAD2DEG, ov.rotation[1] * RAD2DEG, ov.rotation[2] * RAD2DEG];
-    if (ov.scale !== undefined) frame.scale = asScaleNum(ov.scale) ?? undefined;
-    patch.flyAroundTimeTracks = upsertFlightTimeKeyframe(useEditorFlightStore.getState().tuning.flyAroundTimeTracks, { kind: 'craft' }, u, frame);
-    useEditorFlightStore.getState().update(patch);
-    useSceneEditStore.getState().setOverride(key, { position: undefined, rotation: undefined, scale: undefined });
-  }, []);
-  const writeCraftKey = useCallback((key: string) => {
-    if (key !== BASE_CRAFT_KEY) return;
-    const ov = useSceneEditStore.getState().overrides[key];
-    if (!ov) return;
-    const u = useFlightPreviewStore.getState().u;
-    const frame: Omit<FlightTimelineKeyframe, 'u'> = {};
-    if (ov.position) frame.position = offsetFromWorldPosition(FLIGHT_PATH_ID, 'forward', u, ov.position);
-    if (ov.rotation) frame.rotation = [ov.rotation[0] * RAD2DEG, ov.rotation[1] * RAD2DEG, ov.rotation[2] * RAD2DEG];
-    if (ov.scale !== undefined) frame.scale = asScaleNum(ov.scale) ?? undefined;
-    useEditorFlightStore.getState().update({
-      flyAroundTimeTracks: upsertFlightTimeKeyframe(useEditorFlightStore.getState().tuning.flyAroundTimeTracks, { kind: 'craft' }, u, frame),
-    });
-  }, []);
+  const cameraPreview = useFlightTimelineStore((s) => s.cameraPreview);
+  const hasCameraKeys = useFlightPhaseStore((s) => {
+    const p = s.phases.find((x) => x.phaseId === s.activePhaseId) ?? s.phases[0];
+    return (p?.cameraKeyframes.length ?? 0) > 0;
+  });
+  const baseOrbit = phase === 'BASE_FLY_AROUND';
+  // Bind the editor/runtime to the base-orbit Flight Phase whenever this scene is mounted.
+  useEffect(() => { setActivePhaseForGamePhase('BASE_FLY_AROUND'); }, []);
 
   return (
     <>
       {editMode ? <EditModeAmbience /> : <DynamicAmbience />}
-
       <ExteriorLayer />
-      {/* Flight route line + draggable node handles are EDIT-ONLY (no coloured guide line during play). */}
-      {editMode && <PathDebugLayer areaId="exterior" />}
-      {editMode && <BaseFlightCraftEditable />}
-      {editMode && <FlightPreviewController pathId={FLIGHT_PATH_ID} craftScale={tuning.flyAroundCraftScale} craftYaw={tuning.flyAroundCraftYawDeg} fallbackOffset={tuning.flyAroundCraftOffset} timeTracks={tuning.flyAroundTimeTracks} showCraft={false} />}
-      {editMode && <FlightCuePreview pathId={FLIGHT_PATH_ID} />}
-      {editMode && <FlightLegCameraGizmo />}
-      {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
-      {!editMode && <FlightController />}
-      {!editMode && <FlightCuePlayController pathId={FLIGHT_PATH_ID} />}
-      {!editMode && <FlightAudioHost />}
 
-      {/* EDIT: orbit camera, unless previewing with Camera = Flight (then show the real flight framing so the
-          authored cam distance/height + craft scale are visible live). PLAY: always the flight camera. */}
-      {!editMode ? <FlightCamera /> : previewFlightCam ? <FlightCamera /> : <FollowCamera />}
-      {editMode && <SceneEditorGizmo onCommit={bakeCraft} onChange={writeCraftKey} />}
+      {/* EDIT — Flight Phase authoring */}
+      {editMode && <FlightPathGizmoLayer />}
+      {editMode && <FlightPhasePreviewController />}
+      {editMode && <FlightPhaseEventRuntime />}
+      {editMode && <FlightEditorViewController />}
+      {editMode && (cameraPreview && hasCameraKeys ? <FlightPhaseCameraController /> : <FollowCamera />)}
+      {editMode && <SceneEditorGizmo />}
+
+      {/* PLAY — BASE_FLY_AROUND is GUIDED along the authored path (W/S throttle + A/D steer), so editing nodes
+          changes the real flown route; the authored camera keyframes + events ride the same progress. The other
+          flight phases keep the free-flight FlightController (LAUNCH_TUNNEL sprint, CLOUD_ASCENT climb). */}
+      {!editMode && phase === 'LAUNCH_TUNNEL' && <LaunchTunnel />}
+      {!editMode && baseOrbit && <FlightPhasePreviewController play />}
+      {!editMode && baseOrbit && <FlightPhaseEventRuntime play />}
+      {!editMode && !baseOrbit && <FlightController />}
+      {!editMode && (baseOrbit && hasCameraKeys ? <FlightPhaseCameraController /> : <FlightCamera />)}
+      {!editMode && <FlightAudioHost />}
 
       {!editMode && (
         <EffectComposer>
