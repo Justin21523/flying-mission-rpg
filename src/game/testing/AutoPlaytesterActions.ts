@@ -8,6 +8,7 @@ import { getEditorMissions } from '../../stores/game/editorMissionStore';
 import { getSaveData } from '../../stores/useSaveStore';
 import { devJumpU } from '../../game/flight/world/worldFlightDev';
 import { transformationDev } from '../../game/transformation/transformationDev';
+import { activeZone, completeMissionZone, debugCompleteCurrentSegment, debugJumpToSegment } from '../advanced-mission-zone/AdvancedMissionZoneDirector';
 
 // Batch 13 — the real AutoWorld: drives the live game through正式 store actions, synthetic keyboard events
 // (真實輸入 for the 3D controllers), and the existing debug fast-forward hooks (worldFlightDev /
@@ -61,6 +62,23 @@ export const realWorld: AutoWorld = {
     if (!rt) return false;
     const firstId = Object.keys(rt.objectiveProgress)[0];
     if (firstId) ms.setObjective(firstId, true);
+    return true;
+  },
+
+  completeCurrentZoneSegment: () => {
+    if (useGameStore.getState().phase !== 'ZONE_SEGMENT_GAMEPLAY') return false;
+    debugCompleteCurrentSegment();
+    return true;
+  },
+  jumpToFinalZoneSegment: () => {
+    const zone = activeZone();
+    const finalId = zone?.finalSegmentIds[0];
+    if (!finalId) return false;
+    debugJumpToSegment(finalId);
+    return true;
+  },
+  completeMissionZone: () => {
+    completeMissionZone();
     return true;
   },
 

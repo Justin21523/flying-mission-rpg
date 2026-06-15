@@ -1,6 +1,6 @@
 import type { GamePhase } from '../../types/game/state';
 import { AUTO_PLAYTESTER_CONFIG, type AutoPlaytesterConfig } from './AutoPlaytesterConfig';
-import { CORE_FLOW_ORDER, FINAL_PHASE, nextCorePhase, type AutoStatus } from './AutoPlaytesterStateMachine';
+import { CORE_FLOW_ORDER, BRANCH_PHASES, FINAL_PHASE, nextCorePhase, type AutoStatus } from './AutoPlaytesterStateMachine';
 
 // Phases whose transition is driven by the 3D controllers (not a UI button): real-flight steers them with
 // synthetic input and waits for the natural transition; a per-step timeout falls back to the debug hook.
@@ -21,6 +21,11 @@ export interface AutoWorld {
   /** Debug fast-forward past an auto-flight phase (used only after the per-step timeout). */
   forceAdvance(phase: GamePhase): void;
   completeObjective(): boolean;
+  /** Advanced Mission Zone (New Batch A) — debug-complete the active zone segment. Optional so older mock
+   *  worlds still satisfy AutoWorld. */
+  completeCurrentZoneSegment?(): boolean;
+  jumpToFinalZoneSegment?(): boolean;
+  completeMissionZone?(): boolean;
   /** Per-phase assertion; return a failure reason or null if OK. */
   assert(phase: GamePhase): string | null;
 }
@@ -97,7 +102,7 @@ export class AutoPlaytester {
       this.log.push('completed');
       return this.emit(now);
     }
-    if (phase !== 'BOOT' && !CORE_FLOW_ORDER.includes(phase)) {
+    if (phase !== 'BOOT' && !CORE_FLOW_ORDER.includes(phase) && !BRANCH_PHASES.has(phase)) {
       return this.fail(`left the core flow at ${phase}`, now);
     }
     if (now - this.startMs > this.config.totalTimeoutMs) {
@@ -149,6 +154,11 @@ export class AutoPlaytester {
       case 'MISSION_CONTROL': w.ensureMissionSelected(); w.go('MISSION_BRIEFING'); this.lastAction = 'select mission → briefing'; break;
       case 'CHARACTER_SELECTION': w.ensureCharacterSelected(); w.go('HANGAR'); this.lastAction = 'select character → hangar'; break;
       case 'MISSION_GAMEPLAY': w.completeObjective(); w.go('MISSION_COMPLETE'); this.lastAction = 'complete objective'; break;
+      // Advanced Mission Zone branch — the host (real game) drives ADVANCED_MISSION_ZONE / ZONE_COMPLETE;
+      // here we just debug-complete each active segment until the zone reaches MISSION_COMPLETE.
+      case 'ADVANCED_MISSION_ZONE': this.lastAction = 'entering mission zone'; break;
+      case 'ZONE_COMPLETE': this.lastAction = 'zone segment complete'; break;
+      case 'ZONE_SEGMENT_GAMEPLAY': w.completeCurrentZoneSegment?.(); this.lastAction = 'debug-complete zone segment'; break;
       default: {
         const n = nextCorePhase(phase);
         if (n) { w.go(n); this.lastAction = `→ ${n}`; }

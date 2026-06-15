@@ -10,6 +10,8 @@ import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStor
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
 import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { useEditorDestinationStore } from '../../stores/game/editorDestinationStore';
+import { useEditorMissionZoneStore } from '../../stores/game/editorMissionZoneStore';
+import { useEditorZoneSegmentStore } from '../../stores/game/editorZoneSegmentStore';
 import { useEditorSupportStore } from '../../stores/game/editorSupportStore';
 import { useEditorQualityStore } from '../../stores/game/editorQualityStore';
 import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetStore';
@@ -71,6 +73,8 @@ export function seedGameContent(): void {
   useEditorExteriorStore.getState().mergeMissingFromSeed();
   useEditorFlightEventStore.getState().mergeMissingFromSeed();
   useEditorDestinationStore.getState().mergeMissingFromSeed();
+  useEditorMissionZoneStore.getState().mergeMissingFromSeed();
+  useEditorZoneSegmentStore.getState().mergeMissingFromSeed();
   useEditorSupportStore.getState().mergeMissingFromSeed();
   useEditorQualityStore.getState().mergeMissingFromSeed();
   useEditorAudioPresetStore.getState().mergeMissingFromSeed();

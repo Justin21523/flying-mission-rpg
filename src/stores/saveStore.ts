@@ -13,6 +13,7 @@ import { useRescueLicenseStore } from './rescueLicenseStore';
 import { useJinResearchStore } from './jinResearchStore';
 import { useBoostStore } from './boostStore';
 import { useWalletStore } from './walletStore';
+import { useAdvancedMissionZoneStore } from './game/useAdvancedMissionZoneStore';
 import type { ToolId } from '../types/tool';
 import type { Quest } from '../types/quest';
 
@@ -36,6 +37,14 @@ export interface SaveData {
   research?: { researchPoints: number; completed: string[] };
   boost?: { meter: number; collected: number };
   wallet?: { coins: number };
+  // Advanced Mission Zone progress (New Batch A) — optional so old saves still load.
+  advancedMissionZone?: {
+    activeZoneId?: string;
+    activeSegmentId?: string;
+    completedSegmentIds: string[];
+    unlockedSegmentIds: string[];
+    missionZoneStatus: string;
+  };
 }
 export interface SaveSlot { name: string; savedAt: string; data: SaveData }
 
@@ -87,6 +96,10 @@ export function snapshotGame(): SaveData {
     research: { researchPoints: useJinResearchStore.getState().researchPoints, completed: [...useJinResearchStore.getState().completed] },
     boost: { meter: useBoostStore.getState().meter, collected: useBoostStore.getState().collected },
     wallet: { coins: useWalletStore.getState().coins },
+    advancedMissionZone: (() => {
+      const z = useAdvancedMissionZoneStore.getState();
+      return { activeZoneId: z.activeZoneId, activeSegmentId: z.activeSegmentId, completedSegmentIds: [...z.completedSegmentIds], unlockedSegmentIds: [...z.unlockedSegmentIds], missionZoneStatus: z.missionZoneStatus };
+    })(),
   };
 }
 
@@ -109,6 +122,16 @@ export function restoreGame(d: SaveData): void {
   if (d.research) useJinResearchStore.setState({ researchPoints: d.research.researchPoints, completed: [...d.research.completed] });
   if (d.boost) useBoostStore.getState().importState(d.boost);
   if (d.wallet) useWalletStore.getState().importState(d.wallet);
+  if (d.advancedMissionZone) {
+    const z = d.advancedMissionZone;
+    useAdvancedMissionZoneStore.setState({
+      activeZoneId: z.activeZoneId,
+      activeSegmentId: z.activeSegmentId,
+      completedSegmentIds: [...z.completedSegmentIds],
+      unlockedSegmentIds: [...z.unlockedSegmentIds],
+      missionZoneStatus: z.missionZoneStatus as never,
+    });
+  }
   // Restore location last: set area + request a spawn so the Player teleports there.
   usePlayerStore.getState().setCurrentAreaId(d.player.currentAreaId);
   if (d.player.position) usePlayerStore.getState().requestSpawn(d.player.position);

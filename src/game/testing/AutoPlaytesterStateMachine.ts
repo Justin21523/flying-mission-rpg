@@ -25,6 +25,15 @@ export const CORE_FLOW_ORDER: GamePhase[] = [
   'MISSION_COMPLETE',
 ];
 
+// Advanced Mission Zone branch (New Batch A). Landing at a zone location routes LANDING → these phases
+// instead of NPC_GREETING; both branches end at MISSION_COMPLETE. Kept OUT of the linear CORE_FLOW_ORDER
+// (whose consecutive pairs must each be a legal FSM transition) — the runner tolerates them separately.
+export const BRANCH_PHASES: ReadonlySet<GamePhase> = new Set<GamePhase>([
+  'ADVANCED_MISSION_ZONE',
+  'ZONE_SEGMENT_GAMEPLAY',
+  'ZONE_COMPLETE',
+]);
+
 export const FINAL_PHASE: GamePhase = 'MISSION_COMPLETE';
 
 /** The next phase the AutoPlaytester aims for after `phase`, or null if `phase` is the goal / off-path. */

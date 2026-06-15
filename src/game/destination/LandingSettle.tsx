@@ -3,6 +3,9 @@ import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
+import { useFlightStore } from '../../stores/game/useFlightStore';
+import { getMissionZoneForLocation } from '../../stores/game/editorMissionZoneStore';
+import { startMissionZone } from '../advanced-mission-zone/AdvancedMissionZoneDirector';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { AnimatedGlbModel } from '../world/AnimatedGlbModel';
 import { robotHandle } from './robotHandle';
@@ -36,7 +39,13 @@ export const LandingSettle = () => {
     }
     if (t.current >= SETTLE_SEC && !fired.current) {
       fired.current = true;
-      useGameStore.getState().requestTransition('NPC_GREETING');
+      // If this location has an Advanced Mission Zone, route into it; otherwise keep the legacy NPC flow.
+      const zone = getMissionZoneForLocation(useFlightStore.getState().currentLocationId);
+      if (zone && startMissionZone(zone.id)) {
+        useGameStore.getState().requestTransition('ADVANCED_MISSION_ZONE');
+      } else {
+        useGameStore.getState().requestTransition('NPC_GREETING');
+      }
     }
   });
 

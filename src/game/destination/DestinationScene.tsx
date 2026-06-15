@@ -15,6 +15,8 @@ import { RobotDescentController } from './RobotDescentController';
 import { RobotGroundController } from './RobotGroundController';
 import { LandingSettle } from './LandingSettle';
 import { ObjectiveDirectorHost } from '../missions/ObjectiveDirectorHost';
+import { AdvancedMissionZoneDirectorHost } from '../advanced-mission-zone/AdvancedMissionZoneDirectorHost';
+import { ZoneMarkerLayer } from '../advanced-mission-zone/ZoneMarkerLayer';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
 import { GroundAbilityFx } from './GroundAbilityFx';
@@ -32,7 +34,9 @@ import { PoseSwitchFxLayer } from '../characters/PoseSwitchFxLayer';
 // One scene for all five phases: the POLI editable ground ('aero_destination' — sculpt/PBR/environment
 // tools work here), the gizmo-editable layout + NPCs, and the phase-appropriate controller. Edit Mode shows
 // everything selectable with the flat-bright ambience. Runtime resets on unmount.
-const GROUND_PHASES = new Set(['NPC_GREETING', 'MISSION_GAMEPLAY', 'SUPPORT_SELECTION', 'MISSION_COMPLETE']);
+const GROUND_PHASES = new Set(['NPC_GREETING', 'MISSION_GAMEPLAY', 'ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'ZONE_COMPLETE', 'SUPPORT_SELECTION', 'MISSION_COMPLETE']);
+// Advanced Mission Zone gameplay phases — drive the zone director host + markers.
+const ZONE_PHASES = new Set(['ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'ZONE_COMPLETE']);
 
 export const DestinationScene = () => {
   const editMode = useUiStore((s) => s.editMode);
@@ -62,7 +66,10 @@ export const DestinationScene = () => {
       <PoseSwitchFxLayer />
       {!editMode && phase === 'DESCENT' && <RobotDescentController />}
       {!editMode && phase === 'LANDING' && <LandingSettle />}
-      {!editMode && (phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY') && <ObjectiveDirectorHost />}
+      {!editMode && (phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'ZONE_SEGMENT_GAMEPLAY') && <ObjectiveDirectorHost />}
+      {/* Advanced Mission Zone — markers (edit + play) and the per-frame director host (play only). */}
+      <ZoneMarkerLayer />
+      {!editMode && ZONE_PHASES.has(phase) && <AdvancedMissionZoneDirectorHost />}
       {!editMode && GROUND_PHASES.has(phase) && (
         <>
           <CompanionAiHost />
