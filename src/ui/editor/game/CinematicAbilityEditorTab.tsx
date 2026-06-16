@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useCinematicAbilityEditorStore } from '../../../stores/game/useCinematicAbilityEditorStore';
 import { ABILITY_CATEGORIES, ABILITY_SLOTS } from '../../../types/abilityArsenalTypes';
-import type { CinematicAbilityDefinition } from '../../../types/abilityArsenalTypes';
+import type { CinematicAbilityDefinition, AbilityVisualScale, CinematicModelScalePreset } from '../../../types/abilityArsenalTypes';
 import { validateAbility } from '../../../game/character-abilities/cinematicAbilityValidation';
 import { getCinematicEffect } from '../../../stores/game/useCinematicEffectStore';
+import { MODEL_SCALE_PRESETS, visualScaleForCategory } from '../../../data/cinematic-vfx/modelScalePresets';
 import { Field, inp, lbl, csv, parseCsv } from '../editorShared';
 
-// 🎬 Cinematic Abilities — Ability editor (Batch F.5). Edits the combat numbers + slot/category + balance of
-// each of the 88 abilities. VFX layers live in the VFX/Particle/Fog/Model tabs.
+const SCALE_PRESETS: CinematicModelScalePreset[] = ['small', 'medium', 'large', 'hero', 'ultimate'];
+
+// 🎬 Cinematic Abilities — Ability editor (Batch F.6). Edits the combat numbers + slot/category + balance +
+// model scale tier of each of the 96 abilities. VFX layers live in the VFX/Particle/Fog/Model tabs.
 const CHARS = ['char_jett', 'char_jerome', 'char_paul', 'char_donnie', 'char_todd', 'char_flip', 'char_bello', 'char_chase'];
 
 export const CinematicAbilityEditorTab = () => {
@@ -18,6 +21,11 @@ export const CinematicAbilityEditorTab = () => {
   const [sel, setSel] = useState<string | null>(list[0]?.id ?? null);
   const a = items.find((x) => x.id === sel) as CinematicAbilityDefinition | undefined;
   const effectExists = (id: string) => !!getCinematicEffect(id);
+  const setVisualScale = (patch: Partial<AbilityVisualScale>) => {
+    if (!a) return;
+    const base = a.visualScale ?? visualScaleForCategory(a.abilityCategory);
+    update(a.id, { visualScale: { ...base, ...patch } });
+  };
 
   return (
     <div className="space-y-3 text-xs">
@@ -41,6 +49,8 @@ export const CinematicAbilityEditorTab = () => {
             <Field label="Hit radius"><input type="number" step={0.5} value={a.combat.hitVolume.radius ?? 0} onChange={(e) => update(a.id, { combat: { ...a.combat, hitVolume: { ...a.combat.hitVolume, radius: parseFloat(e.target.value) || 0 } } })} className={inp} /></Field>
             <Field label="Attack tags (csv)"><input value={csv(a.combat.attackTags)} onChange={(e) => update(a.id, { combat: { ...a.combat, attackTags: parseCsv(e.target.value) } })} className={inp} /></Field>
             <Field label="Visual intensity"><input type="number" min={1} max={5} value={a.editorMeta?.visualIntensity ?? 2} onChange={(e) => update(a.id, { editorMeta: { ...a.editorMeta, visualIntensity: Math.min(5, Math.max(1, parseInt(e.target.value) || 1)) as 1 | 2 | 3 | 4 | 5 } })} className={inp} /></Field>
+            <Field label="Model scale preset"><select value={(a.visualScale ?? visualScaleForCategory(a.abilityCategory)).modelScalePreset} onChange={(e) => { const p = e.target.value as CinematicModelScalePreset; setVisualScale({ modelScalePreset: p, modelScaleMultiplier: MODEL_SCALE_PRESETS[p] }); }} className={inp}>{SCALE_PRESETS.map((p) => <option key={p} value={p}>{p} (×{MODEL_SCALE_PRESETS[p]})</option>)}</select></Field>
+            <Field label="Model scale ×"><input type="number" step={0.1} min={0.1} value={(a.visualScale ?? visualScaleForCategory(a.abilityCategory)).modelScaleMultiplier} onChange={(e) => setVisualScale({ modelScaleMultiplier: Math.max(0.1, parseFloat(e.target.value) || 0.1) })} className={inp} /></Field>
             <Field label="Cinematic effect id"><input value={a.vfx.cinematicEffectId} disabled className={inp} /></Field>
           </div>
           <div className="text-[10px]">

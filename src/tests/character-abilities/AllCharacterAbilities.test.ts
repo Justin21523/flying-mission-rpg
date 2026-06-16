@@ -4,15 +4,20 @@ import { SEED_ARSENAL_ABILITIES, SEED_ARSENAL_SKILLS, SEED_CINEMATIC_EFFECTS, AR
 const skillIds = new Set(SEED_ARSENAL_SKILLS.map((s) => s.id));
 const effectIds = new Set(SEED_CINEMATIC_EFFECTS.map((e) => e.id));
 
-describe('AllCharacterAbilities — 8 heroes × 11', () => {
-  it('has all 8 heroes with 6 attack / 3 defense / 2 ultimate each (≥88 total)', () => {
+describe('AllCharacterAbilities — 8 heroes × 16', () => {
+  it('has all 8 heroes with exactly 6 attack / 3 defense / 1 signature / 2 ultimate / 4 clone (128 total)', () => {
     expect(ARSENAL_CHARACTER_IDS.length).toBe(8);
-    expect(SEED_ARSENAL_ABILITIES.length).toBeGreaterThanOrEqual(88);
+    expect(SEED_ARSENAL_ABILITIES.length).toBe(128);
     for (const cid of ARSENAL_CHARACTER_IDS) {
       const a = abilitiesForCharacter(cid);
-      expect(a.filter((x) => x.abilityCategory === 'attack').length, `${cid} attacks`).toBeGreaterThanOrEqual(6);
-      expect(a.filter((x) => x.abilityCategory === 'defense').length, `${cid} defenses`).toBeGreaterThanOrEqual(3);
-      expect(a.filter((x) => x.abilityCategory === 'ultimate').length, `${cid} ultimates`).toBeGreaterThanOrEqual(2);
+      expect(a.length, `${cid} total`).toBe(16);
+      expect(a.filter((x) => x.abilityCategory === 'attack').length, `${cid} attacks`).toBe(6);
+      expect(a.filter((x) => x.abilityCategory === 'defense').length, `${cid} defenses`).toBe(3);
+      expect(a.filter((x) => x.abilityCategory === 'signature').length, `${cid} signature`).toBe(1);
+      expect(a.filter((x) => x.abilityCategory === 'ultimate').length, `${cid} ultimates`).toBe(2);
+      expect(a.filter((x) => x.abilityCategory === 'clone').length, `${cid} clones`).toBe(4);
+      // every slot used exactly once
+      expect(new Set(a.map((x) => x.abilitySlot)).size, `${cid} unique slots`).toBe(16);
     }
   });
 

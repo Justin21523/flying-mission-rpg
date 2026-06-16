@@ -1,4 +1,4 @@
-import { buildCharacter, type AbilitySpec } from './abilityFactory';
+import { buildCharacter, cloneSpec, type AbilitySpec } from './abilityFactory';
 
 // Paul — Police / Shield / Control (Batch F.5).
 const SPECS: AbilitySpec[] = [
@@ -13,6 +13,12 @@ const SPECS: AbilitySpec[] = [
   { key: 'authority_guard', name: 'Perfect Authority Guard', desc: 'A precise parry that counters.', category: 'defense', slot: 'defense-3', defenseType: 'perfect-guard', defenseValue: 1, cooldown: 8, energy: 14, duration: 0.6 },
   { key: 'lockdown', name: 'Citywide Lockdown', desc: 'A large barrier grid that restrains + blocks.', category: 'ultimate', slot: 'ultimate-1', attackType: 'ring-aoe', dmg: 22, cooldown: 18, energy: 50, shape: 'cylinder', range: 9, stun: 2, tags: ['police', 'ultimate', 'control'], intensity: 5, hooks: { affectsEnemies: true, appliesStatusTags: ['stunned'] } },
   { key: 'justice_convoy', name: 'Justice Convoy Charge', desc: 'An energy convoy charges across the field.', category: 'ultimate', slot: 'ultimate-2', attackType: 'air-support', dmg: 34, cooldown: 20, energy: 55, shape: 'box', length: 16, width: 4, knockback: 8, tags: ['police', 'ultimate'], intensity: 5 },
+  { key: 'checkpoint', name: 'Command Checkpoint', desc: 'Deploy a checkpoint that blocks small enemies and slows runaway targets.', category: 'signature', slot: 'signature-1', attackType: 'terrain', dmg: 6, cooldown: 14, energy: 22, range: 6, tags: ['police', 'control'], hooks: { affectsEnemies: true, affectsZoneCondition: true, appliesStatusTags: ['slow', 'safe-zone'] } },
+  // ── 4 clone abilities (one per page) ──
+  cloneSpec({ key: 'patrol_partner', name: 'Patrol Partner Double', desc: 'A patrol double flanks from the side, striking and briefly stunning.', slot: 'clone-1', cloneType: 'attack-double', behavior: 'assist-strike', pattern: 'beside-caster', material: 'afterimage', maxCloneCount: 2, duration: 1.0, attackType: 'charge', dmg: 14, cooldown: 5, energy: 14, shape: 'cone', range: 4, tags: ['police', 'clone'], gameplay: { canDealDamage: true, canApplyStatusTags: ['stun'] } }),
+  cloneSpec({ key: 'shield_officer_phantom', name: 'Shield Officer Phantom', desc: 'A shield phantom holds the front line, blocking projectiles and small enemies.', slot: 'clone-2', cloneType: 'defense-double', behavior: 'shield-guardian', pattern: 'beside-caster', material: 'energy-outline', maxCloneCount: 2, duration: 1.2, attackType: 'none', defenseType: 'front-shield', defenseValue: 0.6, skillDuration: 1.6, cooldown: 8, energy: 14, tags: ['police', 'clone', 'defense'], gameplay: { canBlockProjectiles: true } }),
+  cloneSpec({ key: 'checkpoint_commander', name: 'Checkpoint Commander Clone', desc: 'A commander double deploys a checkpoint that slows enemies and protects NPCs.', slot: 'clone-3', cloneType: 'support-double', behavior: 'route-guide', pattern: 'orbit-caster', material: 'hologram', maxCloneCount: 2, duration: 1.4, attackType: 'summon', cooldown: 12, energy: 20, range: 6, tags: ['police', 'clone', 'support'], gameplay: { canGuideNPC: true, canApplyStatusTags: ['slow', 'safe-zone'] } }),
+  cloneSpec({ key: 'lockdown_guardian', name: 'Lockdown Guardian Echo', desc: 'Multiple Paul phantoms form a containment array that slows and restrains.', slot: 'clone-4', cloneType: 'ultimate-double', behavior: 'assist-strike', pattern: 'arena-corners', material: 'ghost-trail', maxCloneCount: 4, duration: 1.5, attackType: 'ring-aoe', dmg: 26, cooldown: 18, energy: 50, shape: 'cylinder', range: 10, tags: ['police', 'clone', 'ultimate'], gameplay: { canDealDamage: true, canApplyStatusTags: ['slow', 'restrain'] } }),
 ];
 
 export const PAUL_ABILITIES = buildCharacter('char_paul', 'police', '#2b4c8c', SPECS);

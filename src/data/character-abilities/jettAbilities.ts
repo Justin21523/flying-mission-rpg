@@ -1,4 +1,4 @@
-import { buildCharacter, type AbilitySpec } from './abilityFactory';
+import { buildCharacter, cloneSpec, type AbilitySpec } from './abilityFactory';
 
 // Jett — Speed / Rescue / Dash (Batch F.5). 6 attacks / 3 defenses / 2 ultimates.
 const SPECS: AbilitySpec[] = [
@@ -13,6 +13,12 @@ const SPECS: AbilitySpec[] = [
   { key: 'rescue_shield', name: 'Emergency Rescue Shield', desc: 'Briefly shields self or an ally.', category: 'defense', slot: 'defense-3', defenseType: 'omni-barrier', defenseValue: 0.6, cooldown: 10, energy: 18, duration: 5 },
   { key: 'overdrive', name: 'Global Rescue Overdrive', desc: 'Streak between many targets at blinding speed.', category: 'ultimate', slot: 'ultimate-1', attackType: 'air-support', dmg: 30, cooldown: 18, energy: 50, shape: 'sphere', range: 10, tags: ['speed', 'ultimate', 'air-support'], intensity: 5 },
   { key: 'meteor', name: 'Skyline Meteor Delivery', desc: 'Soar up and drop a giant rescue capsule.', category: 'ultimate', slot: 'ultimate-2', attackType: 'lobbed', dmg: 40, cooldown: 20, energy: 55, shape: 'sphere', range: 8, tags: ['speed', 'ultimate'], intensity: 5 },
+  { key: 'sonic_beacon', name: 'Sonic Rescue Beacon', desc: 'Drop a high-speed beacon that marks a safe route and rallies nearby NPCs.', category: 'signature', slot: 'signature-1', attackType: 'summon', dmg: 6, cooldown: 14, energy: 22, shape: 'sphere', range: 8, tags: ['speed', 'rescue', 'support'], hooks: { affectsEnemies: false, affectsSupportSynergy: true, affectsZoneCondition: true, appliesStatusTags: ['safe-route', 'rally'] } },
+  // ── 4 clone abilities (one per page) ──
+  cloneSpec({ key: 'afterimage_wingman', name: 'Jet Afterimage Wingman', desc: 'A high-speed afterimage echoes Jett\'s dash 0.3s later for a second strike.', slot: 'clone-1', cloneType: 'attack-double', behavior: 'delayed-echo', pattern: 'beside-caster', material: 'afterimage', maxCloneCount: 2, duration: 1.0, attackType: 'dash', dmg: 14, cooldown: 5, energy: 14, shape: 'line', length: 11, width: 1.2, tags: ['speed', 'clone', 'dash'], gameplay: { canDealDamage: true, canApplyStatusTags: ['afterimage'] } }),
+  cloneSpec({ key: 'rescue_escort', name: 'Rescue Escort Double', desc: 'A rescue double escorts NPCs along a safe route, calming and speeding them.', slot: 'clone-2', cloneType: 'support-double', behavior: 'route-guide', pattern: 'orbit-caster', material: 'hologram', maxCloneCount: 2, duration: 1.4, attackType: 'summon', cooldown: 12, energy: 20, range: 6, tags: ['speed', 'clone', 'support'], gameplay: { canGuideNPC: true, canApplyStatusTags: ['safe-route', 'rally'] } }),
+  cloneSpec({ key: 'guard_phantom', name: 'Jet Guard Phantom', desc: 'A phantom forms a moving side shield that deflects projectiles.', slot: 'clone-3', cloneType: 'defense-double', behavior: 'shield-guardian', pattern: 'beside-caster', material: 'energy-outline', maxCloneCount: 2, duration: 1.2, attackType: 'none', defenseType: 'front-shield', defenseValue: 0.5, skillDuration: 1.5, cooldown: 8, energy: 14, tags: ['speed', 'clone', 'defense'], gameplay: { canBlockProjectiles: true } }),
+  cloneSpec({ key: 'overdrive_echo', name: 'Overdrive Echo Jett', desc: 'Multiple Jett echoes streak the field, marking and striking many targets.', slot: 'clone-4', cloneType: 'ultimate-double', behavior: 'assist-strike', pattern: 'arena-corners', material: 'ghost-trail', maxCloneCount: 4, duration: 1.5, attackType: 'air-support', dmg: 28, cooldown: 18, energy: 50, shape: 'sphere', range: 10, tags: ['speed', 'clone', 'ultimate'], gameplay: { canDealDamage: true, canApplyStatusTags: ['marked'] } }),
 ];
 
 export const JETT_ABILITIES = buildCharacter('char_jett', 'speed', '#e8442c', SPECS);

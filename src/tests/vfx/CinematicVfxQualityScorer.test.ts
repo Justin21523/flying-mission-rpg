@@ -9,8 +9,8 @@ import type { CinematicEffectDefinition } from '../../types/cinematicVfxTypes';
 describe('CinematicVfxQualityScorer', () => {
   const audit = auditAllVfx();
 
-  it('scores all 88 abilities', () => {
-    expect(audit.scores).toHaveLength(88);
+  it('scores all 128 abilities', () => {
+    expect(audit.scores).toHaveLength(128);
   });
 
   it('every showcase ability scores >= 85', () => {

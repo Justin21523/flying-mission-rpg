@@ -21,6 +21,9 @@ describe('CharacterVfxStyleProfiles', () => {
       expect(p.signatureObjects.length).toBeGreaterThanOrEqual(5);
       const pieces = signaturePieces(p.characterId);
       for (const obj of p.signatureObjects) {
+        // Clone signature keys (`<short>_clone_<type>`) are authored by CloneEffectDirector, not the signature
+        // piece library — they're the clone effects' on-brand fingerprint, so they have no piece function.
+        if (obj.includes('_clone_')) continue;
         expect(pieces[obj], `${p.characterId}.${obj} should have a signature piece`).toBeTypeOf('function');
       }
     }

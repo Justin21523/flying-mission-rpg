@@ -1,4 +1,4 @@
-import { buildCharacter, type AbilitySpec } from './abilityFactory';
+import { buildCharacter, cloneSpec, type AbilitySpec } from './abilityFactory';
 
 // Flip — Sport / Bounce / Combo (Batch F.5).
 const SPECS: AbilitySpec[] = [
@@ -13,6 +13,12 @@ const SPECS: AbilitySpec[] = [
   { key: 'barrier_net', name: 'Sport Barrier Net', desc: 'Deploy an elastic net barrier.', category: 'defense', slot: 'defense-3', defenseType: 'front-shield', defenseValue: 0.6, cooldown: 9, energy: 18, duration: 4 },
   { key: 'hyper_stadium', name: 'Hyper Trick Stadium', desc: 'A stadium of fast ricocheting balls.', category: 'ultimate', slot: 'ultimate-1', attackType: 'ring-aoe', dmg: 30, cooldown: 18, energy: 50, shape: 'cylinder', range: 9, tags: ['sport', 'ultimate', 'aoe'], intensity: 5 },
   { key: 'goal_meteor', name: 'Final Goal Meteor Kick', desc: 'Wind up and kick a giant energy ball.', category: 'ultimate', slot: 'ultimate-2', attackType: 'lobbed', dmg: 42, cooldown: 20, energy: 55, shape: 'sphere', range: 8, tags: ['sport', 'ultimate'], intensity: 5 },
+  { key: 'bounce_court', name: 'Rescue Bounce Court', desc: 'Set up a bounce court that boosts mobility and knocks small enemies away.', category: 'signature', slot: 'signature-1', attackType: 'terrain', dmg: 6, cooldown: 14, energy: 22, range: 7, knockback: 6, tags: ['sport', 'control'], hooks: { affectsEnemies: true, appliesStatusTags: ['bounce', 'mobility'] } },
+  // ── 4 clone abilities (one per page) ──
+  cloneSpec({ key: 'trick_shot_double', name: 'Trick Shot Double', desc: 'A sport double kicks a ricochet ball from another angle.', slot: 'clone-1', cloneType: 'attack-double', behavior: 'delayed-echo', pattern: 'beside-caster', material: 'afterimage', maxCloneCount: 2, duration: 1.0, attackType: 'lobbed', dmg: 16, cooldown: 5, energy: 14, shape: 'sphere', range: 4, tags: ['sport', 'clone'], gameplay: { canDealDamage: true, canApplyStatusTags: ['ricochet'] } }),
+  cloneSpec({ key: 'rebound_net_clone', name: 'Rebound Net Clone', desc: 'A keeper double opens a ball net that reflects projectiles.', slot: 'clone-2', cloneType: 'defense-double', behavior: 'shield-guardian', pattern: 'behind-caster', material: 'energy-outline', maxCloneCount: 2, duration: 1.2, attackType: 'none', defenseType: 'front-shield', defenseValue: 0.5, skillDuration: 1.5, cooldown: 8, energy: 14, tags: ['sport', 'clone', 'defense'], gameplay: { canBlockProjectiles: true } }),
+  cloneSpec({ key: 'bounce_court_partner', name: 'Bounce Court Partner', desc: 'A partner double deploys bounce pads that boost mobility.', slot: 'clone-3', cloneType: 'support-double', behavior: 'orbit-support', pattern: 'orbit-caster', material: 'hologram', maxCloneCount: 2, duration: 1.4, attackType: 'summon', cooldown: 12, energy: 20, range: 7, tags: ['sport', 'clone', 'support'], gameplay: { canApplyStatusTags: ['bounce', 'mobility'] } }),
+  cloneSpec({ key: 'final_goal_echo', name: 'Final Goal Echo', desc: 'Sport doubles wind up and kick a giant energy ball for a big impact.', slot: 'clone-4', cloneType: 'ultimate-double', behavior: 'assist-strike', pattern: 'line-formation', material: 'ghost-trail', maxCloneCount: 3, duration: 1.5, attackType: 'lobbed', dmg: 34, cooldown: 18, energy: 50, shape: 'sphere', range: 8, tags: ['sport', 'clone', 'ultimate'], gameplay: { canDealDamage: true, canApplyStatusTags: ['goal'] } }),
 ];
 
 export const FLIP_ABILITIES = buildCharacter('char_flip', 'sport', '#e23b2e', SPECS);

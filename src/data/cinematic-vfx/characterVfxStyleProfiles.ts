@@ -6,7 +6,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_jett', visualKeywords: ['speed', 'jet-trails', 'afterimage', 'wind', 'rescue-routes'],
     primaryShapes: ['line', 'trail', 'arc', 'beam', 'spiral'], forbiddenOverusedShapes: ['panel', 'grid'],
-    signatureObjects: ['speedSplineRoute', 'afterimageBurst', 'windTunnelFog', 'rescueLockMarker', 'thrusterStreak'],
+    signatureObjects: ['jetAfterimage', 'rescueWingmen', 'windTunnel', 'rescueBeacon', 'thrusterDash', 'giantJet', 'sonicBeacon'],
     motionLanguage: 'fast-linear',
     materialLanguage: { transparent: true, energy: true, smoky: true },
     particleLanguage: { allowedParticleFamilies: ['trail', 'sparks'], maxParticleReliance: 'medium' },
@@ -17,7 +17,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_jerome', visualKeywords: ['stage', 'spotlight', 'rhythm', 'dance', 'performance'],
     primaryShapes: ['ring', 'spiral', 'cone', 'panel'], forbiddenOverusedShapes: ['grid', 'fragment'],
-    signatureObjects: ['stageRing', 'spotlightCone', 'rhythmPulseBar', 'dancerAfterimage', 'sparkleMotes'],
+    signatureObjects: ['danceTroupe', 'spotlightStage', 'ringStackSpin', 'rhythmPulse', 'stageRing', 'grandFinale', 'rallyStage'],
     motionLanguage: 'rhythmic-circular',
     materialLanguage: { transparent: true, energy: true, holographic: true },
     particleLanguage: { allowedParticleFamilies: ['motes', 'sparks'], maxParticleReliance: 'medium' },
@@ -28,7 +28,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_paul', visualKeywords: ['police', 'shield', 'barrier', 'lockdown', 'order'],
     primaryShapes: ['panel', 'grid', 'ring', 'shockwave'], forbiddenOverusedShapes: ['spiral', 'sphere'],
-    signatureObjects: ['policeShieldPanel', 'roadBarrierWall', 'lockdownGrid', 'containmentCuff', 'signalLights'],
+    signatureObjects: ['barrierWall', 'coneLine', 'signalLights', 'policeBox', 'lockdownGrid', 'roadblock', 'paulEscort', 'checkpoint'],
     motionLanguage: 'defensive-grid',
     materialLanguage: { transparent: true, metallic: true, energy: true },
     particleLanguage: { allowedParticleFamilies: ['sparks'], maxParticleReliance: 'low' },
@@ -39,7 +39,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_donnie', visualKeywords: ['tools', 'build', 'repair', 'panels', 'mechanical'],
     primaryShapes: ['panel', 'fragment', 'grid', 'arc'], forbiddenOverusedShapes: ['ring', 'beam'],
-    signatureObjects: ['toolArmSwarm', 'metalPanelAssembly', 'repairNode', 'magneticScrap', 'constructionGrid'],
+    signatureObjects: ['toolSwarm', 'panelAssembly', 'crateDrop', 'craneLift', 'weldShower', 'repairNode', 'magneticScrap', 'donnieEscort', 'megaRig', 'repairStation'],
     motionLanguage: 'mechanical-assembly',
     materialLanguage: { metallic: true, physicalDebris: true, energy: true },
     particleLanguage: { allowedParticleFamilies: ['sparks'], maxParticleReliance: 'low' },
@@ -50,7 +50,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_todd', visualKeywords: ['drill', 'ground-crack', 'rubble', 'underground', 'impact'],
     primaryShapes: ['shockwave', 'fragment', 'cone', 'ring'], forbiddenOverusedShapes: ['grid', 'beam'],
-    signatureObjects: ['spinningDrill', 'groundCrack', 'rockRubble', 'dirtCloud', 'craterRing'],
+    signatureObjects: ['boulderErupt', 'mineCartCharge', 'rockfall', 'spinningDrill', 'craterRing', 'desertRocks', 'toddEscort', 'earthTitan', 'tunnelRoute'],
     motionLanguage: 'heavy-ground-impact',
     materialLanguage: { dusty: true, physicalDebris: true, metallic: true },
     particleLanguage: { allowedParticleFamilies: ['debris', 'dust'], maxParticleReliance: 'medium' },
@@ -61,7 +61,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_flip', visualKeywords: ['sport', 'ball', 'bounce', 'court', 'ricochet'],
     primaryShapes: ['sphere', 'arc', 'panel', 'trail'], forbiddenOverusedShapes: ['grid', 'fragment'],
-    signatureObjects: ['sportBall', 'bounceTrajectory', 'stadiumBoundary', 'reboundPanel', 'scoreFlash'],
+    signatureObjects: ['sportBall', 'ringStack', 'soccerKick', 'bounceTrail', 'stadiumRing', 'runnerDash', 'flipEscort', 'hyperStadium', 'bounceCourt'],
     motionLanguage: 'bouncy-ricochet',
     materialLanguage: { energy: true, transparent: true, physicalDebris: true },
     particleLanguage: { allowedParticleFamilies: ['sparks'], maxParticleReliance: 'low' },
@@ -72,7 +72,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_bello', visualKeywords: ['animal', 'sound', 'nature', 'wild', 'instinct'],
     primaryShapes: ['cone', 'ring', 'arc', 'sphere'], forbiddenOverusedShapes: ['grid', 'panel'],
-    signatureObjects: ['animalSpirit', 'soundCone', 'natureFog', 'pawMark', 'echoRing'],
+    signatureObjects: ['lionPride', 'catPounce', 'owlSpiral', 'serpentCoil', 'natureScreen', 'pawMark', 'belloEscort', 'wildKing', 'guideSignal'],
     motionLanguage: 'organic-wave',
     materialLanguage: { smoky: true, energy: true, transparent: true },
     particleLanguage: { allowedParticleFamilies: ['motes', 'dust'], maxParticleReliance: 'medium' },
@@ -83,7 +83,7 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
   {
     characterId: 'char_chase', visualKeywords: ['scan', 'stealth', 'weakpoint', 'data', 'targeting'],
     primaryShapes: ['grid', 'cone', 'ring', 'line'], forbiddenOverusedShapes: ['sphere', 'shockwave'],
-    signatureObjects: ['scanCone', 'dataGrid', 'weakpointRing', 'hologramDecoy', 'dataFragment'],
+    signatureObjects: ['droneDecoys', 'holoSelf', 'radarScan', 'dataFragment', 'weakpointRing', 'totemMark', 'blackboxAssault', 'scanRelay'],
     motionLanguage: 'stealth-scan',
     materialLanguage: { holographic: true, energy: true, transparent: true },
     particleLanguage: { allowedParticleFamilies: ['electric'], maxParticleReliance: 'low' },
@@ -92,6 +92,14 @@ export const SEED_VFX_STYLE_PROFILES: CharacterVfxStyleProfile[] = [
     readabilityRules: { silhouetteMustBeDistinct: true, avoidSameAsCharacterIds: ['char_jett'], maxSimultaneousMajorLayers: 4 },
   },
 ];
+
+// Batch F.7 — each hero's 4 clone abilities author hero-specific signature keys (`<short>_clone_<type>`); add
+// them to that hero's signatureObjects so the quality scorer recognises clone effects as on-brand (and the
+// keys stay hero-specific to avoid cross-character fingerprint overlap).
+for (const p of SEED_VFX_STYLE_PROFILES) {
+  const short = p.characterId.replace('char_', '');
+  p.signatureObjects = [...p.signatureObjects, `${short}_clone_attack`, `${short}_clone_defense`, `${short}_clone_support`, `${short}_clone_ultimate`];
+}
 
 export function getStyleProfile(characterId: string | undefined): CharacterVfxStyleProfile | undefined {
   if (!characterId) return undefined;

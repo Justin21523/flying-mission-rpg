@@ -1,6 +1,7 @@
 import type { CombatSkillDefinition } from '../../types/game/combat';
 import type { CinematicAbilityDefinition } from '../../types/abilityArsenalTypes';
 import type { CinematicEffectDefinition } from '../../types/cinematicVfxTypes';
+import type { CloneAbilityDefinition } from '../../types/cloneAbilityTypes';
 import { JETT_ABILITIES } from './jettAbilities';
 import { JEROME_ABILITIES } from './jeromeAbilities';
 import { PAUL_ABILITIES } from './paulAbilities';
@@ -24,6 +25,8 @@ export const ARSENAL_CHARACTER_IDS = [
 export const SEED_ARSENAL_SKILLS: CombatSkillDefinition[] = ALL.map((b) => b.skill);
 export const SEED_ARSENAL_ABILITIES: CinematicAbilityDefinition[] = ALL.map((b) => b.ability);
 export const SEED_CINEMATIC_EFFECTS: CinematicEffectDefinition[] = ALL.map((b) => b.effect);
+// Batch F.7 — the clone-ability metadata layer (4 per hero = 32) for the clone store / Edit Mode / validation.
+export const SEED_CLONE_ABILITIES: CloneAbilityDefinition[] = ALL.map((b) => b.clone).filter((c): c is CloneAbilityDefinition => !!c);
 
 export function abilitiesForCharacter(characterId: string): CinematicAbilityDefinition[] {
   return SEED_ARSENAL_ABILITIES.filter((a) => a.characterId === characterId);

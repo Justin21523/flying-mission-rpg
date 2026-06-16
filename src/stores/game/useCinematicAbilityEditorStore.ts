@@ -3,11 +3,14 @@ import { createEditorCollection } from './createEditorCollection';
 import type { CinematicAbilityDefinition } from '../../types/abilityArsenalTypes';
 import { SEED_ARSENAL_ABILITIES } from '../../data/character-abilities/allCharacterAbilities';
 
-// Editable cinematic ability arsenal (🎬 Cinematic Abilities tab, Batch F.5). Seed-merged at boot.
+// Editable cinematic ability arsenal (🎬 Cinematic Abilities tab). Reconciled at boot — Batch F.6 grows the
+// roster to 12/hero (adds the signature utility) and adds visualScale, so returning users must refresh the
+// seed-owned abilities (the paged runtime resolves abilities by slot from this store).
 export const useCinematicAbilityEditorStore = createEditorCollection<CinematicAbilityDefinition>({
-  storageKey: 'aero-rescue-editor-cinematic-ability-v1',
+  storageKey: 'aero-rescue-editor-cinematic-ability-v2',
   seed: SEED_ARSENAL_ABILITIES,
   makeId: () => `ability_${nanoid(6)}`,
+  seedVersion: 'f7-16-skills',
 });
 
 export function getCinematicAbility(id: string | undefined): CinematicAbilityDefinition | undefined {

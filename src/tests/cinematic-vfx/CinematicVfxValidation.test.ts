@@ -6,8 +6,8 @@ import { getModelAsset } from '../../data/modelLibrary';
 const modelExists = (id: string) => !!getModelAsset(id);
 
 describe('CinematicVfxValidation', () => {
-  it('every one of the 88 cinematic effects validates + all model layers resolve', () => {
-    expect(SEED_CINEMATIC_EFFECTS.length).toBe(88);
+  it('every one of the 128 cinematic effects validates + all model layers resolve', () => {
+    expect(SEED_CINEMATIC_EFFECTS.length).toBe(128);
     for (const e of SEED_CINEMATIC_EFFECTS) {
       const r = validateCinematicEffect(e, modelExists);
       expect(r.ok, `${e.id}: ${r.errors.join(', ')}`).toBe(true);

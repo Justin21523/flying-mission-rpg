@@ -1,16 +1,17 @@
 import { create } from 'zustand';
 import type { AbilitySlot } from '../../types/abilityArsenalTypes';
 
-// Paged ability input (Batch F.5 redesign) — instead of 11 separate keys, each hero's 11 abilities are split
-// into PAGES of 4, cast with just 4 action keys (4 / 5 / Z / X). Ctrl cycles the active page. So the same 4
-// keys map to a different ability set per page.
+// Paged ability input (Batch F.7) — each hero's 16 abilities are split into 4 PAGES of exactly 4, cast with
+// just 4 action keys (4 / 5 / Z / X). Ctrl cycles the active page, so the same 4 keys map to a different
+// ability set per page. Exactly ONE clone ability is interleaved into every page (never all on the last page).
 export const ABILITY_PAGES: AbilitySlot[][] = [
-  ['attack-1', 'attack-2', 'attack-3', 'attack-4'],     // Page 1 — core attacks
-  ['attack-5', 'attack-6', 'defense-1', 'defense-2'],   // Page 2 — extra attacks + defense
-  ['defense-3', 'ultimate-1', 'ultimate-2'],            // Page 3 — defense + ultimates
+  ['attack-1', 'clone-1', 'attack-2', 'attack-3'],           // Page 1 — Core Attack + Clone
+  ['attack-4', 'defense-1', 'clone-2', 'attack-5'],          // Page 2 — Advanced Defense + Clone
+  ['attack-6', 'defense-2', 'signature-1', 'clone-3'],       // Page 3 — Control Signature + Clone
+  ['defense-3', 'ultimate-1', 'clone-4', 'ultimate-2'],      // Page 4 — Defense Ultimate + Clone
 ];
 export const PAGE_COUNT = ABILITY_PAGES.length;
-export const PAGE_LABELS = ['Attacks', 'Attacks · Defense', 'Defense · Ultimate'];
+export const PAGE_LABELS = ['Core Attack + Clone', 'Advanced Defense + Clone', 'Control Signature + Clone', 'Defense Ultimate + Clone'];
 
 // The 4 action keys → index within the active page. (Digit4 = the "4" key, Digit5 = "5".)
 export const ACTION_KEYS = ['Digit4', 'Digit5', 'KeyZ', 'KeyX'] as const;

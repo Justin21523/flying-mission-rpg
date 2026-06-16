@@ -19,6 +19,7 @@ import { useSupportCombatEditorStore, useSupportSynergyEditorStore } from '../..
 import { useBossDefinitionStore, useBossPhaseStore, useBossWeakpointStore, useBossAttackStore, useBossArenaStore, useBossSummonWaveStore, useEliteEncounterStore } from '../../stores/game/useBossEditorStore';
 import { useCinematicEffectStore } from '../../stores/game/useCinematicEffectStore';
 import { useCinematicAbilityEditorStore } from '../../stores/game/useCinematicAbilityEditorStore';
+import { useCloneAbilityStore } from '../../stores/game/useCloneAbilityStore';
 import { useAbilityLoadoutStore } from '../../stores/game/useAbilityLoadoutStore';
 import { useVfxStyleProfileStore } from '../../stores/game/useVfxStyleProfileStore';
 import { usePhysicsVfxObjectStore } from '../../stores/game/usePhysicsVfxObjectStore';
@@ -104,10 +105,13 @@ export function seedGameContent(): void {
   useBossArenaStore.getState().mergeMissingFromSeed();
   useBossSummonWaveStore.getState().mergeMissingFromSeed();
   useEliteEncounterStore.getState().mergeMissingFromSeed();
-  useCinematicEffectStore.getState().mergeMissingFromSeed();
-  useCinematicAbilityEditorStore.getState().mergeMissingFromSeed();
+  // Cinematic effects: reconcile (refresh shipped effect content on a seedVersion bump) — the runtime resolves
+  // effects from this persisted store, so returning users must pick up authored-content changes.
+  useCinematicEffectStore.getState().reconcileFromSeed();
+  useCinematicAbilityEditorStore.getState().reconcileFromSeed();
+  useCloneAbilityStore.getState().reconcileFromSeed();
   useAbilityLoadoutStore.getState().mergeMissingFromSeed();
-  useVfxStyleProfileStore.getState().mergeMissingFromSeed();
+  useVfxStyleProfileStore.getState().reconcileFromSeed();
   usePhysicsVfxObjectStore.getState().mergeMissingFromSeed();
   useEditorQualityStore.getState().mergeMissingFromSeed();
   useEditorAudioPresetStore.getState().mergeMissingFromSeed();

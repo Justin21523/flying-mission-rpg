@@ -1,4 +1,4 @@
-import { buildCharacter, type AbilitySpec } from './abilityFactory';
+import { buildCharacter, cloneSpec, type AbilitySpec } from './abilityFactory';
 
 // Donnie — Engineering / Repair / Build (Batch F.5).
 const SPECS: AbilitySpec[] = [
@@ -13,6 +13,12 @@ const SPECS: AbilitySpec[] = [
   { key: 'ground_anchor', name: 'Ground Anchor Brace', desc: 'Anchor down, resisting knockback.', category: 'defense', slot: 'defense-3', defenseType: 'front-shield', defenseValue: 0.6, cooldown: 8, energy: 14, duration: 3 },
   { key: 'mega_constructor', name: 'Mega Constructor Mode', desc: 'A construction rig builds, repairs, demolishes.', category: 'ultimate', slot: 'ultimate-1', attackType: 'summon', cooldown: 16, energy: 45, shape: 'sphere', range: 8, tags: ['engineering', 'ultimate'], intensity: 5, hooks: { affectsEnemies: true, affectsObstacles: true, canRepairDevice: true } },
   { key: 'titan_hammer', name: 'Titan Workshop Hammer', desc: 'Assemble a giant hammer and slam it down.', category: 'ultimate', slot: 'ultimate-2', attackType: 'heavy', dmg: 44, cooldown: 20, energy: 55, shape: 'cylinder', range: 7, tags: ['engineering', 'ultimate', 'heavy-impact'], intensity: 5, hooks: { affectsEnemies: true, affectsObstacles: true } },
+  { key: 'repair_station', name: 'Rapid Repair Station', desc: 'Assemble a station that repairs devices and tops up nearby shields.', category: 'signature', slot: 'signature-1', attackType: 'summon', repair: 14, cooldown: 14, energy: 22, range: 6, tags: ['engineering', 'repair'], hooks: { affectsEnemies: false, canRepairDevice: true, affectsSupportSynergy: true, appliesStatusTags: ['repair', 'shield-regen'] } },
+  // ── 4 clone abilities (one per page) ──
+  cloneSpec({ key: 'tool_assistant', name: 'Tool Assistant Double', desc: 'A tool double swings a wrench for a bonus hit, extra-strong against machines.', slot: 'clone-1', cloneType: 'attack-double', behavior: 'assist-strike', pattern: 'beside-caster', material: 'afterimage', maxCloneCount: 2, duration: 1.0, attackType: 'heavy', dmg: 16, cooldown: 5, energy: 14, shape: 'cone', range: 4, tags: ['engineering', 'clone'], gameplay: { canDealDamage: true, canApplyStatusTags: ['machine-bonus'] } }),
+  cloneSpec({ key: 'builder_clone_wall', name: 'Builder Clone Wall', desc: 'A builder double assembles a temporary cover wall.', slot: 'clone-2', cloneType: 'defense-double', behavior: 'shield-guardian', pattern: 'behind-caster', material: 'energy-outline', maxCloneCount: 2, duration: 1.2, attackType: 'none', defenseType: 'front-shield', defenseValue: 0.6, skillDuration: 2, cooldown: 8, energy: 16, tags: ['engineering', 'clone', 'defense'], gameplay: { canBlockProjectiles: true } }),
+  cloneSpec({ key: 'repair_crew', name: 'Repair Crew Double', desc: 'A repair double mends nearby devices and tops up shields.', slot: 'clone-3', cloneType: 'support-double', behavior: 'orbit-support', pattern: 'orbit-caster', material: 'hologram', maxCloneCount: 2, duration: 1.4, attackType: 'summon', cooldown: 12, energy: 20, range: 6, tags: ['engineering', 'clone', 'support'], gameplay: { canRepairOrStabilize: true, canApplyStatusTags: ['repair'] } }),
+  cloneSpec({ key: 'workshop_titan_echo', name: 'Workshop Titan Echo', desc: 'Builder doubles combine into a giant tool frame for a heavy AOE.', slot: 'clone-4', cloneType: 'ultimate-double', behavior: 'assist-strike', pattern: 'arena-corners', material: 'ghost-trail', maxCloneCount: 3, duration: 1.5, attackType: 'heavy', dmg: 30, cooldown: 18, energy: 50, shape: 'cylinder', range: 7, tags: ['engineering', 'clone', 'ultimate'], gameplay: { canDealDamage: true, canApplyStatusTags: ['obstacle-break'] } }),
 ];
 
 export const DONNIE_ABILITIES = buildCharacter('char_donnie', 'engineering', '#f5b21e', SPECS);

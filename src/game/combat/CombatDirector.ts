@@ -15,6 +15,7 @@ import { resolveDamage } from './DamageResolver';
 import { playEffect, cleanupExpired } from './effects/CombatEffectDirector';
 import { spawnFromSkill, buildDefenseState, resolveDefense } from './skillBehaviors';
 import { tickCombatSpawns } from './combatSpawns';
+import { cleanupAllClonesForPhaseChange } from '../vfx/CloneAbilityRuntime';
 
 // Main combat entry point — wires SkillRuntime + the pure modules to the real stores and the live player
 // position (robotHandle). UI never calls the resolver directly; React only calls these functions.
@@ -44,6 +45,9 @@ export function shutdownCombat(): void {
   useCombatTargetStore.getState().reset();
   useCombatSpawnStore.getState().reset();
   useCombatStore.getState().resetCombat();
+  // Batch F.7 — clear all live cinematic VFX + clone instances on combat exit so nothing persists across a
+  // phase/zone change (cleanupAllForPhaseChange existed but was never called — fixed here).
+  cleanupAllClonesForPhaseChange();
 }
 
 export function cleanup(): void {

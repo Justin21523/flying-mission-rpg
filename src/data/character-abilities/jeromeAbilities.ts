@@ -1,4 +1,4 @@
-import { buildCharacter, type AbilitySpec } from './abilityFactory';
+import { buildCharacter, cloneSpec, type AbilitySpec } from './abilityFactory';
 
 // Jerome — Dance / Rhythm / AOE (Batch F.5).
 const SPECS: AbilitySpec[] = [
@@ -13,6 +13,12 @@ const SPECS: AbilitySpec[] = [
   { key: 'performance_guard', name: 'Performance Guard Ring', desc: 'A spinning stage ring that reduces damage.', category: 'defense', slot: 'defense-3', defenseType: 'damage-reduction-zone', defenseValue: 0.5, cooldown: 10, energy: 18, duration: 5 },
   { key: 'grand_performance', name: 'Grand Sky Performance', desc: 'A great aerial stage that empowers rhythm hits.', category: 'ultimate', slot: 'ultimate-1', attackType: 'ring-aoe', dmg: 30, cooldown: 18, energy: 50, shape: 'cylinder', range: 9, tags: ['dance', 'ultimate', 'aoe'], intensity: 5 },
   { key: 'encore_galaxy', name: 'Encore Galaxy Spiral', desc: 'A full-arena spiral dance AOE.', category: 'ultimate', slot: 'ultimate-2', attackType: 'ring-aoe', dmg: 36, cooldown: 20, energy: 55, shape: 'cylinder', range: 11, tags: ['dance', 'ultimate', 'aoe'], intensity: 5 },
+  { key: 'rally_stage', name: 'Rhythm Rally Stage', desc: 'Raise a rhythm stage that speeds allied cooldowns and staggers enemies.', category: 'signature', slot: 'signature-1', attackType: 'summon', dmg: 6, cooldown: 14, energy: 22, shape: 'cylinder', range: 7, tags: ['dance', 'support'], hooks: { affectsEnemies: true, affectsSupportSynergy: true, appliesStatusTags: ['cooldown-rush', 'stagger'] } },
+  // ── 4 clone abilities (one per page) ──
+  cloneSpec({ key: 'rhythm_step_double', name: 'Rhythm Step Double', desc: 'A dance double adds a rhythm kick that staggers the target.', slot: 'clone-1', cloneType: 'attack-double', behavior: 'delayed-echo', pattern: 'beside-caster', material: 'afterimage', maxCloneCount: 2, duration: 1.0, attackType: 'charge', dmg: 14, cooldown: 5, energy: 14, shape: 'cone', range: 4, tags: ['dance', 'clone'], gameplay: { canDealDamage: true, canApplyStatusTags: ['stagger'] } }),
+  cloneSpec({ key: 'mirror_dance_guard', name: 'Mirror Dance Guard', desc: 'A spinning mirror double deflects projectiles in front of Jerome.', slot: 'clone-2', cloneType: 'defense-double', behavior: 'shield-guardian', pattern: 'beside-caster', material: 'energy-outline', maxCloneCount: 2, duration: 1.2, attackType: 'none', defenseType: 'front-shield', defenseValue: 0.5, skillDuration: 1.5, cooldown: 8, energy: 14, tags: ['dance', 'clone', 'defense'], gameplay: { canBlockProjectiles: true } }),
+  cloneSpec({ key: 'encore_partner', name: 'Encore Partner Stage', desc: 'A partner double builds a mini stage that speeds allied cooldowns.', slot: 'clone-3', cloneType: 'support-double', behavior: 'orbit-support', pattern: 'orbit-caster', material: 'hologram', maxCloneCount: 2, duration: 1.4, attackType: 'summon', cooldown: 12, energy: 20, range: 6, tags: ['dance', 'clone', 'support'], gameplay: { canApplyStatusTags: ['cooldown-rush'] } }),
+  cloneSpec({ key: 'galaxy_encore', name: 'Galaxy Encore Clone', desc: 'Dance doubles form a spiral stage for a wide AOE pulse.', slot: 'clone-4', cloneType: 'ultimate-double', behavior: 'assist-strike', pattern: 'arena-corners', material: 'ghost-trail', maxCloneCount: 4, duration: 1.5, attackType: 'ring-aoe', dmg: 26, cooldown: 18, energy: 50, shape: 'cylinder', range: 10, tags: ['dance', 'clone', 'ultimate'], gameplay: { canDealDamage: true, canApplyStatusTags: ['slowed'] } }),
 ];
 
 export const JEROME_ABILITIES = buildCharacter('char_jerome', 'dance', '#2f6fd6', SPECS);

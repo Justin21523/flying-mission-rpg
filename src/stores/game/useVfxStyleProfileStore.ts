@@ -8,9 +8,10 @@ import { SEED_VFX_STYLE_PROFILES } from '../../data/cinematic-vfx/characterVfxSt
 export type EditableVfxStyleProfile = CharacterVfxStyleProfile & { id: string };
 
 export const useVfxStyleProfileStore = createEditorCollection<EditableVfxStyleProfile>({
-  storageKey: 'aero-rescue-editor-vfx-style-v1',
+  storageKey: 'aero-rescue-editor-vfx-style-v2', // v2 (F.6c): drop stale persisted profiles
   seed: SEED_VFX_STYLE_PROFILES.map((p) => ({ ...p, id: p.characterId })),
   makeId: () => `vfxstyle_${nanoid(6)}`,
+  seedVersion: 'f7-16-skills', // signatureObjects extended with the per-hero clone signature keys
 });
 
 export function getEditableStyleProfile(characterId: string | undefined): EditableVfxStyleProfile | undefined {
