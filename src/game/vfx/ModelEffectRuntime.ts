@@ -33,6 +33,7 @@ export function modelLayerToParams(m: ModelLayerSettings): ModelLayerResult {
       particleSpreadRadius: isAttach ? 0 : (m.spreadRadius ?? 2),
       particleLifetime: 0.8,
       particleOrbitRadius: m.spreadRadius ?? 1.5,
+      particleMaterialMode: m.materialMode ?? 'solid',
     },
   };
 }

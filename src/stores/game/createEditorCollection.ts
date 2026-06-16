@@ -16,6 +16,10 @@ export interface EditorCollectionState<T extends { id: string }> {
   reorder: (id: string, dir: -1 | 1) => void; // move an item up/down in the list (order is authored)
   importState: (data: { items?: T[]; seeded?: boolean }) => void;
   mergeMissingFromSeed: () => void;
+  // Version-gated reseed: when cfg.seedVersion changes, REFRESH all seed-owned items (ids present in the seed)
+  // with the new shipped content, while keeping the user's OWN added items (ids not in the seed). Use this for
+  // stores whose shipped seed content evolves (e.g. authored VFX effects) so returning users see the update.
+  reconcileFromSeed: () => void;
   reset: () => void;
 }
 
@@ -23,6 +27,8 @@ export interface EditorCollectionConfig<T extends { id: string }> {
   storageKey: string;
   seed: T[];
   makeId: () => string;
+  // Bump this when the shipped seed CONTENT changes (not just additions) so reconcileFromSeed refreshes it.
+  seedVersion?: string;
 }
 
 export type EditorCollectionStore<T extends { id: string }> = UseBoundStore<StoreApi<EditorCollectionState<T>>>;
@@ -36,26 +42,31 @@ export function createEditorCollection<T extends { id: string }>(
 ): EditorCollectionStore<T> {
   function persist(items: T[], seeded: boolean): void {
     try {
-      localStorage.setItem(cfg.storageKey, JSON.stringify({ items, seeded }));
+      localStorage.setItem(cfg.storageKey, JSON.stringify({ items, seeded, v: cfg.seedVersion }));
     } catch {
       /* ignore localStorage quota / unavailable */
     }
   }
 
-  function load(): { items: T[]; seeded: boolean } {
+  function load(): { items: T[]; seeded: boolean; v?: string } {
     try {
       const raw = localStorage.getItem(cfg.storageKey);
       if (!raw) return { items: [], seeded: false };
       const p: unknown = JSON.parse(raw);
-      if (isObj(p) && Array.isArray(p.items)) return { items: p.items as T[], seeded: !!p.seeded };
+      if (isObj(p) && Array.isArray(p.items)) return { items: p.items as T[], seeded: !!p.seeded, v: typeof p.v === 'string' ? p.v : undefined };
       return { items: [], seeded: false };
     } catch {
       return { items: [], seeded: false }; // corrupt entry → start empty, re-seeded at boot
     }
   }
 
+  // Version persisted alongside the items at the time of the last save (undefined for never-seeded / old data).
+  const initial = load();
+  let loadedVersion = initial.v;
+
   return create<EditorCollectionState<T>>((set, get) => ({
-    ...load(),
+    items: initial.items,
+    seeded: initial.seeded,
 
     upsert: (item) => {
       const exists = get().items.some((i) => i.id === item.id);
@@ -108,6 +119,20 @@ export function createEditorCollection<T extends { id: string }>(
       const missing = cfg.seed.filter((s) => !have.has(s.id));
       if (missing.length === 0 && get().seeded) return;
       const items = [...get().items, ...missing];
+      set({ items, seeded: true });
+      persist(items, true);
+    },
+
+    reconcileFromSeed: () => {
+      // No seedVersion configured → behave exactly like add-missing (no overwrite).
+      if (cfg.seedVersion == null) { get().mergeMissingFromSeed(); return; }
+      // Up to date → just add any genuinely new ids.
+      if (loadedVersion === cfg.seedVersion && get().seeded) { get().mergeMissingFromSeed(); return; }
+      // Seed content changed: refresh every seed-owned id with the fresh shipped content; keep user-only items.
+      const seedIds = new Set(cfg.seed.map((s) => s.id));
+      const userOnly = get().items.filter((i) => !seedIds.has(i.id));
+      const items = [...cfg.seed.map((s) => ({ ...s })), ...userOnly];
+      loadedVersion = cfg.seedVersion;
       set({ items, seeded: true });
       persist(items, true);
     },

@@ -132,6 +132,9 @@ export interface ParticleEffectParameters {
   particleModelId?: string;
   particleModelScale?: number;
   particleModelSpin?: number;
+  // Batch F.7 — clone material look for model-particle clones (solid GLB by default; hologram/afterimage/etc.
+  // for "double / echo / phantom" abilities). Maps to blending/opacity/emissive in ModelParticleRenderer.
+  particleMaterialMode?: 'solid' | 'hologram' | 'afterimage' | 'energy-outline' | 'ghost-trail';
 }
 
 // Legacy v1 effect parameters (carried over when migrating effectTracks → unified configs).

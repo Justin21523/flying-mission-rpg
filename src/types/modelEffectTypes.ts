@@ -18,6 +18,8 @@ export interface ModelLayerSettings {
   fallbackOffset?: [number, number, number];
   // object-assembly: fragments fly toward the center and lock into a built shape.
   assembleSeconds?: number;
+  // Batch F.7 — clone material look (solid by default). Drives blending/opacity/emissive in the renderer.
+  materialMode?: 'solid' | 'hologram' | 'afterimage' | 'energy-outline' | 'ghost-trail';
 }
 
 export const MODEL_LAYER_MAX_COUNT = 30;
