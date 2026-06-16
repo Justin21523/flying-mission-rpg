@@ -17,6 +17,13 @@ export function validateEnemy(def: EnemyDefinition): CombatValidationResult {
   if (def.archetype === 'pulse-turret' && def.turret && !def.turret.projectileSkillId.trim()) errors.push('turret needs a projectileSkillId.');
   if (def.archetype === 'shield-carrier' && !def.shield) errors.push('shield-carrier requires a shield config.');
   if (def.archetype === 'shield-carrier' && def.shield && def.shield.shieldHp <= 0) errors.push('shield-carrier shieldHp must be > 0.');
+  // Batch I — new archetypes.
+  if (def.archetype === 'spawner-bug' && !def.spawner) errors.push('spawner-bug requires a spawner config.');
+  if (def.archetype === 'spawner-bug' && def.spawner && !def.spawner.spawnGroupId.trim()) errors.push('spawner-bug needs a spawnGroupId.');
+  if (def.archetype === 'zip-glitch' && !def.zip) errors.push('zip-glitch requires a zip config.');
+  if (def.archetype === 'quake-walker' && !def.quake) errors.push('quake-walker requires a quake config.');
+  if (def.archetype === 'quake-walker' && def.quake && def.quake.slamRadius <= 0) errors.push('quake-walker slamRadius must be > 0.');
+  if (def.archetype === 'repair-wisp' && !def.repairWisp) errors.push('repair-wisp requires a repairWisp config.');
   return { ok: errors.length === 0, errors, warnings };
 }
 

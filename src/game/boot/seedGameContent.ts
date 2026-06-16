@@ -20,6 +20,8 @@ import { useBossDefinitionStore, useBossPhaseStore, useBossWeakpointStore, useBo
 import { useCinematicEffectStore } from '../../stores/game/useCinematicEffectStore';
 import { useCinematicAbilityEditorStore } from '../../stores/game/useCinematicAbilityEditorStore';
 import { useCloneAbilityStore } from '../../stores/game/useCloneAbilityStore';
+import { useIncidentEditorStore } from '../../stores/useIncidentEditorStore';
+import { useFusionEditorStore } from '../../stores/game/useFusionEditorStore';
 import { useAbilityLoadoutStore } from '../../stores/game/useAbilityLoadoutStore';
 import { useVfxStyleProfileStore } from '../../stores/game/useVfxStyleProfileStore';
 import { usePhysicsVfxObjectStore } from '../../stores/game/usePhysicsVfxObjectStore';
@@ -110,6 +112,8 @@ export function seedGameContent(): void {
   useCinematicEffectStore.getState().reconcileFromSeed();
   useCinematicAbilityEditorStore.getState().reconcileFromSeed();
   useCloneAbilityStore.getState().reconcileFromSeed();
+  useIncidentEditorStore.getState().reconcileFromSeed();
+  useFusionEditorStore.getState().reconcileFromSeed();
   useAbilityLoadoutStore.getState().mergeMissingFromSeed();
   useVfxStyleProfileStore.getState().reconcileFromSeed();
   usePhysicsVfxObjectStore.getState().mergeMissingFromSeed();

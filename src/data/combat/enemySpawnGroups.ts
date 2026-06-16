@@ -26,4 +26,27 @@ export const SEED_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = [
     completeWhenAllDefeated: true,
     enabled: true,
   },
+  // Batch I — minions the Spawner Bug summons (debug-only; not auto-spawned on segment enter).
+  {
+    id: 'glitch_swarm',
+    zoneId: ZONE,
+    segmentId: 'seg_glitch_hive',
+    spawnMode: 'debug-only',
+    enemies: [{ enemyDefinitionId: 'zip_glitch', count: 2, formation: 'circle' }],
+    completeWhenAllDefeated: true,
+    enabled: true,
+  },
+  // Batch I — the new boss's summon wave (mixes the new archetypes).
+  {
+    id: 'glitch_hive_wave_01',
+    zoneId: ZONE,
+    segmentId: 'seg_glitch_hive',
+    spawnMode: 'on-segment-enter',
+    enemies: [
+      { enemyDefinitionId: 'zip_glitch', count: 2, formation: 'circle' },
+      { enemyDefinitionId: 'quake_walker', count: 1, formation: 'cluster' },
+    ],
+    completeWhenAllDefeated: true,
+    enabled: true,
+  },
 ];

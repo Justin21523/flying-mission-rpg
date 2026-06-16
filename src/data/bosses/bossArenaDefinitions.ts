@@ -20,4 +20,22 @@ export const SEED_BOSS_ARENAS: BossArenaDefinition[] = [
     camera: { useArenaCameraHints: true, minDistance: 8, maxDistance: 22 },
     editorMeta: { debugColor: '#38bdf8' },
   },
+  // Batch I — Glitch Hive arena (matches seg_glitch_hive bounds).
+  {
+    id: 'glitch_hive_arena',
+    zoneId: 'zone_sunny_harbor_advanced_foundation',
+    segmentId: 'seg_glitch_hive',
+    name: 'Glitch Hive Arena',
+    bounds: { center: [22, 0, -36], size: [24, 8, 24] },
+    entryMarkerId: 'hive_entry',
+    bossSpawnPointId: 'hive_boss_spawn',
+    playerStartPointId: 'hive_player_start',
+    bossSpawnPosition: [22, 0, -30],
+    playerStartPosition: [22, 0, -42],
+    arenaLock: { lockOnStart: true, unlockOnBossDefeat: true, boundaryModelPresetId: 'arena_ring' },
+    supportBeaconIds: [],
+    supplyStationIds: [],
+    camera: { useArenaCameraHints: true, minDistance: 8, maxDistance: 22 },
+    editorMeta: { debugColor: '#84cc16' },
+  },
 ];

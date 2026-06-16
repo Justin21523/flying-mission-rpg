@@ -24,7 +24,7 @@ export interface AiContext {
   dt: number;
 }
 
-export type AiAction = 'none' | 'charge-hit' | 'fire' | 'bash';
+export type AiAction = 'none' | 'charge-hit' | 'fire' | 'bash' | 'spawn-minions' | 'dash' | 'quake-slam' | 'heal-ally';
 
 export interface AiStep {
   state: EnemyAiState;
@@ -144,12 +144,100 @@ function stepShield(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
   return still(set(e, 'guarding'), e.facingRad ?? facing);
 }
 
+// ---- Spawner Bug: keeps its distance + summons minions on an interval (Batch I) ----
+function stepSpawner(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.spawner!;
+  const d = bb(e);
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  const aggro = e.aggroRange ?? def.aggroRange;
+  if (dist <= aggro && ctx.nowS >= (d.nextSpawnAt ?? 0) && (d.spawns ?? 0) < cfg.maxSpawns) {
+    d.nextSpawnAt = ctx.nowS + cfg.spawnIntervalSeconds;
+    d.spawns = (d.spawns ?? 0) + 1;
+    return still(set(e, 'spawning'), facing, 'spawn-minions');
+  }
+  if (dist < cfg.retreatRange) {
+    const step = (e.moveSpeed ?? def.moveSpeed) * ctx.dt;
+    return { state: set(e, 'fleeing'), moveX: -Math.sin(facing) * step, moveZ: -Math.cos(facing) * step, facingRad: facing, action: 'none' };
+  }
+  return still(set(e, 'idle'), facing);
+}
+
+// ---- Zip Glitch: erratic high-speed evasive dashes (Batch I) ----
+function stepZip(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.zip!;
+  const d = bb(e);
+  const facing = angleTo(e, ctx);
+  if (e.aiState === 'dashing' && ctx.nowS < (d.dashUntil ?? 0)) {
+    const step = cfg.dashSpeed * ctx.dt;
+    return { state: 'dashing', moveX: (d.dx ?? 0) * step, moveZ: (d.dz ?? 0) * step, facingRad: Math.atan2(d.dx ?? 0, d.dz ?? 0), action: 'dash' };
+  }
+  if (ctx.nowS >= (d.nextDashAt ?? 0)) {
+    d.nextDashAt = ctx.nowS + cfg.dashIntervalSeconds;
+    d.dashUntil = ctx.nowS + cfg.dashDurationSeconds;
+    const away = facing + Math.PI + Math.sin(ctx.nowS * 7) * cfg.jitter; // deterministic evasion
+    d.dx = Math.sin(away); d.dz = Math.cos(away);
+    return still(set(e, 'dashing'), away, 'dash');
+  }
+  return still(set(e, 'idle'), facing);
+}
+
+// ---- Quake Walker: slow approach → telegraphed (interruptible) AOE slam (Batch I) ----
+function stepQuake(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.quake!;
+  const d = bb(e);
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  const aggro = e.aggroRange ?? def.aggroRange;
+  const state = (e.aiState as EnemyAiState) ?? 'idle';
+  // Interrupt: a stun during the windup cancels the slam (dodge/interrupt counterplay).
+  if (state === 'quake-windup' && ctx.nowS < (d.stunUntil ?? 0)) { d.windupUntil = 0; return still(set(e, 'chasing'), facing); }
+  switch (state) {
+    case 'quake-windup':
+      if (ctx.nowS >= (d.windupUntil ?? 0)) { d.slamAt = ctx.nowS + cfg.cooldownSeconds; return still(set(e, 'slamming'), facing, 'quake-slam'); }
+      return still('quake-windup', e.facingRad ?? facing);
+    case 'slamming':
+      return still(set(e, 'chasing'), facing);
+    case 'chasing': {
+      if (dist > aggro * 1.6) return still(set(e, 'idle'), facing);
+      if (dist <= cfg.slamRadius && ctx.nowS >= (d.slamAt ?? 0)) { d.windupUntil = ctx.nowS + cfg.windupSeconds; return still(set(e, 'quake-windup'), facing); }
+      const step = (e.moveSpeed ?? def.moveSpeed) * ctx.dt;
+      return { state: 'chasing', moveX: Math.sin(facing) * step, moveZ: Math.cos(facing) * step, facingRad: facing, action: 'none' };
+    }
+    case 'idle':
+    default:
+      if (dist <= aggro) return still(set(e, 'chasing'), facing);
+      return still('idle', e.facingRad ?? facing);
+  }
+}
+
+// ---- Repair Wisp: flees the player + heals a damaged ally on an interval (Batch I) ----
+function stepRepairWisp(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.repairWisp!;
+  const d = bb(e);
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  if (ctx.nowS >= (d.healAt ?? 0)) {
+    d.healAt = ctx.nowS + cfg.healIntervalSeconds;
+    return still(set(e, 'healing'), facing, 'heal-ally');
+  }
+  if (dist < cfg.fleeRange) {
+    const step = (e.moveSpeed ?? def.moveSpeed) * ctx.dt;
+    return { state: set(e, 'fleeing'), moveX: -Math.sin(facing) * step, moveZ: -Math.cos(facing) * step, facingRad: facing, action: 'none' };
+  }
+  return still(set(e, 'idle'), facing);
+}
+
 // Dispatch by archetype. Returns null for archetypes without a state machine (generic → host loop).
 export function stepEnemyAi(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep | null {
   switch (def.archetype) {
     case 'crusher-drone': return def.charge ? stepCrusher(e, def, ctx) : null;
     case 'pulse-turret': return def.turret ? stepTurret(e, def, ctx) : null;
     case 'shield-carrier': return def.shield ? stepShield(e, def, ctx) : null;
+    case 'spawner-bug': return def.spawner ? stepSpawner(e, def, ctx) : null;
+    case 'zip-glitch': return def.zip ? stepZip(e, def, ctx) : null;
+    case 'quake-walker': return def.quake ? stepQuake(e, def, ctx) : null;
+    case 'repair-wisp': return def.repairWisp ? stepRepairWisp(e, def, ctx) : null;
     default: return null;
   }
 }

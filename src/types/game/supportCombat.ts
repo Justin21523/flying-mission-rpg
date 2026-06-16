@@ -267,6 +267,31 @@ export interface PartnerSynergyPlaceholderDefinition {
   };
 }
 
+// ---- Partner Fusion (Batch I) — a real synchronized combo attack (beyond the synergy bonus) ----
+// Player + an Active/Standby support partner fire a unified AOE strike, gated by limited per-zone charges +
+// a sync gauge that fills from support/skill use. Reuses the cinematic VFX runtime + the shared damage path.
+export interface PartnerFusionDefinition {
+  id: string;
+  primaryCharacterId: string;
+  supportCharacterId: string;
+  name: string;
+  description?: string;
+  requiredSupportStatus?: 'active' | 'standby'; // minimum support tier required
+  chargesPerZone: number;
+  cooldownSeconds: number;
+  sync: { requiredGauge: number; gaugeMax: number };
+  combo: {
+    damage: number;
+    radius: number;
+    damageType: DamageType;
+    attackTags: string[];
+    statusTags?: string[];
+    cinematicEffectId: string; // an existing CinematicEffectDefinition id to play
+  };
+  editorMeta?: { notes?: string; themeColor?: string };
+  enabled?: boolean;
+}
+
 // ---- Validation ----
 
 export interface SupportCombatValidationResult {

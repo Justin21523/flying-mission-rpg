@@ -40,6 +40,9 @@ import { BossHud } from './ui/boss/BossHud';
 import { BossWarningToast } from './ui/boss/BossWarningToast';
 import { BossDebugPanel } from './ui/debug/BossDebugPanel';
 import { CinematicAbilityDebugPanel } from './ui/debug/CinematicAbilityDebugPanel';
+import { IncidentHud } from './ui/incidents/IncidentHud';
+import { PartnerFusionHud } from './ui/support-combat/PartnerFusionHud';
+import { IncidentDebugPanel } from './ui/debug/IncidentDebugPanel';
 import { VfxShowcaseDebugPanel } from './ui/debug/VfxShowcaseDebugPanel';
 import { CinematicVfxDebugPanel } from './ui/debug/CinematicVfxDebugPanel';
 import { HuntHud } from './ui/game/HuntHud';
@@ -346,6 +349,7 @@ export const App = () => {
       {(fsmDebug || editMode) && combatPhase && <CharacterSkillDebugPanel />}
       {!editMode && !world && (combatPhase || zonePhase) && <SupportCombatPanel />}
       {!editMode && !world && (combatPhase || zonePhase) && <SupportStatusHud />}
+      {!editMode && !world && (combatPhase || zonePhase) && <PartnerFusionHud />}
       {!editMode && !world && (combatPhase || zonePhase) && <SupportSynergyToast />}
       {(fsmDebug || editMode) && combatPhase && <SupportCombatDebugPanel />}
       {!editMode && !world && (combatPhase || zonePhase) && <BossHud />}
@@ -354,6 +358,8 @@ export const App = () => {
       {(fsmDebug || editMode) && combatPhase && <CinematicAbilityDebugPanel />}
       {(fsmDebug || editMode) && combatPhase && <VfxShowcaseDebugPanel />}
       {(fsmDebug || editMode) && combatPhase && <CinematicVfxDebugPanel />}
+      {!editMode && !world && zonePhase && <IncidentHud />}
+      {(fsmDebug || editMode) && zonePhase && <IncidentDebugPanel />}
       {!editMode && !world && (missionPhase || missionDonePhase) && !zonePhase && <QuestTracker />}
       {!editMode && !world && missionPhase && <SupportDispatchDirectorHost />}
       {!editMode && !world && missionPhase && <SupportSelectionPanel />}

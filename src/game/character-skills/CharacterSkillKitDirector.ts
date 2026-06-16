@@ -9,6 +9,7 @@ import { useCombatStore } from '../../stores/game/useCombatStore';
 import { castSkillById, activeCombatantId, registerPlayerCombatant } from '../combat/CombatDirector';
 import { detectCombo } from './CharacterComboController';
 import { applyUtilityFromCast } from './CharacterUtilityResolver';
+import { accrueSyncFromAction } from '../support-combat/PartnerFusionDirector';
 import type { SkillCastOutcome } from '../combat/SkillRuntime';
 
 // Entry point for character-kit skills (Batch D-kits). Resolves a named slot → skill id via the active kit
@@ -74,6 +75,7 @@ export function castCharacterSkillById(characterId: string, skillId: string): Sk
 
   const outcome = castSkillById(skillId, characterId, { forceCrit: combo?.bonusEffects?.forceCrit });
   if (!outcome?.ok) return outcome;
+  accrueSyncFromAction(12); // Batch I — skill use fills the partner-fusion sync gauge
 
   // Utility (scan / stun / repair / speed-gate) from the cast hits.
   const castSkillDef = getCombatSkill(skillId);

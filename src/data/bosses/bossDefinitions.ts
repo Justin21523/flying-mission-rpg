@@ -1,5 +1,5 @@
 import type { BossDefinition } from '../../types/game/boss';
-import { HARBOR_CORE_MODEL } from './bossVisualPresets';
+import { HARBOR_CORE_MODEL, GLITCH_HIVE_MODEL } from './bossVisualPresets';
 
 // Seed boss (Batch F) — Harbor Core Sentinel, the final-segment boss of the Sunny Harbor advanced zone.
 export const SEED_BOSSES: BossDefinition[] = [
@@ -42,6 +42,48 @@ export const SEED_BOSSES: BossDefinition[] = [
       defeatedVisualPresetId: 'boss_defeated',
     },
     editorMeta: { difficulty: 'normal', debugColor: '#38bdf8' },
+    enabled: true,
+  },
+  // Batch I — second boss: Glitch Hive Tyrant (mid-zone, summons the new archetypes). Reuses the entire boss
+  // pipeline; defeating it unlocks Repair Plaza → Harbor Core (still the final boss).
+  {
+    id: 'glitch_hive_tyrant',
+    name: 'Glitch Hive Tyrant',
+    bossType: 'elite-machine',
+    zoneId: 'zone_sunny_harbor_advanced_foundation',
+    segmentId: 'seg_glitch_hive',
+    arenaId: 'glitch_hive_arena',
+    damageable: {
+      id: 'dmg_glitch_hive_tyrant',
+      maxHp: 500,
+      maxShield: 150,
+      weaknessTags: ['weakpoint', 'aoe'],
+      resistanceTags: ['energy'],
+      armorType: 'shielded',
+      shieldRules: { enabled: true, shieldHp: 150, shieldWeaknessTags: ['shield-break', 'aoe'], shieldBreakStaggerSeconds: 1.5 },
+      onHpZero: 'destroy',
+      editorMeta: { displayName: 'Glitch Hive Tyrant', color: '#84cc16' },
+    },
+    phaseIds: ['phase_glitch_p1', 'phase_glitch_p2', 'phase_glitch_p3'],
+    startPhaseId: 'phase_glitch_p1',
+    finalPhaseIds: ['phase_glitch_p3'],
+    weakpointIds: ['wp_hive_node', 'wp_hive_core'],
+    attackPatternIds: ['atk_glitch_projectile', 'atk_glitch_shield_pulse', 'atk_glitch_summon', 'atk_glitch_shockwave', 'atk_glitch_sweep'],
+    summonWaveIds: ['wave_glitch_summon'],
+    roleRecommendations: {
+      recommendedCharacterIds: ['char_chase', 'char_todd', 'char_jett', 'char_paul'],
+      recommendedSupportAbilityTypes: ['scan-support', 'strike-support', 'break-support'],
+      recommendedSkillTags: ['scan', 'aoe', 'weakpoint'],
+    },
+    completion: { completeZoneOnDefeat: false, enterMissionCompleteOnDefeat: false, returnToBaseOnDefeat: false },
+    visual: {
+      modelPresetId: GLITCH_HIVE_MODEL,
+      scale: [2, 2, 2],
+      themeColor: '#84cc16',
+      phaseVisualPresets: { phase_glitch_p1: '#84cc16', phase_glitch_p2: '#22d3ee', phase_glitch_p3: '#ef4444' },
+      defeatedVisualPresetId: 'boss_defeated',
+    },
+    editorMeta: { difficulty: 'hard', debugColor: '#84cc16' },
     enabled: true,
   },
 ];

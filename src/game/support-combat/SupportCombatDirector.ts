@@ -15,6 +15,7 @@ import { resolveTargets } from './SupportTargetingResolver';
 import { executeAbility, type SupportAbilityDeps, type SupportAbilityOutcome } from './SupportAbilityRuntime';
 import { recordSupportOutcome, addProtectedAreaSeconds } from './SupportZoneConditionAdapter';
 import { tryTriggerSynergy, resetSynergyCooldowns } from './SupportSynergyController';
+import { accrueSyncFromAction } from './PartnerFusionDirector';
 
 // Top-level orchestrator for support COMBAT (Batch E). Registers support characters for the active zone,
 // reports ability availability (presence + cooldown + cost), and casts abilities — routing every effect
@@ -174,6 +175,7 @@ export function castSupportAbility(abilityId: string, opts: { manualTargetId?: s
     scannedEnemy: outcome.scannedTargetIds.length > 0,
     primaryRecentSkillTags: [],
   });
+  accrueSyncFromAction(16); // Batch I — support use fills the partner-fusion sync gauge faster than skills
 
   return { ok: true, abilityId, outcome };
 }

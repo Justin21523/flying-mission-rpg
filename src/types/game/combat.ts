@@ -340,15 +340,22 @@ export interface CombatEffectDefinition {
 export type EnemyAiBehavior = 'chaser' | 'kiter' | 'turret' | 'boss';
 
 // Batch C — named enemy archetypes with their own AI state machines (enemyAi.ts). 'generic' falls back to
-// the Batch D approach-and-cast loop.
-export type EnemyArchetype = 'generic' | 'crusher-drone' | 'pulse-turret' | 'shield-carrier';
-export const ENEMY_ARCHETYPES: readonly EnemyArchetype[] = ['generic', 'crusher-drone', 'pulse-turret', 'shield-carrier'];
+// the Batch D approach-and-cast loop. Batch I adds the remaining 4 of the 8-archetype roster.
+export type EnemyArchetype =
+  | 'generic' | 'crusher-drone' | 'pulse-turret' | 'shield-carrier'
+  | 'spawner-bug' | 'zip-glitch' | 'quake-walker' | 'repair-wisp';
+export const ENEMY_ARCHETYPES: readonly EnemyArchetype[] = [
+  'generic', 'crusher-drone', 'pulse-turret', 'shield-carrier',
+  'spawner-bug', 'zip-glitch', 'quake-walker', 'repair-wisp',
+];
 
 // All runtime AI states across the archetypes (a target uses the subset for its archetype).
 export type EnemyAiState =
   | 'idle' | 'chasing' | 'charge-windup' | 'charging' | 'recovering'
   | 'tracking' | 'firing' | 'cooldown'
-  | 'guarding' | 'bash' | 'shield-broken' | 'stunned' | 'defeated';
+  | 'guarding' | 'bash' | 'shield-broken' | 'stunned' | 'defeated'
+  // Batch I — new archetype states.
+  | 'spawning' | 'dashing' | 'quake-windup' | 'slamming' | 'healing' | 'fleeing';
 
 export interface CrusherConfig {
   windupSeconds: number;
@@ -369,6 +376,31 @@ export interface ShieldCarrierConfig {
   breakStaggerSeconds: number;
   bashDamage: number;
   bashRange: number;
+}
+// Batch I — configs for the 4 new archetypes.
+export interface SpawnerConfig {
+  spawnGroupId: string; // an EnemySpawnGroupDefinition id of minions to summon
+  spawnIntervalSeconds: number;
+  maxSpawns: number;
+  retreatRange: number; // back away when the player is closer than this
+}
+export interface ZipConfig {
+  dashSpeed: number;
+  dashIntervalSeconds: number;
+  dashDurationSeconds: number;
+  jitter: number; // lateral evasion (radians) added to the dash heading
+}
+export interface QuakeConfig {
+  windupSeconds: number; // telegraphed, interruptible
+  slamRadius: number;
+  slamDamage: number;
+  cooldownSeconds: number;
+}
+export interface RepairWispConfig {
+  healAmount: number;
+  healIntervalSeconds: number;
+  healRange: number;
+  fleeRange: number; // keep this far from the player
 }
 
 export interface EnemyDefinition {
@@ -393,6 +425,11 @@ export interface EnemyDefinition {
   charge?: CrusherConfig;
   turret?: TurretConfig;
   shield?: ShieldCarrierConfig;
+  // Batch I — new archetype configs.
+  spawner?: SpawnerConfig;
+  zip?: ZipConfig;
+  quake?: QuakeConfig;
+  repairWisp?: RepairWispConfig;
   editorMeta?: { notes?: string };
   enabled: boolean;
 }

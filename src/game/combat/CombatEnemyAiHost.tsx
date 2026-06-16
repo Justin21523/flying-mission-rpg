@@ -7,6 +7,7 @@ import { spawnFromSkill } from './skillBehaviors';
 import { isSpawnSkill } from './skillBehaviors';
 import { bossActivePhase, spawnEnemyFromDef } from './enemyRuntime';
 import { stepEnemyAi } from './enemyAi';
+import { spawnGroup } from './enemySpawnDirector';
 import { getDecoyTargetFor } from '../support-combat/SupportThreatController';
 import type { SkillCaster } from './SkillRuntime';
 
@@ -37,6 +38,17 @@ function castEnemySkill(enemy: CombatTarget, skillId: string, playerX: number, p
   if (dx * dx + dz * dz <= reach * reach) {
     applyDamageToPlayer(skill.damageEvents?.[0]?.amount ?? 8);
   }
+}
+
+// Batch I — Repair Wisp heals the nearest damaged enemy ally within range (in place; read each frame).
+function healNearestAlly(wisp: CombatTarget, range: number, amount: number): void {
+  let best: CombatTarget | undefined; let bestD = range * range;
+  for (const a of liveTargets) {
+    if (!a.isEnemy || a.defeatedAt || a.id === wisp.id || a.hp >= a.maxHp) continue;
+    const d = (a.x - wisp.x) ** 2 + (a.z - wisp.z) ** 2;
+    if (d <= bestD) { bestD = d; best = a; }
+  }
+  if (best) best.hp = Math.min(best.maxHp, best.hp + amount);
 }
 
 function updateBossPhase(enemy: CombatTarget): void {
@@ -97,6 +109,10 @@ export const CombatEnemyAiHost = () => {
           if (step.action === 'charge-hit') applyDamageToPlayer(def.charge?.damageAmount ?? 12);
           else if (step.action === 'bash') applyDamageToPlayer(def.shield?.bashDamage ?? 10);
           else if (step.action === 'fire' && def.turret) { const sk = getCombatSkill(def.turret.projectileSkillId); if (sk) spawnFromSkill(sk, { characterId: e.id, x: e.x, y: e.y, z: e.z, headingRad: e.facingRad ?? 0 }); }
+          // Batch I — new archetype actions.
+          else if (step.action === 'spawn-minions' && def.spawner) spawnGroup(def.spawner.spawnGroupId, e.x, e.z);
+          else if (step.action === 'quake-slam' && def.quake) { if (Math.hypot(px - e.x, pz - e.z) <= def.quake.slamRadius) applyDamageToPlayer(def.quake.slamDamage); }
+          else if (step.action === 'heal-ally' && def.repairWisp) healNearestAlly(e, def.repairWisp.healRange, def.repairWisp.healAmount);
           continue;
         }
       }

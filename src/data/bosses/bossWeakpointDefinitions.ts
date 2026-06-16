@@ -34,4 +34,23 @@ export const SEED_BOSS_WEAKPOINTS: BossWeakpointDefinition[] = [
     validAttackTags: ['precision', 'weakpoint', 'impact', 'energy'],
     visual: { hiddenPresetId: 'wp_hidden', exposedPresetId: 'wp_exposed', destroyedPresetId: 'wp_destroyed', markerGeometry: 'diamond', color: '#fb7185' },
   },
+  // Batch I — Glitch Hive Tyrant weakpoints.
+  {
+    id: 'wp_hive_node', bossId: 'glitch_hive_tyrant', displayName: 'Hive Node', fallbackPosition: [0, 2.4, 0],
+    activeInPhaseIds: ['phase_glitch_p1'],
+    damageable: { id: 'dmg_wp_hive_node', maxHp: 110, weaknessTags: ['precision', 'weakpoint', 'aoe'], resistanceTags: [], onHpZero: 'destroy', editorMeta: { displayName: 'Hive Node', color: '#a3e635' } },
+    exposedRules: { initiallyExposed: false, exposeOnScan: true, exposeOnSupportScan: true, exposeOnShieldBreak: true, exposeDurationSeconds: 8 },
+    effectOnDestroyed: { damageBossAmount: 120, removeBossShield: 150, triggerNextPhase: true },
+    validAttackTags: ['precision', 'weakpoint', 'aoe', 'impact', 'energy'],
+    visual: { hiddenPresetId: 'wp_hidden', exposedPresetId: 'wp_exposed', destroyedPresetId: 'wp_destroyed', markerGeometry: 'ring', color: '#a3e635' },
+  },
+  {
+    id: 'wp_hive_core', bossId: 'glitch_hive_tyrant', displayName: 'Hive Core', fallbackPosition: [0, 3, 0],
+    activeInPhaseIds: ['phase_glitch_p3'],
+    damageable: { id: 'dmg_wp_hive_core', maxHp: 150, weaknessTags: ['precision', 'weakpoint'], resistanceTags: [], onHpZero: 'destroy', editorMeta: { displayName: 'Hive Core', color: '#fb7185' } },
+    exposedRules: { initiallyExposed: true, exposeOnScan: true, exposeOnSupportScan: true, exposeDurationSeconds: 14 },
+    effectOnDestroyed: { damageBossAmount: 350, triggerNextPhase: false },
+    validAttackTags: ['precision', 'weakpoint', 'impact', 'energy', 'aoe'],
+    visual: { hiddenPresetId: 'wp_hidden', exposedPresetId: 'wp_exposed', destroyedPresetId: 'wp_destroyed', markerGeometry: 'diamond', color: '#fb7185' },
+  },
 ];

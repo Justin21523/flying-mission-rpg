@@ -11,6 +11,7 @@ import { tickZoneCombatClear, resetZoneCombatAdapter } from './ZoneCombatAdapter
 import { SLOT_KEYS } from './skillSlots';
 import { hasKit, castArsenalAbilityBySlot, loadKitForCharacter } from '../character-skills/CharacterSkillKitDirector';
 import { routeActionKey, useAbilityPageStore } from '../character-skills/abilityPages';
+import { initFusionsForZone, castPartnerFusion } from '../support-combat/PartnerFusionDirector';
 
 // Per-frame pump for the Combat Runtime + skill input. Registers the active combatant on mount, ticks the
 // director each frame, and binds the active character's skills by slot (Z/X/Y/H/B/N). A skill without an
@@ -20,6 +21,7 @@ export const CombatRuntimeHost = () => {
   useEffect(() => {
     initializeCombatForZone();
     resetZoneCombatAdapter();
+    initFusionsForZone(); // Batch I — reset partner-fusion charges/gauge for this zone
     return () => shutdownCombat();
   }, []);
 
@@ -35,6 +37,9 @@ export const CombatRuntimeHost = () => {
         if (charId && hasKit(charId)) { useAbilityPageStore.getState().cyclePage(); return; }
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return; // let editor shortcuts (Ctrl+Z/Y …) through
+
+      // Batch I — Partner Fusion (F): fire the synchronized combo if a partner is present + the gauge is full.
+      if (e.code === 'KeyF') { if (charId) castPartnerFusion(charId); return; }
 
       // Kit characters: the 4 action keys (4 / 5 / Z / X) cast the current page's ability set (so combos +
       // utility fire); Ctrl pages through all 11 abilities. Non-kit heroes keep the generic slot scan.

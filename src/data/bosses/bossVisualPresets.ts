@@ -16,6 +16,8 @@ const fx = (id: string, geometryType: GeometryType, dims: Record<string, number>
 // Boss model preset id (a real GLB; reused from the legacy crystal boss). BossRenderer composes extra meshes
 // around it so the boss is never a lone sphere.
 export const HARBOR_CORE_MODEL = 'others/crystal boss 3d model';
+// Batch I — the second boss (Glitch Hive Tyrant) uses a distinct real GLB.
+export const GLITCH_HIVE_MODEL = 'yokais/fantasy+demon+human+character+3d+model';
 
 export const SEED_BOSS_EFFECTS: CombatEffectDefinition[] = [
   fx('fx_boss_projectile_warn', 'ring', { radius: 2, width: 0.3 }, '#fca5a5', 'pulse', 0.6),

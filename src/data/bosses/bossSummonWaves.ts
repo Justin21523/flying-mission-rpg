@@ -12,4 +12,14 @@ export const SEED_BOSS_SUMMON_WAVES: BossSummonWaveDefinition[] = [
     maxActiveEnemies: 6,
     completeWhenGroupsCleared: true,
   },
+  // Batch I — Glitch Hive Tyrant summon wave (the new zip + quake archetypes).
+  {
+    id: 'wave_glitch_summon',
+    bossId: 'glitch_hive_tyrant',
+    phaseId: 'phase_glitch_p2',
+    enemySpawnGroupIds: ['glitch_hive_wave_01'],
+    trigger: { type: 'on-phase-start' },
+    maxActiveEnemies: 6,
+    completeWhenGroupsCleared: true,
+  },
 ];

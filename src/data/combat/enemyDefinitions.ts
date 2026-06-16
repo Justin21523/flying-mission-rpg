@@ -40,6 +40,35 @@ export const SEED_ENEMIES: EnemyDefinition[] = [
     maxHp: 110, maxShield: 40, moveSpeed: 1.4, aggroRange: 24, attackRange: 16, aiBehavior: 'turret',
     skillIds: ['en_fireball', 'en_homing_orb'], weaknessTags: ['shield-break', 'electric'], resistanceTags: ['impact'], scale: 1.1, color: '#64748b', enabled: true,
   },
+  // --- Batch I — the remaining 4 archetypes (complete the 8) ---
+  {
+    id: 'glitch_spawner', name: 'Spawner Bug', archetype: 'spawner-bug', modelAssetId: 'yokais/giant+water+snake+3d+model',
+    maxHp: 60, moveSpeed: 2.4, aggroRange: 24, attackRange: 3, aiBehavior: 'kiter', skillIds: [],
+    weaknessTags: ['control', 'aoe'], resistanceTags: [],
+    spawner: { spawnGroupId: 'glitch_swarm', spawnIntervalSeconds: 6, maxSpawns: 3, retreatRange: 6 },
+    scale: 1.1, color: '#84cc16', enabled: true,
+  },
+  {
+    id: 'zip_glitch', name: 'Zip Glitch', archetype: 'zip-glitch', modelAssetId: 'yokais/japanese+ninja+3d+model',
+    maxHp: 45, moveSpeed: 4, aggroRange: 24, attackRange: 3, aiBehavior: 'chaser', skillIds: ['en_charge'],
+    weaknessTags: ['aoe', 'slow'], resistanceTags: [],
+    zip: { dashSpeed: 14, dashIntervalSeconds: 2.5, dashDurationSeconds: 0.5, jitter: 0.8 },
+    scale: 0.9, color: '#22d3ee', enabled: true,
+  },
+  {
+    id: 'quake_walker', name: 'Quake Walker', archetype: 'quake-walker', modelAssetId: 'yokais/red+demon+pirate+3d+model',
+    maxHp: 160, moveSpeed: 1.6, aggroRange: 22, attackRange: 6, aiBehavior: 'chaser', skillIds: [],
+    weaknessTags: ['interrupt', 'energy'], resistanceTags: ['impact'],
+    quake: { windupSeconds: 1.2, slamRadius: 6, slamDamage: 22, cooldownSeconds: 4 },
+    scale: 1.4, color: '#b45309', enabled: true,
+  },
+  {
+    id: 'repair_wisp', name: 'Repair Wisp', archetype: 'repair-wisp', modelAssetId: 'characters/Carey drone 3d model',
+    maxHp: 50, moveSpeed: 3, aggroRange: 20, attackRange: 0, aiBehavior: 'kiter', skillIds: [],
+    weaknessTags: ['scan', 'precision'], resistanceTags: [],
+    repairWisp: { healAmount: 30, healIntervalSeconds: 4, healRange: 12, fleeRange: 8 },
+    scale: 0.8, color: '#34d399', enabled: true,
+  },
   {
     id: 'boss_crystal_sentinel', name: 'Crystal Sentinel', modelAssetId: 'others/crystal boss 3d model',
     maxHp: 600, maxShield: 120, moveSpeed: 1.8, aggroRange: 40, attackRange: 24, aiBehavior: 'boss',
