@@ -4,19 +4,35 @@
 
 import type { DamageType, HitVolumeDefinition, TargetRuleDefinition } from './game/combat';
 
-export type AbilityCategory = 'attack' | 'defense' | 'ultimate';
-export const ABILITY_CATEGORIES: readonly AbilityCategory[] = ['attack', 'defense', 'ultimate'];
+// Batch F.7 — 16 abilities/hero: 6 attack / 3 defense / 1 signature / 2 ultimate / 4 clone. The clone slots are
+// the per-character "double / echo / phantom" abilities (one interleaved into each of the 4 skill pages).
+export type AbilityCategory = 'attack' | 'defense' | 'signature' | 'ultimate' | 'clone';
+export const ABILITY_CATEGORIES: readonly AbilityCategory[] = ['attack', 'defense', 'signature', 'ultimate', 'clone'];
 
 export type AbilitySlot =
   | 'attack-1' | 'attack-2' | 'attack-3' | 'attack-4' | 'attack-5' | 'attack-6'
   | 'defense-1' | 'defense-2' | 'defense-3'
-  | 'ultimate-1' | 'ultimate-2';
+  | 'signature-1'
+  | 'ultimate-1' | 'ultimate-2'
+  | 'clone-1' | 'clone-2' | 'clone-3' | 'clone-4';
 export const ABILITY_SLOTS: readonly AbilitySlot[] = [
   'attack-1', 'attack-2', 'attack-3', 'attack-4', 'attack-5', 'attack-6',
-  'defense-1', 'defense-2', 'defense-3', 'ultimate-1', 'ultimate-2',
+  'defense-1', 'defense-2', 'defense-3', 'signature-1', 'ultimate-1', 'ultimate-2',
+  'clone-1', 'clone-2', 'clone-3', 'clone-4',
 ];
 
 export type VisualIntensity = 1 | 2 | 3 | 4 | 5;
+
+// Batch F.6 — tiered model-scale presets so each ability's models read at a deliberate on-screen size
+// (basic attacks clearly visible → ultimates with giant presence) without authoring a raw scalar per piece.
+export type CinematicModelScalePreset = 'small' | 'medium' | 'large' | 'hero' | 'ultimate';
+export interface AbilityVisualScale {
+  modelScalePreset: CinematicModelScalePreset;
+  modelScaleMultiplier: number;
+  geometryScaleMultiplier: number;
+  particleScaleMultiplier: number;
+  fogScaleMultiplier: number;
+}
 
 export interface CinematicAbilityDefinition {
   id: string;
@@ -72,6 +88,9 @@ export interface CinematicAbilityDefinition {
     scanDurationSeconds?: number;
     defenseReductionPercent?: number;
   };
+
+  // Batch F.6 — tiered visual scale (preset + per-channel multipliers). Edit-Mode-tunable.
+  visualScale?: AbilityVisualScale;
 
   editorMeta?: {
     notes?: string;

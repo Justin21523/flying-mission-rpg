@@ -4,6 +4,7 @@ import { CanvasErrorBoundary } from '../ui/CanvasErrorBoundary';
 import { Scene } from '../game/core/Scene';
 import { PerformanceSampler } from '../game/performance/PerformanceSampler';
 import { SelectedCharacterPosePreloader } from '../game/characters/SelectedCharacterPosePreloader';
+import { VfxModelPreloader } from '../game/vfx/VfxModelPreloader';
 import { Loading } from './Loading';
 import { useUiStore } from '../stores/uiStore';
 import { useSceneEditStore } from '../stores/sceneEditStore';
@@ -31,6 +32,8 @@ export const GameCanvas = () => (
       {/* Batch 12 — frame sampler feeds the performance monitor (outside Suspense so it always ticks). */}
       <PerformanceSampler />
       <SelectedCharacterPosePreloader />
+      {/* Warm the heavy (5–12 MB) VFX GLB cache at boot so combat model effects render on the first cast. */}
+      <VfxModelPreloader />
       <Suspense fallback={<Loading />}>
         <Scene />
       </Suspense>

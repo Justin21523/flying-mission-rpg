@@ -58,6 +58,9 @@ export interface CinematicVfxQualityChecks {
   hasSignatureObject: boolean;
   hasDistinctGeometry: boolean;
   hasModelOrPhysicsObject: boolean;
+  // Batch F.6b — real-GLB usage (the heart of per-character uniqueness).
+  usesRealModel: boolean;          // ≥1 model layer whose modelAssetId resolves to a real GLB
+  usesOwnCharacterModel: boolean;  // a model layer using this hero's OWN super-wings/ model
   hasImpactFeedback: boolean;
   hasMotionLanguage: boolean;
   hasCleanup: boolean;

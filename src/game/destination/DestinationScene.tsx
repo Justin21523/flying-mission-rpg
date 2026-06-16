@@ -17,7 +17,7 @@ import { LandingSettle } from './LandingSettle';
 import { ObjectiveDirectorHost } from '../missions/ObjectiveDirectorHost';
 import { AdvancedMissionZoneDirectorHost } from '../advanced-mission-zone/AdvancedMissionZoneDirectorHost';
 import { ZoneMarkerLayer } from '../advanced-mission-zone/ZoneMarkerLayer';
-import { CombatRuntimeLayer } from '../combat/CombatRuntimeLayer';
+import { CombatRuntimeLayer, CombatVfxPreviewLayer } from '../combat/CombatRuntimeLayer';
 import { ZoneEncounterHost } from '../advanced-mission-zone/ZoneEncounterHost';
 import { ObstacleRenderer } from '../obstacles/ObstacleRenderer';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
@@ -76,6 +76,8 @@ export const DestinationScene = () => {
       <ZoneMarkerLayer />
       {!editMode && ZONE_PHASES.has(phase) && <AdvancedMissionZoneDirectorHost />}
       {!editMode && COMBAT_PHASES.has(phase) && <CombatRuntimeLayer />}
+      {/* Edit Mode: render-only VFX preview so the 🎨 VFX Showcase / 🎬 Cinematic debug panels show cast effects. */}
+      {editMode && COMBAT_PHASES.has(phase) && <CombatVfxPreviewLayer />}
       {!editMode && COMBAT_PHASES.has(phase) && <ZoneEncounterHost />}
       <ObstacleRenderer />
       {!editMode && GROUND_PHASES.has(phase) && (

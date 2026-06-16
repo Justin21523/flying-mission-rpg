@@ -1,6 +1,8 @@
 import type { CinematicEffectDefinition, CinematicEffectLayerDefinition, CinematicLayerType } from '../../types/cinematicVfxTypes';
 import type { CharacterVfxStyleProfile, CinematicVfxQualityChecks, CinematicVfxQualityScore } from '../../types/characterVfxStyleTypes';
 import { isShowcaseAbility } from '../../data/cinematic-vfx/showcaseAbilities';
+import { getModelAsset } from '../../data/modelLibrary';
+import { isOwnHeroModel } from '../../data/cinematic-vfx/vfxModelCatalog';
 
 // Quality scorer (Batch F.6) — deterministic, content-based grading so every authored effect is verifiably
 // character-distinct + model/geometry/physics-driven (particles only as accents). Showcase abilities must
@@ -20,17 +22,20 @@ const PARTICLE_LAYER_TYPES: ReadonlySet<CinematicLayerType> = new Set([
   'particle-burst', 'particle-trail',
 ]);
 
-// Weighted points per passed check (positives capped at 100). Particle-only short-circuits to a fail.
+// Weighted points per passed check (positives capped at 100). Particle-only short-circuits to a fail. Batch
+// F.6b weights real-GLB usage heavily — that's what makes each hero visually unique.
 const WEIGHTS = {
-  hasCharacterStyleProfile: 12,
-  hasSignatureObject: 20,
-  hasDistinctGeometry: 14,
-  hasModelOrPhysicsObject: 18,
-  hasImpactFeedback: 10,
-  hasMotionLanguage: 12,
-  hasCleanup: 6,
-  notOverUsesGenericParticles: 8,
-  notOverlapsWithOtherCharacter: 10,
+  hasCharacterStyleProfile: 8,
+  hasSignatureObject: 16,
+  hasDistinctGeometry: 8,
+  hasModelOrPhysicsObject: 10,
+  usesRealModel: 18,
+  usesOwnCharacterModel: 10,
+  hasImpactFeedback: 8,
+  hasMotionLanguage: 8,
+  hasCleanup: 4,
+  notOverUsesGenericParticles: 6,
+  notOverlapsWithOtherCharacter: 8,
 } as const;
 
 function layerIsParticle(l: CinematicEffectLayerDefinition): boolean {
@@ -63,6 +68,7 @@ export function scoreAbilityVfx(
   effect: CinematicEffectDefinition,
   styleProfile: CharacterVfxStyleProfile | undefined,
   allEffects: CinematicEffectDefinition[],
+  modelExists: (id: string) => boolean = (id) => !!getModelAsset(id),
 ): CinematicVfxQualityScore {
   const characterId = effect.characterId ?? styleProfile?.characterId ?? 'unknown';
   const isShowcase = isShowcaseAbility(abilityId);
@@ -73,6 +79,11 @@ export function scoreAbilityVfx(
   const particleCount = effect.layers.filter(layerIsParticle).length;
   const nonParticleCount = effect.layers.length - particleCount;
   const particleOnly = effect.layers.length > 0 && nonParticleCount === 0;
+
+  // Real-GLB usage: a model layer with a resolvable modelAssetId; own-model = this hero's super-wings/ asset.
+  const modelLayers = effect.layers.filter((l) => MODEL_LAYER_TYPES.has(l.layerType) && l.model?.modelAssetId);
+  const usesRealModel = modelLayers.some((l) => modelExists(l.model!.modelAssetId!));
+  const usesOwnCharacterModel = modelLayers.some((l) => isOwnHeroModel(characterId, l.model!.modelAssetId));
 
   // Cross-character overlap: highest fingerprint similarity to any OTHER character's effect.
   const fp = effectFingerprint(effect);
@@ -90,6 +101,8 @@ export function scoreAbilityVfx(
     hasSignatureObject: sigIds.length > 0 && sigIds.some((s) => profileSig.has(s)),
     hasDistinctGeometry: effect.layers.some((l) => GEOMETRY_LAYER_TYPES.has(l.layerType) && l.geometry != null),
     hasModelOrPhysicsObject: effect.layers.some((l) => MODEL_LAYER_TYPES.has(l.layerType) || l.layerType === 'physics-object'),
+    usesRealModel,
+    usesOwnCharacterModel,
     hasImpactFeedback: effect.layers.some((l) => l.layerType === 'camera-feedback'),
     hasMotionLanguage: effect.motionLanguage != null,
     hasCleanup: effect.cleanup.autoCleanup === true,
@@ -102,6 +115,8 @@ export function scoreAbilityVfx(
   if (checks.hasSignatureObject) score += WEIGHTS.hasSignatureObject; else warnings.push('No signature object from this hero.');
   if (checks.hasDistinctGeometry) score += WEIGHTS.hasDistinctGeometry; else warnings.push('No distinct geometry layer.');
   if (checks.hasModelOrPhysicsObject) score += WEIGHTS.hasModelOrPhysicsObject; else warnings.push('No model or physics-object layer.');
+  if (checks.usesRealModel) score += WEIGHTS.usesRealModel; else warnings.push('No real GLB model layer.');
+  if (checks.usesOwnCharacterModel) score += WEIGHTS.usesOwnCharacterModel; else warnings.push("No hero's own model.");
   if (checks.hasImpactFeedback) score += WEIGHTS.hasImpactFeedback; else warnings.push('No camera/impact feedback.');
   if (checks.hasMotionLanguage) score += WEIGHTS.hasMotionLanguage; else warnings.push('No motion language tag.');
   if (checks.hasCleanup) score += WEIGHTS.hasCleanup; else warnings.push('Effect does not auto-cleanup.');
@@ -113,7 +128,10 @@ export function scoreAbilityVfx(
   if (particleOnly) score = Math.min(score, 40);
 
   const threshold = isShowcase ? SHOWCASE_THRESHOLD : BASE_THRESHOLD;
-  return { abilityId, characterId, isShowcase, score, passed: score >= threshold, checks, warnings };
+  // Showcase abilities must feature a REAL model AND the hero's OWN model (escort / giant projection).
+  const showcaseModelOk = !isShowcase || (usesRealModel && usesOwnCharacterModel);
+  if (!showcaseModelOk) warnings.push('Showcase ability must use the hero\'s own real model.');
+  return { abilityId, characterId, isShowcase, score, passed: score >= threshold && showcaseModelOk, checks, warnings };
 }
 
 export function thresholdFor(abilityId: string): number {

@@ -11,6 +11,7 @@ import { SupportTargetingOverlay } from '../../ui/support-combat/SupportTargetin
 import { BossEncounterLayer } from '../scenes/bosses/BossEncounterLayer';
 import { CinematicVfxLayer } from '../vfx/CinematicVfxLayer';
 import { PhysicsVfxLayer } from '../vfx/physics/PhysicsVfxLayer';
+import { VfxModelPreloader } from '../vfx/VfxModelPreloader';
 
 // The in-Canvas Combat Runtime: the per-frame director/input host, model-first skill effects, live dummy
 // targets, pooled damage numbers, and the debug hit-volume overlay. Mounted (phase-gated) inside
@@ -29,7 +30,21 @@ export const CombatRuntimeLayer = () => (
     <SupportTargetingOverlay />
     <CinematicVfxLayer />
     <PhysicsVfxLayer />
+    <VfxModelPreloader />
     <DamageNumberRenderer />
     <HitVolumeDebugRenderer />
+  </>
+);
+
+// Render-only VFX layers (no combat directors/input) — mounted in EDIT MODE so the 🎨 VFX Showcase /
+// 🎬 Cinematic debug panels can preview cast effects. Without this, Edit Mode unmounts CombatRuntimeLayer and
+// the panels spawn effects into a layer that isn't in the scene (so nothing renders — "no reaction at all").
+export const CombatVfxPreviewLayer = () => (
+  <>
+    <CombatEffectLayer />
+    <CombatSpawnLayer />
+    <CinematicVfxLayer />
+    <PhysicsVfxLayer />
+    <VfxModelPreloader />
   </>
 );

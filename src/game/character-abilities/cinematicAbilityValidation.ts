@@ -24,12 +24,14 @@ export function validateAbility(
   if (a.abilityCategory === 'ultimate' && !a.abilitySlot.startsWith('ultimate')) errors.push('ultimate ability must use an ultimate-* slot.');
   if (a.abilityCategory === 'defense' && !a.abilitySlot.startsWith('defense')) errors.push('defense ability must use a defense-* slot.');
   if (a.abilityCategory === 'attack' && !a.abilitySlot.startsWith('attack')) errors.push('attack ability must use an attack-* slot.');
+  if (a.abilityCategory === 'signature' && !a.abilitySlot.startsWith('signature')) errors.push('signature ability must use a signature-* slot.');
+  if (a.abilityCategory === 'clone' && !a.abilitySlot.startsWith('clone')) errors.push('clone ability must use a clone-* slot.');
   return { ok: errors.length === 0, errors, warnings };
 }
 
 export function validateLoadout(
   lo: AbilityLoadoutDefinition,
-  abilityCategory: (id: string) => 'attack' | 'defense' | 'ultimate' | undefined,
+  abilityCategory: (id: string) => 'attack' | 'defense' | 'signature' | 'ultimate' | 'clone' | undefined,
 ): AbilityValidationResult {
   const errors: string[] = [];
   const slots: { key: keyof AbilityLoadoutDefinition; expect: 'attack' | 'defense' | 'ultimate' }[] = [
