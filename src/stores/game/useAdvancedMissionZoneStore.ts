@@ -31,6 +31,11 @@ interface AdvancedMissionZoneState {
   destroyedBossWeakpointIds: string[];
   clearedBossWaveIds: string[];
 
+  // Batch G — AI incident events (fed to the evaluator for incident-* conditions).
+  resolvedIncidentIds: string[];
+  completedIncidentObjectiveIds: string[];
+  failedIncidentIds: string[];
+
   zoneStartedAtMs?: number;
   segmentStartedAtMs?: number;
 
@@ -64,6 +69,8 @@ interface AdvancedMissionZoneState {
 
   recordBossEvent: (kind: 'defeat-boss' | 'complete-boss-phase' | 'destroy-boss-weakpoint' | 'clear-boss-summon-wave', id: string) => void;
 
+  recordIncidentEvent: (kind: 'resolve-incident' | 'complete-incident-objective' | 'incident-success' | 'incident-failed', id: string) => void;
+
   setDebug: (patch: Partial<AdvancedMissionZoneState['debug']>) => void;
 }
 
@@ -85,6 +92,9 @@ const INITIAL = {
   completedBossPhaseIds: [] as string[],
   destroyedBossWeakpointIds: [] as string[],
   clearedBossWaveIds: [] as string[],
+  resolvedIncidentIds: [] as string[],
+  completedIncidentObjectiveIds: [] as string[],
+  failedIncidentIds: [] as string[],
   zoneStartedAtMs: undefined as number | undefined,
   segmentStartedAtMs: undefined as number | undefined,
   lastCompletedSegmentId: undefined as string | undefined,
@@ -168,6 +178,15 @@ export const useAdvancedMissionZoneStore = create<AdvancedMissionZoneState>((set
         : kind === 'complete-boss-phase' ? 'completedBossPhaseIds'
         : kind === 'destroy-boss-weakpoint' ? 'destroyedBossWeakpointIds'
         : 'clearedBossWaveIds';
+      const list = s[key];
+      return list.includes(id) ? s : ({ [key]: [...list, id] } as Partial<AdvancedMissionZoneState>);
+    }),
+
+  recordIncidentEvent: (kind, id) =>
+    set((s) => {
+      const key = kind === 'resolve-incident' || kind === 'incident-success' ? 'resolvedIncidentIds'
+        : kind === 'complete-incident-objective' ? 'completedIncidentObjectiveIds'
+        : 'failedIncidentIds';
       const list = s[key];
       return list.includes(id) ? s : ({ [key]: [...list, id] } as Partial<AdvancedMissionZoneState>);
     }),

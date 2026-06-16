@@ -32,6 +32,10 @@ export interface ZoneWorldProbe {
   completedBossPhaseIds?: Set<string>; // `${bossId}:${phaseId}`
   destroyedBossWeakpointIds?: Set<string>; // `${bossId}:${weakpointId}`
   clearedBossWaveIds?: Set<string>; // `${bossId}:${waveId}`
+  // Batch G — AI incident events recorded by IncidentZoneAdapter.
+  resolvedIncidentIds?: Set<string>;
+  completedIncidentObjectiveIds?: Set<string>; // `${incidentId}:${objectiveStepId}`
+  failedIncidentIds?: Set<string>;
 }
 
 function dist2(ax: number, az: number, bx: number, bz: number): number {
@@ -138,6 +142,15 @@ export function evaluateCondition(
       return doneResult(probe.destroyedBossWeakpointIds?.has(`${condition.bossId}:${condition.weakpointId}`) ?? false);
     case 'clear-boss-summon-wave':
       return doneResult(probe.clearedBossWaveIds?.has(`${condition.bossId}:${condition.waveId}`) ?? false);
+
+    // Batch G — AI incident conditions.
+    case 'resolve-incident':
+    case 'incident-success':
+      return doneResult(probe.resolvedIncidentIds?.has(condition.incidentId) ?? false);
+    case 'complete-incident-objective':
+      return doneResult(probe.completedIncidentObjectiveIds?.has(`${condition.incidentId}:${condition.objectiveStepId}`) ?? false);
+    case 'incident-failed':
+      return doneResult(probe.failedIncidentIds?.has(condition.incidentId) ?? false);
 
     default:
       // future-* placeholders: never satisfiable in play (only via god-mode, handled above).

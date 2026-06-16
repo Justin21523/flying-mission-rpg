@@ -9,6 +9,7 @@ import type { ZoneWorldProbe } from './ZoneCompletionEvaluator';
 import { activeSegment, beginFirstSegment, completeCurrentSegment, transitionToNextSegment } from './AdvancedMissionZoneDirector';
 import { clearedGroupIds, groupRemaining } from '../combat/enemySpawnDirector';
 import { destroyedObstacleIds, clearedObstacleIds, repairedObstacleIds } from '../obstacles/ObstacleDirector';
+import { update as updateIncidents } from '../incidents/AIIncidentDirector';
 
 // Drives the active Advanced Mission Zone each frame: enters the first segment, evaluates completion
 // conditions against the live robot position / objective progress, records proximity interactions and
@@ -50,6 +51,10 @@ function buildProbe(nowMs: number): ZoneWorldProbe {
     completedBossPhaseIds: new Set(z.completedBossPhaseIds),
     destroyedBossWeakpointIds: new Set(z.destroyedBossWeakpointIds),
     clearedBossWaveIds: new Set(z.clearedBossWaveIds),
+    // Batch G — AI incident recorded events.
+    resolvedIncidentIds: new Set(z.resolvedIncidentIds),
+    completedIncidentObjectiveIds: new Set(z.completedIncidentObjectiveIds),
+    failedIncidentIds: new Set(z.failedIncidentIds),
   };
 }
 
@@ -93,6 +98,8 @@ export const AdvancedMissionZoneDirectorHost = () => {
     if (phase === 'ZONE_SEGMENT_GAMEPLAY') {
       const seg = activeSegment();
       if (!seg) return;
+      // Batch G — pump the AI incident runtime (objectives / escalation / completion) each frame.
+      updateIncidents(dt);
       const probe = buildProbe(typeof performance !== 'undefined' ? performance.now() : Date.now());
 
       // placeholder-clear-area: auto-clear once the player stands in the referenced marker's radius.

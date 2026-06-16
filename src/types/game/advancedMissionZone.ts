@@ -93,7 +93,12 @@ export type ZoneConditionDefinition =
   | { id: string; type: 'defeat-boss'; bossId: string }
   | { id: string; type: 'complete-boss-phase'; bossId: string; phaseId: string }
   | { id: string; type: 'destroy-boss-weakpoint'; bossId: string; weakpointId: string }
-  | { id: string; type: 'clear-boss-summon-wave'; bossId: string; waveId: string };
+  | { id: string; type: 'clear-boss-summon-wave'; bossId: string; waveId: string }
+  // Batch G — AI incident conditions (completed by the AIIncidentDirector via IncidentZoneAdapter).
+  | { id: string; type: 'resolve-incident'; incidentId: string }
+  | { id: string; type: 'complete-incident-objective'; incidentId: string; objectiveStepId: string }
+  | { id: string; type: 'incident-success'; incidentId: string }
+  | { id: string; type: 'incident-failed'; incidentId: string };
 
 export type ZoneConditionType = ZoneConditionDefinition['type'];
 
@@ -124,6 +129,10 @@ export const ZONE_CONDITION_TYPES: readonly ZoneConditionType[] = [
   'complete-boss-phase',
   'destroy-boss-weakpoint',
   'clear-boss-summon-wave',
+  'resolve-incident',
+  'complete-incident-objective',
+  'incident-success',
+  'incident-failed',
 ];
 
 // Condition types that are deliberately not satisfiable yet (placeholders for future combat/incident
