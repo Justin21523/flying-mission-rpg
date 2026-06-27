@@ -20,6 +20,7 @@ interface ArenaRunState {
   pendingRoomId?: RoomId; // Wave 3 — the current interstitial room (when status === 'room')
   roomResult?: string; // Wave 3 — last room outcome text (for the overlay to show after acting)
   eliteNextRound?: boolean; // Wave 3 — elite room flagged the next wave as harder
+  freeRevivesRemaining: number; // Wave 3 — Hangar 'Emergency Recall' free auto-revives left this run
 
   start: (mode: RunMode, lives: number, coinsAtStart: number) => void;
   setStatus: (status: RunStatus) => void;
@@ -31,14 +32,15 @@ interface ArenaRunState {
   setPendingRoom: (roomId: RoomId | undefined) => void;
   setRoomResult: (text: string | undefined) => void;
   setEliteNextRound: (v: boolean) => void;
+  setFreeRevivesRemaining: (n: number) => void;
   reset: () => void;
 }
 
-const INITIAL = { active: false, mode: 'endless' as RunMode, round: 1, lives: 3, kills: 0, status: 'combat' as RunStatus, coinsAtStart: 0, pendingChoices: [] as string[], pendingRoomId: undefined, roomResult: undefined, eliteNextRound: false };
+const INITIAL = { active: false, mode: 'endless' as RunMode, round: 1, lives: 3, kills: 0, status: 'combat' as RunStatus, coinsAtStart: 0, pendingChoices: [] as string[], pendingRoomId: undefined, roomResult: undefined, eliteNextRound: false, freeRevivesRemaining: 0 };
 
 export const useArenaRunStore = create<ArenaRunState>((set) => ({
   ...INITIAL,
-  start: (mode, lives, coinsAtStart) => set({ active: true, mode, lives, coinsAtStart, round: 1, kills: 0, status: 'combat', pendingRoomId: undefined, roomResult: undefined, eliteNextRound: false }),
+  start: (mode, lives, coinsAtStart) => set({ active: true, mode, lives, coinsAtStart, round: 1, kills: 0, status: 'combat', pendingRoomId: undefined, roomResult: undefined, eliteNextRound: false, freeRevivesRemaining: 0 }),
   setStatus: (status) => set({ status }),
   setRound: (round) => set({ round }),
   addKill: (n = 1) => set((s) => ({ kills: s.kills + n })),
@@ -48,5 +50,6 @@ export const useArenaRunStore = create<ArenaRunState>((set) => ({
   setPendingRoom: (roomId) => set({ pendingRoomId: roomId }),
   setRoomResult: (text) => set({ roomResult: text }),
   setEliteNextRound: (v) => set({ eliteNextRound: v }),
+  setFreeRevivesRemaining: (n) => set({ freeRevivesRemaining: Math.max(0, n) }),
   reset: () => set({ ...INITIAL }),
 }));

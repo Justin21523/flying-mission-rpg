@@ -78,4 +78,31 @@ describe('ElementReactionRuntime', () => {
     applyStatusEffect('e5', 'frozen', 'test');
     expect(tryTriggerReaction('e5', 'shocked', 'test', recordingDeps())).toBeNull();
   });
+
+  // Wave 4 — chains & propagation.
+  it('resultsInStatus applies a new status to the primary target (chain enabler)', () => {
+    useElementReactionStore.getState().importState({ items: [
+      { id: 'rxn_chain', reaction: 'meltdown', primaryStatus: 'frozen', triggerStatus: 'burning', bonusDamage: 10, consumesPrimary: true, resultsInStatus: 'armor-broken', enabled: true },
+    ] });
+    const e = makeEnemy('c1');
+    useCombatTargetStore.getState().spawn(e);
+    applyStatusEffect('c1', 'frozen', 'test');
+    expect(tryTriggerReaction('c1', 'burning', 'test', recordingDeps())).toBe('meltdown');
+    expect(getTargetStatusEffects('c1').some((s) => s.type === 'armor-broken')).toBe(true);
+    expect(getTargetStatusEffects('c1').some((s) => s.type === 'frozen')).toBe(false); // primary consumed
+  });
+
+  it('propagatesStatus spreads a status to enemies within radius', () => {
+    useElementReactionStore.getState().importState({ items: [
+      { id: 'rxn_spread', reaction: 'overload', primaryStatus: 'burning', triggerStatus: 'shocked', bonusDamage: 10, aoeRadius: 6, consumesPrimary: true, propagatesStatus: { statusType: 'burning', radius: 5 }, enabled: true },
+    ] });
+    const a = makeEnemy('p1'); a.x = 0; a.z = 0;
+    const near = makeEnemy('p2'); near.x = 3; near.z = 0;
+    const far = makeEnemy('p3'); far.x = 20; far.z = 0;
+    for (const t of [a, near, far]) useCombatTargetStore.getState().spawn(t);
+    applyStatusEffect('p1', 'burning', 'test');
+    tryTriggerReaction('p1', 'shocked', 'test', recordingDeps());
+    expect(getTargetStatusEffects('p2').some((s) => s.type === 'burning')).toBe(true); // spread to near
+    expect(getTargetStatusEffects('p3').some((s) => s.type === 'burning')).toBe(false); // far untouched
+  });
 });

@@ -49,7 +49,7 @@ export interface SkillCastOutcome {
 }
 
 // Batch L — optional upgrade multipliers (from the per-skill upgrade level) applied at cast time.
-export interface CastOptions { forceCrit?: boolean; damageMultiplier?: number; cooldownMultiplier?: number; energyMultiplier?: number }
+export interface CastOptions { forceCrit?: boolean; critChanceAdd?: number; damageMultiplier?: number; cooldownMultiplier?: number; energyMultiplier?: number }
 
 export function castSkill(skill: CombatSkillDefinition, caster: SkillCaster, deps: SkillCastDeps, options: CastOptions = {}): SkillCastOutcome {
   if (skill.enabled === false) return { ok: false, reason: 'disabled', hitIds: [], results: [] };
@@ -132,7 +132,7 @@ export function castSkill(skill: CombatSkillDefinition, caster: SkillCaster, dep
         canCrit: template.canCrit || options.forceCrit,
         critMultiplier: template.critMultiplier,
         hitPoint: [target.x, target.y, target.z],
-        metadata: options.forceCrit ? { forceCrit: true } : undefined,
+        metadata: (options.forceCrit || options.critChanceAdd) ? { forceCrit: options.forceCrit, critChanceAdd: options.critChanceAdd } : undefined,
       };
       const result = resolveDamage(event, def, vitals);
       deps.applyResult(result);

@@ -4,6 +4,7 @@ import { CharacterCard } from './CharacterCard';
 import { CharacterPreview3D } from './CharacterPreview3D';
 import { SkillUpgradePanel } from './SkillUpgradePanel';
 import { EquipmentModPanel } from './EquipmentModPanel';
+import { CodexPanel } from './CodexPanel';
 import { HangarUpgradePanel } from './HangarUpgradePanel';
 import { useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
@@ -134,6 +135,7 @@ export const CharacterSelectScreen = () => {
 
               <SkillUpgradePanel characterId={selected.id} editMode={editMode} />
               <EquipmentModPanel characterId={selected.id} />
+              <CodexPanel />
               <HangarUpgradePanel editMode={editMode} />
 
 

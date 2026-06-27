@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { effectiveGodMode, difficultyDamageMult, runDamageMult, dmgScaleForMode } from './difficulty';
+import { effectiveGodMode, difficultyDamageMult, runDamageMult, dmgScaleForMode, enemyHpMult, enemyAffixBonus } from './difficulty';
 import { makeUtilityFeedback } from './CombatFeedbackClassifier';
 import type { RunConfig } from '../../data/progression/runConfig';
 
@@ -20,6 +20,21 @@ describe('difficultyDamageMult', () => {
     expect(difficultyDamageMult('easy')).toBe(1);
     expect(difficultyDamageMult('normal')).toBe(1);
     expect(difficultyDamageMult('hard')).toBeGreaterThan(1);
+  });
+  it('Wave 4 — ng-plus is the toughest tier', () => {
+    expect(difficultyDamageMult('ng-plus')).toBeGreaterThan(difficultyDamageMult('hard'));
+  });
+});
+
+describe('Wave 4 — NG+ enemy scaling', () => {
+  it('only ng-plus scales enemy HP + adds affixes (existing tiers unchanged)', () => {
+    for (const d of ['easy', 'normal', 'hard'] as const) {
+      expect(enemyHpMult(d)).toBe(1);
+      expect(enemyAffixBonus(d).chanceBonus).toBe(0);
+    }
+    expect(enemyHpMult('ng-plus')).toBeGreaterThan(1);
+    expect(enemyAffixBonus('ng-plus').chanceBonus).toBeGreaterThan(0);
+    expect(enemyAffixBonus('ng-plus').maxBonus).toBeGreaterThan(0);
   });
 });
 

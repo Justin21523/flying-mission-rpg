@@ -1,5 +1,7 @@
 import { useCombatTargetStore, type CombatTarget } from '../../stores/game/combatTargetStore';
 import { getDamageable, getEnemyDef } from '../../stores/game/editorCombatStore';
+import { getGameSettings } from '../../stores/game/useSettingsStore';
+import { enemyHpMult } from './difficulty';
 import type { DamageableDefinition, EnemyDefinition, BossPhaseDefinition } from '../../types/game/combat';
 
 // Enemy/boss runtime helpers (no CombatDirector import → no cycle). Spawns enemies into the shared combat
@@ -69,6 +71,10 @@ export function spawnEnemyFromDef(def: EnemyDefinition, x: number, z: number): C
     poiseValue: def.poise ? 0 : undefined,
     maxPoise: def.poise?.max,
   };
+  // Wave 4 — New Game+ enemy HP scaling (1× for easy/normal/hard; >1 for ng-plus). Single point → covers
+  // zone groups, arena waves and boss summons.
+  const hpMult = enemyHpMult(getGameSettings().difficulty);
+  if (hpMult !== 1) { target.maxHp = Math.round(target.maxHp * hpMult); target.hp = target.maxHp; }
   useCombatTargetStore.getState().spawn(target);
   return target;
 }

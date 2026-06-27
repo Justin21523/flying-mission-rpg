@@ -8,9 +8,21 @@ export function effectiveGodMode(devFlag: boolean, difficulty: Difficulty): bool
   return devFlag || difficulty === 'easy';
 }
 
-// Per-difficulty incoming-damage multiplier (easy/normal = 1, hard tougher). easy is invincible anyway.
+// Per-difficulty incoming-damage multiplier (easy/normal = 1, hard tougher, ng-plus toughest). easy is
+// invincible anyway.
 export function difficultyDamageMult(difficulty: Difficulty): number {
-  return difficulty === 'hard' ? 1.4 : 1;
+  return difficulty === 'ng-plus' ? 1.7 : difficulty === 'hard' ? 1.4 : 1;
+}
+
+// Wave 4 — per-difficulty enemy HP multiplier. Only New Game+ scales HP (easy/normal/hard unchanged).
+export function enemyHpMult(difficulty: Difficulty): number {
+  return difficulty === 'ng-plus' ? 1.6 : 1;
+}
+
+// Wave 4 — per-difficulty bonus added to a spawn group's elite-affix policy (richer affixes in NG+). Returns
+// the additive chance/max bump and whether to force a policy onto groups that have none.
+export function enemyAffixBonus(difficulty: Difficulty): { chanceBonus: number; maxBonus: number } {
+  return difficulty === 'ng-plus' ? { chanceBonus: 0.4, maxBonus: 1 } : { chanceBonus: 0, maxBonus: 0 };
 }
 
 // Arena-run incoming-damage multiplier: scales with the round (1 outside runs). Mirrors the HP scaling so

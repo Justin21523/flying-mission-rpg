@@ -11,4 +11,6 @@ export const SEED_HANGAR_UPGRADES: HangarUpgradeDefinition[] = [
   { id: 'hangar_salvage_magnet', name: 'Salvage Magnet', description: '+10% coin drops per level.', category: 'dropRate', maxLevel: 5, perLevel: { cost: 140, value: 0.1 }, editorMeta: { icon: '🧲' } },
   { id: 'hangar_aegis_plating', name: 'Aegis Plating', description: '+15 starting shield per level on combat entry.', category: 'openingShield', maxLevel: 5, perLevel: { cost: 160, value: 15 }, editorMeta: { icon: '🔰' } },
   { id: 'hangar_executioner_protocol', name: 'Executioner Protocol', description: '+20% finisher resource refund per level.', category: 'executeBonus', maxLevel: 5, perLevel: { cost: 170, value: 0.2 }, editorMeta: { icon: '🗡' } },
+  { id: 'hangar_targeting_optics', name: 'Targeting Optics', description: '+3% skill crit chance per level for every character.', category: 'crit', maxLevel: 5, perLevel: { cost: 190, value: 0.03 }, editorMeta: { icon: '🎯' } },
+  { id: 'hangar_emergency_recall', name: 'Emergency Recall', description: '+1 free Arena auto-revive per level (no life cost).', category: 'reviveCharge', maxLevel: 3, perLevel: { cost: 260, value: 1 }, editorMeta: { icon: '♻️' } },
 ];

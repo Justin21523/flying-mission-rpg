@@ -22,6 +22,16 @@ describe('Wave 3 Hangar bonuses', () => {
     expect(b.dropRateMult).toBe(1);
     expect(b.openingShield).toBe(0);
     expect(b.executeRefundMult).toBe(1);
+    expect(b.critChanceAdd).toBe(0);
+    expect(b.reviveCharges).toBe(0);
+  });
+
+  it('aggregates crit chance + revive charges (deferred categories)', () => {
+    useHangarUpgradeStore.getState().setLevel('hangar_targeting_optics', 4); // +3%/lvl → 0.12
+    useHangarUpgradeStore.getState().setLevel('hangar_emergency_recall', 2); // +1/lvl → 2
+    const b = getHangarBonuses();
+    expect(b.critChanceAdd).toBeCloseTo(0.12);
+    expect(b.reviveCharges).toBe(2);
   });
 
   it('aggregates the new categories from purchased levels', () => {

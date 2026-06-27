@@ -74,4 +74,18 @@ describe('resolveDamage', () => {
     expect(r.wasCrit).toBe(true);
     expect(r.hpDamage).toBe(40);
   });
+
+  it('crits at 100% crit chance and never at 0% (Wave 3 critChanceAdd seam)', () => {
+    const always = resolveDamage(event({ canCrit: true, critMultiplier: 2, metadata: { critChanceAdd: 1 } }), def(), { hp: 100, shield: 0 });
+    expect(always.wasCrit).toBe(true);
+    expect(always.hpDamage).toBe(40);
+    const never = resolveDamage(event({ canCrit: true, critMultiplier: 2, metadata: { critChanceAdd: 0 } }), def(), { hp: 100, shield: 0 });
+    expect(never.wasCrit).toBe(false);
+    expect(never.hpDamage).toBe(20);
+  });
+
+  it('does not crit from chance when canCrit is false', () => {
+    const r = resolveDamage(event({ canCrit: false, critMultiplier: 2, metadata: { critChanceAdd: 1 } }), def(), { hp: 100, shield: 0 });
+    expect(r.wasCrit).toBe(false);
+  });
 });

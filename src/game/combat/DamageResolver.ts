@@ -45,7 +45,10 @@ export function resolveDamage(event: DamageEvent, def: DamageableDefinition, vit
   if (wasWeaknessHit) amount *= WEAKNESS_MULT;
   if (wasResisted) amount *= RESIST_MULT;
 
-  const wasCrit = !!event.canCrit && (event.metadata?.forceCrit === true);
+  // Crit: forced (combo bonus) OR a chance roll from accumulated crit chance (e.g. Hangar 'Targeting Optics').
+  // Unseeded Math.random, consistent with the rest of combat — crit isn't replay-critical.
+  const critChance = typeof event.metadata?.critChanceAdd === 'number' ? event.metadata.critChanceAdd : 0;
+  const wasCrit = !!event.canCrit && (event.metadata?.forceCrit === true || Math.random() < critChance);
   if (wasCrit) amount *= event.critMultiplier ?? 1.5;
 
   amount = Math.max(0, Math.round(amount));

@@ -6,10 +6,12 @@
 export type HangarUpgradeCategory =
   | 'maxHp' | 'maxEnergy' | 'fusionCharge'
   // Wave 3 — new account-wide categories (all wired to real consumption points).
-  | 'cooldown' | 'dropRate' | 'openingShield' | 'executeBonus';
+  | 'cooldown' | 'dropRate' | 'openingShield' | 'executeBonus'
+  // Wave 3 (deferred set, now wired) — crit chance on skill hits + free Arena revives.
+  | 'crit' | 'reviveCharge';
 
 export const HANGAR_CATEGORIES: readonly HangarUpgradeCategory[] = [
-  'maxHp', 'maxEnergy', 'fusionCharge', 'cooldown', 'dropRate', 'openingShield', 'executeBonus',
+  'maxHp', 'maxEnergy', 'fusionCharge', 'cooldown', 'dropRate', 'openingShield', 'executeBonus', 'crit', 'reviveCharge',
 ];
 
 export interface HangarUpgradeDefinition {
@@ -31,4 +33,6 @@ export interface HangarBonuses {
   dropRateMult: number; // multiplier on coin rewards (1 = none)
   openingShield: number; // flat shield granted on combat entry
   executeRefundMult: number; // multiplier on execution-finisher resource refund (1 = none)
+  critChanceAdd: number; // additive crit chance on skill hits (0..1; 0 = none)
+  reviveCharges: number; // free Arena auto-revives granted at run start (0 = none)
 }

@@ -5,7 +5,9 @@ import { useRunConfigStore } from '../../../stores/game/useRunConfigStore';
 import { useStatusRuleStore } from '../../../stores/game/useStatusRuleStore';
 import { useElementReactionStore } from '../../../stores/game/useElementReactionStore';
 import { useEquipmentModDefStore } from '../../../stores/game/useEquipmentModDefStore';
-import { EQUIPMENT_MOD_CATEGORIES, type EquipmentModDefinition } from '../../../types/game/equipmentMod';
+import { EQUIPMENT_MOD_CATEGORIES, EQUIPMENT_MOD_RARITIES, type EquipmentModDefinition } from '../../../types/game/equipmentMod';
+import { useCodexChallengeStore } from '../../../stores/game/useCodexChallengeStore';
+import { CHALLENGE_METRICS } from '../../../data/progression/codexChallenges';
 import { useRoomConfigStore } from '../../../stores/game/useRoomConfigStore';
 import type { RoomConfigDefinition } from '../../../data/progression/roomConfig';
 import type { RoomId } from '../../../stores/game/useArenaRunStore';
@@ -35,6 +37,8 @@ export const ProgressionEditorTab = () => {
   const updateReaction = useElementReactionStore((s) => s.update);
   const mods = useEquipmentModDefStore((s) => s.items);
   const updateMod = useEquipmentModDefStore((s) => s.update);
+  const challenges = useCodexChallengeStore((s) => s.items);
+  const updateChallenge = useCodexChallengeStore((s) => s.update);
   const room = useRoomConfigStore((s) => s.items.find((c) => c.id === 'room_config'));
   const updateRoom = useRoomConfigStore((s) => s.update);
   const patchRoom = (patch: Partial<RoomConfigDefinition>) => { if (room) updateRoom(room.id, patch); };
@@ -168,8 +172,33 @@ export const ProgressionEditorTab = () => {
                 </select>
               </Field>
               <Field label="Value"><input type="number" step={0.01} value={m.value} onChange={(e) => updateMod(m.id, { value: num(e.target.value) })} className={inp} /></Field>
+              <Field label="Rarity">
+                <select value={m.rarity ?? 'common'} onChange={(e) => updateMod(m.id, { rarity: e.target.value as EquipmentModDefinition['rarity'] })} className={inp}>
+                  {EQUIPMENT_MOD_RARITIES.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </Field>
               <Field label="Enabled"><Check label="" checked={m.enabled !== false} onChange={(v) => updateMod(m.id, { enabled: v })} /></Field>
               <Field label="Description"><input value={m.description} onChange={(e) => updateMod(m.id, { description: e.target.value })} className={inp} /></Field>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className={lbl}>Codex Challenges · {challenges.length}</div>
+        <div className="mt-1 space-y-1">
+          {challenges.map((c) => (
+            <div key={c.id} className="grid grid-cols-2 gap-1 rounded border border-slate-800 p-1.5">
+              <Field label="Name"><input value={c.name} onChange={(e) => updateChallenge(c.id, { name: e.target.value })} className={inp} /></Field>
+              <Field label="Metric">
+                <select value={c.metric} onChange={(e) => updateChallenge(c.id, { metric: e.target.value as typeof c.metric })} className={inp}>
+                  {CHALLENGE_METRICS.map((mt) => <option key={mt} value={mt}>{mt}</option>)}
+                </select>
+              </Field>
+              <Field label="Target"><input type="number" step={1} value={c.target} onChange={(e) => updateChallenge(c.id, { target: num(e.target.value) })} className={inp} /></Field>
+              <Field label="Reward coins"><input type="number" step={10} value={c.rewardCoins ?? 0} onChange={(e) => updateChallenge(c.id, { rewardCoins: num(e.target.value) })} className={inp} /></Field>
+              <Field label="Enabled"><Check label="" checked={c.enabled !== false} onChange={(v) => updateChallenge(c.id, { enabled: v })} /></Field>
+              <Field label="Description"><input value={c.description} onChange={(e) => updateChallenge(c.id, { description: e.target.value })} className={inp} /></Field>
             </div>
           ))}
         </div>

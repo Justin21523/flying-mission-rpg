@@ -21,6 +21,12 @@ import { getEnemyDef } from '../../stores/game/editorCombatStore';
 import { useBossAttackStore } from '../../stores/game/useBossEditorStore';
 import { grantReward } from '../progression/KillRewards';
 import { enrageState } from './bossEncounterState';
+import { useCodexStore } from '../../stores/game/useCodexStore';
+import { useCampaignCompletionStore } from '../../stores/game/useCampaignCompletionStore';
+import { useEquipmentModInventoryStore } from '../../stores/game/useEquipmentModInventoryStore';
+import { rollBossModDrop } from '../progression/EquipmentModDropResolver';
+import { getGameSettings } from '../../stores/game/useSettingsStore';
+import { evaluateCodexChallenges } from '../progression/CodexChallengeResolver';
 
 // Top orchestrator for a boss encounter (Batch F). Spawns the boss body + weakpoints as hittable
 // CombatTargets, drives phases/attacks/waves/weakpoints each frame, and records defeat/phase/weakpoint
@@ -129,9 +135,17 @@ export function defeatBoss(): void {
   useBossStore.getState().setStatus('defeated');
   useBossStore.getState().patchRuntime({ arenaLocked: false, currentHp: 0 });
   ZoneAdapter.recordBossDefeated(rt.bossDefinitionId);
+  const boss = getBoss(rt.bossDefinitionId);
+  // Wave 4 — codex + New Game+: record the boss as defeated; a campaign-ending boss unlocks NG+.
+  useCodexStore.getState().recordBossDefeated(rt.bossDefinitionId);
+  evaluateCodexChallenges();
+  if (boss?.completion.enterMissionCompleteOnDefeat) useCampaignCompletionStore.getState().markFinalBossDefeated(nowS());
   // Batch L — boss kill grants a large EXP/coin lump (scaled by the boss's max HP).
-  const bossMaxHp = getBoss(rt.bossDefinitionId)?.damageable.maxHp ?? 500;
+  const bossMaxHp = boss?.damageable.maxHp ?? 500;
   grantReward(Math.round(bossMaxHp / 4), Math.round(bossMaxHp / 6));
+  // Wave 4 — bosses always drop a (high-rarity) equipment mod.
+  const drop = rollBossModDrop(getGameSettings().difficulty);
+  if (drop) useEquipmentModInventoryStore.getState().addMod(drop);
   useCombatTargetStore.getState().bump();
 }
 

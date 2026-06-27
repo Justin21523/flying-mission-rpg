@@ -1,5 +1,5 @@
 import { liveTargets } from '../../stores/game/combatTargetStore';
-import { getTargetStatusEffects, removeStatusEffectsOfType } from './StatusEffectRuntime';
+import { getTargetStatusEffects, removeStatusEffectsOfType, applyStatusEffect } from './StatusEffectRuntime';
 import { reactionFor } from '../../stores/game/useElementReactionStore';
 import type { StatusEffectId } from '../../data/combat/statusRules';
 import type { DamageEventTemplate, DamageType } from '../../types/game/combat';
@@ -21,7 +21,7 @@ export interface ReactionDeps {
 export function tryTriggerReaction(
   targetId: string,
   incomingStatus: StatusEffectId,
-  _sourceId: string,
+  sourceId: string,
   deps: ReactionDeps,
 ): string | null {
   const t = liveTargets.find((x) => x.id === targetId);
@@ -45,6 +45,19 @@ export function tryTriggerReaction(
   deps.damageTarget(targetId, template);
   if (rule.aoeRadius && rule.aoeRadius > 0) deps.damageInRadius(t.x, t.z, rule.aoeRadius, template);
   if (rule.consumesPrimary !== false) removeStatusEffectsOfType(targetId, rule.primaryStatus);
+  // Wave 4 — chain: leave a resulting status on the primary target (a later compatible hit reacts again; the
+  // per-target cooldown above prevents same-frame recursion). Spread: plant a status on nearby enemies (their
+  // statuses detonate on the player's next elemental hit — no runtime recursion).
+  if (rule.resultsInStatus) applyStatusEffect(targetId, rule.resultsInStatus, sourceId);
+  if (rule.propagatesStatus) {
+    const { statusType, radius } = rule.propagatesStatus;
+    const r2 = radius * radius;
+    for (const e of liveTargets) {
+      if (e.id === targetId || !e.isEnemy || e.defeatedAt) continue;
+      const dx = e.x - t.x, dz = e.z - t.z;
+      if (dx * dx + dz * dz <= r2) applyStatusEffect(e.id, statusType, sourceId);
+    }
+  }
   if (rule.vfxEffectId && deps.playEffect) deps.playEffect(rule.vfxEffectId, targetId, t.x, t.y, t.z);
   deps.onReaction?.(rule.id, targetId);
   return rule.reaction;

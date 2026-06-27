@@ -6,7 +6,7 @@ import type { ZoneSegmentDefinition } from '../../types/game/advancedMissionZone
 
 const seg = (id: string): ZoneSegmentDefinition => ({
   id, zoneId: 'z', name: id, order: 1, segmentType: 'exploration',
-  entryConditions: [], completionConditions: [], nextSegmentIds: [], enabled: true,
+  entryConditions: [], completionConditions: [], nextSegmentIds: [], markers: [], enabled: true,
 });
 
 beforeEach(() => {

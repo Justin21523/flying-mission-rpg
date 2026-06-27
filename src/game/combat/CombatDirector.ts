@@ -1,6 +1,8 @@
 import { useCombatStore } from '../../stores/game/useCombatStore';
 import { useCombatTargetStore, liveTargets, displaceTarget, type CombatTarget } from '../../stores/game/combatTargetStore';
 import { awardKillReward } from '../progression/KillRewards';
+import { useCodexStore } from '../../stores/game/useCodexStore';
+import { evaluateCodexChallenges } from '../progression/CodexChallengeResolver';
 import { useCombatSpawnStore, queueSpawnImpact } from '../../stores/game/combatSpawnStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
@@ -239,6 +241,8 @@ export function castExecutionFinisher(targetId: string): boolean {
   const t = liveTargets.find((x) => x.id === targetId);
   if (!t || t.defeatedAt || t.executingAt || !t.isEnemy) return false;
   t.executingAt = nowMs();
+  useCodexStore.getState().recordExecution(); // Wave 4 — execution challenge metric
+  evaluateCodexChallenges();
   playEffect('fx_exec_grid', { skillInstanceId: `exec_${targetId}`, x: t.x, y: t.y, z: t.z, headingRad: 0 });
   emitFeedback(makeUtilityFeedback('execution', targetId, undefined));
   t.hp = 0;

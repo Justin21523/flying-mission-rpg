@@ -40,9 +40,9 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
       // Batch G — an AI road-accident incident is generated on segment enter; resolve it to finish the segment.
       { id: 'resolve_cargo_incident', type: 'resolve-incident', incidentId: 'incident_seg_cargo_street' },
     ],
-    // Wave 3 — branching: the player chooses the direct path (Signal Yard) or the optional high-risk treasure
-    // vault (which rejoins at Signal Yard). A RouteChoiceOverlay appears because nextSegmentIds.length > 1.
-    nextSegmentIds: ['seg_signal_yard', 'seg_cargo_vault'],
+    // Wave 3 — 3-way branch: direct combat (Signal Yard), high-risk treasure (Hidden Vault, hold-zone), or the
+    // non-combat tech route (Relay Uplink, hack-terminals). A RouteChoiceOverlay appears (nextSegmentIds > 1).
+    nextSegmentIds: ['seg_signal_yard', 'seg_cargo_vault', 'seg_harbor_uplink'],
     previousSegmentIds: ['seg_landing_dock'],
     allowBacktracking: true,
     placeholderObstacleIds: ['cracked_wall_01'],
@@ -75,6 +75,31 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     markers: [
       { id: 'cargo_vault_core', type: 'objective', label: 'Vault Guardians', position: [-18, 0, 30], radius: 6, color: '#f87171' },
       { id: 'cargo_vault_supply', type: 'supply', label: 'Treasure Cache', position: [-22, 0, 26], radius: 3, color: '#fbbf24' },
+    ],
+    enabled: true,
+  },
+  // Wave 3 — non-combat "tech" branch off Cargo Street: hack 3 relay terminals (no enemies), then rejoin the
+  // main route at Repair Plaza. Demonstrates the hack-terminals objective + a 3rd route on the RouteChoiceOverlay.
+  {
+    id: 'seg_harbor_uplink',
+    zoneId: 'zone_sunny_harbor_advanced_foundation',
+    name: 'Relay Uplink',
+    description: 'Quiet route: hack the three relay terminals to reroute the cargo line.',
+    order: 2.7,
+    segmentType: 'stealth-scan',
+    environmentThemeId: 'env_sunny_harbor_day',
+    bounds: { center: [18, 0, 22], size: [18, 8, 16] },
+    entryConditions: [{ id: 'enter_uplink', type: 'segment-completed', segmentId: 'seg_cargo_street' }],
+    completionConditions: [
+      { id: 'hack_uplink', type: 'hack-terminals', terminalMarkerIds: ['uplink_term_a', 'uplink_term_b', 'uplink_term_c'], radius: 4, secondsPerTerminal: 3 },
+    ],
+    nextSegmentIds: ['seg_repair_plaza'],
+    previousSegmentIds: ['seg_cargo_street'],
+    allowBacktracking: true,
+    markers: [
+      { id: 'uplink_term_a', type: 'objective', label: 'Relay A', position: [12, 0, 20], radius: 3, color: '#38bdf8' },
+      { id: 'uplink_term_b', type: 'objective', label: 'Relay B', position: [18, 0, 26], radius: 3, color: '#38bdf8' },
+      { id: 'uplink_term_c', type: 'objective', label: 'Relay C', position: [24, 0, 20], radius: 3, color: '#38bdf8' },
     ],
     enabled: true,
   },

@@ -2,7 +2,19 @@ import { liveTargets } from '../../stores/game/combatTargetStore';
 import { getEnemyDef, getSpawnGroup, getSpawnGroupsForSegment } from '../../stores/game/editorCombatStore';
 import { spawnEnemyFromDef } from './enemyRuntime';
 import { rollAffixes, applyAffixesToTarget } from './EliteAffixRuntime';
-import type { AffixPolicy } from '../../data/combat/eliteAffixes';
+import { AFFIX_IDS, type AffixPolicy } from '../../data/combat/eliteAffixes';
+import { getGameSettings } from '../../stores/game/useSettingsStore';
+import { enemyAffixBonus } from './difficulty';
+
+// Wave 4 — fold the active difficulty's affix bonus (NG+) into a group's policy. Groups without a policy still
+// gain affixes in NG+; existing easy/normal/hard get no bonus (chanceBonus 0).
+function effectivePolicy(base: AffixPolicy | undefined): AffixPolicy | undefined {
+  const bonus = enemyAffixBonus(getGameSettings().difficulty);
+  if (!base && bonus.chanceBonus <= 0) return undefined;
+  const start: AffixPolicy = base ?? { allowedAffixIds: [...AFFIX_IDS], chancePerEnemy: 0, maxPerEnemy: 1 };
+  if (bonus.chanceBonus <= 0) return start;
+  return { allowedAffixIds: start.allowedAffixIds, chancePerEnemy: Math.min(1, start.chancePerEnemy + bonus.chanceBonus), maxPerEnemy: start.maxPerEnemy + bonus.maxBonus };
+}
 
 // Segment-linked enemy encounters (Batch C). Spawns an EnemySpawnGroup's enemies (tagged with the group id)
 // and tracks whether the group is cleared (all spawned enemies defeated). The zone probe reads
@@ -30,7 +42,8 @@ export function spawnGroup(groupId: string, originX: number, originZ: number): b
       const off = formationOffset(entry.formation, i, entry.count);
       const t = spawnEnemyFromDef(def, originX + off.dx, originZ + off.dz);
       t.spawnGroupId = groupId;
-      if (group.affixPolicy) applyAffixesToTarget(t, rollAffixes(group.affixPolicy as AffixPolicy));
+      const policy = effectivePolicy(group.affixPolicy as AffixPolicy | undefined); // Wave 1 group policy + Wave 4 NG+ bonus
+      if (policy) applyAffixesToTarget(t, rollAffixes(policy));
       ids.push(t.id);
     }
   }

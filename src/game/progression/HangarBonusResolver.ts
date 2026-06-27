@@ -9,6 +9,7 @@ export function getHangarBonuses(): HangarBonuses {
   const levels = useHangarUpgradeStore.getState();
   let maxHpBonus = 0, maxEnergyBonus = 0, fusionAdd = 0;
   let cooldownAdd = 0, dropAdd = 0, openingShield = 0, executeAdd = 0; // Wave 3
+  let critAdd = 0, reviveAdd = 0; // Wave 3 (deferred set)
   for (const def of getHangarUpgradeDefs()) {
     const lvl = levels.getLevel(def.id);
     if (lvl <= 0) continue;
@@ -20,6 +21,8 @@ export function getHangarBonuses(): HangarBonuses {
     else if (def.category === 'dropRate') dropAdd += total;
     else if (def.category === 'openingShield') openingShield += total;
     else if (def.category === 'executeBonus') executeAdd += total;
+    else if (def.category === 'crit') critAdd += total;
+    else if (def.category === 'reviveCharge') reviveAdd += total;
   }
   return {
     maxHpBonus, maxEnergyBonus, fusionChargeMult: 1 + fusionAdd,
@@ -27,6 +30,8 @@ export function getHangarBonuses(): HangarBonuses {
     dropRateMult: 1 + dropAdd,
     openingShield,
     executeRefundMult: 1 + executeAdd,
+    critChanceAdd: Math.min(1, critAdd), // cap at 100%
+    reviveCharges: Math.round(reviveAdd),
   };
 }
 

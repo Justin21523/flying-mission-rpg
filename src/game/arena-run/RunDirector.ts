@@ -4,7 +4,8 @@ import { getRunConfig } from '../../stores/game/useRunConfigStore';
 import { isBossRound, enemyHpScale, waveForRound, bossIndexForRound } from './runMath';
 import { spawnEnemyFromDef } from '../combat/enemyRuntime';
 import { rollAffixes, applyAffixesToTarget } from '../combat/EliteAffixRuntime';
-import { arenaAffixPolicy } from '../../data/combat/eliteAffixes';
+import { arenaAffixPolicy, type AffixPolicy } from '../../data/combat/eliteAffixes';
+import { getHangarBonuses } from '../progression/HangarBonusResolver';
 import { getEnemyDef } from '../../stores/game/editorCombatStore';
 import { useCombatTargetStore, liveTargets } from '../../stores/game/combatTargetStore';
 import { registerPlayerCombatant, shutdownCombat, activeCombatantId } from '../combat/CombatDirector';
@@ -55,7 +56,7 @@ function spawnWave(round: number, cfg: RunModeConfig): void {
   const store = useArenaRunStore.getState();
   const elite = store.eliteNextRound;
   if (elite) store.setEliteNextRound(false);
-  const policy = elite
+  const policy: AffixPolicy = elite
     ? { allowedAffixIds: ['shielded', 'volatile', 'swift', 'regenerating', 'vampiric'], chancePerEnemy: 0.95, maxPerEnemy: 2 }
     : arenaAffixPolicy(round);
   let i = 0;
@@ -106,6 +107,8 @@ export function startRun(mode: RunMode): void {
   const charId = activeCombatantId() ?? useCharacterStore.getState().selectedCharacterId ?? undefined;
   registerPlayerCombatant(charId);
   useArenaRunStore.getState().start(mode, cfg.startingLives, useWalletStore.getState().coins);
+  // Wave 3 — Hangar 'Emergency Recall' grants free auto-revives for this run (consumed before a life is lost).
+  useArenaRunStore.getState().setFreeRevivesRemaining(getHangarBonuses().reviveCharges);
   useGameStore.getState().requestTransition('ARENA_RUN');
   enterRound(1);
 }
@@ -123,6 +126,13 @@ function recordBest(): void {
 
 function onPlayerDead(): void {
   const store = useArenaRunStore.getState();
+  // Wave 3 — spend a free auto-revive first (no life cost), then fall back to losing a life.
+  if (store.freeRevivesRemaining > 0) {
+    store.setFreeRevivesRemaining(store.freeRevivesRemaining - 1);
+    fullHealPlayer();
+    enterRound(store.round);
+    return;
+  }
   store.loseLife();
   if (useArenaRunStore.getState().lives > 0) {
     fullHealPlayer();

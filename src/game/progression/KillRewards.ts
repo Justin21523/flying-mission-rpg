@@ -5,6 +5,11 @@ import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { useCharacterProgressionStore } from '../../stores/game/useCharacterProgressionStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { getHangarBonuses } from './HangarBonusResolver';
+import { useCodexStore } from '../../stores/game/useCodexStore';
+import { useEquipmentModInventoryStore } from '../../stores/game/useEquipmentModInventoryStore';
+import { rollModDrop } from './EquipmentModDropResolver';
+import { getGameSettings } from '../../stores/game/useSettingsStore';
+import { evaluateCodexChallenges } from './CodexChallengeResolver';
 
 // Batch L (meta-progression) — award EXP (to the active character) + coins (to the account wallet) when an
 // enemy is defeated. Called from combatTargetStore.applyResult at the moment of defeat. Bosses are rewarded
@@ -31,4 +36,10 @@ export function awardKillReward(target: CombatTarget): void {
   const baseCoins = def?.coinReward ?? Math.max(2, Math.round(hp / 16));
   // Wave 3 — Hangar 'Salvage Magnet' boosts coin drops.
   grantReward(exp, Math.round(baseCoins * getHangarBonuses().dropRateMult));
+  // Wave 4 — codex: mark this enemy archetype as discovered + check challenges.
+  useCodexStore.getState().recordEnemySeen(target.enemyDefId);
+  evaluateCodexChallenges();
+  // Wave 4 — small chance to drop a non-common equipment mod (only granted if not already owned).
+  const drop = rollModDrop(hp, getGameSettings().difficulty);
+  if (drop) useEquipmentModInventoryStore.getState().addMod(drop);
 }

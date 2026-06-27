@@ -18,6 +18,9 @@ export interface ElementReactionDefinition {
   vfxEffectId?: string; // optional cinematic effect id to play at the target
   damageType?: string; // burst damage type (default 'energy')
   attackTags?: string[]; // burst tags (default ['reaction', <reaction>])
+  // Wave 4 — chains & propagation (optional; backward-compatible).
+  resultsInStatus?: StatusEffectId; // apply this status to the primary target after reacting (enables a follow-up reaction)
+  propagatesStatus?: { statusType: StatusEffectId; radius: number }; // spread a status to enemies within radius
   enabled?: boolean;
 }
 
@@ -43,11 +46,21 @@ export const SEED_ELEMENT_REACTIONS: ElementReactionDefinition[] = [
     bonusDamage: 18, aoeRadius: 8, consumesPrimary: false, cooldownMs: 700,
     damageType: 'electric', attackTags: ['reaction', 'conduct', 'aoe'], enabled: true,
   },
-  // Frozen + burn → meltdown: high burst as the target thaws violently.
+  // Frozen + burn → meltdown: high burst as the target thaws violently, then leaves it armor-broken so a
+  // follow-up heavy/shield-break hit chains into another reaction (Wave 4 chain).
   {
     id: 'rxn_meltdown', reaction: 'meltdown',
     primaryStatus: 'frozen', triggerStatus: 'burning',
     bonusDamage: 38, consumesPrimary: true, cooldownMs: 700,
-    damageType: 'fire', attackTags: ['reaction', 'meltdown'], enabled: true,
+    damageType: 'fire', attackTags: ['reaction', 'meltdown'],
+    resultsInStatus: 'armor-broken', enabled: true,
+  },
+  // Wave 4 — burning + shock advanced overload: spreads burning to nearby enemies (chain into more overloads).
+  {
+    id: 'rxn_overload_spread', reaction: 'overload',
+    primaryStatus: 'burning', triggerStatus: 'shocked',
+    bonusDamage: 22, aoeRadius: 6, consumesPrimary: true, cooldownMs: 900,
+    damageType: 'energy', attackTags: ['reaction', 'overload', 'aoe'],
+    propagatesStatus: { statusType: 'burning', radius: 5 }, enabled: false,
   },
 ];

@@ -83,11 +83,12 @@ export function castCharacterSkillById(characterId: string, skillId: string): Sk
   const up = getSkillMultipliers(skillId);
   const rb = getRunBuffMultipliers();
   const em = getEquipmentModMultipliers(characterId);
-  const hangarCd = getHangarBonuses().cooldownReductionMult;
+  const hangar = getHangarBonuses();
   const outcome = castSkillById(skillId, characterId, {
     forceCrit: combo?.bonusEffects?.forceCrit,
+    critChanceAdd: hangar.critChanceAdd, // Wave 3 — Hangar 'Targeting Optics' crit chance
     damageMultiplier: up.damageMult * rb.damageMult * em.damageMult,
-    cooldownMultiplier: up.cooldownMult * rb.cooldownMult * em.cooldownMult * hangarCd,
+    cooldownMultiplier: up.cooldownMult * rb.cooldownMult * em.cooldownMult * hangar.cooldownReductionMult,
     energyMultiplier: up.energyMult * rb.energyMult * em.energyMult,
   });
   if (!outcome?.ok) return outcome;
