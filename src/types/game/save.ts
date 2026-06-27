@@ -4,7 +4,7 @@ import type { FlightMode } from './flightControl';
 // Batch 13 — the versioned save document. This is the aero-rescue main save (progress / stats / settings
 // snapshot), NOT the POLI 'world'-mode multi-slot save in stores/saveStore.ts (that stays separate).
 // Bumped to v2 this batch; the migration runner upgrades older saves (see data/save/saveSchemaVersions.ts).
-export const SAVE_VERSION = 2 as const;
+export const SAVE_VERSION = 3 as const;
 
 export interface SaveProgress {
   completedMissionIds: string[];
@@ -14,6 +14,7 @@ export interface SaveProgress {
   watchedTransformationTimelineIds: string[];
   completedObjectiveIds: string[];
   collectedItemIds: string[];
+  rescuedNpcIds: string[]; // Batch E — NPCs rescued by clearing stages (populate the Hub).
 }
 
 export interface SaveStats {

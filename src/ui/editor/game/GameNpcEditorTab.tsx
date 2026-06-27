@@ -180,6 +180,18 @@ export const GameNpcEditorTab = () => {
           <MovementEditor npc={n} update={update} />
           <AnimationRulesEditor rules={n.animations ?? []} modelAssetId={n.modelAssetId} onChange={(r) => update({ animations: r })} />
 
+          {/* Batch E — Hub resident: rescued NPCs who live in the Hangar + offer a side-quest. */}
+          <div className="rounded border border-emerald-700/40 bg-emerald-950/10 p-2">
+            <Field label="Hub resident (lives in the Hangar once rescued)"><input type="checkbox" checked={!!n.hubResident} onChange={(e) => update({ hubResident: e.target.checked })} /></Field>
+            {n.hubResident && (
+              <>
+                <TextRow label="Rescued by stage id" value={n.rescuedByStageId ?? ''} onChange={(v) => update({ rescuedByStageId: v || undefined })} />
+                <Vec3Row label="Hub position (x / y / z)" value={n.hubPosition ?? vec0()} onChange={(v) => update({ hubPosition: v })} />
+                <TextRow label="Hub side-quest id" value={n.hubSideQuestId ?? ''} onChange={(v) => update({ hubSideQuestId: v || undefined })} />
+              </>
+            )}
+          </div>
+
           <ConfidenceRow value={n.sourceConfidence} onChange={(v) => update({ sourceConfidence: v })} />
         </>
         );

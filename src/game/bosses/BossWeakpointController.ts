@@ -1,6 +1,9 @@
 import type { BossWeakpointDefinition } from '../../types/game/boss';
 import { liveTargets, useCombatTargetStore, type CombatTarget } from '../../stores/game/combatTargetStore';
+import { useCombatStore } from '../../stores/game/useCombatStore';
 import { registerRuntimeDamageable } from '../combat/enemyRuntime';
+import { makeUtilityFeedback } from '../combat/CombatFeedbackClassifier';
+import { triggerGameFeelFromFeedback } from '../feel/GameFeelDirector';
 
 // Boss weakpoints (Batch F). Each weakpoint is a hittable CombatTarget (registered damageable + spawn, the
 // ObstacleDirector pattern) so player/support skills resolve damage through the shared DamageResolver. While
@@ -63,6 +66,9 @@ export function exposeWeakpoint(weakpointId: string, durationSeconds?: number, n
   const rt = live.get(weakpointId);
   if (!rt || rt.destroyed) return;
   rt.exposedUntil = now + (durationSeconds ?? rt.def.exposedRules.exposeDurationSeconds ?? 8);
+  const event = makeUtilityFeedback('boss-weakpoint-exposed', rt.targetId, weakpointId);
+  useCombatStore.getState().pushFeedbackEvent(event);
+  triggerGameFeelFromFeedback(event);
 }
 
 export function destroyWeakpoint(weakpointId: string): void {
@@ -84,6 +90,9 @@ export function update(bossShieldBroken: boolean, now = nowS()): WeakpointDestro
       if (((r.exposeOnScan || r.exposeOnSupportScan) && t.scanned) || (r.exposeOnShieldBreak && bossShieldBroken)) {
         rt.exposedUntil = now + (r.exposeDurationSeconds ?? 8);
         t.scanned = false; t.weakpointExposed = true;
+        const event = makeUtilityFeedback('boss-weakpoint-exposed', rt.targetId, rt.def.id);
+        useCombatStore.getState().pushFeedbackEvent(event);
+        triggerGameFeelFromFeedback(event);
       } else {
         // pin hp while hidden (invulnerable)
         t.hp = t.maxHp; t.defeatedAt = 0;

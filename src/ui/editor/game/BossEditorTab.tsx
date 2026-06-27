@@ -2,15 +2,23 @@ import { useState } from 'react';
 import {
   useBossDefinitionStore, useBossPhaseStore, useBossWeakpointStore, useBossAttackStore, useBossArenaStore, useBossSummonWaveStore,
 } from '../../../stores/game/useBossEditorStore';
-import { BOSS_TYPES, BOSS_PATTERN_TYPES } from '../../../types/game/boss';
-import type { BossDefinition, BossPhaseDefinition, BossWeakpointDefinition, BossAttackPatternDefinition, BossArenaDefinition, BossSummonWaveDefinition } from '../../../types/game/boss';
+import { useEditorRandomBossPoolStore } from '../../../stores/game/editorCombatStore';
+import { useEnvironmentThemeStore } from '../../../stores/useEnvironmentEditorStore';
+import { BOSS_TYPES, BOSS_PATTERN_TYPES, BOSS_SIGNATURE_MECHANIC_TYPES } from '../../../types/game/boss';
+import type { BossDefinition, BossPhaseDefinition, BossWeakpointDefinition, BossAttackPatternDefinition, BossArenaDefinition, BossSummonWaveDefinition, BossSignatureMechanic, BossSignatureMechanicType } from '../../../types/game/boss';
+import type { RandomBossPoolEntry } from '../../../types/game/randomBoss';
 import { validateBoss, validatePhase, validateWeakpoint, validateAttackPattern, validateArena, validateSummonWave } from '../../../game/bosses/BossValidation';
 import { Field, inp, lbl, csv, parseCsv } from '../editorShared';
 
-// 👹 Boss — one tab, sub-sections (Definition / Phase / Weakpoint / Attack / Arena / Wave). Backed by the six
-// boss editor collections (Batch F). Form-based (no gizmo this batch); live validation per section.
-const SECTIONS = ['Definition', 'Phase', 'Weakpoint', 'Attack', 'Arena', 'Wave'] as const;
+// 👹 Boss — one tab, sub-sections. Backed by the boss editor collections (Batch F) + the random-boss pools
+// (Batch J). Form-based (no gizmo this batch); live validation per section.
+const SECTIONS = ['Definition', 'Phase', 'Weakpoint', 'Attack', 'Arena', 'Wave', 'Random'] as const;
 type Section = (typeof SECTIONS)[number];
+
+// Candidates serialize as "bossId:weight, bossId:weight" for inline CSV-style editing.
+const fmtCandidates = (cs: RandomBossPoolEntry[]) => cs.map((c) => `${c.bossId}:${c.weight}`).join(', ');
+const parseCandidates = (s: string): RandomBossPoolEntry[] =>
+  parseCsv(s).map((tok) => { const [id, w] = tok.split(':'); return { bossId: (id ?? '').trim(), weight: Math.max(0, parseFloat(w) || 1) }; }).filter((c) => c.bossId);
 
 const Picker = ({ items, sel, set }: { items: { id: string; name?: string; displayName?: string }[]; sel: string | null; set: (id: string) => void }) => (
   <div className="flex flex-wrap gap-1">
@@ -26,6 +34,31 @@ const Errors = ({ r }: { r: { ok: boolean; errors: string[]; warnings: string[] 
   </div>
 );
 
+// Wave 1 — per-boss signature mechanic editor (type + a few common config knobs).
+const SignatureEditor = ({ boss, update }: { boss: BossDefinition; update: (id: string, patch: Partial<BossDefinition>) => void }) => {
+  const m = boss.signatureMechanic;
+  const patch = (p: Partial<BossSignatureMechanic>) => update(boss.id, { signatureMechanic: m ? { ...m, ...p } : { id: `${boss.id}_sig`, type: 'moving-hazard-lasers', config: {}, enabled: true, ...p } });
+  const cfg = (k: string, v: number) => patch({ config: { ...(m?.config ?? {}), [k]: v } });
+  const cv = (k: string) => m?.config?.[k] ?? 0;
+  return (
+    <div className="rounded-lg border border-slate-800 p-2">
+      <div className={lbl}>Signature mechanic</div>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Enabled"><input type="checkbox" checked={!!m && m.enabled !== false} onChange={(e) => e.target.checked ? patch({ enabled: true }) : update(boss.id, { signatureMechanic: undefined })} /></Field>
+        <Field label="Type"><select value={m?.type ?? ''} disabled={!m} onChange={(e) => patch({ type: e.target.value as BossSignatureMechanicType })} className={inp}>{BOSS_SIGNATURE_MECHANIC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
+        {m && (<>
+          <Field label="Interval (s)"><input type="number" step={0.5} value={cv('intervalSeconds')} onChange={(e) => cfg('intervalSeconds', parseFloat(e.target.value) || 0)} className={inp} /></Field>
+          <Field label="Damage"><input type="number" step={1} value={cv('damage')} onChange={(e) => cfg('damage', parseFloat(e.target.value) || 0)} className={inp} /></Field>
+          <Field label="Radius"><input type="number" step={0.5} value={cv('radius')} onChange={(e) => cfg('radius', parseFloat(e.target.value) || 0)} className={inp} /></Field>
+          <Field label="Heal / sec"><input type="number" step={1} value={cv('healPerSec')} onChange={(e) => cfg('healPerSec', parseFloat(e.target.value) || 0)} className={inp} /></Field>
+          <Field label="Shield regen / sec"><input type="number" step={1} value={cv('shieldRegenPerSec')} onChange={(e) => cfg('shieldRegenPerSec', parseFloat(e.target.value) || 0)} className={inp} /></Field>
+          <Field label="Enemy ref (healer)"><input value={m.enemyRef ?? ''} onChange={(e) => patch({ enemyRef: e.target.value || undefined })} className={inp} /></Field>
+        </>)}
+      </div>
+    </div>
+  );
+};
+
 export const BossEditorTab = () => {
   const bosses = useBossDefinitionStore((s) => s.items);
   const updateBoss = useBossDefinitionStore((s) => s.update);
@@ -39,6 +72,9 @@ export const BossEditorTab = () => {
   const updateArena = useBossArenaStore((s) => s.update);
   const waves = useBossSummonWaveStore((s) => s.items);
   const updateWave = useBossSummonWaveStore((s) => s.update);
+  const pools = useEditorRandomBossPoolStore((s) => s.items);
+  const updatePool = useEditorRandomBossPoolStore((s) => s.update);
+  const envThemes = useEnvironmentThemeStore((s) => s.items);
 
   const [section, setSection] = useState<Section>('Definition');
   const [bossSel, setBossSel] = useState<string | null>(bosses[0]?.id ?? null);
@@ -47,6 +83,7 @@ export const BossEditorTab = () => {
   const [atkSel, setAtkSel] = useState<string | null>(attacks[0]?.id ?? null);
   const [arenaSel, setArenaSel] = useState<string | null>(arenas[0]?.id ?? null);
   const [waveSel, setWaveSel] = useState<string | null>(waves[0]?.id ?? null);
+  const [poolSel, setPoolSel] = useState<string | null>(pools[0]?.id ?? null);
 
   const b = bosses.find((x) => x.id === bossSel) as BossDefinition | undefined;
   const p = phases.find((x) => x.id === phaseSel) as BossPhaseDefinition | undefined;
@@ -54,6 +91,7 @@ export const BossEditorTab = () => {
   const atk = attacks.find((x) => x.id === atkSel) as BossAttackPatternDefinition | undefined;
   const arena = arenas.find((x) => x.id === arenaSel) as BossArenaDefinition | undefined;
   const wave = waves.find((x) => x.id === waveSel) as BossSummonWaveDefinition | undefined;
+  const pool = pools.find((x) => x.id === poolSel);
 
   const lookups = {
     arenaExists: (id: string) => arenas.some((a) => a.id === id),
@@ -83,7 +121,14 @@ export const BossEditorTab = () => {
           <Field label="Model preset id"><input value={b.visual.modelPresetId} onChange={(e) => updateBoss(b.id, { visual: { ...b.visual, modelPresetId: e.target.value } })} className={inp} /></Field>
           <Field label="Theme color"><input type="color" value={b.visual.themeColor ?? '#38bdf8'} onChange={(e) => updateBoss(b.id, { visual: { ...b.visual, themeColor: e.target.value } })} className="h-7 w-16 rounded bg-slate-800" /></Field>
           <Field label="Complete zone on defeat"><input type="checkbox" checked={b.completion.completeZoneOnDefeat} onChange={(e) => updateBoss(b.id, { completion: { ...b.completion, completeZoneOnDefeat: e.target.checked } })} /></Field>
+          {/* Batch E — intro title card + enrage timer. */}
+          <Field label="Intro title"><input value={b.intro?.title ?? ''} placeholder="(no intro)" onChange={(e) => updateBoss(b.id, { intro: e.target.value ? { title: e.target.value, subtitle: b.intro?.subtitle, durationSeconds: b.intro?.durationSeconds ?? 3, cinematicEffectId: b.intro?.cinematicEffectId } : undefined })} className={inp} /></Field>
+          <Field label="Intro subtitle"><input value={b.intro?.subtitle ?? ''} onChange={(e) => b.intro && updateBoss(b.id, { intro: { ...b.intro, subtitle: e.target.value || undefined } })} className={inp} /></Field>
+          <Field label="Intro duration (s)"><input type="number" step={0.5} value={b.intro?.durationSeconds ?? 0} onChange={(e) => b.intro && updateBoss(b.id, { intro: { ...b.intro, durationSeconds: parseFloat(e.target.value) || 0 } })} className={inp} /></Field>
+          <Field label="Enrage after (s, 0 = off)"><input type="number" step={5} value={b.enrage?.afterSeconds ?? 0} onChange={(e) => { const s = parseFloat(e.target.value) || 0; updateBoss(b.id, { enrage: s > 0 ? { afterSeconds: s, damageMultiplier: b.enrage?.damageMultiplier ?? 1.5, cinematicEffectId: b.enrage?.cinematicEffectId } : undefined }); }} className={inp} /></Field>
+          <Field label="Enrage damage ×"><input type="number" step={0.1} value={b.enrage?.damageMultiplier ?? 1.5} onChange={(e) => b.enrage && updateBoss(b.id, { enrage: { ...b.enrage, damageMultiplier: parseFloat(e.target.value) || 1 } })} className={inp} /></Field>
         </div>
+        <SignatureEditor boss={b} update={updateBoss} />
         <Errors r={validateBoss(b, lookups)} />
       </>)}</>)}
 
@@ -148,6 +193,28 @@ export const BossEditorTab = () => {
           <Field label="Complete when cleared"><input type="checkbox" checked={wave.completeWhenGroupsCleared} onChange={(e) => updateWave(wave.id, { completeWhenGroupsCleared: e.target.checked })} /></Field>
         </div>
         <Errors r={validateSummonWave(wave, { phaseExists: lookups.phaseExists })} />
+      </>)}</>)}
+
+      {/* Batch J — random-boss pools (threat-gauge encounters). Referenced by a zone's randomBossPoolId. */}
+      {section === 'Random' && (<><Picker items={pools} sel={poolSel} set={setPoolSel} />{pool && (<>
+        <div className={lbl}>🎲 {pool.name}</div>
+        <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-800 p-2">
+          <Field label="Name"><input value={pool.name} onChange={(e) => updatePool(pool.id, { name: e.target.value })} className={inp} /></Field>
+          <Field label="Enabled"><input type="checkbox" checked={pool.enabled} onChange={(e) => updatePool(pool.id, { enabled: e.target.checked })} /></Field>
+          <Field label="Candidates (bossId:weight, …)"><input value={fmtCandidates(pool.candidates)} onChange={(e) => updatePool(pool.id, { candidates: parseCandidates(e.target.value) })} className={inp} placeholder="glitch_hive_tyrant:2, harbor_core_sentinel:1" /></Field>
+          <Field label="Threat per kill"><input type="number" step={1} value={pool.threat.perKill} onChange={(e) => updatePool(pool.id, { threat: { ...pool.threat, perKill: parseFloat(e.target.value) || 0 } })} className={inp} /></Field>
+          <Field label="Threat per second"><input type="number" step={0.5} value={pool.threat.perSecond} onChange={(e) => updatePool(pool.id, { threat: { ...pool.threat, perSecond: parseFloat(e.target.value) || 0 } })} className={inp} /></Field>
+          <Field label="Threshold (gauge → drop)"><input type="number" step={5} value={pool.threat.threshold} onChange={(e) => updatePool(pool.id, { threat: { ...pool.threat, threshold: parseFloat(e.target.value) || 1 } })} className={inp} /></Field>
+          <Field label="Cooldown (s)"><input type="number" step={1} value={pool.threat.cooldownSeconds} onChange={(e) => updatePool(pool.id, { threat: { ...pool.threat, cooldownSeconds: parseFloat(e.target.value) || 0 } })} className={inp} /></Field>
+          <Field label="Max per zone (0 = ∞)"><input type="number" step={1} value={pool.threat.maxPerZone} onChange={(e) => updatePool(pool.id, { threat: { ...pool.threat, maxPerZone: parseInt(e.target.value) || 0 } })} className={inp} /></Field>
+          <Field label="Boss environment (on drop)">
+            <select value={pool.bossEnvironmentThemeId ?? ''} onChange={(e) => updatePool(pool.id, { bossEnvironmentThemeId: e.target.value || undefined })} className={inp}>
+              <option value="">— keep segment theme —</option>
+              {envThemes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </Field>
+        </div>
+        <div className="text-[10px] text-slate-400">A zone opts in via its <b>Random boss pool</b> field (🎯 Mission Zone tab). Gauge fills from kills + time in non-boss combat segments, then air-drops a weighted-random boss.</div>
       </>)}</>)}
     </div>
   );

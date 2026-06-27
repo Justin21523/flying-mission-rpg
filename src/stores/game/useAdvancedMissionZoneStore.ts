@@ -36,6 +36,10 @@ interface AdvancedMissionZoneState {
   completedIncidentObjectiveIds: string[];
   failedIncidentIds: string[];
 
+  // Batch O — mission-type objectives (driven by MissionObjectiveHost; reset per segment).
+  completedMissionObjectiveIds: string[];
+  missionObjectiveProgress: Record<string, { current: number; total: number; label?: string }>;
+
   zoneStartedAtMs?: number;
   segmentStartedAtMs?: number;
 
@@ -71,6 +75,10 @@ interface AdvancedMissionZoneState {
 
   recordIncidentEvent: (kind: 'resolve-incident' | 'complete-incident-objective' | 'incident-success' | 'incident-failed', id: string) => void;
 
+  recordMissionObjectiveComplete: (conditionId: string) => void;
+  setMissionObjectiveProgress: (conditionId: string, progress: { current: number; total: number; label?: string }) => void;
+  resetMissionObjective: (conditionId: string) => void;
+
   setDebug: (patch: Partial<AdvancedMissionZoneState['debug']>) => void;
 }
 
@@ -95,14 +103,16 @@ const INITIAL = {
   resolvedIncidentIds: [] as string[],
   completedIncidentObjectiveIds: [] as string[],
   failedIncidentIds: [] as string[],
+  completedMissionObjectiveIds: [] as string[],
+  missionObjectiveProgress: {} as Record<string, { current: number; total: number; label?: string }>,
   zoneStartedAtMs: undefined as number | undefined,
   segmentStartedAtMs: undefined as number | undefined,
   lastCompletedSegmentId: undefined as string | undefined,
   pendingNextSegmentIds: [] as string[],
   missionZoneStatus: 'inactive' as MissionZoneStatus,
-  // God mode default ON (testing build). NOTE: zone god-mode auto-completes segments — toggle OFF in the
-  // God Mode panel to actually fight encounters.
-  debug: { godMode: true, forceUnlockAllSegments: false, allowManualComplete: true },
+  // Batch P — zone god-mode default OFF (segments no longer auto-complete; players play objectives). 'easy'
+  // difficulty or the God Mode panel re-enable auto-complete for dev/showcase.
+  debug: { godMode: false, forceUnlockAllSegments: false, allowManualComplete: true },
 };
 
 const now = (nowMs?: number) => nowMs ?? (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -128,6 +138,8 @@ export const useAdvancedMissionZoneStore = create<AdvancedMissionZoneState>((set
       activeSegmentId: segmentId,
       segmentStartedAtMs: now(nowMs),
       currentConditionProgress: {},
+      completedMissionObjectiveIds: [],
+      missionObjectiveProgress: {},
       missionZoneStatus: 'active',
       unlockedSegmentIds: s.unlockedSegmentIds.includes(segmentId) ? s.unlockedSegmentIds : [...s.unlockedSegmentIds, segmentId],
     })),
@@ -190,6 +202,18 @@ export const useAdvancedMissionZoneStore = create<AdvancedMissionZoneState>((set
       const list = s[key];
       return list.includes(id) ? s : ({ [key]: [...list, id] } as Partial<AdvancedMissionZoneState>);
     }),
+
+  recordMissionObjectiveComplete: (conditionId) =>
+    set((s) => (s.completedMissionObjectiveIds.includes(conditionId) ? s : { completedMissionObjectiveIds: [...s.completedMissionObjectiveIds, conditionId] })),
+
+  setMissionObjectiveProgress: (conditionId, progress) =>
+    set((s) => ({ missionObjectiveProgress: { ...s.missionObjectiveProgress, [conditionId]: progress } })),
+
+  resetMissionObjective: (conditionId) =>
+    set((s) => ({
+      completedMissionObjectiveIds: s.completedMissionObjectiveIds.filter((c) => c !== conditionId),
+      missionObjectiveProgress: { ...s.missionObjectiveProgress, [conditionId]: { current: 0, total: s.missionObjectiveProgress[conditionId]?.total ?? 1 } },
+    })),
 
   setDebug: (patch) => set((s) => ({ debug: { ...s.debug, ...patch } })),
 }));

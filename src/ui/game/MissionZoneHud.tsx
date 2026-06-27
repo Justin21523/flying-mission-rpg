@@ -35,6 +35,9 @@ function describeCondition(c: ZoneConditionDefinition): string {
     case 'future-repair-device': return 'Repair the device (coming soon)';
     case 'future-resolve-incident': return 'Resolve the incident (coming soon)';
     case 'future-defeat-boss': return 'Defeat the boss (coming soon)';
+    case 'defense-waves': return 'Survive the waves';
+    case 'timed-rescue': return 'Rescue all targets in time';
+    case 'scan-targets': return 'Scan the targets';
     default: return 'Objective';
   }
 }

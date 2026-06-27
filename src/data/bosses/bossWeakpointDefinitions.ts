@@ -14,7 +14,7 @@ export const SEED_BOSS_WEAKPOINTS: BossWeakpointDefinition[] = [
       id: 'dmg_wp_core', maxHp: 120, weaknessTags: ['precision', 'weakpoint', 'shield-break'], resistanceTags: [],
       onHpZero: 'destroy', editorMeta: { displayName: 'Shield Core', color: '#f87171' },
     },
-    exposedRules: { initiallyExposed: false, exposeOnScan: true, exposeOnSupportScan: true, exposeOnShieldBreak: true, exposeDurationSeconds: 8 },
+    exposedRules: { initiallyExposed: false, exposeOnScan: true, exposeOnSupportScan: true, exposeOnShieldBreak: true, exposeDurationSeconds: 10 },
     effectOnDestroyed: { damageBossAmount: 150, removeBossShield: 200, triggerNextPhase: true },
     validAttackTags: ['precision', 'weakpoint', 'shield-break', 'impact', 'energy'],
     visual: { hiddenPresetId: 'wp_hidden', exposedPresetId: 'wp_exposed', destroyedPresetId: 'wp_destroyed', markerGeometry: 'ring', color: '#f87171' },

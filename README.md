@@ -1,66 +1,106 @@
-# Aero Mission RPG
+# Aero Rescue RPG
 
-A high-performance, mission-based RPG built with React, Three.js, and Phaser. Take command of versatile hero units capable of transforming between robot and vehicle modes to complete various rescue and tactical missions across diverse environments.
-
-## Features
-
-- **Transforming Hero Units:** Switch seamlessly between specialized robot forms for ground interaction and vehicle modes for rapid deployment and flight.
-- **Mission-Driven Gameplay:** Complete a variety of objectives including rescues, deliveries, and tactical operations.
-- **Dynamic 3D Environments:** Explore detailed worlds rendered with React Three Fiber, featuring physics-based interactions and realistic lighting.
-- **Comprehensive Editor Suite:** Built-in tools for managing character models, path following, collision zones, and mission scenarios.
-- **Advanced State Management:** Robust game logic powered by Zustand, ensuring smooth performance and reliable save/load functionality.
+A portfolio-ready Web 3D rescue-action RPG demo with campaign progression, stage runtime, combat skills, support calls, AI incidents, bosses, and in-game editing tools.
 
 ## Tech Stack
 
-- **Frontend:** React 19, TypeScript
-- **3D Engine:** Three.js with @react-three/fiber and @react-three/drei
-- **2D/UI Engine:** Phaser 4
-- **Physics:** @react-three/rapier
-- **State Management:** Zustand
-- **Styling:** Tailwind CSS 4
-- **Build Tool:** Vite
+- React 19, TypeScript, Vite
+- Three.js, React Three Fiber, Drei, Rapier
+- Zustand for runtime, editor, settings, save, and progression state
+- Vitest for runtime, data, validation, and integration tests
+- Tailwind CSS for HUD and tool UI
 
-## Getting Started
+## Core Features
 
-### Prerequisites
+- Demo Landing flow with Start Demo, Continue, Stage Select, Edit Mode Showcase, Controls, Settings, and project notes.
+- Campaign and stage progression for Rescue Vanguard Campaign with 10 data-driven stages.
+- Stage runtime that loads environment themes, level layouts, objectives, incidents, encounters, support rules, and bosses.
+- Combat runtime with character skills, attack archetypes, status effects, support abilities, and VFX feedback.
+- Enemy encounter packs, elite pressure, boss support waves, incident templates, obstacle packs, rewards, unlocks, and validation.
+- Edit Mode tools for campaign, stage, level, environment, encounter, pacing, balance, playtest reports, and JSON export.
+- Demo Mode settings for guided hints, controls overlay, debug hiding, VFX intensity, camera comfort, accessibility, and reset.
 
-- Node.js (v20 or higher recommended)
-- npm or yarn
+## Gameplay Flow
 
-### Installation
+```text
+Demo Landing
+→ Stage Briefing
+→ Character Select
+→ Launch / Flight / Transformation / Landing
+→ Stage Gameplay
+→ Incident / Combat / Obstacle / Boss Objective
+→ Stage Clear
+→ Reward / Unlock
+→ Campaign Map
+```
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Justin21523/flying-mission-rpg.git
-   cd flying-mission-rpg
-   ```
+## How To Run
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+npm run dev
+```
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+Open the Vite URL in a browser. The app starts at the Demo Landing screen in Portfolio Demo Mode.
 
-## Development
+## How To Build
 
-- `npm run build`: Build the project for production.
-- `npm run lint`: Run ESLint to check for code quality issues.
-- `npm run typecheck`: Run TypeScript compiler check.
-- `npm test`: Run unit tests with Vitest.
-- `npm run e2e`: Run end-to-end tests with Playwright.
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
 
-## Project Structure
+The production output is generated in `dist/` and is suitable for static hosting.
 
-- `src/app`: Main React components and layout.
-- `src/game`: Core game logic, systems, and engines.
-- `src/stores`: Zustand stores for game state.
-- `src/data`: Game configuration, mission data, and model libraries.
-- `src/ui`: Reusable UI components.
+## How To Play The Demo
+
+- Click `Start Demo` for the recommended Stage 1 briefing.
+- Use the quick-start options to skip to gameplay or the boss demo.
+- Follow the objective HUD in the upper-left area.
+- Use the Stage Clear panel to return to Campaign Map and unlock the next stage.
+- Press `F1` to open Edit Mode for tool showcase.
+
+## Controls
+
+- `WASD`: move
+- `Shift`: sprint / boost where available
+- `Q`: character ability
+- `F`: context action
+- `T`: transformation flow where available
+- `C`: character swap where available
+- `Esc`: settings / pause menu
+- `F1`: Edit Mode
+
+## Portfolio Notes
+
+This project intentionally uses placeholder-friendly assets and original internal character IDs. The focus is on game architecture, campaign flow, runtime integration, editor tooling, validation, VFX readability, and web deployment readiness.
+
+## Screenshots
+
+Add captured images from:
+
+- Demo Landing
+- Campaign Map
+- Stage Briefing
+- Stage Gameplay
+- Boss / Combat feedback
+- Stage Clear
+- Edit Mode Home
+
+## Documentation
+
+- [Portfolio Demo Guide](docs/PORTFOLIO_DEMO.md)
+- [Gameplay Systems](docs/GAMEPLAY_SYSTEMS.md)
+- [Edit Mode Guide](docs/EDIT_MODE_GUIDE.md)
+- [Demo Recording Guide](docs/DEMO_RECORDING_GUIDE.md)
+- [Portfolio Shot List](docs/PORTFOLIO_SHOT_LIST.md)
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [QA Checklist](docs/QA_CHECKLIST.md)
+- [Release Candidate Report](docs/RELEASE_CANDIDATE_REPORT.md)
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT.

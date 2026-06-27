@@ -18,6 +18,8 @@ import { generateMissions } from '../../game/missions/missionGenerator';
 import { collectMissionPools } from '../../game/missions/missionPools';
 import { MISSION_TEMPLATES } from '../../data/game/missionTemplates';
 import { playUiSound } from '../../game/audio/uiSound';
+import { CampaignMap } from '../campaign/CampaignMap';
+import { startRun } from '../../game/arena-run/RunDirector';
 
 // MISSION_CONTROL — hi-tech console: world map (left) + mission notifications (right). Selecting a
 // mission advances to the briefing (GameDirector reacts to mission:selected). Data is read live from the
@@ -104,14 +106,18 @@ export const MissionControlScreen = () => {
         </div>
 
         <div className={`flex min-h-0 flex-col ${panel} p-3`}>
+          <CampaignMap />
+          <div className="my-3 border-t border-slate-700" />
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="text-sm font-bold text-sky-200">
               Mission Notifications
               {activeLocationId && <span className="text-slate-400"> · {getEditorLocation(activeLocationId)?.name ?? ''}</span>}
             </h2>
-            <div className="flex gap-1">
-              <Btn tone="primary" onClick={generateDispatches}>🎲 Generate dispatches</Btn>
-              <Btn tone="ghost" onClick={regenerate}>🎲 Test</Btn>
+            <div className="flex flex-wrap gap-1">
+              <Btn tone="primary" onClick={() => startRun('endless')}>🌀 Endless</Btn>
+              <Btn tone="primary" onClick={() => startRun('roguelite')}>🎲 Roguelite</Btn>
+              <Btn tone="ghost" onClick={generateDispatches}>Dispatches</Btn>
+              <Btn tone="ghost" onClick={regenerate}>Test</Btn>
             </div>
           </div>
 

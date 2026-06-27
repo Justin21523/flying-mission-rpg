@@ -6,9 +6,9 @@ import { effectEntriesByCategory, getEffectEntry } from '../../../../game/transf
 import { createDefaultEffectConfig } from '../../../../game/transformation/effects/createEffect';
 import { inp, lbl, Check, MoveButtons } from '../../editorShared';
 import { NumRow, SelectRow, ColorRow, TextRow } from '../CollectionEditor';
-
-// Effect sound options — synth sfx (always audible) + a few audio cue ids.
-const SOUND_OPTIONS = ['', 'transform', 'ability', 'boost', 'ring', 'warn', 'land', 'coin', 'blip', 'pickup', 'objective', 'fx.boost', 'fx.ring', 'fx.warn', 'ui.launch', 'ui.confirm'].map((v) => ({ value: v, label: v || '(none)' }));
+import { PresetBar } from '../../timeline/PresetBar';
+import { rekeyEffect } from '../../../../game/editor/timelineAdapters';
+import { SOUND_OPTIONS } from '../../../../game/audio/soundOptions';
 
 // Registry-driven v2 effects editor. The effect-type dropdown + per-effect parameter panel are generated from
 // the effect registry, so every registered effect is authorable with its own fields. Edits write straight to
@@ -52,6 +52,23 @@ export const EffectsV2Editor = ({ def, update }: { def: TransformationDefinition
         <button onClick={playAll} title="Play the whole transformation" className="rounded bg-emerald-700/40 px-2 py-1 text-[11px] text-emerald-100 hover:bg-emerald-700/60">▶ All</button>
       </div>
 
+      <PresetBar
+        docKind="transformation"
+        docId={def.id}
+        docLabel={def.name}
+        characterId={def.characterId}
+        eventPresetKind="transformation.effect"
+        fullPresetKind="transformation.full"
+        eventNoun="effect"
+        events={effects}
+        setEvents={(next) => setEffects(next as TransformationEffectConfig[])}
+        selectedEvent={sel}
+        selectedName={sel?.effectName}
+        rekeyEvent={(e) => rekeyEffect(e as TransformationEffectConfig)}
+        getDoc={() => def}
+        applyDoc={(doc) => update(doc as Partial<TransformationDefinition>)}
+      />
+
       <div className="space-y-0.5">
         {effects.map((e, i) => (
           <div key={e.effectId} className={`flex items-center gap-1 rounded border px-1.5 py-0.5 ${selId === e.effectId ? 'border-fuchsia-500/70 bg-fuchsia-950/30' : 'border-slate-800 bg-slate-900/50'} ${e.enabled ? '' : 'opacity-50'}`}>
@@ -83,6 +100,10 @@ export const EffectsV2Editor = ({ def, update }: { def: TransformationDefinition
           <div className="grid grid-cols-2 gap-1.5">
             <ColorRow label="Colour" value={sel.color} onChange={(v) => patch(sel.effectId, { color: v })} />
             <SelectRow label="Sound" value={sel.soundId ?? ''} options={SOUND_OPTIONS} onChange={(v) => patch(sel.effectId, { soundId: v || undefined })} />
+          </div>
+          <div className="flex items-end gap-1.5">
+            <div className="flex-1"><NumRow label="Seed (random scatter)" value={sel.seed ?? 0} step={1} min={0} onChange={(v) => patch(sel.effectId, { seed: v || undefined })} /></div>
+            <button onClick={() => patch(sel.effectId, { seed: (sel.seed ?? 0) + 1 })} title="Re-roll the random scatter (reproducible; saved with the effect)" className="rounded bg-fuchsia-700/40 px-2 py-1 text-[11px] text-fuchsia-100 hover:bg-fuchsia-700/60">🎲 Re-roll</button>
           </div>
           <div className="flex flex-wrap gap-3 text-[11px] text-slate-300">
             <Check label="Preview" checked={sel.previewEnabled} onChange={(v) => patch(sel.effectId, { previewEnabled: v })} />

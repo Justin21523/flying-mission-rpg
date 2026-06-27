@@ -30,6 +30,9 @@ import { useEditorRouteStore } from '../../stores/game/editorRouteStore';
 import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
 import { useEditorTransformationStore } from '../../stores/game/editorTransformationStore';
+import { useEditorPresetStore } from '../../stores/game/editorPresetStore';
+import { useEditorVersionStore } from '../../stores/game/editorVersionStore';
+import { useFlightPhaseStore } from '../../stores/game/flightPhaseStore';
 import { useEditorQualityStore } from '../../stores/game/editorQualityStore';
 import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetStore';
 import { useEditorFlightPolishStore } from '../../stores/game/editorFlightPolishStore';
@@ -46,6 +49,36 @@ import { useEditorRegionStore } from '../../stores/game/editorRegionStore';
 import { useEditorAeroYokaiStore } from '../../stores/game/editorAeroYokaiStore';
 import { useHuntStore } from '../../stores/game/huntStore';
 import { useEditorSupportStore } from '../../stores/game/editorSupportStore';
+// Phase 6 — full project Export/Import + undo coverage for the remaining factory editor stores.
+import { useEditorCombatSkillStore, useEditorEnemyStore, useEditorBossPhaseStore, useEditorCombatStatsStore, useEditorCombatEffectStore, useEditorDamageableStore, useEditorRandomBossPoolStore, useEditorSpawnGroupStore } from '../../stores/game/editorCombatStore';
+import { useBossDefinitionStore, useBossPhaseStore, useBossAttackStore, useBossWeakpointStore, useBossSummonWaveStore, useBossArenaStore, useEliteEncounterStore } from '../../stores/game/useBossEditorStore';
+import { useEditorMissionZoneStore } from '../../stores/game/editorMissionZoneStore';
+import { useEditorZoneSegmentStore } from '../../stores/game/editorZoneSegmentStore';
+import { useEditorObstacleStore } from '../../stores/game/editorObstacleStore';
+import { useEditorZonePropStore } from '../../stores/game/editorZonePropStore';
+import { useEditorCharacterKitStore } from '../../stores/game/editorCharacterKitStore';
+import { useCinematicEffectStore } from '../../stores/game/useCinematicEffectStore';
+import { useCinematicAbilityEditorStore } from '../../stores/game/useCinematicAbilityEditorStore';
+import { useVfxStyleProfileStore } from '../../stores/game/useVfxStyleProfileStore';
+import { usePhysicsVfxObjectStore } from '../../stores/game/usePhysicsVfxObjectStore';
+import { useCloneAbilityStore } from '../../stores/game/useCloneAbilityStore';
+import { useStatusRuleStore } from '../../stores/game/useStatusRuleStore';
+import { useElementReactionStore } from '../../stores/game/useElementReactionStore';
+import { useEliteAffixStore } from '../../stores/game/useEliteAffixStore';
+import { useFusionEditorStore } from '../../stores/game/useFusionEditorStore';
+import { useSupportCombatEditorStore, useSupportSynergyEditorStore } from '../../stores/game/useSupportCombatEditorStore';
+import { useAbilityLoadoutStore } from '../../stores/game/useAbilityLoadoutStore';
+import { useRunBuffDefStore } from '../../stores/game/useRunBuffDefStore';
+import { useRunConfigStore } from '../../stores/game/useRunConfigStore';
+import { useHangarUpgradeDefStore } from '../../stores/game/useHangarUpgradeDefStore';
+import { useSkillUpgradeCurveStore } from '../../stores/game/useSkillUpgradeCurveStore';
+import { useEquipmentModDefStore } from '../../stores/game/useEquipmentModDefStore';
+import { useStageDefinitionStore, useStageRewardStore, useCampaignDefinitionStore } from '../../stores/useStageEditorStore';
+import { useStageBalanceProfileStore, useStageContentPackStore, useStagePlaytestScenarioStore, useStagePolishPresetStore } from '../../stores/useStageContentEditorStore';
+import { useLevelLayoutStore, useLevelSegmentStore } from '../../stores/useLevelEditorStore';
+import { useEncounterPackStore, useEnemyEncounterStore } from '../../stores/useEncounterEditorStore';
+import { useEnvironmentThemeStore, useEnvironmentHazardPresetStore, useEnvironmentPropSetStore, useAmbientVfxPresetStore } from '../../stores/useEnvironmentEditorStore';
+import { useIncidentEditorStore } from '../../stores/useIncidentEditorStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -75,7 +108,20 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useEditorGameNpcStore, useEditorTransformationStore, useEditorBaseLayoutStore,
   useEditorFlightStore, useEditorExteriorStore, useEditorFlightEventStore, useEditorDestinationStore,
   useEditorCameraStore, useEditorFlightCueStore, useEditorRegionStore, useEditorAeroYokaiStore, useHuntStore,
-  useEditorSupportStore,
+  useEditorSupportStore, useFlightPhaseStore,
+  // Phase 6 — combat / boss / zone / cinematic / meta / stage authored stores (undo tracking).
+  useEditorCombatSkillStore, useEditorEnemyStore, useEditorBossPhaseStore, useEditorCombatStatsStore, useEditorCombatEffectStore,
+  useEditorDamageableStore, useEditorRandomBossPoolStore, useEditorSpawnGroupStore,
+  useBossDefinitionStore, useBossPhaseStore, useBossAttackStore, useBossWeakpointStore, useBossSummonWaveStore, useBossArenaStore, useEliteEncounterStore,
+  useEditorMissionZoneStore, useEditorZoneSegmentStore, useEditorObstacleStore, useEditorZonePropStore, useEditorCharacterKitStore,
+  useCinematicEffectStore, useCinematicAbilityEditorStore, useVfxStyleProfileStore, usePhysicsVfxObjectStore, useCloneAbilityStore,
+  useStatusRuleStore, useElementReactionStore, useEliteAffixStore, useFusionEditorStore, useSupportCombatEditorStore, useSupportSynergyEditorStore, useAbilityLoadoutStore,
+  useRunBuffDefStore, useRunConfigStore, useHangarUpgradeDefStore, useSkillUpgradeCurveStore, useEquipmentModDefStore,
+  useStageDefinitionStore, useStageRewardStore, useCampaignDefinitionStore, useStageBalanceProfileStore, useStageContentPackStore, useStagePlaytestScenarioStore, useStagePolishPresetStore,
+  useLevelLayoutStore, useLevelSegmentStore, useEncounterPackStore, useEnemyEncounterStore,
+  useEnvironmentThemeStore, useEnvironmentHazardPresetStore, useEnvironmentPropSetStore, useAmbientVfxPresetStore, useIncidentEditorStore,
+  // Already in EDITOR_CONTENT_DOMAINS but were missing undo subscriptions.
+  useEditorQualityStore, useEditorAudioPresetStore, useEditorFlightPolishStore, useEditorTransformationPolishStore, useEditorMusicTrackStore, useEditorAmbientStore,
 ];
 
 // Kit — a single registry describing every editable content domain (each backed by its own store) with
@@ -91,6 +137,17 @@ export interface EditorContentDomain {
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+
+// Every createEditorCollection store has the same `{ items, seeded }` + importState/reset shape, so its domain
+// entry is mechanical — this collapses each registration to one line (vs the 6-line hand-written blocks above).
+type CollectionStore = { getState: () => { items: unknown[]; seeded: boolean; importState: (d: { items?: never }) => void; reset: () => void } };
+const collectionDomain = (id: string, label: string, store: CollectionStore, noun: string): EditorContentDomain => ({
+  id, label,
+  serialize: () => { const s = store.getState(); return { items: s.items, seeded: s.seeded }; },
+  deserialize: (d) => { if (isObj(d)) store.getState().importState(d as { items?: never }); },
+  clear: () => store.getState().reset(),
+  summary: () => `${store.getState().items.length} ${noun}`,
+});
 
 export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
   // ── aero-rescue game content (current project) ──
@@ -165,6 +222,30 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     deserialize: (data) => { if (isObj(data)) useEditorTransformationStore.getState().importState(data as { items?: never }); },
     clear: () => useEditorTransformationStore.getState().reset(),
     summary: () => `${useEditorTransformationStore.getState().items.length} transformations`,
+  },
+  {
+    id: 'gameEditorPreset',
+    label: 'Editor Presets',
+    serialize: () => { const s = useEditorPresetStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorPresetStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorPresetStore.getState().reset(),
+    summary: () => `${useEditorPresetStore.getState().items.length} presets`,
+  },
+  {
+    id: 'gameEditorVersion',
+    label: 'Editor Versions',
+    serialize: () => { const s = useEditorVersionStore.getState(); return { items: s.items, seeded: s.seeded }; },
+    deserialize: (data) => { if (isObj(data)) useEditorVersionStore.getState().importState(data as { items?: never }); },
+    clear: () => useEditorVersionStore.getState().reset(),
+    summary: () => `${useEditorVersionStore.getState().items.length} versions`,
+  },
+  {
+    id: 'gameFlightPhase',
+    label: 'Flight Phases',
+    serialize: () => ({ phases: useFlightPhaseStore.getState().phases }),
+    deserialize: (data) => { if (isObj(data)) useFlightPhaseStore.getState().importState(data as { phases?: never }); },
+    clear: () => useFlightPhaseStore.getState().reset(),
+    summary: () => `${useFlightPhaseStore.getState().phases.length} flight phases`,
   },
   {
     id: 'gameQuality',
@@ -536,6 +617,60 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
     clear: () => useAudioStore.getState().reset(),
     summary: () => { const s = useAudioStore.getState(); return `text ${Math.round(s.textScale * 100)}% · sfx ${s.sfxEnabled ? 'on' : 'off'}`; },
   },
+  // ── Phase 6 — remaining factory editor stores (combat / boss / zone / cinematic / combat-systems / meta / stage / level / encounter / environment) ──
+  collectionDomain('combatSkill', 'Combat Skills', useEditorCombatSkillStore, 'skills'),
+  collectionDomain('combatEnemy', 'Combat Enemies', useEditorEnemyStore, 'enemies'),
+  collectionDomain('combatBossPhase', 'Combat Boss Phases', useEditorBossPhaseStore, 'boss phases'),
+  collectionDomain('combatStats', 'Combat Stat Presets', useEditorCombatStatsStore, 'stat presets'),
+  collectionDomain('combatEffect', 'Combat Effects', useEditorCombatEffectStore, 'effects'),
+  collectionDomain('combatDamageable', 'Damageables', useEditorDamageableStore, 'damageables'),
+  collectionDomain('combatRandomBossPool', 'Random Boss Pools', useEditorRandomBossPoolStore, 'pools'),
+  collectionDomain('combatSpawnGroup', 'Enemy Spawn Groups', useEditorSpawnGroupStore, 'spawn groups'),
+  collectionDomain('bossDef', 'Boss Definitions', useBossDefinitionStore, 'bosses'),
+  collectionDomain('bossPhaseDef', 'Boss Phase Definitions', useBossPhaseStore, 'phases'),
+  collectionDomain('bossAttack', 'Boss Attacks', useBossAttackStore, 'attacks'),
+  collectionDomain('bossWeakpoint', 'Boss Weakpoints', useBossWeakpointStore, 'weakpoints'),
+  collectionDomain('bossSummonWave', 'Boss Summon Waves', useBossSummonWaveStore, 'waves'),
+  collectionDomain('bossArena', 'Boss Arenas', useBossArenaStore, 'arenas'),
+  collectionDomain('bossElite', 'Elite Encounters', useEliteEncounterStore, 'elites'),
+  collectionDomain('missionZone', 'Mission Zones', useEditorMissionZoneStore, 'zones'),
+  collectionDomain('zoneSegment', 'Zone Segments', useEditorZoneSegmentStore, 'segments'),
+  collectionDomain('obstacle', 'Obstacles', useEditorObstacleStore, 'obstacles'),
+  collectionDomain('zoneProp', 'Zone Props', useEditorZonePropStore, 'props'),
+  collectionDomain('characterKit', 'Character Combat Kits', useEditorCharacterKitStore, 'kits'),
+  collectionDomain('cinematicEffect', 'Cinematic Effects', useCinematicEffectStore, 'effects'),
+  collectionDomain('cinematicAbility', 'Cinematic Abilities', useCinematicAbilityEditorStore, 'abilities'),
+  collectionDomain('vfxStyle', 'VFX Style Profiles', useVfxStyleProfileStore, 'profiles'),
+  collectionDomain('physicsVfx', 'Physics VFX Objects', usePhysicsVfxObjectStore, 'objects'),
+  collectionDomain('cloneAbility', 'Clone Abilities', useCloneAbilityStore, 'clone abilities'),
+  collectionDomain('statusRule', 'Status Rules', useStatusRuleStore, 'rules'),
+  collectionDomain('elementReaction', 'Element Reactions', useElementReactionStore, 'reactions'),
+  collectionDomain('eliteAffix', 'Elite Affixes', useEliteAffixStore, 'affixes'),
+  collectionDomain('fusion', 'Partner Fusions', useFusionEditorStore, 'fusions'),
+  collectionDomain('supportCombat', 'Support Combat', useSupportCombatEditorStore, 'support abilities'),
+  collectionDomain('supportSynergy', 'Support Synergies', useSupportSynergyEditorStore, 'synergies'),
+  collectionDomain('abilityLoadout', 'Ability Loadouts', useAbilityLoadoutStore, 'loadouts'),
+  collectionDomain('runBuff', 'Run Buffs', useRunBuffDefStore, 'buffs'),
+  collectionDomain('runConfig', 'Run Configs', useRunConfigStore, 'configs'),
+  collectionDomain('hangarUpgrade', 'Hangar Upgrades', useHangarUpgradeDefStore, 'upgrades'),
+  collectionDomain('skillUpgradeCurve', 'Skill Upgrade Curves', useSkillUpgradeCurveStore, 'curves'),
+  collectionDomain('equipmentMod', 'Equipment Mods', useEquipmentModDefStore, 'mods'),
+  collectionDomain('stageDef', 'Stage Definitions', useStageDefinitionStore, 'stages'),
+  collectionDomain('stageReward', 'Stage Rewards', useStageRewardStore, 'rewards'),
+  collectionDomain('campaign', 'Campaigns', useCampaignDefinitionStore, 'campaigns'),
+  collectionDomain('stageBalance', 'Stage Balance Profiles', useStageBalanceProfileStore, 'profiles'),
+  collectionDomain('stageContentPack', 'Stage Content Packs', useStageContentPackStore, 'packs'),
+  collectionDomain('stagePlaytest', 'Stage Playtest Scenarios', useStagePlaytestScenarioStore, 'scenarios'),
+  collectionDomain('stagePolish', 'Stage Polish Presets', useStagePolishPresetStore, 'presets'),
+  collectionDomain('levelLayout', 'Level Layouts', useLevelLayoutStore, 'layouts'),
+  collectionDomain('levelSegment', 'Level Segments', useLevelSegmentStore, 'segments'),
+  collectionDomain('encounterPack', 'Encounter Packs', useEncounterPackStore, 'packs'),
+  collectionDomain('enemyEncounter', 'Enemy Encounters', useEnemyEncounterStore, 'encounters'),
+  collectionDomain('envTheme', 'Environment Themes', useEnvironmentThemeStore, 'themes'),
+  collectionDomain('envHazard', 'Environment Hazards', useEnvironmentHazardPresetStore, 'hazards'),
+  collectionDomain('envPropSet', 'Environment Prop Sets', useEnvironmentPropSetStore, 'prop sets'),
+  collectionDomain('ambientVfx', 'Ambient VFX Presets', useAmbientVfxPresetStore, 'presets'),
+  collectionDomain('incidentTemplate', 'Incident Templates', useIncidentEditorStore, 'templates'),
 ];
 
 // ── Unified project file ────────────────────────────────────────────────────

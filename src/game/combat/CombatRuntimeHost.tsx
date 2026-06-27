@@ -6,7 +6,7 @@ import { phaserBridge } from '../phaser/phaserBridge';
 import { robotHandle } from '../destination/robotHandle';
 import { hitVolumeActiveWindow } from './HitVolumeRuntime';
 import { recordHitVolume } from './effects/combatDebugBus';
-import { initializeCombatForZone, shutdownCombat, castSkillById, activeCombatantId, registerPlayerCombatant, update } from './CombatDirector';
+import { initializeCombatForZone, shutdownCombat, castSkillById, activeCombatantId, registerPlayerCombatant, update, tryExecuteNearest } from './CombatDirector';
 import { tickZoneCombatClear, resetZoneCombatAdapter } from './ZoneCombatAdapter';
 import { SLOT_KEYS } from './skillSlots';
 import { hasKit, castArsenalAbilityBySlot, loadKitForCharacter } from '../character-skills/CharacterSkillKitDirector';
@@ -40,6 +40,9 @@ export const CombatRuntimeHost = () => {
 
       // Batch I — Partner Fusion (F): fire the synchronized combo if a partner is present + the gauge is full.
       if (e.code === 'KeyF') { if (charId) castPartnerFusion(charId); return; }
+
+      // Wave 2 — Execution (E): finish the nearest low-HP / poise-broken enemy for a cinematic + resource refund.
+      if (e.code === 'KeyE') { tryExecuteNearest(robotHandle.pos.x, robotHandle.pos.z); return; }
 
       // Kit characters: the 4 action keys (4 / 5 / Z / X) cast the current page's ability set (so combos +
       // utility fire); Ctrl pages through all 11 abilities. Non-kit heroes keep the generic slot scan.

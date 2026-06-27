@@ -9,6 +9,9 @@ export const useEditorMissionZoneStore = createEditorCollection<MissionZoneDefin
   storageKey: 'aero-rescue-editor-mission-zone-v1',
   seed: SEED_MISSION_ZONES,
   makeId: () => `mz_${nanoid(6)}`,
+  // Batch J/K — bump so reconcileFromSeed refreshes shipped zones (autoCombatOnLanding + randomBossPoolId +
+  // zone environmentThemeId across all zones) on existing saves, while keeping user-authored zones.
+  seedVersion: 'batch-j-2',
 });
 
 export function getEditorMissionZones(): MissionZoneDefinition[] {

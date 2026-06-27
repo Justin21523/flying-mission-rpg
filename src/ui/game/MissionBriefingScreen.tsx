@@ -5,10 +5,13 @@ import { useGameStore } from '../../stores/game/useGameStore';
 import { getEditorMission } from '../../stores/game/editorMissionStore';
 import { getEditorLocation } from '../../stores/game/editorLocationStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
+import { useStageProgressionStore } from '../../stores/game/useStageProgressionStore';
+import { StageBriefingPanel } from '../campaign/StageBriefingPanel';
 
 // MISSION_BRIEFING — details of the selected mission. Enter accepts (→ CHARACTER_SELECTION), Esc returns.
 export const MissionBriefingScreen = () => {
   const missionId = useMissionStore((s) => s.currentMissionId);
+  const activeStageId = useStageProgressionStore((s) => s.activeStageId);
   const requestTransition = useGameStore((s) => s.requestTransition);
   const mission = missionId ? getEditorMission(missionId) : undefined;
 
@@ -20,6 +23,14 @@ export const MissionBriefingScreen = () => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [requestTransition]);
+
+  if (activeStageId) {
+    return (
+      <ScreenFrame title="Stage Briefing" subtitle="campaign">
+        <StageBriefingPanel />
+      </ScreenFrame>
+    );
+  }
 
   if (!mission) {
     return (

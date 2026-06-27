@@ -55,7 +55,8 @@ describe('Partner Fusion (Batch I)', () => {
   });
 
   it('returns no-fusion for a character without one', () => {
+    // Wave 2 — Paul is only ever a support partner, never a fusion primary.
     accrueSyncFromAction(100);
-    expect(castPartnerFusion('char_bello').ok).toBe(false);
+    expect(castPartnerFusion('char_paul').ok).toBe(false);
   });
 });

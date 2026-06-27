@@ -8,26 +8,38 @@ export const CharacterCard = ({
   character,
   selected,
   recommended,
+  locked = false,
+  lockHint,
   onClick,
 }: {
   character: CharacterDefinition;
   selected: boolean;
   recommended: boolean;
+  locked?: boolean;
+  lockHint?: string;
   onClick: () => void;
 }) => {
   const img = cardImageUrl(character.cardImage);
   return (
     <button
-      onMouseEnter={() => playUiSound('hover')}
+      onMouseEnter={() => !locked && playUiSound('hover')}
       onClick={() => {
+        if (locked) { playUiSound('back'); return; }
         playUiSound('select');
         onClick();
       }}
+      aria-disabled={locked}
       className={`group relative flex w-full flex-col overflow-hidden rounded-xl border bg-slate-900/70 text-left transition ${
         selected ? 'border-sky-400 ring-2 ring-sky-400/60' : 'border-slate-700 hover:border-slate-500'
-      }`}
+      } ${locked ? 'cursor-not-allowed' : ''}`}
     >
-      {recommended && (
+      {locked && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-1 bg-slate-950/70 text-center backdrop-grayscale">
+          <span className="text-2xl">🔒</span>
+          <span className="px-2 text-[10px] font-bold text-slate-200">{lockHint ?? 'Locked'}</span>
+        </div>
+      )}
+      {recommended && !locked && (
         <span className="absolute right-2 top-2 z-10 rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-bold text-slate-900">
           Recommended
         </span>

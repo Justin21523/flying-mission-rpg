@@ -75,6 +75,58 @@ export const SEED_ENEMIES: EnemyDefinition[] = [
     skillIds: ['boss_barrage', 'boss_quake', 'boss_beam'], weaknessTags: ['shield-break'], resistanceTags: ['impact', 'fire'],
     isBoss: true, bossId: 'boss_crystal', scale: 2.4, color: '#a855f7', enabled: true,
   },
+  // --- World-build Wave 1 — 3 generic-archetype enemies (aiBehavior + skills, no new AI code) using spare yokai models ---
+  {
+    id: 'owl_scout', name: 'Owl Scout', modelAssetId: 'yokais/scholarly+owl+3d+model',
+    maxHp: 55, moveSpeed: 3.4, aggroRange: 26, attackRange: 14, aiBehavior: 'kiter',
+    skillIds: ['en_homing_orb', 'en_fireball'], weaknessTags: ['energy', 'control'], resistanceTags: [], scale: 0.95, color: '#a3e635', enabled: true,
+  },
+  {
+    id: 'frost_stalker', name: 'Frost Stalker', modelAssetId: 'yokais/cold+freeze+cat+3d+model',
+    maxHp: 75, moveSpeed: 3.2, aggroRange: 22, attackRange: 3, aiBehavior: 'chaser',
+    skillIds: ['en_charge'], weaknessTags: ['fire', 'aoe'], resistanceTags: ['water'], scale: 1, color: '#67e8f9', enabled: true,
+  },
+  {
+    id: 'demon_brute', name: 'Demon Brute', modelAssetId: 'yokais/fantasy+demon+human+character+3d+model',
+    maxHp: 185, moveSpeed: 1.5, aggroRange: 22, attackRange: 5, aiBehavior: 'chaser',
+    skillIds: ['en_quake'], weaknessTags: ['control', 'aoe'], resistanceTags: ['impact'], scale: 1.4, color: '#dc2626', enabled: true, poise: { max: 90 },
+  },
+  // --- Wave 2 — 5 tactical archetypes (own AI state machines) ---
+  {
+    id: 'dart_dodger', name: 'Dart Dodger', archetype: 'dodger', modelAssetId: 'yokais/japanese+ninja+3d+model',
+    maxHp: 55, moveSpeed: 3.4, aggroRange: 24, attackRange: 3, aiBehavior: 'chaser', skillIds: [],
+    weaknessTags: ['aoe', 'control'], resistanceTags: [],
+    dodger: { approachSpeed: 3.4, meleeDamage: 12, projectileDetectRange: 8, evadeSpeed: 6, evadeDurationSeconds: 0.35, evadeCooldownSeconds: 1.6 },
+    scale: 0.95, color: '#22d3ee', enabled: true, poise: { max: 40 },
+  },
+  {
+    id: 'shadow_flanker', name: 'Shadow Flanker', archetype: 'flanker', modelAssetId: 'yokais/brave+cat+warrior+3d+model',
+    maxHp: 70, moveSpeed: 3.2, aggroRange: 24, attackRange: 3, aiBehavior: 'chaser', skillIds: [],
+    weaknessTags: ['aoe'], resistanceTags: [],
+    flanker: { approachSpeed: 3.4, flankAngleDegrees: 55, meleeDamage: 14, attackRange: 3 },
+    scale: 1, color: '#a78bfa', enabled: true, poise: { max: 55 },
+  },
+  {
+    id: 'volatile_bomber', name: 'Volatile Bomber', archetype: 'bomber', modelAssetId: 'yokais/red+demon+pirate+3d+model',
+    maxHp: 45, moveSpeed: 3.6, aggroRange: 26, attackRange: 2, aiBehavior: 'chaser', skillIds: [],
+    weaknessTags: ['ranged', 'energy'], resistanceTags: [],
+    bomber: { rushSpeed: 5, armRange: 3, fuseSeconds: 1, blastRadius: 5, blastDamage: 30 },
+    scale: 1, color: '#fb923c', enabled: true,
+  },
+  {
+    id: 'suppressor_node', name: 'Suppressor Node', archetype: 'suppressor', modelAssetId: 'yokais/stylized+robot+3d+model',
+    maxHp: 80, maxShield: 30, moveSpeed: 2.4, aggroRange: 28, attackRange: 16, aiBehavior: 'kiter', skillIds: [],
+    weaknessTags: ['shield-break', 'control'], resistanceTags: ['impact'],
+    suppressor: { projectileSkillId: 'en_fireball', fireIntervalSeconds: 0.9, preferredRange: 14 },
+    scale: 1.05, color: '#64748b', enabled: true, poise: { max: 50 },
+  },
+  {
+    id: 'aegis_buffer', name: 'Aegis Buffer', archetype: 'buffer', modelAssetId: 'yokais/scholarly+owl+3d+model',
+    maxHp: 65, moveSpeed: 2.8, aggroRange: 24, attackRange: 4, aiBehavior: 'kiter', skillIds: [],
+    weaknessTags: ['precision', 'control'], resistanceTags: [],
+    buffer: { buffIntervalSeconds: 4, shieldAmount: 30, buffRange: 12, keepDistance: 12 },
+    scale: 0.95, color: '#34d399', enabled: true, poise: { max: 45 },
+  },
 ];
 
 export const SEED_BOSS_PHASES: BossPhaseDefinition[] = [

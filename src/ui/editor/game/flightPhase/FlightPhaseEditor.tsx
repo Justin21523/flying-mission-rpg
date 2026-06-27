@@ -17,6 +17,9 @@ const FLIGHT_CURVE_HELP = [
 ] as const;
 import { Field, inp, lbl, MoveButtons } from '../../editorShared';
 import { NumRow, SelectRow, TextRow } from '../CollectionEditor';
+import { SOUND_OPTIONS } from '../../../../game/audio/soundOptions';
+import { PresetBar } from '../../timeline/PresetBar';
+import { rekeyFlightEvent, rekeyFlightCameraKey } from '../../../../game/editor/timelineAdapters';
 
 // 🛰 Flight Phase editor — the five authoring panels for the base-orbit (and any) Flight Phase. Edits write to
 // flightPhaseStore (the single source of truth); the bottom-left overlay + 3D gizmos reflect them instantly at
@@ -252,6 +255,21 @@ export const FlightPhaseEditor = () => {
             </div>
           ))}
         </div>
+        <PresetBar
+          docKind="flightPhase"
+          docId={phase.phaseId}
+          docLabel={phase.phaseName}
+          eventPresetKind="flight.cameraKeyframe"
+          eventNoun="camera key"
+          events={phase.cameraKeyframes}
+          setEvents={(n) => store.updatePhase(phase.phaseId, { cameraKeyframes: n as FlightCameraKeyframe[] })}
+          selectedEvent={selKey ?? null}
+          selectedName={selKey ? `cam ${selKey.time.toFixed(1)}s` : undefined}
+          rekeyEvent={(k) => rekeyFlightCameraKey(k as FlightCameraKeyframe)}
+          getDoc={() => phase}
+          applyDoc={(d) => store.updatePhase(phase.phaseId, d as Partial<FlightPhaseConfig>)}
+          showVersions={false}
+        />
         {selKey && selKey.nodeId && (
           <p className="mt-1 rounded bg-slate-900/60 px-2 py-1 text-[10px] text-slate-400">🎥 This camera is bound to node <b className="text-fuchsia-200">{path.nodes.find((n) => n.nodeId === selKey.nodeId)?.nodeName ?? selKey.nodeId}</b> — edit it in the node's <b>🎥 Node camera</b> panel above.</p>
         )}
@@ -286,11 +304,26 @@ export const FlightPhaseEditor = () => {
             </div>
           ))}
         </div>
+        <PresetBar
+          docKind="flightPhase"
+          docId={phase.phaseId}
+          docLabel={phase.phaseName}
+          eventPresetKind="flight.event"
+          eventNoun="event"
+          events={phase.events}
+          setEvents={(n) => store.updatePhase(phase.phaseId, { events: n as FlightTimelineEvent[] })}
+          selectedEvent={selEvent ?? null}
+          selectedName={selEvent?.eventType}
+          rekeyEvent={(e) => rekeyFlightEvent(e as FlightTimelineEvent)}
+          getDoc={() => phase}
+          applyDoc={(d) => store.updatePhase(phase.phaseId, d as Partial<FlightPhaseConfig>)}
+        />
         {selEvent && (
           <div className="mt-1 space-y-1 rounded border border-amber-800/40 bg-slate-950/40 p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               <NumRow label="Time (s)" value={selEvent.time} step={0.1} min={0} onChange={(v) => store.updateEvent(phase.phaseId, selEvent.eventId, { time: v })} />
               <SelectRow label="Type" value={selEvent.eventType} options={FLIGHT_EVENT_TYPES.map((t) => ({ value: t, label: t }))} onChange={(v) => store.updateEvent(phase.phaseId, selEvent.eventId, { eventType: v as FlightTimelineEvent['eventType'] })} />
+              <SelectRow label="Sound" value={selEvent.soundId ?? ''} options={SOUND_OPTIONS} onChange={(v) => store.updateEvent(phase.phaseId, selEvent.eventId, { soundId: v || undefined })} />
             </div>
             <TextRow label="Payload text (briefing / dialogue / warning)" value={typeof selEvent.payload.text === 'string' ? selEvent.payload.text : ''} onChange={(v) => store.updateEvent(phase.phaseId, selEvent.eventId, { payload: { ...selEvent.payload, text: v } })} />
             <div className="flex flex-wrap gap-3 text-[11px] text-slate-300">

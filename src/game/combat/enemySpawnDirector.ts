@@ -1,6 +1,8 @@
 import { liveTargets } from '../../stores/game/combatTargetStore';
 import { getEnemyDef, getSpawnGroup, getSpawnGroupsForSegment } from '../../stores/game/editorCombatStore';
 import { spawnEnemyFromDef } from './enemyRuntime';
+import { rollAffixes, applyAffixesToTarget } from './EliteAffixRuntime';
+import type { AffixPolicy } from '../../data/combat/eliteAffixes';
 
 // Segment-linked enemy encounters (Batch C). Spawns an EnemySpawnGroup's enemies (tagged with the group id)
 // and tracks whether the group is cleared (all spawned enemies defeated). The zone probe reads
@@ -28,6 +30,7 @@ export function spawnGroup(groupId: string, originX: number, originZ: number): b
       const off = formationOffset(entry.formation, i, entry.count);
       const t = spawnEnemyFromDef(def, originX + off.dx, originZ + off.dz);
       t.spawnGroupId = groupId;
+      if (group.affixPolicy) applyAffixesToTarget(t, rollAffixes(group.affixPolicy as AffixPolicy));
       ids.push(t.id);
     }
   }

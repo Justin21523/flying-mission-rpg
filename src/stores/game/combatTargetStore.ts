@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { DamageResult } from '../../types/game/combat';
+import type { ActiveStatusEffect } from '../../game/combat/StatusEffectRuntime';
+import { awardKillReward } from '../../game/progression/KillRewards';
 
 // Runtime registry of live combat targets (dummies this batch; enemies later). Mirrors the yokai pattern:
 // the per-target mutable data (hp/shield/pos) lives in a module-level array updated without per-frame store
@@ -46,6 +48,17 @@ export interface CombatTarget {
   isBossEntity?: boolean;
   isBossWeakpoint?: boolean;
   bossWeakpointId?: string;
+  statusEffects?: ActiveStatusEffect[];
+  // Wave 1 — elite affixes applied at spawn (runtime values live on aiData: affixVolatileRadius/Damage,
+  // affixRegenPerSec, affixLifesteal). affixExploded guards the one-shot volatile death explosion.
+  affixIds?: string[];
+  affixExploded?: boolean;
+  // Wave 2 — poise/break meter (accumulates from staggering hits; full → stagger via aiData.stunUntil) +
+  // execution guard (executingAt set while a finisher plays).
+  poiseValue?: number;
+  maxPoise?: number;
+  poiseBreakAt?: number;
+  executingAt?: number;
 }
 
 export const liveTargets: CombatTarget[] = [];
@@ -113,6 +126,7 @@ export const useCombatTargetStore = create<CombatTargetState>((set, get) => ({
     if (result.targetDefeated || target.hp <= 0) {
       target.hp = 0;
       target.defeatedAt = now();
+      awardKillReward(target); // Batch L — EXP to active character + coins on enemy defeat
       set({ version: get().version + 1 });
     }
   },

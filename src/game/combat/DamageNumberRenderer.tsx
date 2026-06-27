@@ -4,6 +4,8 @@ import { Text } from '@react-three/drei';
 import { type Group } from 'three';
 import { useCombatStore } from '../../stores/game/useCombatStore';
 import { drainCombatHits, type CombatHitEvent } from '../../stores/game/combatTargetStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
+import { getVfxPerformanceBudget } from '../vfx/VfxPerformanceBudget';
 
 // Pooled rising damage numbers (reuses the KillFxLayer circular-buffer pattern: fixed slots, head pointer,
 // no per-frame allocation). Drains combat hit events each frame; weakness hits are amber, crits larger.
@@ -14,6 +16,7 @@ interface Slot { active: boolean; t: number; x: number; y: number; z: number }
 
 export const DamageNumberRenderer = () => {
   const show = useCombatStore((s) => s.showDamageNumbers);
+  const damageNumbers = useSettingsStore((s) => s.damageNumbers);
   const groups = useRef<(Group | null)[]>(Array.from({ length: POPUPS }, () => null));
   const texts = useRef<(({ text: string } | null))[]>(Array.from({ length: POPUPS }, () => null));
   const slots = useRef<Slot[]>(Array.from({ length: POPUPS }, () => ({ active: false, t: 0, x: 0, y: 0, z: 0 })));
@@ -21,8 +24,13 @@ export const DamageNumberRenderer = () => {
   const drained = useRef<CombatHitEvent[]>([]);
 
   useFrame((_, dt) => {
+    if (!show || damageNumbers === 'off') {
+      drainCombatHits(drained.current);
+      return;
+    }
     const n = drainCombatHits(drained.current);
-    for (let k = 0; k < n; k++) {
+    const budget = Math.min(POPUPS, damageNumbers === 'minimal' ? 3 : getVfxPerformanceBudget().maxDamageNumbers);
+    for (let k = 0; k < Math.min(n, budget); k++) {
       const e = drained.current[k];
       const i = head.current % POPUPS; head.current++;
       slots.current[i] = { active: true, t: 0, x: e.x, y: e.y + 2.6, z: e.z };
@@ -41,7 +49,7 @@ export const DamageNumberRenderer = () => {
     }
   });
 
-  if (!show) return null;
+  if (!show || damageNumbers === 'off') return null;
   return (
     <>
       {Array.from({ length: POPUPS }, (_, i) => (

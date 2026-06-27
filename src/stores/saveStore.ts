@@ -13,6 +13,11 @@ import { useRescueLicenseStore } from './rescueLicenseStore';
 import { useJinResearchStore } from './jinResearchStore';
 import { useBoostStore } from './boostStore';
 import { useWalletStore } from './walletStore';
+import { useCharacterProgressionStore, type CharacterProgressEntry } from './game/useCharacterProgressionStore';
+import { useSkillUpgradeStore } from './game/useSkillUpgradeStore';
+import { useHangarUpgradeStore } from './game/useHangarUpgradeStore';
+import { useEquipmentModStore } from './game/useEquipmentModStore';
+import { useRunRecordStore } from './game/useRunRecordStore';
 import { useAdvancedMissionZoneStore } from './game/useAdvancedMissionZoneStore';
 import type { ToolId } from '../types/tool';
 import type { Quest } from '../types/quest';
@@ -37,6 +42,13 @@ export interface SaveData {
   research?: { researchPoints: number; completed: string[] };
   boost?: { meter: number; collected: number };
   wallet?: { coins: number };
+  // Batch L (meta-progression) — per-character levels + per-skill upgrade levels (optional; old saves load).
+  characterProgression?: { byId: Record<string, CharacterProgressEntry> };
+  skillUpgrades?: { levelBySkillId: Record<string, number> };
+  hangarUpgrades?: { levelByNodeId: Record<string, number> };
+  // Wave 3 — per-character equipped mods (optional; old saves load).
+  equipmentMods?: { equippedByCharacterId: Record<string, string[]> };
+  runRecords?: { bestByMode: Record<string, number> };
   // Advanced Mission Zone progress (New Batch A) — optional so old saves still load.
   advancedMissionZone?: {
     activeZoneId?: string;
@@ -96,6 +108,11 @@ export function snapshotGame(): SaveData {
     research: { researchPoints: useJinResearchStore.getState().researchPoints, completed: [...useJinResearchStore.getState().completed] },
     boost: { meter: useBoostStore.getState().meter, collected: useBoostStore.getState().collected },
     wallet: { coins: useWalletStore.getState().coins },
+    characterProgression: { byId: { ...useCharacterProgressionStore.getState().byId } },
+    skillUpgrades: { levelBySkillId: { ...useSkillUpgradeStore.getState().levelBySkillId } },
+    hangarUpgrades: { levelByNodeId: { ...useHangarUpgradeStore.getState().levelByNodeId } },
+    equipmentMods: { equippedByCharacterId: { ...useEquipmentModStore.getState().equippedByCharacterId } },
+    runRecords: { bestByMode: { ...useRunRecordStore.getState().bestByMode } },
     advancedMissionZone: (() => {
       const z = useAdvancedMissionZoneStore.getState();
       return { activeZoneId: z.activeZoneId, activeSegmentId: z.activeSegmentId, completedSegmentIds: [...z.completedSegmentIds], unlockedSegmentIds: [...z.unlockedSegmentIds], missionZoneStatus: z.missionZoneStatus };
@@ -122,6 +139,11 @@ export function restoreGame(d: SaveData): void {
   if (d.research) useJinResearchStore.setState({ researchPoints: d.research.researchPoints, completed: [...d.research.completed] });
   if (d.boost) useBoostStore.getState().importState(d.boost);
   if (d.wallet) useWalletStore.getState().importState(d.wallet);
+  if (d.characterProgression) useCharacterProgressionStore.getState().importState(d.characterProgression);
+  if (d.skillUpgrades) useSkillUpgradeStore.getState().importState(d.skillUpgrades);
+  if (d.hangarUpgrades) useHangarUpgradeStore.getState().importState(d.hangarUpgrades);
+  if (d.equipmentMods) useEquipmentModStore.getState().importState(d.equipmentMods);
+  if (d.runRecords) useRunRecordStore.getState().importState(d.runRecords);
   if (d.advancedMissionZone) {
     const z = d.advancedMissionZone;
     useAdvancedMissionZoneStore.setState({

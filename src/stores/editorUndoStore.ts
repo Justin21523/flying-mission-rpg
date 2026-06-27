@@ -8,10 +8,28 @@ import { useWorldSelectStore } from './worldSelectStore';
 // fields, etc. This subscribes to every editor-content store and, after each change (debounced), records a
 // full snapshot of all editor domains. Ctrl+Z steps back through those snapshots so undo "always works".
 
-const UNDO_DOMAIN_IDS = new Set([
+export const UNDO_DOMAIN_IDS = new Set([
   'sceneEdit', 'modelStudio', 'editorEnvironment', 'editorTrigger', 'editorNpc', 'editorQuest', 'editorEncounter',
   'editorActivity', 'editorPoliCharacter', 'editorLandmark', 'editorIncident', 'editorRandomEvent', 'editorTraffic',
   'editorTool', 'editorWorld', 'editorLayout', 'editorCollectible', 'editorPortal', 'editorBoost', 'editorResearch',
+  'gameTransformation', 'gameFlightPhase',
+  // Phase 6 — authored game content that previously had export but not undo coverage.
+  'gameCharacter', 'gameLocation', 'gameRegion', 'gameYokai', 'gameHunt', 'gameRoute', 'gameMission', 'gameNpc',
+  'gameQuality', 'gameAudioPreset', 'gameFlightPolish', 'gameTransformationPolish', 'gameMusic', 'gameAmbient',
+  'gameBase', 'gameExterior', 'gameFlightEvent', 'gameDestination', 'gameCamera', 'gameFlight', 'gameFlightCues', 'gameSupport',
+  'editorPath', 'editorBoostPad', 'editorCollision', 'editorAnimation', 'editorSurface', 'editorPathFollower', 'editorTrafficScenario',
+  // Phase 6 — the 53 newly-registered factory domains (combat / boss / zone / cinematic / combat-systems / meta / stage / level / encounter / environment).
+  // NOTE: full-project snapshots grow with these; the LIMIT cap + DEBOUNCE keep it bounded. If snapshots jank,
+  // the heavy VFX catalogs ('cinematicAbility', 'cinematicEffect', 'vfxStyle') are the first to trim from undo.
+  'combatSkill', 'combatEnemy', 'combatBossPhase', 'combatStats', 'combatEffect', 'combatDamageable', 'combatRandomBossPool', 'combatSpawnGroup',
+  'bossDef', 'bossPhaseDef', 'bossAttack', 'bossWeakpoint', 'bossSummonWave', 'bossArena', 'bossElite',
+  'missionZone', 'zoneSegment', 'obstacle', 'zoneProp', 'characterKit',
+  'cinematicEffect', 'cinematicAbility', 'vfxStyle', 'physicsVfx', 'cloneAbility',
+  'statusRule', 'elementReaction', 'eliteAffix', 'fusion', 'supportCombat', 'supportSynergy', 'abilityLoadout',
+  'runBuff', 'runConfig', 'hangarUpgrade', 'skillUpgradeCurve', 'equipmentMod',
+  'stageDef', 'stageReward', 'campaign', 'stageBalance', 'stageContentPack', 'stagePlaytest', 'stagePolish',
+  'levelLayout', 'levelSegment', 'encounterPack', 'enemyEncounter',
+  'envTheme', 'envHazard', 'envPropSet', 'ambientVfx', 'incidentTemplate',
 ]);
 const domains = () => EDITOR_CONTENT_DOMAINS.filter((d) => UNDO_DOMAIN_IDS.has(d.id));
 

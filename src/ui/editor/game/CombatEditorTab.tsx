@@ -19,6 +19,7 @@ import { validateCombatStats, validateSkill, validateDamageable, validateCombatE
 import { castSkillById } from '../../../game/combat/CombatDirector';
 import { Field, inp, lbl, Check, csv, parseCsv } from '../editorShared';
 import { ModelPicker } from '../ModelPicker';
+import { SkillTimelineEditor } from './combat/SkillTimelineEditor';
 
 // ⚔ Combat — one tab; sub-sections edit each createEditorCollection (Player Stats / Skills / Dummy Targets /
 // Effects / Enemies / Boss Phases). Skills carry model pickers + a live Test Cast. Form-based (no gizmo).
@@ -142,6 +143,7 @@ const SkillsSection = () => {
               </div>
             </>
           )}
+          <SkillTimelineEditor def={s} update={(p) => update(s.id, p)} />
           <div className="flex items-center gap-2">
             <Check label="Enabled" checked={s.enabled !== false} onChange={(v) => update(s.id, { enabled: v })} />
             <button onClick={() => castSkillById(s.id)} className="rounded bg-emerald-700 px-2 py-1 text-[11px] text-white hover:bg-emerald-600">▶ Test Cast</button>

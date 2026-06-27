@@ -9,6 +9,7 @@ import {
   beginFirstSegment,
   completeCurrentSegment,
   transitionToNextSegment,
+  chooseSegmentRoute,
   debugCompleteCurrentSegment,
   debugJumpToSegment,
 } from './AdvancedMissionZoneDirector';
@@ -57,10 +58,12 @@ describe('Advanced Mission Zone progression', () => {
     useGameStore.getState().jumpTo('ADVANCED_MISSION_ZONE');
     startMissionZone(ZONE_ID);
     beginFirstSegment();
-    // Walk all five segments via debug-complete + advance.
+    // Walk the zone via complete + advance. Wave 3 — at a branch (Cargo Street), pick the first route.
     for (let i = 0; i < SEED_ZONE_SEGMENTS.length; i++) {
       completeCurrentSegment();
-      transitionToNextSegment();
+      const pending = useAdvancedMissionZoneStore.getState().pendingNextSegmentIds;
+      if (pending.length > 1) chooseSegmentRoute(pending[0]);
+      else transitionToNextSegment();
     }
     expect(useAdvancedMissionZoneStore.getState().missionZoneStatus).toBe('complete');
     expect(useGameStore.getState().phase).toBe('MISSION_COMPLETE');

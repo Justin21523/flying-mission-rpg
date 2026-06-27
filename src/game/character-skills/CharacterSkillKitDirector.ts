@@ -6,10 +6,15 @@ import { getAbilityBySlot } from '../../stores/game/useCinematicAbilityEditorSto
 import { getCombatSkill } from '../../stores/game/editorCombatStore';
 import { useCharacterSkillStore } from '../../stores/game/useCharacterSkillStore';
 import { useCombatStore } from '../../stores/game/useCombatStore';
+import { liveTargets } from '../../stores/game/combatTargetStore';
 import { castSkillById, activeCombatantId, registerPlayerCombatant } from '../combat/CombatDirector';
 import { detectCombo } from './CharacterComboController';
 import { applyUtilityFromCast } from './CharacterUtilityResolver';
 import { accrueSyncFromAction } from '../support-combat/PartnerFusionDirector';
+import { getSkillMultipliers } from '../progression/SkillUpgradeResolver';
+import { getRunBuffMultipliers } from '../progression/RunBuffResolver';
+import { getEquipmentModMultipliers } from '../progression/EquipmentModResolver';
+import { getHangarBonuses } from '../progression/HangarBonusResolver';
 import type { SkillCastOutcome } from '../combat/SkillRuntime';
 
 // Entry point for character-kit skills (Batch D-kits). Resolves a named slot → skill id via the active kit
@@ -73,13 +78,24 @@ export function castCharacterSkillById(characterId: string, skillId: string): Sk
   const buffer = useCharacterSkillStore.getState().comboStateByCharacterId[characterId]?.recentCasts ?? [];
   const combo = detectCombo(buffer, combos);
 
-  const outcome = castSkillById(skillId, characterId, { forceCrit: combo?.bonusEffects?.forceCrit });
+  // Batch L/N + Wave 3 — per-skill upgrade × roguelite run buffs × equipment mods × Hangar cooldown all
+  // multiply together for this cast (damage / cooldown / energy).
+  const up = getSkillMultipliers(skillId);
+  const rb = getRunBuffMultipliers();
+  const em = getEquipmentModMultipliers(characterId);
+  const hangarCd = getHangarBonuses().cooldownReductionMult;
+  const outcome = castSkillById(skillId, characterId, {
+    forceCrit: combo?.bonusEffects?.forceCrit,
+    damageMultiplier: up.damageMult * rb.damageMult * em.damageMult,
+    cooldownMultiplier: up.cooldownMult * rb.cooldownMult * em.cooldownMult * hangarCd,
+    energyMultiplier: up.energyMult * rb.energyMult * em.energyMult,
+  });
   if (!outcome?.ok) return outcome;
   accrueSyncFromAction(12); // Batch I — skill use fills the partner-fusion sync gauge
 
   // Utility (scan / stun / repair / speed-gate) from the cast hits.
   const castSkillDef = getCombatSkill(skillId);
-  if (castSkillDef) applyUtilityFromCast(castSkillDef, outcome.hitIds);
+  if (castSkillDef) applyUtilityFromCast(castSkillDef, outcome.hitIds.length ? outcome.hitIds : fallbackUtilityTargetIds(castSkillDef));
 
   // Apply combo bonuses (energy refund / cooldown reduction) + flag for the HUD.
   if (combo) {
@@ -95,6 +111,24 @@ export function castCharacterSkillById(characterId: string, skillId: string): Sk
     skillStore.setComboTriggered(characterId, combo.id, t);
   }
   return outcome;
+}
+
+function fallbackUtilityTargetIds(skill: NonNullable<ReturnType<typeof getCombatSkill>>): string[] {
+  const tags = new Set(skill.damageEvents?.flatMap((d) => d.attackTags) ?? []);
+  const text = `${skill.id} ${skill.name} ${skill.description ?? ''}`.toLowerCase();
+  if (text.includes('scan') || text.includes('reveal') || text.includes('weakpoint')) tags.add('scan');
+  if (text.includes('stun') || text.includes('cuff') || text.includes('restraint')) tags.add('stun');
+  if (text.includes('repair')) tags.add('repair');
+  if (!tags.has('scan') && !tags.has('reveal') && !tags.has('stun') && !tags.has('restraint') && !tags.has('repair')) return [];
+  return liveTargets
+    .filter((target) => !target.defeatedAt)
+    .filter((target) => {
+      if ((tags.has('scan') || tags.has('reveal')) && (target.isEnemy || target.isBossWeakpoint)) return true;
+      if ((tags.has('stun') || tags.has('restraint')) && target.isEnemy) return true;
+      if (tags.has('repair') && target.isObstacle) return true;
+      return false;
+    })
+    .map((target) => target.id);
 }
 
 export function cleanupCharacterSkillRuntime(): void {

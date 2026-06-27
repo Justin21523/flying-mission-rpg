@@ -7,12 +7,21 @@ import { useEditorMissionStore } from '../../stores/game/editorMissionStore';
 import { useEditorGameNpcStore } from '../../stores/game/editorGameNpcStore';
 import { useEditorTransformationStore } from '../../stores/game/editorTransformationStore';
 import { useEditorBaseLayoutStore } from '../../stores/game/editorBaseLayoutStore';
+import { useSkillUpgradeCurveStore } from '../../stores/game/useSkillUpgradeCurveStore';
+import { useHangarUpgradeDefStore } from '../../stores/game/useHangarUpgradeDefStore';
+import { useEquipmentModDefStore } from '../../stores/game/useEquipmentModDefStore';
+import { useRunBuffDefStore } from '../../stores/game/useRunBuffDefStore';
+import { useRunConfigStore } from '../../stores/game/useRunConfigStore';
+import { useRoomConfigStore } from '../../stores/game/useRoomConfigStore';
+import { useStatusRuleStore } from '../../stores/game/useStatusRuleStore';
+import { useElementReactionStore } from '../../stores/game/useElementReactionStore';
+import { useEliteAffixStore } from '../../stores/game/useEliteAffixStore';
 import { useEditorExteriorStore } from '../../stores/game/editorExteriorStore';
 import { useEditorFlightEventStore } from '../../stores/game/editorFlightEventStore';
 import { useEditorDestinationStore } from '../../stores/game/editorDestinationStore';
 import { useEditorMissionZoneStore } from '../../stores/game/editorMissionZoneStore';
 import { useEditorZoneSegmentStore } from '../../stores/game/editorZoneSegmentStore';
-import { useEditorCombatStatsStore, useEditorCombatSkillStore, useEditorDamageableStore, useEditorCombatEffectStore, useEditorEnemyStore, useEditorBossPhaseStore, useEditorSpawnGroupStore } from '../../stores/game/editorCombatStore';
+import { useEditorCombatStatsStore, useEditorCombatSkillStore, useEditorDamageableStore, useEditorCombatEffectStore, useEditorEnemyStore, useEditorBossPhaseStore, useEditorSpawnGroupStore, useEditorRandomBossPoolStore } from '../../stores/game/editorCombatStore';
 import { useEditorObstacleStore } from '../../stores/game/editorObstacleStore';
 import { useEditorCharacterKitStore } from '../../stores/game/editorCharacterKitStore';
 import { useSupportCombatEditorStore, useSupportSynergyEditorStore } from '../../stores/game/useSupportCombatEditorStore';
@@ -31,6 +40,12 @@ import { useEditorAudioPresetStore } from '../../stores/game/editorAudioPresetSt
 import { useEditorFlightPolishStore } from '../../stores/game/editorFlightPolishStore';
 import { useEditorTransformationPolishStore } from '../../stores/game/editorTransformationPolishStore';
 import { useEditorMusicTrackStore, useEditorAmbientStore } from '../../stores/game/editorMusicStore';
+import { useCampaignDefinitionStore, useStageDefinitionStore, useStageRewardStore } from '../../stores/useStageEditorStore';
+import { useEditorZonePropStore } from '../../stores/game/editorZonePropStore';
+import { useLevelLayoutStore, useLevelSegmentStore } from '../../stores/useLevelEditorStore';
+import { useEnvironmentThemeStore, useEnvironmentPropSetStore, useEnvironmentHazardPresetStore, useAmbientVfxPresetStore } from '../../stores/useEnvironmentEditorStore';
+import { useEncounterPackStore, useEnemyEncounterStore } from '../../stores/useEncounterEditorStore';
+import { useStageBalanceProfileStore, useStageContentPackStore, useStagePlaytestScenarioStore, useStagePolishPresetStore } from '../../stores/useStageContentEditorStore';
 import { useEditorPathStore, getPath } from '../../stores/editorPathStore';
 import { useModelStudioStore } from '../../stores/modelStudioStore';
 import { FLIGHT_PATH } from '../../data/game/flightPath';
@@ -86,8 +101,10 @@ export function seedGameContent(): void {
   useEditorExteriorStore.getState().mergeMissingFromSeed();
   useEditorFlightEventStore.getState().mergeMissingFromSeed();
   useEditorDestinationStore.getState().mergeMissingFromSeed();
-  useEditorMissionZoneStore.getState().mergeMissingFromSeed();
-  useEditorZoneSegmentStore.getState().mergeMissingFromSeed();
+  // Batch J — reconcile (versioned) so shipped zone/segment changes (auto-combat landing, per-segment
+  // environment themes) reach existing saves; user-authored zones/segments are preserved.
+  useEditorMissionZoneStore.getState().reconcileFromSeed();
+  useEditorZoneSegmentStore.getState().reconcileFromSeed();
   useEditorCombatStatsStore.getState().mergeMissingFromSeed();
   useEditorCombatSkillStore.getState().mergeMissingFromSeed();
   useEditorDamageableStore.getState().mergeMissingFromSeed();
@@ -95,12 +112,22 @@ export function seedGameContent(): void {
   useEditorEnemyStore.getState().mergeMissingFromSeed();
   useEditorBossPhaseStore.getState().mergeMissingFromSeed();
   useEditorSpawnGroupStore.getState().mergeMissingFromSeed();
+  useEditorRandomBossPoolStore.getState().reconcileFromSeed(); // World-build W1 — add skyport elite candidate
+  useSkillUpgradeCurveStore.getState().mergeMissingFromSeed();
+  useHangarUpgradeDefStore.getState().mergeMissingFromSeed();
+  useEquipmentModDefStore.getState().mergeMissingFromSeed();
+  useRunBuffDefStore.getState().mergeMissingFromSeed();
+  useRunConfigStore.getState().mergeMissingFromSeed();
+  useRoomConfigStore.getState().mergeMissingFromSeed();
+  useStatusRuleStore.getState().mergeMissingFromSeed();
+  useElementReactionStore.getState().mergeMissingFromSeed();
+  useEliteAffixStore.getState().mergeMissingFromSeed();
   useEditorObstacleStore.getState().mergeMissingFromSeed();
   useEditorCharacterKitStore.getState().mergeMissingFromSeed();
   useEditorSupportStore.getState().mergeMissingFromSeed();
   useSupportCombatEditorStore.getState().mergeMissingFromSeed();
   useSupportSynergyEditorStore.getState().mergeMissingFromSeed();
-  useBossDefinitionStore.getState().mergeMissingFromSeed();
+  useBossDefinitionStore.getState().reconcileFromSeed(); // Batch E — refresh shipped bosses with intro/enrage
   useBossPhaseStore.getState().mergeMissingFromSeed();
   useBossWeakpointStore.getState().mergeMissingFromSeed();
   useBossAttackStore.getState().mergeMissingFromSeed();
@@ -123,6 +150,22 @@ export function seedGameContent(): void {
   useEditorTransformationPolishStore.getState().mergeMissingFromSeed();
   useEditorMusicTrackStore.getState().mergeMissingFromSeed();
   useEditorAmbientStore.getState().mergeMissingFromSeed();
+  useCampaignDefinitionStore.getState().reconcileFromSeed(); // World-build W1 — refresh branching unlockRules
+  useStageDefinitionStore.getState().reconcileFromSeed(); // World-build W1 — refresh fork unlocksOnClear
+  useEditorZonePropStore.getState().mergeMissingFromSeed(); // World-build W2 — decorative zone props
+  useStageRewardStore.getState().mergeMissingFromSeed();
+  useLevelLayoutStore.getState().mergeMissingFromSeed();
+  useLevelSegmentStore.getState().mergeMissingFromSeed();
+  useEnvironmentThemeStore.getState().mergeMissingFromSeed();
+  useEnvironmentPropSetStore.getState().mergeMissingFromSeed();
+  useEnvironmentHazardPresetStore.getState().mergeMissingFromSeed();
+  useAmbientVfxPresetStore.getState().mergeMissingFromSeed();
+  useEncounterPackStore.getState().mergeMissingFromSeed();
+  useEnemyEncounterStore.getState().mergeMissingFromSeed();
+  useStageContentPackStore.getState().mergeMissingFromSeed();
+  useStageBalanceProfileStore.getState().mergeMissingFromSeed();
+  useStagePolishPresetStore.getState().mergeMissingFromSeed();
+  useStagePlaytestScenarioStore.getState().mergeMissingFromSeed();
 
   // Seed our 航道 curves into the editorPathStore so the 🛣 Tracks tab + node gizmos edit the REAL paths
   // (fly-around around the base, and the long-distance world route).

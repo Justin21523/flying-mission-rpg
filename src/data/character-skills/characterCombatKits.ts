@@ -29,6 +29,20 @@ const CHASE_COMBOS: ComboSkillDefinition[] = [
   { id: 'chase_combo_decoy_grid', characterId: 'char_chase', name: 'Decoy → Grid', inputSequence: ['chase_kit_decoy', 'chase_kit_grid'], maxInputGapSeconds: 1.5, resultSkillId: 'chase_kit_grid', bonusEffects: { damageMultiplier: 1.4 } },
 ];
 
+// Wave 2 — combos for the 3 newly-kitted heroes.
+const JEROME_COMBOS: ComboSkillDefinition[] = [
+  { id: 'jerome_combo_spin_sweep', characterId: 'char_jerome', name: 'Spin → Sweep', inputSequence: ['jerome_kit_spin', 'jerome_kit_sweep'], maxInputGapSeconds: 1, resultSkillId: 'jerome_kit_sweep', bonusEffects: { damageMultiplier: 1.4, addAttackTags: ['aoe'] } },
+  { id: 'jerome_combo_step_strike', characterId: 'char_jerome', name: 'Step → Strike', inputSequence: ['jerome_kit_step', 'jerome_kit_basic'], maxInputGapSeconds: 1, requiredPreviousSkillId: 'jerome_kit_step', resultSkillId: 'jerome_kit_basic', bonusEffects: { damageMultiplier: 1.5, forceCrit: true } },
+];
+const BELLO_COMBOS: ComboSkillDefinition[] = [
+  { id: 'bello_combo_mark_roar', characterId: 'char_bello', name: 'Mark → Roar', inputSequence: ['bello_kit_mark', 'bello_kit_roar'], maxInputGapSeconds: 1, requiredPreviousSkillId: 'bello_kit_mark', resultSkillId: 'bello_kit_roar', bonusEffects: { damageMultiplier: 1.6, forceCrit: true } },
+  { id: 'bello_combo_call_snare', characterId: 'char_bello', name: 'Call → Snare', inputSequence: ['bello_kit_call', 'bello_kit_snare'], maxInputGapSeconds: 1.5, resultSkillId: 'bello_kit_snare', bonusEffects: { damageMultiplier: 1.4 } },
+];
+const FLIP_COMBOS: ComboSkillDefinition[] = [
+  { id: 'flip_combo_kick_storm', characterId: 'char_flip', name: 'Kick → Storm', inputSequence: ['flip_kit_basic', 'flip_kit_storm'], maxInputGapSeconds: 1, resultSkillId: 'flip_kit_storm', bonusEffects: { damageMultiplier: 1.4, addAttackTags: ['aoe'] } },
+  { id: 'flip_combo_dash_kick', characterId: 'char_flip', name: 'Flip → Kick', inputSequence: ['flip_kit_dash', 'flip_kit_basic'], maxInputGapSeconds: 1, requiredPreviousSkillId: 'flip_kit_dash', resultSkillId: 'flip_kit_basic', bonusEffects: { damageMultiplier: 1.5, forceCrit: true } },
+];
+
 export const SEED_CHARACTER_KITS: CharacterCombatKitDefinition[] = [
   {
     id: 'char_jett', characterId: 'char_jett', displayName: 'Jett', roleTypes: ['speed', 'rescue'],
@@ -70,5 +84,34 @@ export const SEED_CHARACTER_KITS: CharacterCombatKitDefinition[] = [
     editorMeta: { themeColor: '#3b4a78', difficulty: 'hard' },
   },
 ];
+
+// Wave 2 — complete the roster: Jerome (rhythm/AOE), Bello (summon/sound control), Flip (bounce/reflect).
+SEED_CHARACTER_KITS.push(
+  {
+    id: 'char_jerome', characterId: 'char_jerome', displayName: 'Jerome', roleTypes: ['control', 'utility'],
+    defaultSkillIds: { basic: 'jerome_kit_basic', special1: 'jerome_kit_spin', special2: 'jerome_kit_pulse', aoe: 'jerome_kit_sweep', defense: 'jerome_kit_guard', utility: 'jerome_kit_step', ultimatePlaceholder: 'jerome_kit_ultimate' },
+    comboSkillIds: JEROME_COMBOS.map((c) => c.id), combos: JEROME_COMBOS, stageUtilityRules: [],
+    modelSocketConfig: SOCKETS('char_jerome', [{ socketName: 'foot-left', fallbackOffset: [-0.4, 0.2, 0.2] }, { socketName: 'foot-right', fallbackOffset: [0.4, 0.2, 0.2] }]),
+    recommendedAgainst: { enemyTypes: ['drone-swarm'], zoneSegmentTypes: ['combat'] }, weakAgainst: { enemyTypes: ['shield-carrier'], notes: 'Low single-target break.' },
+    editorMeta: { themeColor: '#2f6fd6', difficulty: 'normal' },
+  },
+  {
+    id: 'char_bello', characterId: 'char_bello', displayName: 'Bello', roleTypes: ['control', 'utility'],
+    defaultSkillIds: { basic: 'bello_kit_basic', special1: 'bello_kit_call', special2: 'bello_kit_snare', aoe: 'bello_kit_roar', defense: 'bello_kit_cover', utility: 'bello_kit_mark', ultimatePlaceholder: 'bello_kit_ultimate' },
+    comboSkillIds: BELLO_COMBOS.map((c) => c.id), combos: BELLO_COMBOS,
+    stageUtilityRules: [{ id: 'bello_u_scan', utilityType: 'scan-weakpoint', validTargetTags: ['scan'], requiredSkillTags: ['scan'], effect: 'reveal-marker' }],
+    modelSocketConfig: SOCKETS('char_bello', [{ socketName: 'mouth', fallbackOffset: [0, 1.4, 0.5] }]),
+    recommendedAgainst: { enemyTypes: ['crusher-drone', 'zip-glitch'] }, weakAgainst: { enemyTypes: ['pulse-turret'], notes: 'Summons can be out-ranged.' },
+    editorMeta: { themeColor: '#8a6240', difficulty: 'normal' },
+  },
+  {
+    id: 'char_flip', characterId: 'char_flip', displayName: 'Flip', roleTypes: ['speed', 'utility'],
+    defaultSkillIds: { basic: 'flip_kit_basic', special1: 'flip_kit_ball', special2: 'flip_kit_bump', aoe: 'flip_kit_storm', defense: 'flip_kit_rebound', utility: 'flip_kit_dash', ultimatePlaceholder: 'flip_kit_ultimate' },
+    comboSkillIds: FLIP_COMBOS.map((c) => c.id), combos: FLIP_COMBOS, stageUtilityRules: [],
+    modelSocketConfig: SOCKETS('char_flip', [{ socketName: 'hand-left', fallbackOffset: [-0.6, 1, 0.4] }, { socketName: 'hand-right', fallbackOffset: [0.6, 1, 0.4] }]),
+    recommendedAgainst: { enemyTypes: ['pulse-turret', 'sniper-node'] }, weakAgainst: { enemyTypes: ['quake-walker'], notes: 'Light; avoid slugfests.' },
+    editorMeta: { themeColor: '#e23b2e', difficulty: 'normal' },
+  },
+);
 
 export const MVP_KIT_CHARACTER_IDS = SEED_CHARACTER_KITS.map((k) => k.characterId);

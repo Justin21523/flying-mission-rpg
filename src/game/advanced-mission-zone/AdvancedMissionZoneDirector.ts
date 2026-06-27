@@ -5,6 +5,10 @@ import { getSegmentsForZone, getEditorZoneSegment } from '../../stores/game/edit
 import type { MissionZoneDefinition, ZoneSegmentDefinition } from '../../types/game/advancedMissionZone';
 import { isFinalSegment } from './zoneProgress';
 import { runIncidentHooks } from './IncidentZoneHookAdapter';
+import { completeStage as completeCampaignStage } from '../campaign/CampaignDirector';
+import { useStageProgressionStore } from '../../stores/game/useStageProgressionStore';
+import { applySegmentEnvironment } from '../environment/applyEnvironmentTheme';
+import { resetRandomBoss } from '../bosses/RandomBossDirector';
 
 // Orchestrates the Advanced Mission Zone flow over the runtime store + game FSM. Pure-ish: it mutates the
 // stores through their actions (like SupportDispatchDirector) and never holds React state. The Host drives
@@ -29,6 +33,8 @@ export function startMissionZone(zoneId: string, nowMs?: number): boolean {
   if (segments.length === 0) return false;
   const start = segments.find((s) => s.id === zone.startSegmentId) ?? segments[0];
   useAdvancedMissionZoneStore.getState().startZone(zone.id, start.id, segments.map((s) => s.id), nowMs);
+  // Batch J — reset the random-boss threat gauge for this zone visit (enabled per-zone via randomBossPoolId).
+  resetRandomBoss(zone.id);
   runIncidentHooks(zone.aiIncidentHooks?.onZoneStart, { zoneId });
   return true;
 }
@@ -39,6 +45,7 @@ export function beginFirstSegment(): void {
   if (!store.activeSegmentId) return;
   const seg = getEditorZoneSegment(store.activeSegmentId);
   store.enterSegment(store.activeSegmentId);
+  applySegmentEnvironment(seg, activeZone()?.environmentThemeId);
   if (seg) runIncidentHooks(seg.aiIncidentHooks?.onSegmentEnter, { segmentId: seg.id });
   useGameStore.getState().requestTransition('ZONE_SEGMENT_GAMEPLAY');
 }
@@ -66,6 +73,9 @@ export function transitionToNextSegment(): void {
     completeMissionZone();
     return;
   }
+  // Wave 3 — route choice: when a segment offers more than one next path, wait for the player to pick (the
+  // RouteChoiceOverlay calls chooseSegmentRoute). Stay in ZONE_COMPLETE until then.
+  if (store.pendingNextSegmentIds.length > 1) return;
   const nextId = store.pendingNextSegmentIds[0];
   const next = nextId ? getEditorZoneSegment(nextId) : undefined;
   if (!next) {
@@ -73,16 +83,28 @@ export function transitionToNextSegment(): void {
     return;
   }
   store.enterSegment(next.id);
+  applySegmentEnvironment(next, zone?.environmentThemeId);
   runIncidentHooks(next.aiIncidentHooks?.onSegmentEnter, { segmentId: next.id });
   if (useGameStore.getState().phase === 'ZONE_COMPLETE') {
     useGameStore.getState().requestTransition('ZONE_SEGMENT_GAMEPLAY');
   }
 }
 
+// Wave 3 — the player picked a branch in the RouteChoiceOverlay: collapse the pending set to that one and
+// advance. Ignores ids not actually offered.
+export function chooseSegmentRoute(segmentId: string): void {
+  const store = useAdvancedMissionZoneStore.getState();
+  if (!store.pendingNextSegmentIds.includes(segmentId)) return;
+  store.setPendingNext([segmentId]);
+  transitionToNextSegment();
+}
+
 export function completeMissionZone(): void {
   const zone = activeZone();
   useAdvancedMissionZoneStore.getState().completeZone();
   if (zone) runIncidentHooks(zone.aiIncidentHooks?.onZoneComplete, { zoneId: zone.id });
+  const activeStageId = useStageProgressionStore.getState().activeStageId;
+  if (activeStageId) completeCampaignStage(activeStageId);
   const phase = useGameStore.getState().phase;
   if (phase === 'ZONE_COMPLETE' || phase === 'ZONE_SEGMENT_GAMEPLAY') {
     useGameStore.getState().requestTransition('MISSION_COMPLETE');
@@ -109,6 +131,7 @@ export function debugJumpToSegment(segmentId: string): void {
   if (!seg || seg.zoneId !== store.activeZoneId) return;
   store.unlockSegment(segmentId);
   store.enterSegment(segmentId);
+  applySegmentEnvironment(seg, activeZone()?.environmentThemeId);
   // Dev jump bypasses FSM validation so it works from any zone phase.
   useGameStore.getState().jumpTo('ZONE_SEGMENT_GAMEPLAY');
 }

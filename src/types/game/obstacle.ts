@@ -57,6 +57,8 @@ export interface ObstacleDefinition {
   };
   visualStates: Partial<Record<ObstacleState, ObstacleVisualState>>;
   linkedZoneConditionId?: string;
+  // Batch O — environmental weaponize: when destroyed, deal AOE damage to nearby enemies (explosive barrel).
+  explodeOnDestroy?: { radius: number; damage: number };
   editorMeta?: { notes?: string; debugColor?: string };
   enabled: boolean;
 }

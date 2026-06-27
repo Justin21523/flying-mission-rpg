@@ -208,6 +208,7 @@ export interface TransformationEffectConfig {
   blendMode: BlendMode;
   loop: boolean;
   previewEnabled: boolean;
+  seed?: number; // optional scatter seed for randomized renderers (particle/model-particle/physics). undefined/0 = original look; bump to re-roll. Reproducible + rides preset/version.
   soundId?: string; // sfx played when the effect starts (synth SfxName e.g. 'transform', or a cue id 'fx.boost')
   parameters: EffectParameters;
   // Batch F.5 — when this effect is driven by a COMBAT cast (not the transformation timeline), the combat tick

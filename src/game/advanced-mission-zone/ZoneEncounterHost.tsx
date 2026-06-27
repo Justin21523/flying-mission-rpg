@@ -5,6 +5,7 @@ import { getEditorZoneSegment } from '../../stores/game/editorZoneSegmentStore';
 import { robotHandle } from '../destination/robotHandle';
 import { spawnGroupsForSegment, despawnGroup, resetSpawnDirector } from '../combat/enemySpawnDirector';
 import { getSpawnGroupsForSegment } from '../../stores/game/editorCombatStore';
+import { onSegmentEnter, updateEncounterClearState } from '../encounters/EncounterDirector';
 import * as ObstacleDirector from '../obstacles/ObstacleDirector';
 import { clearRuntimeDamageables } from '../combat/enemyRuntime';
 
@@ -32,10 +33,12 @@ export const ZoneEncounterHost = () => {
         const marker = seg?.markers.find((m) => m.type === 'objective') ?? seg?.markers[0];
         const ox = marker?.position[0] ?? robotHandle.pos.x;
         const oz = marker?.position[2] ?? robotHandle.pos.z;
-        spawnGroupsForSegment(segId, ox, oz);
+        const stageEncounters = onSegmentEnter(segId, ox, oz);
+        if (stageEncounters.length === 0) spawnGroupsForSegment(segId, ox, oz);
         ObstacleDirector.loadForSegment(segId);
       }
     }
+    updateEncounterClearState();
     ObstacleDirector.update();
   });
 

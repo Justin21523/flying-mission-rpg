@@ -9,4 +9,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   musicVolume: 0.6,
   quality: 'medium',
   reduceMotion: false,
+  // Batch P — default 'normal' so players actually take damage and experience combat/status/parry. 'easy'
+  // restores the old invincible + auto-complete behaviour (dev/showcase; GodModePanel also flips the dev flag).
+  difficulty: 'normal',
 };

@@ -76,4 +76,56 @@ const CHASE: CombatSkillDefinition[] = [
     summon: { modelAssetId: 'characters/Carey drone 3d model', count: 3, lifetimeSeconds: 8, behavior: 'seek', attackIntervalSeconds: 0.8, attackDamage: 16, attackRadius: 3 }, editorMeta: { displayName: 'Black Box Assassination', themeColor: '#3b4a78' } }),
 ];
 
-export const SEED_KIT_SKILLS: CombatSkillDefinition[] = [...JETT, ...DONNIE, ...PAUL, ...CHASE];
+// ---------------- Jerome — rhythm / AOE / combo (Wave 2) ----------------
+const JEROME: CombatSkillDefinition[] = [
+  skill({ id: 'jerome_kit_basic', ownerCharacterId: 'char_jerome', slot: 1, name: 'Rhythm Strike', attackType: 'melee', cooldownSeconds: 0.6,
+    damageEvents: dmg(13, 'impact', ['rhythm', 'melee', 'dance']), hitVolume: hv({ shape: 'cone', radius: 4, angleDegrees: 80 }), effectDefinitionId: 'fx_wing_arc', editorMeta: { displayName: 'Rhythm Strike', themeColor: '#2f6fd6' } }),
+  skill({ id: 'jerome_kit_spin', ownerCharacterId: 'char_jerome', slot: 2, name: 'Spin Kick Vortex', attackType: 'ring-aoe', cooldownSeconds: 5, energyCost: 16,
+    damageEvents: dmg(16, 'impact', ['rhythm', 'dance', 'aoe']), hitVolume: hv({ shape: 'cylinder', origin: 'character-root', radius: 5 }), effectDefinitionId: 'fx_cyclone_ring', editorMeta: { displayName: 'Spin Kick Vortex', themeColor: '#2f6fd6' } }),
+  skill({ id: 'jerome_kit_pulse', ownerCharacterId: 'char_jerome', slot: 3, name: 'Rhythm Pulse Wave', attackType: 'shockwave', cooldownSeconds: 6, energyCost: 20,
+    damageEvents: dmg(15, 'electric', ['rhythm', 'sound', 'shock', 'aoe']), hitVolume: hv({ shape: 'cylinder', origin: 'character-root', radius: 7 }), effectDefinitionId: 'fx_order_ring', editorMeta: { displayName: 'Rhythm Pulse Wave', themeColor: '#2f6fd6' } }),
+  skill({ id: 'jerome_kit_sweep', ownerCharacterId: 'char_jerome', slot: 4, name: 'Sky Waltz Sweep', attackType: 'fan', cooldownSeconds: 5, energyCost: 16,
+    damageEvents: dmg(17, 'impact', ['rhythm', 'dance', 'aoe']), hitVolume: hv({ shape: 'cone', origin: 'character-forward', radius: 6, angleDegrees: 120 }), effectDefinitionId: 'fx_cyclone_ring', editorMeta: { displayName: 'Sky Waltz Sweep', themeColor: '#2f6fd6' } }),
+  skill({ id: 'jerome_kit_guard', ownerCharacterId: 'char_jerome', slot: 5, name: 'Performance Guard', attackType: 'none', defenseType: 'perfect-guard', cooldownSeconds: 6, energyCost: 14, durationSeconds: 0.9, defenseValue: 1, damageEvents: [], effectDefinitionId: 'fx_shield_panel', editorMeta: { displayName: 'Performance Guard', themeColor: '#93c5fd' } }),
+  skill({ id: 'jerome_kit_step', ownerCharacterId: 'char_jerome', slot: 6, name: 'Stage Step Dash', attackType: 'dash', cooldownSeconds: 5, energyCost: 12, speed: 14,
+    damageEvents: dmg(10, 'impact', ['rhythm', 'dance', 'dash']), hitVolume: hv({ shape: 'line', length: 12, width: 1.2, activeDurationSeconds: 0.2 }), effectDefinitionId: 'fx_lock_line', editorMeta: { displayName: 'Stage Step Dash', themeColor: '#2f6fd6' } }),
+  skill({ id: 'jerome_kit_ultimate', ownerCharacterId: 'char_jerome', name: 'Grand Sky Performance', attackType: 'ring-aoe', skillCategory: 'ultimate', cooldownSeconds: 18, energyCost: 50,
+    damageEvents: dmg(30, 'impact', ['rhythm', 'dance', 'ultimate', 'aoe']), hitVolume: hv({ shape: 'cylinder', origin: 'character-root', radius: 9 }), effectDefinitionId: 'fx_cyclone_ring', editorMeta: { displayName: 'Grand Sky Performance', themeColor: '#2f6fd6' } }),
+];
+
+// ---------------- Bello — summon / sound control (Wave 2) ----------------
+const BELLO: CombatSkillDefinition[] = [
+  skill({ id: 'bello_kit_basic', ownerCharacterId: 'char_bello', slot: 1, name: 'Wild Claw Combo', attackType: 'melee', cooldownSeconds: 0.6,
+    damageEvents: dmg(12, 'impact', ['wild', 'melee']), hitVolume: hv({ shape: 'box', length: 3, width: 2 }), effectDefinitionId: 'fx_wing_arc', editorMeta: { displayName: 'Wild Claw Combo', themeColor: '#8a6240' } }),
+  skill({ id: 'bello_kit_call', ownerCharacterId: 'char_bello', slot: 2, name: 'Animal Rush', attackType: 'summon', cooldownSeconds: 8, energyCost: 22,
+    summon: { modelAssetId: 'characters/Carey drone 3d model', count: 2, lifetimeSeconds: 10, behavior: 'seek', attackIntervalSeconds: 1, attackDamage: 12, attackRadius: 3 }, damageEvents: dmg(0, 'impact', ['wild', 'summon']), effectDefinitionId: 'fx_decoy', editorMeta: { displayName: 'Animal Rush', themeColor: '#8a6240' } }),
+  skill({ id: 'bello_kit_snare', ownerCharacterId: 'char_bello', slot: 3, name: 'Sonic Snare Field', attackType: 'dot-zone', cooldownSeconds: 8, energyCost: 26,
+    terrain: { modelAssetId: 'props/colorful shelving unit 3d model', count: 1, lifetimeSeconds: 6, radius: 6, damagePerTick: 6, tickIntervalSeconds: 0.7 }, damageEvents: dmg(6, 'electric', ['wild', 'sound', 'shock', 'aoe']), effectDefinitionId: 'fx_order_ring', editorMeta: { displayName: 'Sonic Snare Field', themeColor: '#8a6240' } }),
+  skill({ id: 'bello_kit_roar', ownerCharacterId: 'char_bello', slot: 4, name: 'Beast Roar', attackType: 'ring-aoe', cooldownSeconds: 6, energyCost: 24, stunDurationSeconds: 1.5,
+    damageEvents: dmg(14, 'impact', ['wild', 'sound', 'stun', 'control', 'aoe']), hitVolume: hv({ shape: 'cylinder', origin: 'character-root', radius: 6 }), effectDefinitionId: 'fx_cuff_torus', editorMeta: { displayName: 'Beast Roar', themeColor: '#8a6240' } }),
+  skill({ id: 'bello_kit_cover', ownerCharacterId: 'char_bello', slot: 5, name: 'Companion Cover', attackType: 'none', defenseType: 'cover-spawn', cooldownSeconds: 7, energyCost: 18, durationSeconds: 5, defenseValue: 0.6, damageEvents: [],
+    terrain: { modelAssetId: 'props/shipping container 3d model', count: 1, lifetimeSeconds: 5, radius: 2.5, blocksMovement: true }, editorMeta: { displayName: 'Companion Cover', themeColor: '#fde68a' } }),
+  skill({ id: 'bello_kit_mark', ownerCharacterId: 'char_bello', slot: 6, name: 'Predator Mark', attackType: 'none', skillCategory: 'special', cooldownSeconds: 5, energyCost: 12, durationSeconds: 0.5,
+    damageEvents: dmg(0, 'energy', ['scan', 'reveal', 'weakpoint']), hitVolume: hv({ shape: 'cone', origin: 'character-forward', radius: 8, angleDegrees: 60, activeDurationSeconds: 0.3 }), targetRules: { validTargetTypes: ['enemy', 'dummy', 'obstacle', 'boss'] }, effectDefinitionId: 'fx_scan_cone', editorMeta: { displayName: 'Predator Mark', themeColor: '#8a6240' } }),
+  skill({ id: 'bello_kit_ultimate', ownerCharacterId: 'char_bello', name: 'Call of the Wild', attackType: 'summon', skillCategory: 'ultimate', cooldownSeconds: 16, energyCost: 45,
+    summon: { modelAssetId: 'characters/Carey drone 3d model', count: 3, lifetimeSeconds: 9, behavior: 'seek', attackIntervalSeconds: 0.8, attackDamage: 16, attackRadius: 3 }, editorMeta: { displayName: 'Call of the Wild', themeColor: '#8a6240' } }),
+];
+
+// ---------------- Flip — bounce / reflect / displacement (Wave 2) ----------------
+const FLIP: CombatSkillDefinition[] = [
+  skill({ id: 'flip_kit_basic', ownerCharacterId: 'char_flip', slot: 1, name: 'Combo Kick', attackType: 'melee', cooldownSeconds: 0.6,
+    damageEvents: dmg(13, 'impact', ['sport', 'melee', 'bounce']), hitVolume: hv({ shape: 'cone', radius: 4, angleDegrees: 80 }), effectDefinitionId: 'fx_wing_arc', editorMeta: { displayName: 'Combo Kick', themeColor: '#e23b2e' } }),
+  skill({ id: 'flip_kit_ball', ownerCharacterId: 'char_flip', slot: 2, name: 'Ricochet Ball', attackType: 'projectile', cooldownSeconds: 2, energyCost: 16,
+    projectile: { speed: 20, lifetimeSeconds: 2.5, movement: 'linear', radius: 2 }, damageEvents: dmg(20, 'impact', ['sport', 'ranged', 'bounce']), editorMeta: { displayName: 'Ricochet Ball', themeColor: '#e23b2e' } }),
+  skill({ id: 'flip_kit_bump', ownerCharacterId: 'char_flip', slot: 3, name: 'Bounce Pad', attackType: 'push', cooldownSeconds: 5, energyCost: 16, knockbackForce: 6,
+    damageEvents: dmg(12, 'impact', ['sport', 'knockback', 'bounce']), hitVolume: hv({ shape: 'cone', radius: 4, angleDegrees: 90 }), effectDefinitionId: 'fx_cyclone_ring', editorMeta: { displayName: 'Bounce Pad', themeColor: '#e23b2e' } }),
+  skill({ id: 'flip_kit_storm', ownerCharacterId: 'char_flip', slot: 4, name: 'Stadium Storm', attackType: 'ring-aoe', cooldownSeconds: 6, energyCost: 28,
+    damageEvents: dmg(18, 'impact', ['sport', 'aoe', 'bounce']), hitVolume: hv({ shape: 'cylinder', origin: 'character-root', radius: 6 }), effectDefinitionId: 'fx_cyclone_ring', editorMeta: { displayName: 'Stadium Storm', themeColor: '#e23b2e' } }),
+  skill({ id: 'flip_kit_rebound', ownerCharacterId: 'char_flip', slot: 5, name: 'Rebound Guard', attackType: 'none', defenseType: 'reflect-wall', cooldownSeconds: 7, energyCost: 14, durationSeconds: 1, defenseValue: 0.7, damageEvents: [], effectDefinitionId: 'fx_shield_panel', editorMeta: { displayName: 'Rebound Guard', themeColor: '#93c5fd' } }),
+  skill({ id: 'flip_kit_dash', ownerCharacterId: 'char_flip', slot: 6, name: 'Acrobatic Flip', attackType: 'dash', cooldownSeconds: 5, energyCost: 12, speed: 16,
+    damageEvents: dmg(10, 'impact', ['sport', 'dash', 'bounce']), hitVolume: hv({ shape: 'line', length: 12, width: 1.2, activeDurationSeconds: 0.2 }), effectDefinitionId: 'fx_lock_line', editorMeta: { displayName: 'Acrobatic Flip', themeColor: '#e23b2e' } }),
+  skill({ id: 'flip_kit_ultimate', ownerCharacterId: 'char_flip', name: 'Goal Meteor', attackType: 'air-support', skillCategory: 'ultimate', cooldownSeconds: 18, energyCost: 50,
+    projectile: { speed: 18, lifetimeSeconds: 3, movement: 'homing', radius: 3, count: 4, spreadDeg: 60 }, damageEvents: dmg(30, 'impact', ['sport', 'air-support', 'bounce']), editorMeta: { displayName: 'Goal Meteor', themeColor: '#e23b2e' } }),
+];
+
+export const SEED_KIT_SKILLS: CombatSkillDefinition[] = [...JETT, ...DONNIE, ...PAUL, ...CHASE, ...JEROME, ...BELLO, ...FLIP];

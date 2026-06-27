@@ -6,6 +6,7 @@ import { useGameStore } from '../../stores/game/useGameStore';
 import { performanceMonitor } from '../../game/performance/PerformanceMonitor';
 import { resetRuntimeStats } from '../../game/performance/RuntimeStatsCollector';
 import { effectiveQualityPreset } from '../../game/performance/QualityPresetController';
+import { getRuntimePerformanceSnapshot } from '../../game/performance/RuntimePerformanceMonitor';
 
 // Batch 12 — on-screen performance panel (gated by graphicsSettingsStore.showPerfHud). Shows FPS / frame
 // time / memory / pool & effect counts / character tiers / quality / scene / phase plus quick toggles.
@@ -24,6 +25,7 @@ export const PerformanceDebugPanel = () => {
   if (!show) return null;
 
   const preset = effectiveQualityPreset();
+  const runtime = getRuntimePerformanceSnapshot();
   const fpsColor = snap.fps >= 50 ? 'text-emerald-300' : snap.fps >= 30 ? 'text-amber-300' : 'text-rose-300';
 
   return (
@@ -42,11 +44,20 @@ export const PerformanceDebugPanel = () => {
       <Row k="flight events" v={String(snap.flightEvents)} />
       <Row k="particles" v={String(snap.particles)} />
       <Row k="effects" v={String(snap.effects)} />
+      <Row k="combat enemies" v={String(runtime.activeEnemies)} />
+      <Row k="projectiles" v={String(runtime.activeProjectiles)} />
+      <Row k="vfx instances" v={String(runtime.activeVfx)} />
+      <Row k="physics vfx" v={String(runtime.activePhysicsObjects)} />
       <Row k="pool act/idle" v={`${snap.poolActive}/${snap.poolIdle}`} />
       <Row k="chars A/S/R" v={`${snap.activeCharacters}/${snap.standbyCharacters}/${snap.remoteCharacters}`} />
       <Row k="ai ticks" v={String(snap.aiTicks)} />
       <Row k="audio loops" v={String(snap.audioPlaying)} />
       <div className="my-1 border-t border-slate-800" />
+      {runtime.warnings.length > 0 && (
+        <div className="mb-1 rounded border border-amber-500/30 bg-amber-950/25 p-1 text-[9px] text-amber-100">
+          {runtime.warnings.slice(0, 3).map((warning) => <div key={warning}>• {warning}</div>)}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-1">
         <Btn label="Reset" onClick={() => { performanceMonitor.reset(); resetRuntimeStats(); }} />
         <Btn label="Dump" onClick={() => console.info('[perf]', usePerformanceStore.getState().snapshot)} />

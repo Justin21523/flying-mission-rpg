@@ -6,6 +6,7 @@ import { NpcEditorTab } from './editor/NpcEditorTab';
 import { QuestEditorTab } from './editor/QuestEditorTab';
 import { TriggerEditorTab } from './editor/TriggerEditorTab';
 import { ProjectTab } from './editor/ProjectTab';
+import { PresetLibraryPanel } from './editor/PresetLibraryPanel';
 import { DebugTab } from './editor/DebugTab';
 import { EncounterEditorTab } from './editor/EncounterEditorTab';
 import { ActivityEditorTab } from './editor/ActivityEditorTab';
@@ -39,6 +40,7 @@ import { DestinationEditorTab } from './editor/game/DestinationEditorTab';
 import { MissionZoneEditorTab } from './editor/game/MissionZoneEditorTab';
 import { CombatEditorTab } from './editor/game/CombatEditorTab';
 import { ObstacleEditorTab } from './editor/game/ObstacleEditorTab';
+import { ZonePropEditorTab } from './editor/game/ZonePropEditorTab';
 import { CharacterKitEditorTab } from './editor/game/CharacterKitEditorTab';
 import { SupportCombatEditorTab } from './editor/game/SupportCombatEditorTab';
 import { BossEditorTab } from './editor/game/BossEditorTab';
@@ -68,6 +70,19 @@ import { AudioPresetEditorTab } from './editor/game/AudioPresetEditorTab';
 import { FlightPolishEditorTab } from './editor/game/FlightPolishEditorTab';
 import { TransformationPolishEditorTab } from './editor/game/TransformationPolishEditorTab';
 import { MusicEditorTab } from './editor/game/MusicEditorTab';
+import { CampaignEditorTab } from './edit-mode/tabs/CampaignEditorTab';
+import { StageEditorTab } from './edit-mode/tabs/StageEditorTab';
+import { ProgressionEditorTab } from './edit-mode/tabs/ProgressionEditorTab';
+import { LevelLayoutEditorTab } from './edit-mode/tabs/LevelLayoutEditorTab';
+import { EnvironmentThemeEditorTab } from './edit-mode/tabs/EnvironmentThemeEditorTab';
+import { EncounterPackEditorTab } from './edit-mode/tabs/EncounterPackEditorTab';
+import { StagePlaytestEditorTab } from './edit-mode/tabs/StagePlaytestEditorTab';
+import { StageContentPackEditorTab } from './edit-mode/tabs/StageContentPackEditorTab';
+import { StagePacingEditorTab } from './edit-mode/tabs/StagePacingEditorTab';
+import { StageBalanceEditorTab } from './edit-mode/tabs/StageBalanceEditorTab';
+import { StageContentBuilderTab } from './edit-mode/tabs/StageContentBuilderTab';
+import { StagePlaytestReportTab } from './edit-mode/tabs/StagePlaytestReportTab';
+import { EditModeHomePanel } from './edit-mode/EditModeHomePanel';
 import { DomainFileRow } from './editor/DomainFileRow';
 import { getDomain } from '../game/editor/editorContentRegistry';
 import { useSceneEditStore } from '../stores/sceneEditStore';
@@ -81,17 +96,31 @@ import { useEditorSupportStore } from '../stores/game/editorSupportStore';
 import { computeTabWarnings } from '../game/editor/tabWarnings';
 
 // Assets is a SEPARATE panel (left-centre) — not a hub tab — to match the original layout.
-type Tab = 'gchar' | 'gmodelintake' | 'gloc' | 'gmap' | 'gworld' | 'gmission' | 'gmissionstudio' | 'gmissiongen' | 'gmissionzone' | 'gcombat' | 'gobstacle' | 'gkit' | 'gsupportcombat' | 'gfusion' | 'gboss' | 'gcine' | 'gcinevfx' | 'gvfxq' | 'gcinepart' | 'gcinefog' | 'gcinemodel' | 'gcineload' | 'gcineult' | 'gclone' | 'gincidenttmpl' | 'gincidentplan' | 'gincidentsc' | 'gincidentobj' | 'gincidentsol' | 'gincidentreplay' | 'gllm' | 'gnpc' | 'gsupport' | 'gyokai' | 'gxform' | 'gbase' | 'gflight' | 'gevent' | 'gdest' | 'gcam'| 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save' | 'gquality' | 'gaudio' | 'gflightpolish' | 'gxfpolish' | 'gmusic';
+type Tab = 'gedithome' | 'gcampaign' | 'gstage' | 'glevel' | 'gstageenv' | 'gencounterpack' | 'gstagecontent' | 'gstagepacing' | 'gstagebalance' | 'gstagebuilder' | 'gstageplayreport' | 'gstageplaytest' | 'gchar' | 'gmodelintake' | 'gloc' | 'gmap' | 'gworld' | 'gmission' | 'gmissionstudio' | 'gmissiongen' | 'gmissionzone' | 'gcombat' | 'gobstacle' | 'gzoneprop' | 'gkit' | 'gsupportcombat' | 'gfusion' | 'gboss' | 'gprogression' | 'gcine' | 'gcinevfx' | 'gvfxq' | 'gcinepart' | 'gcinefog' | 'gcinemodel' | 'gcineload' | 'gcineult' | 'gclone' | 'gincidenttmpl' | 'gincidentplan' | 'gincidentsc' | 'gincidentobj' | 'gincidentsol' | 'gincidentreplay' | 'gllm' | 'gnpc' | 'gsupport' | 'gyokai' | 'gxform' | 'gbase' | 'gflight' | 'gevent' | 'gdest' | 'gcam'| 'debug' | 'trigger' | 'encounter' | 'project' | 'npc' | 'quest' | 'minigame' | 'environment' | 'poli' | 'landmark' | 'incident' | 'traffic' | 'tools' | 'world' | 'portal' | 'license' | 'research' | 'studio' | 'tracks' | 'reactions' | 'save' | 'gquality' | 'gaudio' | 'gflightpolish' | 'gxfpolish' | 'gmusic' | 'gpresets';
 type TabCategory = 'Mission Studio' | 'Characters / Support' | 'Abilities / VFX' | 'Flight / Transform' | 'World / Destination' | 'Data / Project' | 'Legacy';
 const CATEGORIES: readonly TabCategory[] = ['Mission Studio', 'Characters / Support', 'Abilities / VFX', 'Flight / Transform', 'World / Destination', 'Data / Project', 'Legacy'];
 const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[] = [
+  { id: 'gedithome', label: '🏠 Demo Home', category: 'Mission Studio' },
   { id: 'gmissionstudio', label: '🧪 Mission Studio', category: 'Mission Studio' },
+  { id: 'gcampaign', label: '🗺 Campaign', category: 'Mission Studio' },
+  { id: 'gstage', label: '🎬 Stage', category: 'Mission Studio' },
+  { id: 'glevel', label: '🧭 Level Layout', category: 'Mission Studio' },
+  { id: 'gstageenv', label: '🌦 Stage Environment', category: 'Mission Studio' },
+  { id: 'gencounterpack', label: '⚔ Encounter Packs', category: 'Mission Studio' },
+  { id: 'gstagecontent', label: '📦 Stage Content', category: 'Mission Studio' },
+  { id: 'gstagepacing', label: '📈 Stage Pacing', category: 'Mission Studio' },
+  { id: 'gstagebalance', label: '⚖ Stage Balance', category: 'Mission Studio' },
+  { id: 'gstagebuilder', label: '🧩 Content Builder', category: 'Mission Studio' },
+  { id: 'gstageplayreport', label: '✅ Playtest Report', category: 'Mission Studio' },
+  { id: 'gstageplaytest', label: '▶ Stage Playtest', category: 'Mission Studio' },
   { id: 'gmission', label: '🎯 Missions', category: 'Mission Studio' },
   { id: 'gmissiongen', label: '🎲 Mission Generator', category: 'Mission Studio' },
   { id: 'gmissionzone', label: '🎯 Mission Zone', category: 'Mission Studio' },
   { id: 'gcombat', label: '⚔ Combat', category: 'Mission Studio' },
   { id: 'gobstacle', label: '🧱 Obstacles', category: 'Mission Studio' },
+  { id: 'gzoneprop', label: '🌳 Zone Props', category: 'Mission Studio' },
   { id: 'gboss', label: '👹 Boss', category: 'Mission Studio' },
+  { id: 'gprogression', label: '⬆ Progression', category: 'Mission Studio' },
   { id: 'gcine', label: '🎬 Cinematic Abilities', category: 'Abilities / VFX' },
   { id: 'gcinevfx', label: '🎬 Cinematic VFX', category: 'Abilities / VFX' },
   { id: 'gvfxq', label: '🎨 VFX Quality', category: 'Abilities / VFX' },
@@ -140,6 +169,7 @@ const TABS: { id: Tab; label: string; category: TabCategory; legacy?: boolean }[
   { id: 'gquality', label: '⚙ Quality', category: 'Data / Project' },
   { id: 'gaudio', label: '🔊 Audio', category: 'Data / Project' },
   { id: 'gmusic', label: '🎵 Music', category: 'Data / Project' },
+  { id: 'gpresets', label: '📚 Presets', category: 'Data / Project' },
   { id: 'project', label: '📦 Project', category: 'Data / Project' },
   { id: 'debug', label: '🧪 Debug', category: 'Data / Project' },
   { id: 'save', label: '💾 Save', category: 'Data / Project' },
@@ -166,7 +196,7 @@ function loadHubPrefs(): HubPrefs {
       if (tab) return { userTab: tab.id, category: tab.category, showLegacy: !!p.showLegacy };
     }
   } catch { /* ignore */ }
-  return { userTab: 'gmissionstudio', category: 'Mission Studio', showLegacy: false };
+  return { userTab: 'gedithome', category: 'Mission Studio', showLegacy: false };
 }
 
 // Which content domain(s) each tab can export/import as JSON (⬇ current · 📋 example · ⬆ replace). Tabs not
@@ -237,7 +267,9 @@ const TabJsonStrip = ({ tab }: { tab: Tab }) => {
 };
 
 const QUICK_LINKS: { tab: Tab; label: string; detail: string }[] = [
+  { tab: 'gedithome', label: 'Demo Home', detail: 'quick actions, validation, export' },
   { tab: 'gmissionstudio', label: 'Test Runtime', detail: 'phase, character, objective, support' },
+  { tab: 'gcampaign', label: 'Stage Campaign', detail: 'campaign, stages, clear loop' },
   { tab: 'gsupport', label: 'Tune Team AI', detail: 'dispatch, AI, tiers' },
   { tab: 'gworld', label: 'Edit Routes', detail: 'nodes, events, clean preview' },
   { tab: 'gxform', label: 'Author Transform', detail: 'targets, bake, clips' },
@@ -385,7 +417,7 @@ export const EditorHubPanel = () => {
         <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">✕</button>
         <WorkflowQuickLinks activeTab={tab} onSelect={setTab} />
         <TabJsonStrip tab={tab} />
-        {tab === 'gchar' ? <CharacterEditorTab /> : tab === 'gmodelintake' ? <ModelIntakeQaTab /> : tab === 'gloc' ? <LocationEditorTab /> : tab === 'gmap' ? <MapEditorTab /> : tab === 'gworld' ? <WorldToolsEditorTab /> : tab === 'gmission' ? <MissionEditorTab /> : tab === 'gmissionstudio' ? <MissionStudioTab /> : tab === 'gmissiongen' ? <MissionGeneratorTab /> : tab === 'gmissionzone' ? <MissionZoneEditorTab /> : tab === 'gcombat' ? <CombatEditorTab /> : tab === 'gobstacle' ? <ObstacleEditorTab /> : tab === 'gkit' ? <CharacterKitEditorTab /> : tab === 'gsupportcombat' ? <SupportCombatEditorTab /> : tab === 'gfusion' ? <PartnerFusionEditorTab /> : tab === 'gboss' ? <BossEditorTab /> : tab === 'gcine' ? <CinematicAbilityEditorTab /> : tab === 'gcinevfx' ? <CinematicVfxEditorTab /> : tab === 'gvfxq' ? <VfxQualityEditorTab /> : tab === 'gcinepart' ? <ParticleLayerEditorTab /> : tab === 'gcinefog' ? <FogCloudLayerEditorTab /> : tab === 'gcinemodel' ? <ModelEffectLayerEditorTab /> : tab === 'gcineload' ? <AbilityLoadoutEditorTab /> : tab === 'gcineult' ? <UltimateAbilityEditorTab /> : tab === 'gclone' ? <CloneAbilityEditorTab /> : tab === 'gincidenttmpl' ? <IncidentTemplateEditorTab /> : tab === 'gincidentplan' ? <IncidentPlanEditorTab /> : tab === 'gincidentobj' ? <IncidentObjectiveEditorTab /> : tab === 'gincidentsc' ? <IncidentStateChangeEditorTab /> : tab === 'gincidentsol' ? <IncidentSolutionEditorTab /> : tab === 'gincidentreplay' ? <IncidentReplayEditorTab /> : tab === 'gllm' ? <LlmSettingsTab /> : tab === 'gnpc' ? <GameNpcEditorTab /> : tab === 'gsupport' ? <SupportEditorTab /> : tab === 'gyokai' ? <YokaiHuntEditorTab /> : tab === 'gxform' ? <TransformationEditorTab /> : tab === 'gflightpolish' ? <FlightPolishEditorTab /> : tab === 'gxfpolish' ? <TransformationPolishEditorTab /> : tab === 'gquality' ? <QualityPresetEditorTab /> : tab === 'gaudio' ? <AudioPresetEditorTab /> : tab === 'gmusic' ? <MusicEditorTab /> : tab === 'gbase' ? <BaseLayoutEditorTab /> : tab === 'gflight' ? <FlightEditorTab /> : tab === 'gevent' ? <FlightEventsEditorTab /> : tab === 'gdest' ? <DestinationEditorTab /> : tab === 'gcam' ? <CameraEditorTab /> : tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
+        {tab === 'gedithome' ? <EditModeHomePanel /> : tab === 'gcampaign' ? <CampaignEditorTab /> : tab === 'gstage' ? <StageEditorTab /> : tab === 'glevel' ? <LevelLayoutEditorTab /> : tab === 'gstageenv' ? <EnvironmentThemeEditorTab /> : tab === 'gencounterpack' ? <EncounterPackEditorTab /> : tab === 'gstagecontent' ? <StageContentPackEditorTab /> : tab === 'gstagepacing' ? <StagePacingEditorTab /> : tab === 'gstagebalance' ? <StageBalanceEditorTab /> : tab === 'gstagebuilder' ? <StageContentBuilderTab /> : tab === 'gstageplayreport' ? <StagePlaytestReportTab /> : tab === 'gstageplaytest' ? <StagePlaytestEditorTab /> : tab === 'gchar' ? <CharacterEditorTab /> : tab === 'gmodelintake' ? <ModelIntakeQaTab /> : tab === 'gloc' ? <LocationEditorTab /> : tab === 'gmap' ? <MapEditorTab /> : tab === 'gworld' ? <WorldToolsEditorTab /> : tab === 'gmission' ? <MissionEditorTab /> : tab === 'gmissionstudio' ? <MissionStudioTab /> : tab === 'gmissiongen' ? <MissionGeneratorTab /> : tab === 'gmissionzone' ? <MissionZoneEditorTab /> : tab === 'gcombat' ? <CombatEditorTab /> : tab === 'gobstacle' ? <ObstacleEditorTab /> : tab === 'gzoneprop' ? <ZonePropEditorTab /> : tab === 'gkit' ? <CharacterKitEditorTab /> : tab === 'gsupportcombat' ? <SupportCombatEditorTab /> : tab === 'gfusion' ? <PartnerFusionEditorTab /> : tab === 'gboss' ? <BossEditorTab /> : tab === 'gprogression' ? <ProgressionEditorTab /> : tab === 'gcine' ? <CinematicAbilityEditorTab /> : tab === 'gcinevfx' ? <CinematicVfxEditorTab /> : tab === 'gvfxq' ? <VfxQualityEditorTab /> : tab === 'gcinepart' ? <ParticleLayerEditorTab /> : tab === 'gcinefog' ? <FogCloudLayerEditorTab /> : tab === 'gcinemodel' ? <ModelEffectLayerEditorTab /> : tab === 'gcineload' ? <AbilityLoadoutEditorTab /> : tab === 'gcineult' ? <UltimateAbilityEditorTab /> : tab === 'gclone' ? <CloneAbilityEditorTab /> : tab === 'gincidenttmpl' ? <IncidentTemplateEditorTab /> : tab === 'gincidentplan' ? <IncidentPlanEditorTab /> : tab === 'gincidentobj' ? <IncidentObjectiveEditorTab /> : tab === 'gincidentsc' ? <IncidentStateChangeEditorTab /> : tab === 'gincidentsol' ? <IncidentSolutionEditorTab /> : tab === 'gincidentreplay' ? <IncidentReplayEditorTab /> : tab === 'gllm' ? <LlmSettingsTab /> : tab === 'gnpc' ? <GameNpcEditorTab /> : tab === 'gsupport' ? <SupportEditorTab /> : tab === 'gyokai' ? <YokaiHuntEditorTab /> : tab === 'gxform' ? <TransformationEditorTab /> : tab === 'gflightpolish' ? <FlightPolishEditorTab /> : tab === 'gxfpolish' ? <TransformationPolishEditorTab /> : tab === 'gquality' ? <QualityPresetEditorTab /> : tab === 'gaudio' ? <AudioPresetEditorTab /> : tab === 'gmusic' ? <MusicEditorTab /> : tab === 'gbase' ? <BaseLayoutEditorTab /> : tab === 'gflight' ? <FlightEditorTab /> : tab === 'gevent' ? <FlightEventsEditorTab /> : tab === 'gdest' ? <DestinationEditorTab /> : tab === 'gcam' ? <CameraEditorTab /> : tab === 'debug' ? <DebugTab /> : tab === 'trigger' ? <TriggerEditorTab /> : tab === 'encounter' ? <EncounterEditorTab /> : tab === 'gpresets' ? <PresetLibraryPanel /> : tab === 'project' ? <ProjectTab /> : tab === 'npc' ? <NpcEditorTab /> : tab === 'quest' ? <QuestEditorTab /> : tab === 'minigame' ? <ActivityEditorTab /> : tab === 'poli' ? <PoliCharacterEditorTab /> : tab === 'landmark' ? <LandmarkEditorTab /> : tab === 'incident' ? <IncidentEditorTab /> : tab === 'traffic' ? <TrafficEditorTab /> : tab === 'tools' ? <ToolEditorTab /> : tab === 'world' ? <WorldEditorTab /> : tab === 'portal' ? <PortalEditorTab /> : tab === 'license' ? <LicenseEditorTab /> : tab === 'research' ? <ResearchEditorTab /> : tab === 'studio' ? <ModelStudioTab /> : tab === 'tracks' ? <TracksEditorTab /> : tab === 'reactions' ? <ReactionsEditorTab /> : tab === 'save' ? <SaveSlotsPanel /> : <EnvironmentEditorPanel />}
       </div>
     </div>
   );

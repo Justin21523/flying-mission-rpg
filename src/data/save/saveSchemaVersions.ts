@@ -63,4 +63,20 @@ const v1ToV2: SaveMigration = {
   },
 };
 
-export const SAVE_MIGRATIONS: SaveMigration[] = [v1ToV2];
+// v2 → v3 (Batch E): add progress.rescuedNpcIds (Hub residents rescued by clearing stages).
+const v2ToV3: SaveMigration = {
+  fromVersion: 2,
+  toVersion: 3,
+  migrate: (input) => {
+    const o = asObj(input);
+    const progress = asObj(o.progress);
+    return {
+      ...createDefaultSave(),
+      ...o,
+      schemaVersion: 3,
+      progress: { ...createDefaultSave().progress, ...progress, rescuedNpcIds: strArr(progress.rescuedNpcIds) },
+    } as SaveData;
+  },
+};
+
+export const SAVE_MIGRATIONS: SaveMigration[] = [v1ToV2, v2ToV3];

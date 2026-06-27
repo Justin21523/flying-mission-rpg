@@ -1,10 +1,26 @@
 import type { EnemySpawnGroupDefinition } from '../../types/game/combat';
+import { STAGE_ENEMY_SPAWN_GROUPS } from '../encounters/stageEnemyPacks';
+import { EXTRA_BOSS_SUMMON_GROUPS } from '../bosses/extraZoneBosses';
 
 const ZONE = 'zone_sunny_harbor_advanced_foundation';
 
 // Segment-linked enemy encounters for the seed zone (Batch C). Spawned on segment-enter by ZoneEncounterHost;
 // completeWhenAllDefeated drives the segment's defeat-enemy-group condition.
 export const SEED_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = [
+  // Batch J — landing ambush: spawns the moment you touch down so the zone drops straight into combat
+  // (zone.autoCombatOnLanding). Clearing it completes the landing segment; the threat gauge also accrues here.
+  {
+    id: 'harbor_landing_ambush',
+    zoneId: ZONE,
+    segmentId: 'seg_landing_dock',
+    spawnMode: 'on-segment-enter',
+    enemies: [
+      { enemyDefinitionId: 'crusher_drone', count: 2, formation: 'circle' },
+      { enemyDefinitionId: 'pulse_turret', count: 1, formation: 'cluster' },
+    ],
+    completeWhenAllDefeated: true,
+    enabled: true,
+  },
   {
     id: 'signal_yard_wave_01',
     zoneId: ZONE,
@@ -12,8 +28,22 @@ export const SEED_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = [
     spawnMode: 'on-segment-enter',
     enemies: [
       { enemyDefinitionId: 'crusher_drone', count: 1, formation: 'cluster' },
-      { enemyDefinitionId: 'pulse_turret', count: 1, formation: 'line' },
     ],
+    completeWhenAllDefeated: true,
+    enabled: true,
+  },
+  // Wave 3 — guardians of the optional treasure vault branch (high-risk route off Cargo Street). Mixes Wave 2
+  // tactical archetypes + a Wave 1 affix policy so the reward path actually bites.
+  {
+    id: 'cargo_vault_guardians',
+    zoneId: ZONE,
+    segmentId: 'seg_cargo_vault',
+    spawnMode: 'on-segment-enter',
+    enemies: [
+      { enemyDefinitionId: 'shadow_flanker', count: 2, formation: 'circle' },
+      { enemyDefinitionId: 'volatile_bomber', count: 1, formation: 'cluster' },
+    ],
+    affixPolicy: { allowedAffixIds: ['shielded', 'swift', 'regenerating'], chancePerEnemy: 0.6, maxPerEnemy: 1 },
     completeWhenAllDefeated: true,
     enabled: true,
   },
@@ -49,4 +79,7 @@ export const SEED_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = [
     completeWhenAllDefeated: true,
     enabled: true,
   },
+  ...STAGE_ENEMY_SPAWN_GROUPS,
+  // Batch K — debug-only summon groups for the 7 per-zone signature bosses (triggered by their P2 waves).
+  ...EXTRA_BOSS_SUMMON_GROUPS,
 ];

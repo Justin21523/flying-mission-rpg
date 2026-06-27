@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BossRuntimeState } from '../../types/game/boss';
+import type { BossRuntimeAttackEvent, BossRuntimeState } from '../../types/game/boss';
 
 // Runtime state for the active boss encounter (Batch F). One boss at a time. The BossDirector writes; UI
 // reads. `version` is bumped on in-place mutations (hp/shield ticked from the boss CombatTarget) so the HUD
@@ -14,6 +14,7 @@ interface BossStoreState {
   markPhaseComplete: (phaseId: string) => void;
   recordWeakpointDestroyed: (weakpointId: string) => void;
   recordWaveCleared: (waveId: string) => void;
+  recordAttackEvents: (events: BossRuntimeAttackEvent[]) => void;
   setStatus: (status: BossRuntimeState['status']) => void;
   setDebug: (patch: Partial<NonNullable<BossRuntimeState['debug']>>) => void;
   bump: () => void;
@@ -49,6 +50,13 @@ export const useBossStore = create<BossStoreState>((set, get) => ({
       if (!s.runtime) return s;
       const cleared = s.runtime.clearedSummonWaveIds.includes(waveId) ? s.runtime.clearedSummonWaveIds : [...s.runtime.clearedSummonWaveIds, waveId];
       return { runtime: { ...s.runtime, clearedSummonWaveIds: cleared }, version: s.version + 1 };
+    }),
+
+  recordAttackEvents: (events) =>
+    set((s) => {
+      if (!s.runtime || events.length === 0) return s;
+      const recentAttackEvents = [...(s.runtime.recentAttackEvents ?? []), ...events].slice(-8);
+      return { runtime: { ...s.runtime, recentAttackEvents }, version: s.version + 1 };
     }),
 
   setStatus: (status) => set((s) => (s.runtime ? { runtime: { ...s.runtime, status }, version: s.version + 1 } : s)),

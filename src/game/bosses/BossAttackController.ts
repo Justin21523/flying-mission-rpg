@@ -1,4 +1,4 @@
-import type { BossAttackPatternDefinition } from '../../types/game/boss';
+import type { BossAttackPatternDefinition, BossAttackPatternType } from '../../types/game/boss';
 
 // Boss attack patterns (Batch F). Per-pattern cooldown → warning (castTime) → execution state machine.
 // Execution routes through injected deps (spawn projectile / trigger wave / damage player) so it's pure +
@@ -22,7 +22,7 @@ export interface BossAttackDeps {
   playVisual: (effectId: string | undefined, x: number, z: number) => void;
 }
 
-export interface BossAttackEvent { patternId: string; kind: 'warning' | 'execute'; patternType: string }
+export interface BossAttackEvent { patternId: string; kind: 'warning' | 'execute'; patternType: BossAttackPatternType }
 
 function st(id: string): PatternState {
   let s = states.get(id);

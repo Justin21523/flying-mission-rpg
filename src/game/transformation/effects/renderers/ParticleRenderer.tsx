@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, Color, type BufferAttribute, type Points, type PointsMaterial } from 'three';
 import { anchorPosition, fadeEnvelope, liveV2, makeSoftTexture } from '../effectAnchor';
+import { seededHash } from '../../../effects/seededHash';
 import type { ActiveEffectV2, ParticleEffectParameters } from '../../../../types/game/transformationEffects';
 
 // One configurable, deterministic particle system (THREE.Points). Particle positions are an analytic function
@@ -15,9 +16,8 @@ const DEFAULTS: ParticleEffectParameters = {
   particleOrbitSpeed: 2, particleBurstAmount: 1, particleTrailLength: 0,
 };
 
-const seeded = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-
-function particlePos(i: number, count: number, p: ParticleEffectParameters, prog: number, out: Float32Array, o: number): void {
+function particlePos(i: number, count: number, p: ParticleEffectParameters, prog: number, out: Float32Array, o: number, seed: number): void {
+  const seeded = (n: number) => seededHash(n, seed, 127.1, 311.7); // seed 0 = original scatter; bump to re-roll
   const t = prog * p.particleLifetime;
   const a = (i / count) * Math.PI * 2;
   const rnd = (seeded(i) - 0.5) * 2 * p.particleRandomness;
@@ -57,7 +57,8 @@ export const ParticleRenderer = ({ fx }: { fx: ActiveEffectV2 }) => {
     pts.position.set(base[0], base[1], base[2]);
     const attr = pts.geometry.attributes.position as BufferAttribute;
     const arr = attr.array as Float32Array; // THREE-owned buffer (same data we seeded) — mutate this, not the memo
-    for (let i = 0; i < count; i += 1) particlePos(i, count, params, live.progress, arr, i * 3);
+    const seed = fx.config.seed ?? 0;
+    for (let i = 0; i < count; i += 1) particlePos(i, count, params, live.progress, arr, i * 3, seed);
     attr.needsUpdate = true;
     const mat = pts.material as PointsMaterial;
     mat.color.copy(cStart).lerp(cEnd, live.progress);

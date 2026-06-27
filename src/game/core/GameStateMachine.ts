@@ -4,7 +4,7 @@ import type { GamePhase, GameState } from '../../types/game/state';
 // on re-render. PAUSED and ERROR are handled specially (pause/resume/fail) rather than via this table.
 export const TRANSITIONS: Record<GamePhase, GamePhase[]> = {
   BOOT: ['MISSION_CONTROL'],
-  MISSION_CONTROL: ['MISSION_BRIEFING'],
+  MISSION_CONTROL: ['MISSION_BRIEFING', 'ARENA_RUN'],
   MISSION_BRIEFING: ['CHARACTER_SELECTION', 'MISSION_CONTROL'],
   CHARACTER_SELECTION: ['HANGAR', 'MISSION_BRIEFING'],
   HANGAR: ['PLATFORM_ALIGNMENT'],
@@ -30,6 +30,7 @@ export const TRANSITIONS: Record<GamePhase, GamePhase[]> = {
   BASE_APPROACH: ['HANGAR_RETURN'],
   HANGAR_RETURN: ['MISSION_RESULTS'],
   MISSION_RESULTS: ['MISSION_CONTROL'],
+  ARENA_RUN: ['MISSION_CONTROL'], // Batch N — run ends → back to the hub
   PAUSED: [], // leaving PAUSED goes through resume()
   ERROR: ['BOOT', 'MISSION_CONTROL'], // recoverable — never a dead end
 };

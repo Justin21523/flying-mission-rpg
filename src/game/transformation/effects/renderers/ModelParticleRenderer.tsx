@@ -5,6 +5,7 @@ import { AdditiveBlending, Mesh, MeshStandardMaterial, NormalBlending, type Blen
 import { SkeletonUtils } from 'three-stdlib';
 import { resolveModelAsset } from '../../../../stores/modelStudioStore';
 import { anchorPosition, effectModelId, fadeEnvelope, liveV2 } from '../effectAnchor';
+import { seededHash } from '../../../effects/seededHash';
 import { measureNormalization } from '../../../poli/normalizeGlb';
 import type { ActiveEffectV2 } from '../../../../types/game/transformationEffects';
 
@@ -17,7 +18,6 @@ const MAX = 30;
 // via normalizeGlb). particleModelScale then multiplies this consistent size. Without this, hero aircraft /
 // large props render gigantic (off-camera) or far off-pivot → "invisible", and only particles show.
 const VFX_TARGET_HEIGHT = 1.4;
-const seeded = (n: number) => { const x = Math.sin(n * 53.7 + 19.1) * 43758.5453; return x - Math.floor(x); };
 
 type MaterialMode = 'solid' | 'hologram' | 'afterimage' | 'energy-outline' | 'ghost-trail';
 interface MP { particleCount: number; particleLifetime: number; particleSpeed: number; particleGravity: number; particleSpreadRadius: number; particleOrbitRadius: number; particleOrbitSpeed: number; particleShape: string; particleModelScale: number; particleModelSpin: number; particleMaterialMode: MaterialMode; }
@@ -42,7 +42,8 @@ function shapeFor(type: string, p: MP): string {
   if (type.includes('debris')) return 'debris';
   return 'burst';
 }
-function pos(i: number, count: number, p: MP, shape: string, prog: number, out: Group): void {
+function pos(i: number, count: number, p: MP, shape: string, prog: number, out: Group, seed: number): void {
+  const seeded = (n: number) => seededHash(n, seed, 53.7, 19.1); // seed 0 = original scatter; bump to re-roll
   const t = prog * p.particleLifetime;
   const a = (i / count) * Math.PI * 2 + seeded(i) * 0.5;
   const phi = Math.acos(2 * seeded(i * 3) - 1);
@@ -100,7 +101,7 @@ const ModelPool = ({ fx, path }: { fx: ActiveEffectV2; path: string }) => {
     for (let i = 0; i < count; i += 1) {
       const g = refs.current[i];
       if (!g) continue;
-      pos(i, count, p, shape, live.progress, g);
+      pos(i, count, p, shape, live.progress, g, fx.config.seed ?? 0);
       g.position.x += base[0]; g.position.y += base[1]; g.position.z += base[2];
       g.scale.setScalar(p.particleModelScale);
       g.rotation.set(live.progress * p.particleModelSpin, live.progress * p.particleModelSpin * 1.3, 0);

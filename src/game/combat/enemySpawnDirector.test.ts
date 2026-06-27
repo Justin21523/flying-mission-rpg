@@ -16,10 +16,10 @@ beforeEach(() => {
 describe('enemySpawnDirector', () => {
   it('spawns the group enemy count and is not cleared until all defeated', () => {
     expect(spawnGroup('signal_yard_wave_01', 0, 0)).toBe(true);
-    // crusher_drone x1 + pulse_turret x1 = 2 enemies
-    expect(liveTargets.filter((t) => t.isEnemy).length).toBe(2);
+    // Stage 1 recording/tutorial pass: one Crusher Drone introduces basic hit feedback first.
+    expect(liveTargets.filter((t) => t.isEnemy).length).toBe(1);
     expect(isGroupCleared('signal_yard_wave_01')).toBe(false);
-    expect(groupRemaining('signal_yard_wave_01')).toEqual({ remaining: 2, total: 2 });
+    expect(groupRemaining('signal_yard_wave_01')).toEqual({ remaining: 1, total: 1 });
 
     // defeat both
     for (const t of liveTargets) { t.hp = 0; t.defeatedAt = 1; }

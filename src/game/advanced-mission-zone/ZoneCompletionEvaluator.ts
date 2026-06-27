@@ -36,6 +36,9 @@ export interface ZoneWorldProbe {
   resolvedIncidentIds?: Set<string>;
   completedIncidentObjectiveIds?: Set<string>; // `${incidentId}:${objectiveStepId}`
   failedIncidentIds?: Set<string>;
+  // Batch O — mission-type objectives driven by MissionObjectiveHost (completion flag + live progress per condition id).
+  completedMissionObjectiveIds?: Set<string>;
+  missionObjectiveProgress?: Record<string, { current: number; total: number; label?: string }>;
 }
 
 function dist2(ax: number, az: number, bx: number, bz: number): number {
@@ -151,6 +154,20 @@ export function evaluateCondition(
       return doneResult(probe.completedIncidentObjectiveIds?.has(`${condition.incidentId}:${condition.objectiveStepId}`) ?? false);
     case 'incident-failed':
       return doneResult(probe.failedIncidentIds?.has(condition.incidentId) ?? false);
+
+    // Batch O — mission-type objectives: the host owns the mechanic + writes done/progress here.
+    case 'defense-waves':
+    case 'timed-rescue':
+    case 'scan-targets':
+    // Wave 3 — additional mission-type objectives (same store-progress contract).
+    case 'escort-npc':
+    case 'hold-zone':
+    case 'survive-timer':
+    case 'hack-terminals': {
+      const done = probe.completedMissionObjectiveIds?.has(condition.id) ?? false;
+      const p = probe.missionObjectiveProgress?.[condition.id];
+      return { conditionId: condition.id, done, current: done ? (p?.total ?? 1) : (p?.current ?? 0), total: p?.total ?? 1 };
+    }
 
     default:
       // future-* placeholders: never satisfiable in play (only via god-mode, handled above).

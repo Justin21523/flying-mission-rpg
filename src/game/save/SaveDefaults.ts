@@ -32,6 +32,7 @@ export function createDefaultSave(now: Date = new Date()): SaveData {
       watchedTransformationTimelineIds: [],
       completedObjectiveIds: [],
       collectedItemIds: [],
+      rescuedNpcIds: [],
     },
     stats: {
       totalPlayTimeSeconds: 0,

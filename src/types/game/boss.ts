@@ -61,11 +61,44 @@ export interface BossDefinition {
     defeatedVisualPresetId?: string;
   };
 
+  // Batch E — dramatic entrance (title card + held beat before the fight) + an enrage timer.
+  intro?: { title: string; subtitle?: string; durationSeconds: number; cinematicEffectId?: string };
+  enrage?: { afterSeconds: number; damageMultiplier: number; cinematicEffectId?: string };
+
+  // Wave 1 — a per-boss "signature mechanic" that runs on top of the shared phase/attack/weakpoint pipeline so
+  // each boss has a memorable hook. Config is type-specific (intervalSeconds, damage, radius, healPerSec, …).
+  signatureMechanic?: BossSignatureMechanic;
+
   editorMeta?: {
     notes?: string;
     difficulty?: 'easy' | 'normal' | 'hard';
     debugColor?: string;
   };
+  enabled?: boolean;
+}
+
+// ---- Signature mechanic (Wave 1) ----
+
+export type BossSignatureMechanicType =
+  | 'moving-hazard-lasers' // periodic dodgeable strikes at the player's position
+  | 'arena-flood' // periodic wide arena pulse (reach safety before it resolves)
+  | 'blackout-pulse' // toggles arena darkness on/off
+  | 'falling-debris' // telegraphed strikes that resolve where the player WAS
+  | 'reflect-aegis' // boss regenerates shield while active (break the aegis repeatedly)
+  | 'priority-healer' // summons a repair wisp; boss heals while it lives — kill it first
+  | 'arena-shrink'; // safe zone shrinks over time; damage outside it
+
+export const BOSS_SIGNATURE_MECHANIC_TYPES: readonly BossSignatureMechanicType[] = [
+  'moving-hazard-lasers', 'arena-flood', 'blackout-pulse', 'falling-debris', 'reflect-aegis', 'priority-healer', 'arena-shrink',
+];
+
+export interface BossSignatureMechanic {
+  id: string;
+  type: BossSignatureMechanicType;
+  activeInPhaseIds?: string[]; // empty/undefined = active all phases
+  config: Record<string, number>; // intervalSeconds, damage, radius, warnSeconds, healPerSec, shieldRegenPerSec, enrageIntervalMult, baseRadius, minRadius, shrinkSeconds, maxHealers …
+  enemyRef?: string; // e.g. the healer enemy id for priority-healer
+  vfxId?: string; // optional telegraph / strike effect id
   enabled?: boolean;
 }
 
@@ -258,6 +291,16 @@ export interface BossAttackPatternDefinition {
   editorMeta?: { notes?: string };
 }
 
+export type BossRuntimeAttackEvent = {
+  id: string;
+  bossId: string;
+  phaseId?: string;
+  patternId: string;
+  patternType: BossAttackPatternType;
+  kind: 'warning' | 'execute';
+  atMs: number;
+};
+
 // ---- Summon wave ----
 
 export type BossSummonWaveTrigger =
@@ -329,6 +372,7 @@ export interface BossRuntimeState {
   destroyedWeakpointIds: string[];
 
   activeAttackPatternIds: string[];
+  recentAttackEvents?: BossRuntimeAttackEvent[];
   activeSummonWaveIds: string[];
   clearedSummonWaveIds: string[];
 

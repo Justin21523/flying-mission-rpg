@@ -65,6 +65,9 @@ export function spawnEnemyFromDef(def: EnemyDefinition, x: number, z: number): C
     aiData: {},
     facingRad: 0,
     shieldBroken: false,
+    // Wave 2 — poise meter (only enemies with a configured max participate).
+    poiseValue: def.poise ? 0 : undefined,
+    maxPoise: def.poise?.max,
   };
   useCombatTargetStore.getState().spawn(target);
   return target;

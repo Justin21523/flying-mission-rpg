@@ -9,6 +9,7 @@ import { FollowCamera } from '../camera/FollowCamera';
 import { PhaseCameraGizmo } from '../camera/PhaseCameraGizmo';
 import { EditableGround } from '../world/EditableGround';
 import { BaseLayoutLayer } from './BaseLayoutLayer';
+import { HangarNpcLayer } from './HangarNpcLayer';
 import { BaseVehicle } from './BaseVehicle';
 import { LiftPlatform } from './LiftPlatform';
 import { BaseCameraClamp } from './BaseCameraClamp';
@@ -96,6 +97,7 @@ export const BaseScene = () => {
         {/* POLI editable hangar floor — 🌤 Environment / 🗺 World / terrain-sculpt / PBR tools edit 'aero_base'. */}
         <EditableGround areaId="aero_base" />
         <BaseLayoutLayer />
+        {!editMode && <HangarNpcLayer />}
         {!editMode && <BaseVehicle />}
         {!editMode && <LiftPlatform />}
       </Physics>

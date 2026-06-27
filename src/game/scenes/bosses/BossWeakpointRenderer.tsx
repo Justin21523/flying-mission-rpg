@@ -11,6 +11,8 @@ import type { WeakpointMarkerGeometry } from '../../../types/game/boss';
 // not exposed, removed when destroyed. Follows each weakpoint's CombatTarget.
 function Marker({ targetId, geometry, color, exposed }: { targetId: string; geometry: WeakpointMarkerGeometry; color: string; exposed: boolean }) {
   const ref = useRef<THREE.Group>(null);
+  const opacity = exposed ? 0.95 : 0.22;
+  const emissiveIntensity = exposed ? 1.5 : 0.25;
   useFrame((state) => {
     const t = liveTargets.find((x) => x.id === targetId);
     if (ref.current && t) {
@@ -21,12 +23,12 @@ function Marker({ targetId, geometry, color, exposed }: { targetId: string; geom
   });
   return (
     <group ref={ref}>
-      {geometry === 'ring' && <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.6, 0.08, 8, 24]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} toneMapped={false} /></mesh>}
-      {geometry === 'diamond' && <mesh><octahedronGeometry args={[0.5, 0]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} toneMapped={false} /></mesh>}
+      {geometry === 'ring' && <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.6, 0.08, 8, 24]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveIntensity} transparent opacity={opacity} toneMapped={false} /></mesh>}
+      {geometry === 'diamond' && <mesh><octahedronGeometry args={[0.5, 0]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveIntensity} transparent opacity={opacity} toneMapped={false} /></mesh>}
       {(geometry === 'crosshair' || geometry === 'sphere') && (
         <>
-          <mesh><sphereGeometry args={[0.3, 12, 12]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} toneMapped={false} /></mesh>
-          {geometry === 'crosshair' && <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.55, 0.04, 6, 20]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} toneMapped={false} /></mesh>}
+          <mesh><sphereGeometry args={[0.3, 12, 12]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveIntensity} transparent opacity={opacity} toneMapped={false} /></mesh>
+          {geometry === 'crosshair' && <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.55, 0.04, 6, 20]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveIntensity} transparent opacity={opacity} toneMapped={false} /></mesh>}
         </>
       )}
     </group>

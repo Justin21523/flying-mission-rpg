@@ -95,6 +95,7 @@ export interface FlightTimelineEvent {
   time: number;               // seconds along the phase timeline
   eventType: FlightEventType;
   payload: Record<string, unknown>;
+  soundId?: string;           // optional sfx played when the event fires (synth SfxName e.g. 'boost', or cue id 'fx.boost')
   previewEnabled: boolean;    // show/fire in Edit Mode preview
   triggerOnce: boolean;       // fire once per playthrough (vs every crossing)
   enabled: boolean;

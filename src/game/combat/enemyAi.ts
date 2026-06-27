@@ -22,9 +22,14 @@ export interface AiContext {
   playerZ: number;
   nowS: number;
   dt: number;
+  // Wave 2 — live player-faction projectiles near the enemy (for the dodger). Optional; host fills it.
+  threats?: { x: number; z: number; vx: number; vz: number }[];
 }
 
-export type AiAction = 'none' | 'charge-hit' | 'fire' | 'bash' | 'spawn-minions' | 'dash' | 'quake-slam' | 'heal-ally';
+export type AiAction =
+  | 'none' | 'charge-hit' | 'fire' | 'bash' | 'spawn-minions' | 'dash' | 'quake-slam' | 'heal-ally'
+  // Wave 2 — tactical actions.
+  | 'melee-hit' | 'self-destruct' | 'buff-allies';
 
 export interface AiStep {
   state: EnemyAiState;
@@ -228,6 +233,89 @@ function stepRepairWisp(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiSte
   return still(set(e, 'idle'), facing);
 }
 
+// ---- Dodger: chases, but sidesteps when a player projectile comes near (Wave 2) ----
+function stepDodger(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.dodger!;
+  const d = bb(e);
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  // Continue an active sidestep.
+  if (e.aiState === 'evading' && ctx.nowS < (d.evadeUntil ?? 0)) {
+    const step = cfg.evadeSpeed * ctx.dt;
+    return { state: 'evading', moveX: (d.evx ?? 0) * step, moveZ: (d.evz ?? 0) * step, facingRad: facing, action: 'none' };
+  }
+  // Detect an incoming threat and begin a perpendicular evade (off cooldown).
+  if (ctx.nowS >= (d.evadeReadyAt ?? 0) && ctx.threats?.length) {
+    const r2 = cfg.projectileDetectRange * cfg.projectileDetectRange;
+    const near = ctx.threats.find((th) => (th.x - e.x) ** 2 + (th.z - e.z) ** 2 <= r2);
+    if (near) {
+      const vlen = Math.hypot(near.vx, near.vz) || 1;
+      d.evx = -near.vz / vlen; d.evz = near.vx / vlen; // perpendicular to the projectile heading
+      d.evadeUntil = ctx.nowS + cfg.evadeDurationSeconds;
+      d.evadeReadyAt = ctx.nowS + cfg.evadeCooldownSeconds;
+      return still(set(e, 'evading'), facing);
+    }
+  }
+  if (dist <= HIT_RADIUS + 1) return still(set(e, 'chasing'), facing, 'melee-hit');
+  const step = cfg.approachSpeed * ctx.dt;
+  return { state: set(e, 'chasing'), moveX: Math.sin(facing) * step, moveZ: Math.cos(facing) * step, facingRad: facing, action: 'none' };
+}
+
+// ---- Flanker: approaches on an angle to reach the player's side/back, then strikes (Wave 2) ----
+function stepFlanker(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.flanker!;
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  if (dist <= cfg.attackRange) return still(set(e, 'flanking'), facing, 'melee-hit');
+  // Offset the approach heading; straighten as it closes so it actually reaches the player.
+  const off = (cfg.flankAngleDegrees * Math.PI / 180) * (dist > cfg.attackRange * 2 ? 1 : 0.3);
+  const head = facing + off;
+  const step = cfg.approachSpeed * ctx.dt;
+  return { state: set(e, 'flanking'), moveX: Math.sin(head) * step, moveZ: Math.cos(head) * step, facingRad: facing, action: 'none' };
+}
+
+// ---- Bomber: rushes in, arms a fuse, then self-destructs (Wave 2) ----
+function stepBomber(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.bomber!;
+  const d = bb(e);
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  if (e.aiState === 'arming') {
+    if (ctx.nowS >= (d.armUntil ?? 0)) return still(set(e, 'defeated'), e.facingRad ?? facing, 'self-destruct');
+    return still('arming', e.facingRad ?? facing);
+  }
+  if (dist <= cfg.armRange) { d.armUntil = ctx.nowS + cfg.fuseSeconds; return still(set(e, 'arming'), facing); }
+  const step = cfg.rushSpeed * ctx.dt;
+  return { state: set(e, 'chasing'), moveX: Math.sin(facing) * step, moveZ: Math.cos(facing) * step, facingRad: facing, action: 'none' };
+}
+
+// ---- Suppressor: holds a preferred range and fires rapid covering shots (Wave 2) ----
+function stepSuppressor(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.suppressor!;
+  const d = bb(e);
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  const step = (e.moveSpeed ?? def.moveSpeed) * ctx.dt;
+  let mvx = 0, mvz = 0;
+  if (dist < cfg.preferredRange - 1) { mvx = -Math.sin(facing) * step; mvz = -Math.cos(facing) * step; }
+  else if (dist > cfg.preferredRange + 2) { mvx = Math.sin(facing) * step; mvz = Math.cos(facing) * step; }
+  if (ctx.nowS >= (d.fireAt ?? 0)) { d.fireAt = ctx.nowS + cfg.fireIntervalSeconds; return { state: set(e, 'suppressing'), moveX: mvx, moveZ: mvz, facingRad: facing, action: 'fire' }; }
+  return { state: set(e, 'suppressing'), moveX: mvx, moveZ: mvz, facingRad: facing, action: 'none' };
+}
+
+// ---- Buffer: hangs back and shields nearby allies on an interval (kill priority) (Wave 2) ----
+function stepBuffer(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep {
+  const cfg = def.buffer!;
+  const d = bb(e);
+  const dist = distTo(e, ctx);
+  const facing = angleTo(e, ctx);
+  const step = (e.moveSpeed ?? def.moveSpeed) * ctx.dt;
+  let mvx = 0, mvz = 0;
+  if (dist < cfg.keepDistance) { mvx = -Math.sin(facing) * step; mvz = -Math.cos(facing) * step; }
+  if (ctx.nowS >= (d.buffAt ?? 0)) { d.buffAt = ctx.nowS + cfg.buffIntervalSeconds; return { state: set(e, 'buffing'), moveX: mvx, moveZ: mvz, facingRad: facing, action: 'buff-allies' }; }
+  return { state: set(e, 'buffing'), moveX: mvx, moveZ: mvz, facingRad: facing, action: 'none' };
+}
+
 // Dispatch by archetype. Returns null for archetypes without a state machine (generic → host loop).
 export function stepEnemyAi(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): AiStep | null {
   switch (def.archetype) {
@@ -238,6 +326,11 @@ export function stepEnemyAi(e: AiEnemy, def: EnemyDefinition, ctx: AiContext): A
     case 'zip-glitch': return def.zip ? stepZip(e, def, ctx) : null;
     case 'quake-walker': return def.quake ? stepQuake(e, def, ctx) : null;
     case 'repair-wisp': return def.repairWisp ? stepRepairWisp(e, def, ctx) : null;
+    case 'dodger': return def.dodger ? stepDodger(e, def, ctx) : null;
+    case 'flanker': return def.flanker ? stepFlanker(e, def, ctx) : null;
+    case 'bomber': return def.bomber ? stepBomber(e, def, ctx) : null;
+    case 'suppressor': return def.suppressor ? stepSuppressor(e, def, ctx) : null;
+    case 'buffer': return def.buffer ? stepBuffer(e, def, ctx) : null;
     default: return null;
   }
 }

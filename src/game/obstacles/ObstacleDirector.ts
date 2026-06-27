@@ -2,6 +2,8 @@ import { liveObstacles, useObstacleStore, getLiveObstacle, type LiveObstacle } f
 import { useCombatTargetStore, liveTargets } from '../../stores/game/combatTargetStore';
 import { getObstacleDef, getObstaclesForSegment } from '../../stores/game/editorObstacleStore';
 import { registerRuntimeDamageable } from '../combat/enemyRuntime';
+import { damageTargetsInRadius } from '../combat/CombatDirector';
+import { queueSpawnImpact } from '../../stores/game/combatSpawnStore';
 import type { ObstacleDefinition, ObstacleState, ObstacleTrigger } from '../../types/game/obstacle';
 import { CLEARED_OBSTACLE_STATES } from '../../types/game/obstacle';
 import { resolveInteraction, canTransition, type ObstacleProgress } from './ObstacleInteractionController';
@@ -70,6 +72,11 @@ export function update(): void {
       if (!applyTrigger(o, def, 'damage', def.damageable?.weaknessTags ?? [])) {
         o.state = def.obstacleType === 'cracked-wall' ? 'destroyed' : 'cleared';
         changed = true;
+        // Batch O — explosive obstacle: damage nearby enemies on destruction (+ an impact poof).
+        if (def.explodeOnDestroy) {
+          damageTargetsInRadius(proxy.x, proxy.z, def.explodeOnDestroy.radius, { amount: def.explodeOnDestroy.damage, damageType: 'impact', attackTags: ['explosion', 'aoe'] });
+          queueSpawnImpact(proxy.x, proxy.y, proxy.z);
+        }
       }
     } else if (!terminal && o.state === 'active' && (proxy.hp < o.maxHp || proxy.shield < o.maxShield)) {
       applyTrigger(o, def, 'damage', def.damageable?.weaknessTags ?? []);

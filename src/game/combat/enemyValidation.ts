@@ -24,6 +24,16 @@ export function validateEnemy(def: EnemyDefinition): CombatValidationResult {
   if (def.archetype === 'quake-walker' && !def.quake) errors.push('quake-walker requires a quake config.');
   if (def.archetype === 'quake-walker' && def.quake && def.quake.slamRadius <= 0) errors.push('quake-walker slamRadius must be > 0.');
   if (def.archetype === 'repair-wisp' && !def.repairWisp) errors.push('repair-wisp requires a repairWisp config.');
+  // Wave 2 — tactical archetypes + poise.
+  if (def.archetype === 'dodger' && !def.dodger) errors.push('dodger requires a dodger config.');
+  if (def.archetype === 'dodger' && def.dodger && def.dodger.projectileDetectRange <= 0) errors.push('dodger projectileDetectRange must be > 0.');
+  if (def.archetype === 'flanker' && !def.flanker) errors.push('flanker requires a flanker config.');
+  if (def.archetype === 'bomber' && !def.bomber) errors.push('bomber requires a bomber config.');
+  if (def.archetype === 'bomber' && def.bomber && def.bomber.blastRadius <= 0) errors.push('bomber blastRadius must be > 0.');
+  if (def.archetype === 'suppressor' && !def.suppressor) errors.push('suppressor requires a suppressor config.');
+  if (def.archetype === 'suppressor' && def.suppressor && !def.suppressor.projectileSkillId.trim()) errors.push('suppressor needs a projectileSkillId.');
+  if (def.archetype === 'buffer' && !def.buffer) errors.push('buffer requires a buffer config.');
+  if (def.poise && def.poise.max <= 0) errors.push('poise.max must be > 0.');
   return { ok: errors.length === 0, errors, warnings };
 }
 

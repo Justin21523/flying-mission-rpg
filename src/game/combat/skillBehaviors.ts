@@ -91,6 +91,9 @@ export function spawnFromSkill(skill: CombatSkillDefinition, caster: SkillCaster
   for (const req of buildSpawnRequests(skill, caster)) spawnCombat(req);
 }
 
+// Batch O — the opening window of any block is a parry (full negate + fusion reward).
+export const PARRY_WINDOW_MS = 250;
+
 // Compute the active-defense state a defense skill grants. Pure.
 export function buildDefenseState(skill: CombatSkillDefinition, nowMs: number): ActiveDefenseState {
   const duration = (skill.durationSeconds ?? 2) * 1000;
@@ -98,21 +101,27 @@ export function buildDefenseState(skill: CombatSkillDefinition, nowMs: number): 
     type: skill.defenseType ?? 'front-shield',
     untilMs: nowMs + duration,
     value: skill.defenseValue ?? 0.5,
+    activatedAtMs: nowMs,
+    parryWindowMs: PARRY_WINDOW_MS,
   };
 }
 
 // Resolve incoming damage against an active defense. Pure — used by applyDamageToPlayer + tests.
-export interface DefenseOutcome { finalAmount: number; energyGain: number; reflectAmount: number; iframed: boolean }
+export interface DefenseOutcome { finalAmount: number; energyGain: number; reflectAmount: number; iframed: boolean; wasParried: boolean }
 export function resolveDefense(state: ActiveDefenseState | undefined, amount: number, nowMs: number): DefenseOutcome {
-  if (!state || nowMs >= state.untilMs) return { finalAmount: amount, energyGain: 0, reflectAmount: 0, iframed: false };
+  if (!state || nowMs >= state.untilMs) return { finalAmount: amount, energyGain: 0, reflectAmount: 0, iframed: false, wasParried: false };
+  // Batch O — perfect parry: a hit inside the opening window fully negates + flags for the fusion reward.
+  if (state.activatedAtMs != null && state.parryWindowMs != null && nowMs <= state.activatedAtMs + state.parryWindowMs) {
+    return { finalAmount: 0, energyGain: 0, reflectAmount: 0, iframed: true, wasParried: true };
+  }
   switch (state.type) {
     case 'quick-dash-iframe':
     case 'perfect-guard':
-      return { finalAmount: 0, energyGain: 0, reflectAmount: 0, iframed: true };
+      return { finalAmount: 0, energyGain: 0, reflectAmount: 0, iframed: true, wasParried: false };
     case 'absorb-energy':
-      return { finalAmount: 0, energyGain: amount * (state.value || 1), reflectAmount: 0, iframed: false };
+      return { finalAmount: 0, energyGain: amount * (state.value || 1), reflectAmount: 0, iframed: false, wasParried: false };
     case 'reflect-wall':
-      return { finalAmount: 0, energyGain: 0, reflectAmount: amount, iframed: false };
+      return { finalAmount: 0, energyGain: 0, reflectAmount: amount, iframed: false, wasParried: false };
     case 'omni-barrier':
     case 'front-shield':
     case 'damage-reduction-zone':
@@ -121,7 +130,7 @@ export function resolveDefense(state: ActiveDefenseState | undefined, amount: nu
     case 'team-rescue':
     default: {
       const reduce = Math.min(0.95, Math.max(0, state.value || 0.5));
-      return { finalAmount: Math.round(amount * (1 - reduce)), energyGain: 0, reflectAmount: 0, iframed: false };
+      return { finalAmount: Math.round(amount * (1 - reduce)), energyGain: 0, reflectAmount: 0, iframed: false, wasParried: false };
     }
   }
 }

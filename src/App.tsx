@@ -26,6 +26,14 @@ import { DescentHud } from './ui/game/DescentHud';
 import { LandingHud } from './ui/game/LandingHud';
 import { MissionHud } from './ui/game/MissionHud';
 import { MissionZoneHud } from './ui/game/MissionZoneHud';
+import { ThreatGaugeHud } from './ui/game/ThreatGaugeHud';
+import { MissionObjectiveHud } from './ui/game/MissionObjectiveHud';
+import { RescueRosterPanel } from './ui/game/RescueRosterPanel';
+import { ArenaRunHud } from './ui/game/ArenaRunHud';
+import { RunResultsOverlay } from './ui/game/RunResultsOverlay';
+import { RunBuffChoiceOverlay } from './ui/game/RunBuffChoiceOverlay';
+import { RouteChoiceOverlay } from './ui/game/RouteChoiceOverlay';
+import { RoomInteractionOverlay } from './ui/game/RoomInteractionOverlay';
 import { MissionZoneDebugPanel } from './ui/dev/MissionZoneDebugPanel';
 import { CombatHud } from './ui/combat/CombatHud';
 import { CombatDebugPanel } from './ui/dev/CombatDebugPanel';
@@ -37,6 +45,7 @@ import { SupportStatusHud } from './ui/support-combat/SupportStatusHud';
 import { SupportSynergyToast } from './ui/support-combat/SupportSynergyToast';
 import { SupportCombatDebugPanel } from './ui/debug/SupportCombatDebugPanel';
 import { BossHud } from './ui/boss/BossHud';
+import { BossIntroOverlay } from './ui/boss/BossIntroOverlay';
 import { BossWarningToast } from './ui/boss/BossWarningToast';
 import { BossDebugPanel } from './ui/debug/BossDebugPanel';
 import { CinematicAbilityDebugPanel } from './ui/debug/CinematicAbilityDebugPanel';
@@ -83,6 +92,31 @@ import { installStateMachineDiagnostics } from './game/diagnostics/StateMachineD
 import { registerGauge } from './game/diagnostics/SubscriptionLeakDetector';
 import { getAudioManager } from './game/audio/AudioManager';
 import { getCulledCount } from './game/perf/lod';
+import { StageProgressHud } from './ui/campaign/StageProgressHud';
+import { StageClearPanel } from './ui/campaign/StageClearPanel';
+import { StageFailedPanel } from './ui/campaign/StageFailedPanel';
+import { useStageProgressionStore } from './stores/game/useStageProgressionStore';
+import { CampaignDebugPanel } from './ui/debug/CampaignDebugPanel';
+import { StageDebugPanel } from './ui/debug/StageDebugPanel';
+import { EncounterDebugPanel } from './ui/debug/EncounterDebugPanel';
+import { EnvironmentDebugPanel } from './ui/debug/EnvironmentDebugPanel';
+import { DemoLandingScreen } from './ui/demo/DemoLandingScreen';
+import { DemoModePanel } from './ui/demo/DemoModePanel';
+import { DemoControlsOverlay } from './ui/demo/DemoControlsOverlay';
+import { GameTopBar } from './ui/polish/GameTopBar';
+import { UnifiedStatusHud } from './ui/polish/UnifiedStatusHud';
+import { ContextActionPrompt } from './ui/polish/ContextActionPrompt';
+import { GuidedHintToast } from './ui/polish/GuidedHintToast';
+import { CombatFeedbackLayer } from './ui/combat/CombatFeedbackLayer';
+import { useDemoModeStore } from './stores/useDemoModeStore';
+import { GameErrorBoundary } from './ui/system/GameErrorBoundary';
+import { RuntimeErrorOverlay } from './ui/system/RuntimeErrorOverlay';
+import { DiagnosticsPanel } from './ui/system/DiagnosticsPanel';
+import { ReleaseCandidatePanel } from './ui/qa/ReleaseCandidatePanel';
+import { installRuntimeErrorCollector } from './game/qa/RuntimeErrorCollector';
+import { RecordingSafeFrameOverlay } from './ui/demo/RecordingSafeFrameOverlay';
+import { RecordingShotChecklist } from './ui/demo/RecordingShotChecklist';
+import { usePortfolioRecordingStore } from './stores/usePortfolioRecordingStore';
 
 // On-ground base phases render the 3D hangar (BaseScene) + BaseHud; flight phases render FlightScene + FlightHud.
 const BASE_PHASES = new Set(['HANGAR', 'PLATFORM_ALIGNMENT', 'LAUNCH_PREPARATION']);
@@ -156,6 +190,10 @@ export const App = () => {
   // Edit Mode panels stay available in both modes. Toggle via the Leva dev panel.
   const world = useDevStore((s) => s.sceneMode) === 'world';
   const fsmDebug = useDevStore((s) => s.fsmDebug);
+  const demoEnabled = useDemoModeStore((s) => s.enabled);
+  const demoLandingDismissed = useDemoModeStore((s) => s.landingDismissed);
+  const hideDebugByDefault = useDemoModeStore((s) => s.hideDebugByDefault);
+  const recordingHideDebug = usePortfolioRecordingStore((s) => s.enabled && s.hideDebug);
   const autoEnabled = useAutoPlaytesterStore((s) => s.enabled);
   const phase = useGameStore((s) => s.phase);
   const basePhase = BASE_PHASES.has(phase);
@@ -168,12 +206,15 @@ export const App = () => {
   // Advanced Mission Zone gameplay phases (New Batch A) — share the ground/support HUD stack with the legacy
   // mission phases, but swap the objective HUD for the zone HUD.
   const zonePhase = phase === 'ADVANCED_MISSION_ZONE' || phase === 'ZONE_SEGMENT_GAMEPLAY' || phase === 'ZONE_COMPLETE';
-  // Combat Runtime (New Batch B) — HUD + skills active in zone gameplay + legacy mission gameplay.
-  const combatPhase = phase === 'ADVANCED_MISSION_ZONE' || phase === 'ZONE_SEGMENT_GAMEPLAY' || phase === 'MISSION_GAMEPLAY';
+  // Combat Runtime (New Batch B) — HUD + skills active in zone gameplay + legacy mission gameplay + arena runs.
+  const combatPhase = phase === 'ADVANCED_MISSION_ZONE' || phase === 'ZONE_SEGMENT_GAMEPLAY' || phase === 'MISSION_GAMEPLAY' || phase === 'ARENA_RUN';
+  const arenaRunPhase = phase === 'ARENA_RUN';
   const missionPhase = phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'SUPPORT_SELECTION' || zonePhase;
   const missionDonePhase = phase === 'MISSION_COMPLETE';
   const hangarReturnPhase = phase === 'HANGAR_RETURN';
   const resultsPhase = phase === 'MISSION_RESULTS';
+  const stageStatus = useStageProgressionStore((s) => s.status);
+  const showDeveloperDebug = editMode || (fsmDebug && !recordingHideDebug && (!demoEnabled || !hideDebugByDefault));
   const inBattle = useBattleStore((s) => s.isActive);
   const inActivity = useActivityStore((s) => s.isActive);
   const isRescueActive = useRescueOperationStore((s) => s.isActive);
@@ -196,6 +237,8 @@ export const App = () => {
   useEffect(() => {
     setupPoliQuestRewards();
   }, []);
+
+  useEffect(() => installRuntimeErrorCollector(), []);
 
   // Drive timed research completion even when the Research Station panel is closed.
   useEffect(() => {
@@ -283,6 +326,7 @@ export const App = () => {
   }, []);
 
   return (
+    <GameErrorBoundary>
     <div className="fixed inset-0 bg-gray-900">
       {/* Inherited POLI kit runtime + its HUD — only when the world scene is active (dormant in grey-box). */}
       {world && (
@@ -318,6 +362,15 @@ export const App = () => {
       {/* Always-on shell: game boot (seed + FSM), main dock, Leva dev panel, optional FSM dev console,
           and the Edit Mode authoring panels (Edit Mode must work in both grey-box and world scenes). */}
       <GameBoot />
+      {!world && <DemoLandingScreen />}
+      {!editMode && !world && <GameTopBar />}
+      {!editMode && !world && <UnifiedStatusHud />}
+      {!editMode && !world && <ContextActionPrompt />}
+      {!editMode && !world && <GuidedHintToast />}
+      {!editMode && !world && demoEnabled && <DemoControlsOverlay />}
+      {!editMode && !world && demoEnabled && demoLandingDismissed && <DemoModePanel />}
+      {!world && <RecordingSafeFrameOverlay />}
+      {!world && <RecordingShotChecklist />}
       {!editMode && !world && <FullControlDispatchHost />}
       {/* POLI quest runtime for the aero game (destination resident side-quests): the auto-tracker runs the
           quests; the QuestTracker HUD shows active side-quests during destination gameplay. */}
@@ -326,6 +379,7 @@ export const App = () => {
           grey-box game, hidden in Edit Mode and in the dormant POLI 'world' reference. */}
       {!editMode && !world && <GameScreens />}
       {!editMode && !world && basePhase && <BaseHud />}
+      {!editMode && !world && basePhase && <RescueRosterPanel />}
       {!editMode && !world && flightPhase && <FlightHud />}
       {flightPhase && <FlightPhaseEventHud />}
       {editMode && (flightPhase || worldFlightPhase) && <FlightPlaybackOverlay />}
@@ -343,23 +397,33 @@ export const App = () => {
       {!editMode && !world && landingPhase && <LandingHud />}
       {!editMode && !world && missionPhase && !zonePhase && <MissionHud />}
       {!editMode && !world && zonePhase && <MissionZoneHud />}
+      {!editMode && !world && zonePhase && <StageProgressHud />}
+      {!editMode && !world && zonePhase && <ThreatGaugeHud />}
+      {!editMode && !world && zonePhase && <MissionObjectiveHud />}
+      {!editMode && !world && zonePhase && <RouteChoiceOverlay />}
+      {!editMode && !world && arenaRunPhase && <ArenaRunHud />}
+      {!editMode && !world && arenaRunPhase && <RunBuffChoiceOverlay />}
+      {!editMode && !world && arenaRunPhase && <RoomInteractionOverlay />}
+      {!editMode && !world && arenaRunPhase && <RunResultsOverlay />}
       {!editMode && !world && combatPhase && <CombatHud />}
-      {!editMode && !world && (combatPhase || zonePhase) && <GodModePanel />}
+      {!editMode && !world && combatPhase && <CombatFeedbackLayer />}
+      {showDeveloperDebug && !world && (combatPhase || zonePhase) && <GodModePanel />}
       {!editMode && !world && combatPhase && <CharacterSkillHud />}
-      {(fsmDebug || editMode) && combatPhase && <CharacterSkillDebugPanel />}
+      {showDeveloperDebug && combatPhase && <CharacterSkillDebugPanel />}
       {!editMode && !world && (combatPhase || zonePhase) && <SupportCombatPanel />}
       {!editMode && !world && (combatPhase || zonePhase) && <SupportStatusHud />}
       {!editMode && !world && (combatPhase || zonePhase) && <PartnerFusionHud />}
       {!editMode && !world && (combatPhase || zonePhase) && <SupportSynergyToast />}
-      {(fsmDebug || editMode) && combatPhase && <SupportCombatDebugPanel />}
+      {showDeveloperDebug && combatPhase && <SupportCombatDebugPanel />}
       {!editMode && !world && (combatPhase || zonePhase) && <BossHud />}
+      {!editMode && !world && (combatPhase || zonePhase) && <BossIntroOverlay />}
       {!editMode && !world && (combatPhase || zonePhase) && <BossWarningToast />}
-      {(fsmDebug || editMode) && combatPhase && <BossDebugPanel />}
-      {(fsmDebug || editMode) && combatPhase && <CinematicAbilityDebugPanel />}
-      {(fsmDebug || editMode) && combatPhase && <VfxShowcaseDebugPanel />}
-      {(fsmDebug || editMode) && combatPhase && <CinematicVfxDebugPanel />}
+      {showDeveloperDebug && combatPhase && <BossDebugPanel />}
+      {showDeveloperDebug && combatPhase && <CinematicAbilityDebugPanel />}
+      {showDeveloperDebug && combatPhase && <VfxShowcaseDebugPanel />}
+      {showDeveloperDebug && combatPhase && <CinematicVfxDebugPanel />}
       {!editMode && !world && zonePhase && <IncidentHud />}
-      {(fsmDebug || editMode) && zonePhase && <IncidentDebugPanel />}
+      {showDeveloperDebug && zonePhase && <IncidentDebugPanel />}
       {!editMode && !world && (missionPhase || missionDonePhase) && !zonePhase && <QuestTracker />}
       {!editMode && !world && missionPhase && <SupportDispatchDirectorHost />}
       {!editMode && !world && missionPhase && <SupportSelectionPanel />}
@@ -369,20 +433,26 @@ export const App = () => {
       {!editMode && !world && missionPhase && <MultiCharacterHud />}
       {!editMode && !world && missionPhase && <HuntHud />}
       {!editMode && !world && missionDonePhase && <MissionCompleteHud />}
+      {!editMode && !world && missionDonePhase && stageStatus === 'stage-clear' && <StageClearPanel />}
+      {!editMode && !world && stageStatus === 'stage-failed' && <StageFailedPanel />}
       {!editMode && !world && hangarReturnPhase && <HangarReturnHud />}
       {!editMode && !world && resultsPhase && <MissionResultsScreen />}
       {/* POLI dialogue box + the Phaser mini-game overlay serve the destination phases too. */}
       {!editMode && !world && missionPhase && <DialogueBox />}
       {!editMode && !world && <PhaserOverlay />}
-      <Dock />
-      <DevPanel />
+      {(!demoEnabled || editMode) && <Dock />}
+      {showDeveloperDebug && <DevPanel />}
       {/* Phase jumper: always available in Edit Mode (jump to any mid-game scene), plus the Leva toggle. */}
-      {(fsmDebug || editMode) && <GameStateDebugPanel />}
-      {(fsmDebug || editMode) && transformPhase && <TransformationDebugPanel />}
-      {(fsmDebug || editMode) && (descentPhase || landingPhase || missionPhase || missionDonePhase) && <DestinationDebugPanel />}
-      {(fsmDebug || editMode) && missionPhase && <SupportDebugPanel />}
-      {(fsmDebug || editMode) && zonePhase && <MissionZoneDebugPanel />}
-      {(fsmDebug || editMode) && combatPhase && <CombatDebugPanel />}
+      {showDeveloperDebug && <GameStateDebugPanel />}
+      {showDeveloperDebug && transformPhase && <TransformationDebugPanel />}
+      {showDeveloperDebug && (descentPhase || landingPhase || missionPhase || missionDonePhase) && <DestinationDebugPanel />}
+      {showDeveloperDebug && missionPhase && <SupportDebugPanel />}
+      {showDeveloperDebug && zonePhase && <MissionZoneDebugPanel />}
+      {showDeveloperDebug && combatPhase && <CombatDebugPanel />}
+      {showDeveloperDebug && !world && <CampaignDebugPanel />}
+      {showDeveloperDebug && !world && <StageDebugPanel />}
+      {showDeveloperDebug && !world && <EncounterDebugPanel />}
+      {showDeveloperDebug && !world && <EnvironmentDebugPanel />}
       {/* Edit Mode: independent panels — Assets (left-centre), Inspector (top-left), terrain palette, and
           the centred draggable Hub — matching the original layout. */}
       {editMode && <EditAssetPalette />}
@@ -397,18 +467,22 @@ export const App = () => {
       {/* Batch 13 — AutoPlaytester (debug/test only): director always mounted (ticks only when enabled),
           panel shown in dev/edit mode or when an auto run is active. */}
       <AutoPlaytesterDirector />
-      {(fsmDebug || editMode || autoEnabled) && <AutoPlaytesterPanel />}
+      {(showDeveloperDebug || autoEnabled) && <AutoPlaytesterPanel />}
       {/* Batch 13 — runtime health + save debug tools (FSM-debug only, to avoid cluttering Edit Mode). */}
       {fsmDebug && <RuntimeHealthPanel />}
       {fsmDebug && <SaveDebugPanel />}
+      {showDeveloperDebug && !world && <ReleaseCandidatePanel />}
+      {showDeveloperDebug && !world && <DiagnosticsPanel />}
+      {!world && <RuntimeErrorOverlay />}
       {/* Batch 13.1 — in-game system menu (pause + settings + save) for aero play mode. */}
       {!editMode && !world && <SystemMenuButton />}
       {!editMode && !world && <SystemMenu />}
       {!editMode && !world && <RouteColorGradeOverlay />}
-      <PlayerPosDebug />
+      {showDeveloperDebug && <PlayerPosDebug />}
       {/* Single R3F canvas (error boundary + Suspense loading inside). DPR capped lower (high-DPI screens
           were fill-bound); a PerformanceMonitor in Scene adapts it. */}
       <GameCanvas />
     </div>
+    </GameErrorBoundary>
   );
 };

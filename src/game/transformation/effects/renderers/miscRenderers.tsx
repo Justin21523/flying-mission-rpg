@@ -32,9 +32,10 @@ export const PhysicsRenderer = ({ fx }: { fx: ActiveEffectV2 }) => {
     const t = live.progress * p.lifetime;
     const attr = pts.geometry.attributes.position as BufferAttribute;
     const arr = attr.array as Float32Array; // THREE-owned buffer — mutate this, not the memo
+    const rs = p.randomSeed + (fx.config.seed ?? 0) * 1013; // top-level seed folds into the param seed (seed 0 = unchanged)
     for (let i = 0; i < count; i += 1) {
-      const a = (i / count) * Math.PI * 2 + seeded(i + p.randomSeed) * 0.6;
-      const phi = Math.acos(2 * seeded(i * 3 + p.randomSeed) - 1);
+      const a = (i / count) * Math.PI * 2 + seeded(i + rs) * 0.6;
+      const phi = Math.acos(2 * seeded(i * 3 + rs) - 1);
       const raw = (p.outwardForce + p.radialForce) * t - p.inwardForce * t - 0.5 * p.drag * p.outwardForce * t * t;
       const r = Math.max(0, Math.min(p.boundaryRadius, raw)) + Math.sin(t * p.orbitSpeed) * (p.orbitRadius * 0.1);
       const ang = a + t * p.angularVelocity;

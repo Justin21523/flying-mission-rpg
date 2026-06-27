@@ -4,6 +4,7 @@ import { useUiStore } from '../../stores/uiStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { EditModeAmbience } from '../edit/EditModeAmbience';
 import { WorldSkyAmbience } from '../flight/world/WorldSkyAmbience';
+import { ZoneEnvironmentAmbience } from '../environment/ZoneEnvironmentAmbience';
 import { SceneEditorGizmo } from '../edit/SceneEditorGizmo';
 import { FollowCamera } from '../camera/FollowCamera';
 import { PhaseCameraGizmo } from '../camera/PhaseCameraGizmo';
@@ -16,10 +17,13 @@ import { RobotGroundController } from './RobotGroundController';
 import { LandingSettle } from './LandingSettle';
 import { ObjectiveDirectorHost } from '../missions/ObjectiveDirectorHost';
 import { AdvancedMissionZoneDirectorHost } from '../advanced-mission-zone/AdvancedMissionZoneDirectorHost';
+import { MissionObjectiveHost } from '../advanced-mission-zone/MissionObjectiveHost';
 import { ZoneMarkerLayer } from '../advanced-mission-zone/ZoneMarkerLayer';
+import { ZonePropLayer } from '../advanced-mission-zone/ZonePropLayer';
 import { IncidentSceneLayer } from '../scenes/incidents/IncidentSceneLayer';
 import { CombatRuntimeLayer, CombatVfxPreviewLayer } from '../combat/CombatRuntimeLayer';
 import { ZoneEncounterHost } from '../advanced-mission-zone/ZoneEncounterHost';
+import { ArenaRunHost } from '../arena-run/ArenaRunHost';
 import { ObstacleRenderer } from '../obstacles/ObstacleRenderer';
 import { useDestinationRuntimeStore } from '../../stores/game/destinationRuntimeStore';
 import { useGroundAbilityStore } from '../../stores/game/groundAbilityStore';
@@ -38,11 +42,12 @@ import { PoseSwitchFxLayer } from '../characters/PoseSwitchFxLayer';
 // One scene for all five phases: the POLI editable ground ('aero_destination' — sculpt/PBR/environment
 // tools work here), the gizmo-editable layout + NPCs, and the phase-appropriate controller. Edit Mode shows
 // everything selectable with the flat-bright ambience. Runtime resets on unmount.
-const GROUND_PHASES = new Set(['NPC_GREETING', 'MISSION_GAMEPLAY', 'ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'ZONE_COMPLETE', 'SUPPORT_SELECTION', 'MISSION_COMPLETE']);
+const GROUND_PHASES = new Set(['NPC_GREETING', 'MISSION_GAMEPLAY', 'ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'ZONE_COMPLETE', 'SUPPORT_SELECTION', 'MISSION_COMPLETE', 'ARENA_RUN']);
 // Advanced Mission Zone gameplay phases — drive the zone director host + markers.
 const ZONE_PHASES = new Set(['ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'ZONE_COMPLETE']);
 // Combat Runtime phases — where skills / dummy targets / damage are active (not during ZONE_COMPLETE toast).
-const COMBAT_PHASES = new Set(['ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'MISSION_GAMEPLAY']);
+// Batch N — ARENA_RUN reuses the combat stack + ground + player controller (no zone system).
+const COMBAT_PHASES = new Set(['ADVANCED_MISSION_ZONE', 'ZONE_SEGMENT_GAMEPLAY', 'MISSION_GAMEPLAY', 'ARENA_RUN']);
 
 export const DestinationScene = () => {
   const editMode = useUiStore((s) => s.editMode);
@@ -57,7 +62,7 @@ export const DestinationScene = () => {
 
   return (
     <>
-      {editMode ? <EditModeAmbience /> : <WorldSkyAmbience top="#4a90d9" bottom="#d6ecff" />}
+      {editMode ? <EditModeAmbience /> : (ZONE_PHASES.has(phase) ? <ZoneEnvironmentAmbience /> : <WorldSkyAmbience top="#4a90d9" bottom="#d6ecff" />)}
 
       <Physics gravity={[0, -9.81, 0]}>
         {/* POLI editable landing ground — 🌤 Environment / 🗺 World / terrain sculpt / PBR edit this area. */}
@@ -75,13 +80,16 @@ export const DestinationScene = () => {
       {!editMode && (phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'ZONE_SEGMENT_GAMEPLAY') && <ObjectiveDirectorHost />}
       {/* Advanced Mission Zone — markers (edit + play) and the per-frame director host (play only). */}
       <ZoneMarkerLayer />
+      <ZonePropLayer />
       {!editMode && ZONE_PHASES.has(phase) && <AdvancedMissionZoneDirectorHost />}
+      {!editMode && ZONE_PHASES.has(phase) && <MissionObjectiveHost />}
       {/* Batch G — AI incident scene visuals (affected area / NPC + object states / hazards). */}
       {ZONE_PHASES.has(phase) && <IncidentSceneLayer />}
       {!editMode && COMBAT_PHASES.has(phase) && <CombatRuntimeLayer />}
       {/* Edit Mode: render-only VFX preview so the 🎨 VFX Showcase / 🎬 Cinematic debug panels show cast effects. */}
       {editMode && COMBAT_PHASES.has(phase) && <CombatVfxPreviewLayer />}
       {!editMode && COMBAT_PHASES.has(phase) && <ZoneEncounterHost />}
+      {!editMode && phase === 'ARENA_RUN' && <ArenaRunHost />}
       <ObstacleRenderer />
       {!editMode && GROUND_PHASES.has(phase) && (
         <>

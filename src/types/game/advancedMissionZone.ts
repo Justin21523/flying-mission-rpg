@@ -20,7 +20,10 @@ export type ZoneSegmentType =
   | 'elite-placeholder'
   | 'boss-placeholder'
   | 'boss'
-  | 'extraction';
+  | 'extraction'
+  | 'defense-waves'
+  | 'timed-rescue'
+  | 'stealth-scan';
 
 export const ZONE_SEGMENT_TYPES: readonly ZoneSegmentType[] = [
   'landing',
@@ -34,6 +37,9 @@ export const ZONE_SEGMENT_TYPES: readonly ZoneSegmentType[] = [
   'boss-placeholder',
   'boss',
   'extraction',
+  'defense-waves',
+  'timed-rescue',
+  'stealth-scan',
 ];
 
 export type ZoneMarkerType =
@@ -98,7 +104,16 @@ export type ZoneConditionDefinition =
   | { id: string; type: 'resolve-incident'; incidentId: string }
   | { id: string; type: 'complete-incident-objective'; incidentId: string; objectiveStepId: string }
   | { id: string; type: 'incident-success'; incidentId: string }
-  | { id: string; type: 'incident-failed'; incidentId: string };
+  | { id: string; type: 'incident-failed'; incidentId: string }
+  // Batch O — mission-type objectives (driven by MissionObjectiveHost; it records completion + live progress).
+  | { id: string; type: 'defense-waves'; waveGroupIds: string[]; waveIntervalSeconds: number }
+  | { id: string; type: 'timed-rescue'; rescueMarkerIds: string[]; seconds: number }
+  | { id: string; type: 'scan-targets'; scanGroupId: string; count: number }
+  // Wave 3 — additional mission-type objectives (driven by MissionObjectiveHost).
+  | { id: string; type: 'escort-npc'; npcMarkerId: string; destinationMarkerId: string; speed?: number }
+  | { id: string; type: 'hold-zone'; markerId: string; radius?: number; seconds: number }
+  | { id: string; type: 'survive-timer'; seconds: number }
+  | { id: string; type: 'hack-terminals'; terminalMarkerIds: string[]; radius?: number; secondsPerTerminal: number };
 
 export type ZoneConditionType = ZoneConditionDefinition['type'];
 
@@ -133,6 +148,13 @@ export const ZONE_CONDITION_TYPES: readonly ZoneConditionType[] = [
   'complete-incident-objective',
   'incident-success',
   'incident-failed',
+  'defense-waves',
+  'timed-rescue',
+  'scan-targets',
+  'escort-npc',
+  'hold-zone',
+  'survive-timer',
+  'hack-terminals',
 ];
 
 // Condition types that are deliberately not satisfiable yet (placeholders for future combat/incident
@@ -167,6 +189,11 @@ export interface ZoneSegmentDefinition {
   segmentType: ZoneSegmentType;
 
   bounds?: ZoneBoundsDefinition;
+
+  // Batch J — environment theme applied when the player ENTERS this segment (editable in the 🎯 Mission Zone
+  // tab via a theme dropdown). Resolved against the EnvironmentTheme library and written as a live per-area
+  // override (editorEnvironmentStore) so it is fully restorable / re-editable in Edit Mode. undefined = inherit.
+  environmentThemeId?: string;
 
   entryConditions: ZoneConditionDefinition[];
   completionConditions: ZoneConditionDefinition[];
@@ -214,6 +241,17 @@ export interface MissionZoneDefinition {
   finalSegmentIds: string[];
 
   zoneMode: ZoneMode;
+
+  // Batch J — auto-combat + random-boss switches (editable). `autoCombatOnLanding` marks that landing in this
+  // zone should drop straight into a combat segment (the start segment is expected to spawn an on-segment-enter
+  // wave). `randomBossPoolId` enables the threat-gauge RandomBossDirector for this zone: while in a non-boss
+  // combat segment a gauge fills (kills + time) and at threshold air-drops a weighted-random boss from the pool.
+  autoCombatOnLanding?: boolean;
+  randomBossPoolId?: string;
+
+  // Batch K — zone default environment theme. Segments without their own environmentThemeId inherit this, so a
+  // whole zone can share one theme by setting it once here (boss/elite segments override per-segment). Editable.
+  environmentThemeId?: string;
 
   defaultRespawnSegmentId?: string;
   allowBacktracking: boolean;

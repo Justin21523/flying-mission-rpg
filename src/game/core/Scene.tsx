@@ -89,7 +89,7 @@ export const Scene = () => {
       );
     }
     const destinationPhase =
-      phase === 'DESCENT' || phase === 'LANDING' || phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'ADVANCED_MISSION_ZONE' || phase === 'ZONE_SEGMENT_GAMEPLAY' || phase === 'ZONE_COMPLETE' || phase === 'SUPPORT_SELECTION' || phase === 'MISSION_COMPLETE';
+      phase === 'DESCENT' || phase === 'LANDING' || phase === 'NPC_GREETING' || phase === 'MISSION_GAMEPLAY' || phase === 'ADVANCED_MISSION_ZONE' || phase === 'ZONE_SEGMENT_GAMEPLAY' || phase === 'ZONE_COMPLETE' || phase === 'SUPPORT_SELECTION' || phase === 'MISSION_COMPLETE' || phase === 'ARENA_RUN';
     if (destinationPhase) {
       return (
         <>

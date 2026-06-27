@@ -232,6 +232,19 @@ export interface TargetRuleDefinition {
   reducedAgainstTags?: string[];
 }
 
+// An authored, timed VFX/SFX trigger on a skill's cast timeline. Optional & additive: a skill with no
+// timelineEvents fires its single effectDefinitionId exactly as before. When present, the timeline drives the
+// effects/sounds instead (each fires at timeSeconds during the cast). Editable via the Skill Timeline editor.
+export interface SkillTimelineEvent {
+  eventId: string;
+  name: string;
+  timeSeconds: number; // when it fires within the cast
+  kind: 'effect' | 'sound';
+  effectDefinitionId?: string; // kind 'effect' → a combat/cinematic effect id
+  soundId?: string; // kind 'sound' → synth SfxName ('boost') or cue id ('fx.boost')
+  enabled: boolean;
+}
+
 export interface CombatSkillDefinition {
   id: string;
   characterId?: string;
@@ -247,6 +260,7 @@ export interface CombatSkillDefinition {
   hitVolume: HitVolumeDefinition;
   targetRules: TargetRuleDefinition;
   effectDefinitionId?: string;
+  timelineEvents?: SkillTimelineEvent[]; // optional authored timeline of timed VFX/SFX triggers (overrides the single effect when present)
   debug?: { ignoreEnergyCost?: boolean; ignoreCooldown?: boolean; showHitVolume?: boolean };
   editorMeta?: { displayName?: string; notes?: string; icon?: string; themeColor?: string };
   enabled?: boolean;
@@ -343,10 +357,15 @@ export type EnemyAiBehavior = 'chaser' | 'kiter' | 'turret' | 'boss';
 // the Batch D approach-and-cast loop. Batch I adds the remaining 4 of the 8-archetype roster.
 export type EnemyArchetype =
   | 'generic' | 'crusher-drone' | 'pulse-turret' | 'shield-carrier'
-  | 'spawner-bug' | 'zip-glitch' | 'quake-walker' | 'repair-wisp';
+  | 'spawner-bug' | 'zip-glitch' | 'quake-walker' | 'repair-wisp'
+  | 'hazard-core' | 'drone-swarm' | 'sniper-node' | 'barrier-node' | 'elite-sentinel'
+  // Wave 2 — tactical archetypes.
+  | 'dodger' | 'flanker' | 'bomber' | 'suppressor' | 'buffer';
 export const ENEMY_ARCHETYPES: readonly EnemyArchetype[] = [
   'generic', 'crusher-drone', 'pulse-turret', 'shield-carrier',
   'spawner-bug', 'zip-glitch', 'quake-walker', 'repair-wisp',
+  'hazard-core', 'drone-swarm', 'sniper-node', 'barrier-node', 'elite-sentinel',
+  'dodger', 'flanker', 'bomber', 'suppressor', 'buffer',
 ];
 
 // All runtime AI states across the archetypes (a target uses the subset for its archetype).
@@ -355,7 +374,9 @@ export type EnemyAiState =
   | 'tracking' | 'firing' | 'cooldown'
   | 'guarding' | 'bash' | 'shield-broken' | 'stunned' | 'defeated'
   // Batch I — new archetype states.
-  | 'spawning' | 'dashing' | 'quake-windup' | 'slamming' | 'healing' | 'fleeing';
+  | 'spawning' | 'dashing' | 'quake-windup' | 'slamming' | 'healing' | 'fleeing'
+  // Wave 2 — tactical states.
+  | 'evading' | 'flanking' | 'arming' | 'suppressing' | 'buffing';
 
 export interface CrusherConfig {
   windupSeconds: number;
@@ -402,6 +423,39 @@ export interface RepairWispConfig {
   healRange: number;
   fleeRange: number; // keep this far from the player
 }
+// Wave 2 — tactical archetype configs.
+export interface DodgerConfig {
+  approachSpeed: number; // chase speed toward the player
+  meleeDamage: number; // damage on contact
+  projectileDetectRange: number; // radius to notice an incoming player projectile
+  evadeSpeed: number; // lateral sidestep speed
+  evadeDurationSeconds: number;
+  evadeCooldownSeconds: number;
+}
+export interface FlankerConfig {
+  approachSpeed: number;
+  flankAngleDegrees: number; // target offset from the player's facing-to-enemy (circles to the side/back)
+  meleeDamage: number;
+  attackRange: number;
+}
+export interface BomberConfig {
+  rushSpeed: number;
+  armRange: number; // start the fuse when this close
+  fuseSeconds: number;
+  blastRadius: number;
+  blastDamage: number;
+}
+export interface SuppressorConfig {
+  projectileSkillId: string; // enemy-faction projectile skill (rapid, low damage)
+  fireIntervalSeconds: number;
+  preferredRange: number; // hold around this distance
+}
+export interface BufferConfig {
+  buffIntervalSeconds: number;
+  shieldAmount: number; // shield granted to nearby allies per pulse
+  buffRange: number;
+  keepDistance: number; // stay this far from the player
+}
 
 export interface EnemyDefinition {
   id: string;
@@ -420,6 +474,10 @@ export interface EnemyDefinition {
   bossId?: string; // groups boss phases
   scale?: number;
   color?: string;
+  // Batch L (meta-progression) — reward granted to the active character / wallet on defeat. Optional;
+  // KillRewards falls back to a maxHp-derived default when unset.
+  expReward?: number;
+  coinReward?: number;
   // Batch C — archetype + per-archetype AI config (optional → Batch D enemies stay valid).
   archetype?: EnemyArchetype;
   charge?: CrusherConfig;
@@ -430,6 +488,14 @@ export interface EnemyDefinition {
   zip?: ZipConfig;
   quake?: QuakeConfig;
   repairWisp?: RepairWispConfig;
+  // Wave 2 — tactical archetype configs.
+  dodger?: DodgerConfig;
+  flanker?: FlankerConfig;
+  bomber?: BomberConfig;
+  suppressor?: SuppressorConfig;
+  buffer?: BufferConfig;
+  // Wave 2 — poise / break meter (per-enemy max; runtime accumulates from staggerValue hits). Optional.
+  poise?: { max: number };
   editorMeta?: { notes?: string };
   enabled: boolean;
 }
@@ -444,6 +510,10 @@ export interface EnemySpawnGroupDefinition {
   completeWhenAllDefeated: boolean;
   linkedZoneConditionId?: string;
   respawn?: { enabled: boolean; maxRespawns?: number; respawnDelaySeconds?: number };
+  // Wave 1 — optional elite-affix policy: each spawned enemy may roll affixes (allowedAffixIds, by chance).
+  affixPolicy?: { allowedAffixIds: string[]; chancePerEnemy: number; maxPerEnemy: number };
+  // Wave 2 — optional squad coordination: per-enemy tactical roles drive a coordinator pass (spacing / flanking).
+  squadPolicy?: { enabled?: boolean; roles?: { enemyDefinitionId: string; role: 'melee-swarm' | 'ranged-keep-distance' | 'healer-stay-back' | 'flank' }[] };
   editorMeta?: { notes?: string };
   enabled: boolean;
 }
@@ -466,6 +536,9 @@ export interface ActiveDefenseState {
   type: DefenseType;
   untilMs: number;
   value: number; // damage-reduction fraction / absorb amount / etc.
+  // Batch O — a hit within [activatedAtMs, activatedAtMs+parryWindowMs] is a PARRY (full negate + fusion reward).
+  activatedAtMs?: number;
+  parryWindowMs?: number;
 }
 
 // ---- Validation ----

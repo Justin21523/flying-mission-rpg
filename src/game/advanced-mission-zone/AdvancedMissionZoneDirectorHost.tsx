@@ -10,6 +10,9 @@ import { activeSegment, beginFirstSegment, completeCurrentSegment, transitionToN
 import { clearedGroupIds, groupRemaining } from '../combat/enemySpawnDirector';
 import { destroyedObstacleIds, clearedObstacleIds, repairedObstacleIds } from '../obstacles/ObstacleDirector';
 import { update as updateIncidents } from '../incidents/AIIncidentDirector';
+import { effectiveGodMode } from '../combat/difficulty';
+import { getGameSettings } from '../../stores/game/useSettingsStore';
+import { update as updateRandomBoss } from '../bosses/RandomBossDirector';
 
 // Drives the active Advanced Mission Zone each frame: enters the first segment, evaluates completion
 // conditions against the live robot position / objective progress, records proximity interactions and
@@ -34,7 +37,7 @@ function buildProbe(nowMs: number): ZoneWorldProbe {
     interactedObjectIds: new Set(z.interactedObjectIds),
     clearedAreaIds: new Set(z.clearedAreaIds),
     completedSegmentIds: new Set(z.completedSegmentIds),
-    godMode: z.debug.godMode,
+    godMode: effectiveGodMode(z.debug.godMode, getGameSettings().difficulty),
     clearedEnemyGroupIds: clearedGroupIds(),
     enemyGroupRemaining,
     destroyedObstacleIds: destroyedObstacleIds(),
@@ -55,6 +58,9 @@ function buildProbe(nowMs: number): ZoneWorldProbe {
     resolvedIncidentIds: new Set(z.resolvedIncidentIds),
     completedIncidentObjectiveIds: new Set(z.completedIncidentObjectiveIds),
     failedIncidentIds: new Set(z.failedIncidentIds),
+    // Batch O — mission-type objectives (host-driven).
+    completedMissionObjectiveIds: new Set(z.completedMissionObjectiveIds),
+    missionObjectiveProgress: z.missionObjectiveProgress,
   };
 }
 
@@ -100,6 +106,8 @@ export const AdvancedMissionZoneDirectorHost = () => {
       if (!seg) return;
       // Batch G — pump the AI incident runtime (objectives / escalation / completion) each frame.
       updateIncidents(dt);
+      // Batch J — pump the threat gauge; air-drops a random boss when it fills (zone opt-in via randomBossPoolId).
+      updateRandomBoss(dt);
       const probe = buildProbe(typeof performance !== 'undefined' ? performance.now() : Date.now());
 
       // placeholder-clear-area: auto-clear once the player stands in the referenced marker's radius.

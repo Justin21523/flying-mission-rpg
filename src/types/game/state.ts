@@ -29,6 +29,7 @@ export type GamePhase =
   | 'BASE_APPROACH'
   | 'HANGAR_RETURN'
   | 'MISSION_RESULTS'
+  | 'ARENA_RUN' // Batch N — Endless / Roguelite arena run (outside the campaign zone system)
   | 'PAUSED'
   | 'ERROR';
 
@@ -60,6 +61,7 @@ export const GAME_PHASES: readonly GamePhase[] = [
   'BASE_APPROACH',
   'HANGAR_RETURN',
   'MISSION_RESULTS',
+  'ARENA_RUN',
   'PAUSED',
   'ERROR',
 ];

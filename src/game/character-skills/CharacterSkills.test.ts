@@ -20,8 +20,9 @@ const skillIds = new Set([...SEED_KIT_SKILLS.map((s) => s.id)]);
 const skillExists = (id: string) => skillIds.has(id);
 
 describe('MVP character kits', () => {
-  it('has a kit for each of the 4 heroes with basic + defense + a model-first effect', () => {
-    expect(MVP_KIT_CHARACTER_IDS).toEqual(['char_jett', 'char_donnie', 'char_paul', 'char_chase']);
+  it('has a kit for each of the 7 kitted heroes with basic + defense + a model-first effect', () => {
+    // Wave 2 — Jerome / Bello / Flip joined the original four core rescue heroes.
+    expect(MVP_KIT_CHARACTER_IDS).toEqual(['char_jett', 'char_donnie', 'char_paul', 'char_chase', 'char_jerome', 'char_bello', 'char_flip']);
     for (const kit of SEED_CHARACTER_KITS) {
       expect(validateKit(kit, skillExists).ok, kit.characterId).toBe(true);
       expect(kit.defaultSkillIds.basic).toBeTruthy();

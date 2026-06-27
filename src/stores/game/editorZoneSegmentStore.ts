@@ -9,6 +9,9 @@ export const useEditorZoneSegmentStore = createEditorCollection<ZoneSegmentDefin
   storageKey: 'aero-rescue-editor-zone-segment-v1',
   seed: SEED_ZONE_SEGMENTS,
   makeId: () => `seg_${nanoid(6)}`,
+  // Batch J/K/O + World-build W1/W2 — bump so reconcileFromSeed refreshes shipped segments (auto-combat landing,
+  // env themes, mission-type conversions, W1 Signal Yard, and the W2 incident hooks on 9 segments) on saves.
+  seedVersion: 'worldbuild-w2',
 });
 
 export function getEditorZoneSegments(): ZoneSegmentDefinition[] {

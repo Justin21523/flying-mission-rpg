@@ -1,5 +1,6 @@
 import { useFlightPhaseHudStore, NOTICE_TONE } from '../../stores/game/flightPhaseHudStore';
 import { useGameStore } from '../../stores/game/useGameStore';
+import { playTimelineSound } from '../audio/playTimelineSound';
 import type { FlightTimelineEvent } from '../../types/game/flightPhase';
 import type { GamePhase } from '../../types/game/state';
 
@@ -8,6 +9,9 @@ import type { GamePhase } from '../../types/game/state';
 export function fireFlightEvent(e: FlightTimelineEvent, play: boolean): void {
   const hud = useFlightPhaseHudStore.getState();
   const tone = NOTICE_TONE[e.eventType];
+  // A sound is orthogonal to the event type — any event can carry one. The runtime already edge-triggers this
+  // (forward-only, triggerOnce-aware) in BOTH edit preview and play, so preview/play parity comes for free.
+  if (e.soundId) playTimelineSound(e.soundId);
   switch (e.eventType) {
     case 'missionBriefing':
     case 'dialogue':

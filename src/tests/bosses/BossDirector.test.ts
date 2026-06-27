@@ -75,4 +75,12 @@ describe('BossDirector — full Harbor Core Sentinel flow', () => {
     BossDirector.update();
     expect(useBossStore.getState().runtime!.status).toBe('defeated');
   });
+
+  it('records boss attack warning events for HUD readability', () => {
+    BossDirector.startBoss('harbor_core_sentinel');
+    BossDirector.update();
+    const events = useBossStore.getState().runtime!.recentAttackEvents ?? [];
+    expect(events.some((event) => event.kind === 'warning' && event.phaseId === 'phase_harbor_p1')).toBe(true);
+    expect(events.every((event) => event.bossId === 'harbor_core_sentinel')).toBe(true);
+  });
 });

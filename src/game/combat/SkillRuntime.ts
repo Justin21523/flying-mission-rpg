@@ -5,6 +5,7 @@ import { resolveDamage } from './DamageResolver';
 import { isReady, cooldownEndMs } from './CooldownManager';
 import { canAfford, spendEnergy } from './EnergyManager';
 import { isSpawnSkill, isDefenseSkill } from './skillBehaviors';
+import { getTargetStatusEffects } from './StatusEffectRuntime';
 
 // Casts one skill. Dependencies are injected (not read from stores) so the casting logic is unit-testable
 // with a mock target registry; CombatDirector wires the real stores in. The hit detection + damage model
@@ -30,6 +31,9 @@ export interface SkillCastDeps {
   applyResult: (result: DamageResult) => void;
   pushDamageResult: (result: DamageResult) => void;
   playEffect?: (effectDefId: string, skillInstanceId: string, caster: SkillCaster) => void;
+  // Plays a skill's authored timeline of timed VFX/SFX (when skill.timelineEvents is present). Optional →
+  // callers/tests without it fall back to the single effectDefinitionId.
+  playSkillTimeline?: (skill: CombatSkillDefinition, caster: SkillCaster) => void;
   // Batch D model-driven behaviors (optional → Batch B callers/tests still valid).
   spawnFromSkill?: (skill: CombatSkillDefinition, caster: SkillCaster) => void;
   applyDefense?: (skill: CombatSkillDefinition, caster: SkillCaster) => void;
@@ -44,7 +48,8 @@ export interface SkillCastOutcome {
   results: DamageResult[];
 }
 
-export interface CastOptions { forceCrit?: boolean }
+// Batch L — optional upgrade multipliers (from the per-skill upgrade level) applied at cast time.
+export interface CastOptions { forceCrit?: boolean; damageMultiplier?: number; cooldownMultiplier?: number; energyMultiplier?: number }
 
 export function castSkill(skill: CombatSkillDefinition, caster: SkillCaster, deps: SkillCastDeps, options: CastOptions = {}): SkillCastOutcome {
   if (skill.enabled === false) return { ok: false, reason: 'disabled', hitIds: [], results: [] };
@@ -52,16 +57,22 @@ export function castSkill(skill: CombatSkillDefinition, caster: SkillCaster, dep
   const ignoreCd = deps.ignoreCooldown || skill.debug?.ignoreCooldown === true;
   if (!isReady(deps.cooldowns, skill.id, deps.nowMs, ignoreCd)) return { ok: false, reason: 'cooldown', hitIds: [], results: [] };
 
+  // Batch L — upgrade multipliers scale energy / cooldown / damage for this cast (default 1 = base).
+  const energyCost = skill.energyCost * (options.energyMultiplier ?? 1);
+  const cooldownSeconds = skill.cooldownSeconds * (options.cooldownMultiplier ?? 1);
+
   const ignoreEnergy = deps.ignoreEnergyCost || skill.debug?.ignoreEnergyCost === true;
   const stats = deps.getStats(caster.characterId);
-  if (stats && !canAfford(stats, skill.energyCost, ignoreEnergy)) return { ok: false, reason: 'energy', hitIds: [], results: [] };
+  if (stats && !canAfford(stats, energyCost, ignoreEnergy)) return { ok: false, reason: 'energy', hitIds: [], results: [] };
 
   // Spend energy + start cooldown up-front (a cast is committed even on a whiff).
-  if (stats) deps.setEnergy(caster.characterId, spendEnergy(stats, skill.energyCost, ignoreEnergy));
-  deps.startCooldown(skill.id, cooldownEndMs(deps.nowMs, skill.cooldownSeconds, ignoreCd));
+  if (stats) deps.setEnergy(caster.characterId, spendEnergy(stats, energyCost, ignoreEnergy));
+  deps.startCooldown(skill.id, cooldownEndMs(deps.nowMs, cooldownSeconds, ignoreCd));
 
   const playSkillEffect = () => {
-    if (skill.effectDefinitionId && deps.playEffect) deps.playEffect(skill.effectDefinitionId, `skill_${nanoid(6)}`, caster);
+    // An authored timeline (timed VFX/SFX) takes over when present; otherwise fire the single effect as before.
+    if (skill.timelineEvents?.length && deps.playSkillTimeline) deps.playSkillTimeline(skill, caster);
+    else if (skill.effectDefinitionId && deps.playEffect) deps.playEffect(skill.effectDefinitionId, `skill_${nanoid(6)}`, caster);
   };
 
   // Batch D — defense skills set a defensive state (no hit volume).
@@ -104,7 +115,11 @@ export function castSkill(skill: CombatSkillDefinition, caster: SkillCaster, dep
       if (!def || !vitals) continue;
       // Chase precision: a scanned/weakpoint-exposed target takes +50% from precision/weakpoint attacks.
       const precision = template.attackTags.includes('precision') || template.attackTags.includes('weakpoint');
-      const amount = (target as { scanned?: boolean }).scanned && precision ? Math.round(template.amount * 1.5) : template.amount;
+      const upgraded = template.amount * (options.damageMultiplier ?? 1);
+      // Batch O — armor-broken targets take bonus damage (magnitude = bonus fraction).
+      const armorBreak = getTargetStatusEffects(id).find((e) => e.type === 'armor-broken');
+      const armorMult = armorBreak ? 1 + armorBreak.magnitude : 1;
+      const amount = Math.round(((target as { scanned?: boolean }).scanned && precision ? upgraded * 1.5 : upgraded) * armorMult);
       const event: DamageEvent = {
         id: `dmg_${nanoid(6)}`,
         sourceId: caster.characterId,

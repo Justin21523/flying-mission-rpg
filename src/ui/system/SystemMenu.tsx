@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useSystemMenuStore } from '../../stores/systemMenuStore';
 import { useGameStore } from '../../stores/game/useGameStore';
-import { GraphicsSettingsTab } from '../settings/GraphicsSettingsTab';
+import { GraphicsSettingsPanel } from '../settings/GraphicsSettingsPanel';
 import { AudioSettingsTab } from '../settings/AudioSettingsTab';
-import { GameplaySettingsTab } from '../settings/GameplaySettingsTab';
-import { AccessibilitySettingsTab } from '../settings/AccessibilitySettingsTab';
+import { GameplaySettingsPanel } from '../settings/GameplaySettingsPanel';
+import { AccessibilitySettingsPanel } from '../settings/AccessibilitySettingsPanel';
+import { VfxSettingsPanel } from '../settings/VfxSettingsPanel';
 import {
   debugSaveNow, debugExportSave, debugImportSave, debugSaveSummary,
 } from '../../game/save/SaveDebugTools';
@@ -12,10 +13,11 @@ import {
 // In-game system menu overlay (aero play). Resume / Settings / Save / Abandon. Esc toggles it. Reuses the
 // Batch-12 settings tabs and the Batch-13 save tools (player-friendly wrapper, not the dev panel).
 const SETTINGS_TABS = [
-  { id: 'graphics', label: '🖥 Graphics', node: <GraphicsSettingsTab /> },
-  { id: 'audio', label: '🔊 Audio', node: <AudioSettingsTab /> },
-  { id: 'gameplay', label: '🎮 Gameplay', node: <GameplaySettingsTab /> },
-  { id: 'access', label: '♿ Access', node: <AccessibilitySettingsTab /> },
+  { id: 'graphics', label: 'Graphics', node: <GraphicsSettingsPanel /> },
+  { id: 'vfx', label: 'VFX', node: <VfxSettingsPanel /> },
+  { id: 'audio', label: 'Audio', node: <AudioSettingsTab /> },
+  { id: 'gameplay', label: 'Gameplay', node: <GameplaySettingsPanel /> },
+  { id: 'access', label: 'Access', node: <AccessibilitySettingsPanel /> },
 ] as const;
 
 export const SystemMenu = () => {

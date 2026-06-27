@@ -2,6 +2,7 @@ import { BossHost } from './BossHost';
 import { BossRenderer } from './BossRenderer';
 import { BossArenaRenderer } from './BossArenaRenderer';
 import { BossWeakpointRenderer } from './BossWeakpointRenderer';
+import { BossSignatureHazardRenderer } from './BossSignatureHazardRenderer';
 
 // In-Canvas boss encounter layer (Batch F) — the per-frame BossDirector pump + the model-first renderers
 // (boss body, arena boundary, weakpoint markers). Attack warnings/executions render through the existing
@@ -12,5 +13,6 @@ export const BossEncounterLayer = () => (
     <BossArenaRenderer />
     <BossRenderer />
     <BossWeakpointRenderer />
+    <BossSignatureHazardRenderer />
   </>
 );

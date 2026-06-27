@@ -45,4 +45,9 @@ export interface NPCDefinition {
   schedulePositions?: Partial<Record<TimeOfDay, [number, number, number]>>; // per time-of-day target
   // ── animation rules (same engine as the player/character) ──
   animations?: AnimRule[];
+  // ── Batch E — Hub residents (rescued NPCs who live in the Hangar + give a side-quest) ──
+  hubResident?: boolean; // renders in the Hub (HangarNpcLayer) once rescued, by hubPosition
+  rescuedByStageId?: string; // clearing this stage adds this NPC to the rescued roster
+  hubPosition?: [number, number, number]; // placement inside the Hangar interior
+  hubSideQuestId?: string; // the quest this resident offers from the Hub
 }

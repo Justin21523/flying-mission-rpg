@@ -2,12 +2,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScreenFrame, Btn, panel, StatBar } from './screenChrome';
 import { CharacterCard } from './CharacterCard';
 import { CharacterPreview3D } from './CharacterPreview3D';
+import { SkillUpgradePanel } from './SkillUpgradePanel';
+import { EquipmentModPanel } from './EquipmentModPanel';
+import { HangarUpgradePanel } from './HangarUpgradePanel';
 import { useEditorCharacterStore } from '../../stores/game/editorCharacterStore';
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { useMissionStore } from '../../stores/game/useMissionStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import { getEditorMission } from '../../stores/game/editorMissionStore';
 import { isCharacterRecommended } from '../../game/game/missionSelection';
+import { useStageProgressionStore } from '../../stores/game/useStageProgressionStore';
+import { getStageDefinition, useStageDefinitionStore } from '../../stores/useStageEditorStore';
+import { startStage as startStageRuntime } from '../../game/levels/StageRuntimeDirector';
+import { useSaveStore } from '../../stores/useSaveStore';
+import { ProgressTracker } from '../../game/progress/ProgressTracker';
+import { useUiStore } from '../../stores/uiStore';
 import type { CharacterForm } from '../../types/game/character';
 
 // CHARACTER_SELECTION — card grid + detail panel with a primitive 3D preview and plane/robot toggle.
@@ -19,19 +28,48 @@ export const CharacterSelectScreen = () => {
   const requestTransition = useGameStore((s) => s.requestTransition);
   const missionId = useMissionStore((s) => s.currentMissionId);
   const mission = missionId ? getEditorMission(missionId) ?? null : null;
+  const activeStageId = useStageProgressionStore((s) => s.activeStageId);
+  const activeStage = activeStageId ? getStageDefinition(activeStageId) : undefined;
+  // Batch L (A1) — gate cards by the save's unlocked-character set (reactive).
+  const unlockedIds = useSaveStore((s) => s.save.progress.unlockedCharacterIds);
+  const stages = useStageDefinitionStore((s) => s.items);
+  const editMode = useUiStore((s) => s.editMode);
   // Default to robot form so the character's transformer model shows immediately.
   const [form, setForm] = useState<CharacterForm>('robot');
 
+  const isUnlocked = (id: string) => unlockedIds.includes(id);
+  // Hint of how to unlock a locked character: the stage whose unlocksOnClear grants it.
+  const lockHintFor = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const st of stages) for (const cid of st.unlocksOnClear?.characterIds ?? []) map[cid] = `Clear "${st.name}"`;
+    return map;
+  }, [stages]);
+
   const selected = useMemo(() => characters.find((c) => c.id === selectedId) ?? null, [characters, selectedId]);
+
+  // Keep selection valid: if nothing selected (or the selected character is locked), pick the first unlocked one.
+  useEffect(() => {
+    if (selectedId && isUnlocked(selectedId)) return;
+    const firstUnlocked = characters.find((c) => isUnlocked(c.id));
+    if (firstUnlocked) selectCharacter(firstUnlocked.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characters, unlockedIds, selectedId]);
+
+  const dispatch = () => {
+    if (!selectedId || !isUnlocked(selectedId)) return;
+    if (activeStageId) startStageRuntime(activeStageId);
+    else requestTransition('HANGAR');
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'Enter' && selectedId) requestTransition('HANGAR');
+      if (e.code === 'Enter') dispatch();
       else if (e.code === 'Escape') requestTransition('MISSION_BRIEFING');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [requestTransition, selectedId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStageId, requestTransition, selectedId, unlockedIds]);
 
   return (
     <ScreenFrame title="Character Selection" subtitle="dispatch crew">
@@ -42,13 +80,23 @@ export const CharacterSelectScreen = () => {
               key={c.id}
               character={c}
               selected={c.id === selectedId}
-              recommended={isCharacterRecommended(c, mission)}
+              recommended={activeStage ? activeStage.recommendedCharacterIds.includes(c.id) : isCharacterRecommended(c, mission)}
+              locked={!isUnlocked(c.id)}
+              lockHint={lockHintFor[c.id] ?? 'Locked'}
               onClick={() => {
                 selectCharacter(c.id);
                 setForm('robot'); // show the transformer model on select
               }}
             />
           ))}
+          {editMode && (
+            <button
+              onClick={() => { for (const c of characters) ProgressTracker.markCharacterUnlocked(c.id); }}
+              className="col-span-full rounded-lg border border-dashed border-amber-500/50 px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-500/10"
+            >
+              🔓 Unlock all characters (dev)
+            </button>
+          )}
         </div>
 
         <div className={`flex min-h-0 flex-col ${panel} p-4`}>
@@ -84,11 +132,16 @@ export const CharacterSelectScreen = () => {
               </div>
               <div className="mt-1 text-[11px] text-slate-400">Suitability: {selected.missionSuitability.join(', ') || '—'}</div>
 
+              <SkillUpgradePanel characterId={selected.id} editMode={editMode} />
+              <EquipmentModPanel characterId={selected.id} />
+              <HangarUpgradePanel editMode={editMode} />
+
+
               <div className="mt-auto flex justify-between pt-3">
                 <Btn tone="ghost" sound="back" onClick={() => requestTransition('MISSION_BRIEFING')}>
                   ← Back to briefing
                 </Btn>
-                <Btn tone="primary" sound="launch" disabled={!selectedId} onClick={() => requestTransition('HANGAR')}>
+                <Btn tone="primary" sound="launch" disabled={!selectedId || !isUnlocked(selectedId)} onClick={dispatch}>
                   Confirm Dispatch →
                 </Btn>
               </div>

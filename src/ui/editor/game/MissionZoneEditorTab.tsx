@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { useEditorMissionZoneStore } from '../../../stores/game/editorMissionZoneStore';
 import { useEditorZoneSegmentStore } from '../../../stores/game/editorZoneSegmentStore';
+import { useEditorRandomBossPoolStore } from '../../../stores/game/editorCombatStore';
+import { useEnvironmentThemeStore } from '../../../stores/useEnvironmentEditorStore';
 import {
   ZONE_SEGMENT_TYPES,
   ZONE_MARKER_TYPES,
@@ -61,6 +63,9 @@ function defaultCondition(type: ZoneConditionType, id: string): ZoneConditionDef
     case 'future-repair-device': return { id, type, deviceId: '' };
     case 'future-resolve-incident': return { id, type, incidentId: '' };
     case 'future-defeat-boss': return { id, type, bossId: '' };
+    case 'defense-waves': return { id, type, waveGroupIds: [], waveIntervalSeconds: 8 };
+    case 'timed-rescue': return { id, type, rescueMarkerIds: [], seconds: 30 };
+    case 'scan-targets': return { id, type, scanGroupId: '', count: 3 };
     case 'debug-complete': return { id, type };
     case 'always':
     default: return { id, type: 'always' };
@@ -88,6 +93,24 @@ const ConditionRow = ({ c, onChange, onRemove }: { c: ZoneConditionDefinition; o
       {c.type === 'wait-seconds' && <input type="number" step={1} value={c.seconds} onChange={(e) => onChange({ ...c, seconds: num(e.target.value) })} className={inp + ' mt-1'} />}
       {c.type === 'placeholder-clear-area' && <input value={c.areaId} placeholder="areaId (marker id)" onChange={(e) => onChange({ ...c, areaId: e.target.value })} className={inp + ' mt-1'} />}
       {c.type === 'segment-completed' && <input value={c.segmentId} placeholder="segmentId" onChange={(e) => onChange({ ...c, segmentId: e.target.value })} className={inp + ' mt-1'} />}
+      {c.type === 'defense-waves' && (
+        <div className="mt-1 flex gap-1">
+          <input value={csv(c.waveGroupIds)} placeholder="wave group ids (csv)" onChange={(e) => onChange({ ...c, waveGroupIds: parseCsv(e.target.value) })} className={inp + ' flex-1'} />
+          <input type="number" step={1} value={c.waveIntervalSeconds} title="interval (s)" onChange={(e) => onChange({ ...c, waveIntervalSeconds: num(e.target.value) })} className={inp + ' w-16'} />
+        </div>
+      )}
+      {c.type === 'timed-rescue' && (
+        <div className="mt-1 flex gap-1">
+          <input value={csv(c.rescueMarkerIds)} placeholder="rescue marker ids (csv)" onChange={(e) => onChange({ ...c, rescueMarkerIds: parseCsv(e.target.value) })} className={inp + ' flex-1'} />
+          <input type="number" step={1} value={c.seconds} title="seconds" onChange={(e) => onChange({ ...c, seconds: num(e.target.value) })} className={inp + ' w-16'} />
+        </div>
+      )}
+      {c.type === 'scan-targets' && (
+        <div className="mt-1 flex gap-1">
+          <input value={c.scanGroupId} placeholder="scan group id" onChange={(e) => onChange({ ...c, scanGroupId: e.target.value })} className={inp + ' flex-1'} />
+          <input type="number" step={1} value={c.count} title="count" onChange={(e) => onChange({ ...c, count: num(e.target.value) })} className={inp + ' w-16'} />
+        </div>
+      )}
       {isFuture && <div className="mt-1 text-[10px] text-amber-400">⚠ Placeholder — only completes in god mode this batch.</div>}
     </div>
   );
@@ -118,6 +141,9 @@ export const MissionZoneEditorTab = () => {
   const updateZone = useEditorMissionZoneStore((s) => s.update);
   const duplicateZone = useEditorMissionZoneStore((s) => s.duplicate);
   const removeZone = useEditorMissionZoneStore((s) => s.remove);
+
+  const bossPools = useEditorRandomBossPoolStore((s) => s.items);
+  const envThemes = useEnvironmentThemeStore((s) => s.items);
 
   const segments = useEditorZoneSegmentStore((s) => s.items);
   const upsertSeg = useEditorZoneSegmentStore((s) => s.upsert);
@@ -188,6 +214,22 @@ export const MissionZoneEditorTab = () => {
             <Check label="Enabled (auto-routes from landing)" checked={zone.enabled} onChange={(v) => updateZone(zone.id, { enabled: v })} />
             <Check label="Allow backtracking" checked={zone.allowBacktracking} onChange={(v) => updateZone(zone.id, { allowBacktracking: v })} />
           </div>
+          {/* Batch J — auto-combat + random-boss switches (drive landing→combat + the threat-gauge boss). */}
+          <div className="grid grid-cols-2 gap-2">
+            <Check label="Auto combat on landing" checked={zone.autoCombatOnLanding ?? false} onChange={(v) => updateZone(zone.id, { autoCombatOnLanding: v })} />
+            <Field label="Random boss pool (threat gauge)">
+              <select value={zone.randomBossPoolId ?? ''} onChange={(e) => updateZone(zone.id, { randomBossPoolId: e.target.value || undefined })} className={inp}>
+                <option value="">— none —</option>
+                {bossPools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Zone environment theme (default)">
+              <select value={zone.environmentThemeId ?? ''} onChange={(e) => updateZone(zone.id, { environmentThemeId: e.target.value || undefined })} className={inp}>
+                <option value="">— none —</option>
+                {envThemes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </Field>
+          </div>
 
           <div className="flex items-center gap-1.5 border-t border-slate-800/60 pt-2">
             <button onClick={() => { const id = duplicateZone(zone.id); if (id) setSelZoneId(id); }} className="rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700">⧉ Duplicate</button>
@@ -227,6 +269,13 @@ export const MissionZoneEditorTab = () => {
                   </select>
                 </Field>
                 <Field label="Next segment ids (csv)"><input value={csv(seg.nextSegmentIds)} onChange={(e) => updateSeg(seg.id, { nextSegmentIds: parseCsv(e.target.value) })} className={inp} /></Field>
+                {/* Batch J — environment theme applied on segment enter (sky/fog/lighting + ground override). */}
+                <Field label="Environment theme (on enter)">
+                  <select value={seg.environmentThemeId ?? ''} onChange={(e) => updateSeg(seg.id, { environmentThemeId: e.target.value || undefined })} className={inp}>
+                    <option value="">— inherit —</option>
+                    {envThemes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </Field>
               </div>
               <div className="flex items-center gap-3">
                 <Check label="Final" checked={seg.final ?? false} onChange={(v) => updateSeg(seg.id, { final: v })} />

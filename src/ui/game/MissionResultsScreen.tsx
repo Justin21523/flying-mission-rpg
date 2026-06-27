@@ -4,6 +4,8 @@ import { getEditorMission } from '../../stores/game/editorMissionStore';
 import { useFlightScoreStore } from '../../stores/game/flightScoreStore';
 import { useGameStore } from '../../stores/game/useGameStore';
 import type { MissionReward } from '../../types/game/mission';
+import { useStageProgressionStore } from '../../stores/game/useStageProgressionStore';
+import { StageRewardPanel } from '../campaign/StageRewardPanel';
 
 const GRADE_COLOR: Record<string, string> = { S: '#fde68a', A: '#86efac', B: '#7dd3fc', C: '#cbd5e1' };
 
@@ -22,6 +24,7 @@ function rewardLabel(r: MissionReward): string {
 // (objectives + rewards) and the return-flight grade, then returns to Mission Control for the next dispatch.
 export const MissionResultsScreen = () => {
   const missionId = useMissionStore((s) => s.currentMissionId);
+  const activeStageId = useStageProgressionStore((s) => s.activeStageId);
   const runtime = useMissionStore((s) => s.runtime);
   const mission = missionId ? getEditorMission(missionId) : undefined;
   const flight = useFlightScoreStore((s) => s.lastResult);
@@ -35,6 +38,14 @@ export const MissionResultsScreen = () => {
     useMissionStore.getState().reset(); // clear the finished mission so the next dispatch starts clean
     useGameStore.getState().requestTransition('MISSION_CONTROL');
   };
+
+  if (activeStageId) {
+    return (
+      <ScreenFrame title="Stage Debrief" subtitle="campaign clear">
+        <StageRewardPanel />
+      </ScreenFrame>
+    );
+  }
 
   return (
     <ScreenFrame title="Mission Debrief" subtitle={mission?.name ?? 'dispatch complete'}>

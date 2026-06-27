@@ -5,6 +5,7 @@ import { liveTargets } from '../../stores/game/combatTargetStore';
 import { robotHandle } from '../destination/robotHandle';
 import { damageTargetByTemplate } from '../combat/CombatDirector';
 import { playEffect } from '../vfx/CinematicVfxDirector';
+import { getHangarBonuses } from '../progression/HangarBonusResolver';
 
 // Partner Fusion runtime (Batch I) — a synchronized combo: player + an Active/Standby support partner fire a
 // unified AOE strike. Gated by per-zone charges + cooldown + a sync gauge. Reuses the shared damage path
@@ -56,9 +57,9 @@ export function castPartnerFusion(primaryCharacterId: string | undefined, now = 
   return { ok: false, reason: candidates.length ? 'not ready' : 'no fusion for character', hits: 0 };
 }
 
-// Sync gauge accrues from support/skill use (hooked from the skill + support directors).
+// Sync gauge accrues from support/skill use. Batch L — the Hangar Sync Amplifier scales the fill rate.
 export function accrueSyncFromAction(amount = 12): void {
-  useFusionRuntimeStore.getState().addSync(amount);
+  useFusionRuntimeStore.getState().addSync(amount * getHangarBonuses().fusionChargeMult);
 }
 
 export function cleanupFusions(): void {
