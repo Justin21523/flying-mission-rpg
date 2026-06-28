@@ -54,10 +54,13 @@ export class AutoPlaytester {
   constructor(
     private readonly world: AutoWorld,
     private readonly onUpdate?: (s: AutoSnapshot) => void,
-    private readonly config: AutoPlaytesterConfig = AUTO_PLAYTESTER_CONFIG,
+    private config: AutoPlaytesterConfig = AUTO_PLAYTESTER_CONFIG,
   ) {}
 
-  start(now: number): void {
+  // Optional per-run config overrides (e.g. e2e passes a shorter flightFallbackMs so the headless run finishes
+  // well under the test budget). Default gameplay passes nothing → unchanged behaviour.
+  start(now: number, overrides?: Partial<AutoPlaytesterConfig>): void {
+    if (overrides) this.config = { ...this.config, ...overrides };
     this.status = 'running';
     this.lastPhase = this.world.phase();
     this.startMs = now;

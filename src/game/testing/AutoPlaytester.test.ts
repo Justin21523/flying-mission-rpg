@@ -48,6 +48,23 @@ describe('AutoPlaytester', () => {
     expect(ap.status).toBe('completed');         // and the fallback still got it home
   });
 
+  it('start() overrides shorten the flight fallback so a long-default config still completes (e2e fast path)', () => {
+    // A config that would otherwise steer auto-phases ~forever and step-timeout in the mock world.
+    const longConfig = { ...AUTO_PLAYTESTER_CONFIG, realFlight: true, flightFallbackMs: 999_999 };
+
+    // Without the override it stalls (auto-phase never force-advances → step timeout).
+    const stalled = new AutoPlaytester(makeWorld().world, undefined, longConfig);
+    run(stalled);
+    expect(stalled.status).not.toBe('completed');
+
+    // With the override (what the e2e passes), it force-advances quickly and completes.
+    const fast = new AutoPlaytester(makeWorld().world, undefined, longConfig);
+    let t = 0;
+    fast.start(0, { flightFallbackMs: 700 });
+    for (let i = 0; i < 200 && fast.status === 'running'; i += 1) { t += 350; fast.tick(t); }
+    expect(fast.status).toBe('completed');
+  });
+
   it('fails with a step timeout when a phase never advances', () => {
     const { world } = makeWorld({ go: () => false });
     const ap = new AutoPlaytester(world);

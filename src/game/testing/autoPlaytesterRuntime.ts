@@ -1,4 +1,5 @@
 import { AutoPlaytester } from './AutoPlaytester';
+import type { AutoPlaytesterConfig } from './AutoPlaytesterConfig';
 import { realWorld } from './AutoPlaytesterActions';
 import { useAutoPlaytesterStore } from '../../stores/game/autoPlaytesterStore';
 
@@ -12,9 +13,9 @@ function now(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
 
-export function startAutoPlaytester(): void {
+export function startAutoPlaytester(overrides?: Partial<AutoPlaytesterConfig>): void {
   useAutoPlaytesterStore.getState().setEnabled(true);
-  autoPlaytester.start(now());
+  autoPlaytester.start(now(), overrides);
 }
 export function stopAutoPlaytester(): void {
   autoPlaytester.stop(now());
@@ -31,7 +32,7 @@ export function tickAutoPlaytester(): void {
 declare global {
   interface Window {
     __autoPlaytester?: {
-      start: () => void;
+      start: (overrides?: Partial<AutoPlaytesterConfig>) => void;
       stop: () => void;
       reset: () => void;
       status: () => string;
