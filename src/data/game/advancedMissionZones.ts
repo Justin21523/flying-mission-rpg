@@ -18,7 +18,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     environmentThemeId: 'env_sunny_harbor_day',
     bounds: { center: [0, 0, 4], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_landing', type: 'always' }],
-    completionConditions: [{ id: 'clear_landing', type: 'defeat-enemy-group', enemyGroupId: 'harbor_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_landing', type: 'defeat-enemy-group', enemyGroupId: 'harbor_landing_ambush' },
+      { id: 'hold_landing_dock', type: 'hold-zone', markerId: 'dock_marker', radius: 5, seconds: 5 }, // content-fill — secure the dock
+    ],
     nextSegmentIds: ['seg_cargo_street'],
     allowBacktracking: false,
     placeholderEnemyGroupIds: ['harbor_landing_ambush'],
@@ -213,7 +216,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-18, 0, 4], size: [22, 8, 22] },
     entryConditions: [{ id: 'enter_downtown_arrival', type: 'always' }],
-    completionConditions: [{ id: 'clear_downtown_landing', type: 'defeat-enemy-group', enemyGroupId: 'downtown_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_downtown_landing', type: 'defeat-enemy-group', enemyGroupId: 'downtown_landing_ambush' },
+      { id: 'survive_downtown_arrival', type: 'survive-timer', seconds: 15 }, // content-fill — hold the lane through the ambush
+    ],
     nextSegmentIds: ['seg_downtown_intersection'],
     placeholderEnemyGroupIds: ['downtown_landing_ambush'],
     allowBacktracking: false,
@@ -270,7 +276,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'repair',
     bounds: { center: [0, 0, -22], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_downtown_command', type: 'segment-completed', segmentId: 'seg_downtown_evac' }],
-    completionConditions: [{ id: 'repair_downtown_command', type: 'repair-device', deviceId: 'downtown_traffic_command_device' }],
+    completionConditions: [
+      { id: 'repair_downtown_command', type: 'repair-device', deviceId: 'downtown_traffic_command_device' },
+      { id: 'survive_downtown_command', type: 'survive-timer', seconds: 14 }, // content-fill — defend the repair
+    ],
     nextSegmentIds: [],
     previousSegmentIds: ['seg_downtown_evac'],
     final: true,
@@ -289,7 +298,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-20, 0, 0], size: [22, 8, 22] },
     entryConditions: [{ id: 'enter_factory_entry', type: 'always' }],
-    completionConditions: [{ id: 'clear_factory_landing', type: 'defeat-enemy-group', enemyGroupId: 'factory_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_factory_landing', type: 'defeat-enemy-group', enemyGroupId: 'factory_landing_ambush' },
+      { id: 'survive_factory_entry', type: 'survive-timer', seconds: 16 }, // content-fill
+    ],
     nextSegmentIds: ['seg_factory_assembly'],
     placeholderEnemyGroupIds: ['factory_landing_ambush'],
     markers: [{ id: 'mk_factory_entry', type: 'entry', label: 'Factory Entry', position: [-20, 0, 0], radius: 5, color: '#94a3b8' }],
@@ -467,7 +479,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-24, 0, 0], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_skyport_drop', type: 'always' }],
-    completionConditions: [{ id: 'clear_skyport_landing', type: 'defeat-enemy-group', enemyGroupId: 'skyport_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_skyport_landing', type: 'defeat-enemy-group', enemyGroupId: 'skyport_landing_ambush' },
+      { id: 'survive_skyport_drop', type: 'survive-timer', seconds: 18 }, // content-fill
+    ],
     nextSegmentIds: ['seg_skyport_bridge'],
     placeholderEnemyGroupIds: ['skyport_landing_ambush'],
     markers: [{ id: 'mk_skyport_drop', type: 'entry', label: 'Skyport Drop', position: [-24, 0, 0], radius: 5, color: '#a5f3fc' }],
@@ -482,7 +497,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [0, 0, 22], size: [32, 8, 30] },
     entryConditions: [{ id: 'enter_skyport_bridge', type: 'segment-completed', segmentId: 'seg_skyport_drop' }],
-    completionConditions: [{ id: 'clear_skyport_bridge', type: 'defeat-enemy-group', enemyGroupId: 'skyport_bridge_patrol_01' }],
+    completionConditions: [
+      { id: 'clear_skyport_bridge', type: 'defeat-enemy-group', enemyGroupId: 'skyport_bridge_patrol_01' },
+      { id: 'survive_skyport_bridge', type: 'survive-timer', seconds: 20 }, // content-fill — hold the storm bridge
+    ],
     nextSegmentIds: ['seg_skyport_core'],
     previousSegmentIds: ['seg_skyport_drop'],
     placeholderEnemyGroupIds: ['skyport_bridge_patrol_01'],
@@ -518,11 +536,17 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'extraction',
     bounds: { center: [0, 0, -24], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_skyport_extract', type: 'segment-completed', segmentId: 'seg_skyport_core' }],
-    completionConditions: [{ id: 'extract_skyport', type: 'reach-marker', markerId: 'mk_skyport_extract', radius: 5 }],
+    completionConditions: [
+      { id: 'extract_skyport', type: 'reach-marker', markerId: 'mk_skyport_extract', radius: 5 },
+      { id: 'escort_skyport_survivor', type: 'escort-npc', npcMarkerId: 'mk_skyport_survivor', destinationMarkerId: 'mk_skyport_extract', speed: 3 }, // content-fill — walk the survivor to the lift
+    ],
     nextSegmentIds: [],
     previousSegmentIds: ['seg_skyport_core'],
     final: true,
-    markers: [{ id: 'mk_skyport_extract', type: 'next-segment', label: 'Extraction', position: [0, 0, -24], radius: 5, color: '#34d399' }],
+    markers: [
+      { id: 'mk_skyport_extract', type: 'next-segment', label: 'Extraction', position: [0, 0, -24], radius: 5, color: '#34d399' },
+      { id: 'mk_skyport_survivor', type: 'objective', label: 'Stranded Survivor', position: [6, 0, 18], radius: 2, color: '#f472b6' },
+    ],
     enabled: true,
   },
   {
@@ -536,7 +560,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-24, 0, 2], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_blackout_arrival', type: 'always' }],
-    completionConditions: [{ id: 'clear_blackout_landing', type: 'defeat-enemy-group', enemyGroupId: 'blackout_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_blackout_landing', type: 'defeat-enemy-group', enemyGroupId: 'blackout_landing_ambush' },
+      { id: 'survive_blackout_arrival', type: 'survive-timer', seconds: 15 }, // content-fill
+    ],
     nextSegmentIds: ['seg_blackout_scan'],
     placeholderEnemyGroupIds: ['blackout_landing_ambush'],
     markers: [{ id: 'mk_blackout_arrival', type: 'entry', label: 'Blackout Arrival', position: [-24, 0, 2], radius: 5, color: '#818cf8' }],
@@ -572,7 +599,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'repair',
     bounds: { center: [22, 0, 0], size: [26, 8, 26] },
     entryConditions: [{ id: 'enter_blackout_power', type: 'segment-completed', segmentId: 'seg_blackout_scan' }],
-    completionConditions: [{ id: 'repair_blackout_power', type: 'repair-device', deviceId: 'blackout_power_box_01' }],
+    completionConditions: [
+      { id: 'repair_blackout_power', type: 'repair-device', deviceId: 'blackout_power_box_01' },
+      { id: 'survive_blackout_power', type: 'survive-timer', seconds: 16 }, // content-fill — defend the repair
+    ],
     nextSegmentIds: ['seg_blackout_grid'],
     previousSegmentIds: ['seg_blackout_scan'],
     placeholderObstacleIds: ['blackout_power_box_01'],
@@ -607,10 +637,16 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-24, 0, 0], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_flood_landing', type: 'always' }],
-    completionConditions: [{ id: 'clear_flood_landing', type: 'defeat-enemy-group', enemyGroupId: 'flood_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_flood_landing', type: 'defeat-enemy-group', enemyGroupId: 'flood_landing_ambush' },
+      { id: 'hold_flood_landing', type: 'hold-zone', markerId: 'mk_flood_hold', radius: 4, seconds: 6 }, // content-fill — hold the high ground
+    ],
     nextSegmentIds: ['seg_flood_pump'],
     placeholderEnemyGroupIds: ['flood_landing_ambush'],
-    markers: [{ id: 'mk_flood_landing', type: 'entry', label: 'Flood Landing', position: [-24, 0, 0], radius: 5, color: '#38bdf8' }],
+    markers: [
+      { id: 'mk_flood_landing', type: 'entry', label: 'Flood Landing', position: [-24, 0, 0], radius: 5, color: '#38bdf8' },
+      { id: 'mk_flood_hold', type: 'objective', label: 'High Ground', position: [-20, 0, 6], radius: 4, color: '#fbbf24' },
+    ],
     enabled: true,
   },
   {
@@ -686,7 +722,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-22, 0, 0], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_metro_entry', type: 'always' }],
-    completionConditions: [{ id: 'clear_metro_landing', type: 'defeat-enemy-group', enemyGroupId: 'metro_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_metro_landing', type: 'defeat-enemy-group', enemyGroupId: 'metro_landing_ambush' },
+      { id: 'survive_metro_entry', type: 'survive-timer', seconds: 16 }, // content-fill
+    ],
     nextSegmentIds: ['seg_metro_switch'],
     placeholderEnemyGroupIds: ['metro_landing_ambush'],
     markers: [{ id: 'mk_metro_entry', type: 'entry', label: 'Metro Entry', position: [-22, 0, 0], radius: 5, color: '#c084fc' }],
@@ -764,7 +803,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-22, 0, 0], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_tower_base', type: 'always' }],
-    completionConditions: [{ id: 'clear_tower_landing', type: 'defeat-enemy-group', enemyGroupId: 'tower_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_tower_landing', type: 'defeat-enemy-group', enemyGroupId: 'tower_landing_ambush' },
+      { id: 'survive_tower_base', type: 'survive-timer', seconds: 16 }, // content-fill
+    ],
     nextSegmentIds: ['seg_tower_lift'],
     placeholderEnemyGroupIds: ['tower_landing_ambush'],
     markers: [{ id: 'mk_tower_base', type: 'entry', label: 'Tower Base', position: [-22, 0, 0], radius: 5, color: '#7dd3fc' }],
@@ -779,7 +821,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'repair',
     bounds: { center: [0, 0, 20], size: [28, 8, 28] },
     entryConditions: [{ id: 'enter_tower_lift', type: 'segment-completed', segmentId: 'seg_tower_base' }],
-    completionConditions: [{ id: 'repair_tower_lift', type: 'repair-device', deviceId: 'tower_broken_lift_01' }],
+    completionConditions: [
+      { id: 'repair_tower_lift', type: 'repair-device', deviceId: 'tower_broken_lift_01' },
+      { id: 'survive_tower_lift', type: 'survive-timer', seconds: 15 }, // content-fill — defend the repair
+    ],
     nextSegmentIds: ['seg_tower_platform'],
     previousSegmentIds: ['seg_tower_base'],
     placeholderObstacleIds: ['tower_broken_lift_01'],
@@ -835,7 +880,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-26, 0, 0], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_finale_arrival', type: 'always' }],
-    completionConditions: [{ id: 'clear_finale_landing', type: 'defeat-enemy-group', enemyGroupId: 'finale_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_finale_landing', type: 'defeat-enemy-group', enemyGroupId: 'finale_landing_ambush' },
+      { id: 'survive_finale_arrival', type: 'survive-timer', seconds: 22 }, // content-fill
+    ],
     nextSegmentIds: ['seg_finale_crisis_nodes'],
     placeholderEnemyGroupIds: ['finale_landing_ambush'],
     markers: [{ id: 'mk_finale_arrival', type: 'entry', label: 'Finale Arrival', position: [-26, 0, 0], radius: 5, color: '#f97316' }],
@@ -872,7 +920,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     environmentThemeId: 'env_skyport_storm',
     bounds: { center: [24, 0, 0], size: [30, 8, 30] },
     entryConditions: [{ id: 'enter_finale_elite', type: 'segment-completed', segmentId: 'seg_finale_crisis_nodes' }],
-    completionConditions: [{ id: 'clear_finale_elite', type: 'defeat-enemy-group', enemyGroupId: 'finale_elite_guard_01' }],
+    completionConditions: [
+      { id: 'clear_finale_elite', type: 'defeat-enemy-group', enemyGroupId: 'finale_elite_guard_01' },
+      { id: 'survive_finale_elite', type: 'survive-timer', seconds: 25 }, // content-fill — elite endurance test
+    ],
     nextSegmentIds: ['seg_finale_core'],
     previousSegmentIds: ['seg_finale_crisis_nodes'],
     placeholderEnemyGroupIds: ['finale_elite_guard_01'],
