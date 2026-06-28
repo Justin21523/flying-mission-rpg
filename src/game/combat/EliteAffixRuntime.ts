@@ -34,6 +34,8 @@ export function applyAffixesToTarget(target: CombatTarget, affixIds: AffixId[]):
     if (def.onDeathExplosion) { ai.affixVolatileRadius = def.onDeathExplosion.radius; ai.affixVolatileDamage = def.onDeathExplosion.damage; }
     if (def.regenPerSec) ai.affixRegenPerSec = def.regenPerSec;
     if (def.lifestealFraction) ai.affixLifesteal = def.lifestealFraction;
+    if (def.berserk) { ai.affixBerserkThreshold = def.berserk.hpThreshold; ai.affixBerserkSpeedMult = def.berserk.speedMult; } // base move speed captured lazily on first tick
+    if (def.onDeathSummon) { ai.affixSummonCount = def.onDeathSummon.count; target.affixSummonEnemyId = def.onDeathSummon.enemyId; }
     applied.push(id);
   }
   if (applied.length > 0) {
@@ -41,4 +43,19 @@ export function applyAffixesToTarget(target: CombatTarget, affixIds: AffixId[]):
     target.scale = (target.scale ?? 1) * 1.2; // elite silhouette
   }
   return applied;
+}
+
+// Wave 5 — pure per-frame affix helpers (consumed by CombatDirector.tickEliteAffixes; unit-tested here).
+export function affixRegenedHp(hp: number, maxHp: number, perSec: number, dt: number): number {
+  return Math.min(maxHp, hp + perSec * dt);
+}
+export function berserkMoveSpeed(baseSpeed: number, hp: number, maxHp: number, threshold: number, speedMult: number): number {
+  return baseSpeed * (maxHp > 0 && hp / maxHp < threshold ? speedMult : 1);
+}
+
+// 'vampiric' affix — heal the attacking enemy by lifestealFraction × damage it dealt to the player. No-op for
+// non-vampiric enemies. Called wherever an enemy damages the player (melee paths + the projectile/summon callback).
+export function vampiricHeal(enemy: CombatTarget, dmg: number): void {
+  const ls = enemy.aiData?.affixLifesteal;
+  if (ls && dmg > 0) enemy.hp = Math.min(enemy.maxHp, enemy.hp + dmg * ls);
 }

@@ -4,7 +4,7 @@ import type { StatusEffectId } from './statusRules';
 // trigger status (e.g. shocked / a heavy-impact hit applying armor-broken), a reaction fires: a burst of bonus
 // damage (optionally AoE), an optional VFX, and (by default) the primary status is consumed. Editable in the
 // ⬆ Progression tab, same data-driven model as statusRules — no ability retagging needed.
-export type ReactionId = 'shatter' | 'overload' | 'conduct' | 'meltdown';
+export type ReactionId = 'shatter' | 'overload' | 'conduct' | 'meltdown' | 'bloodburst' | 'rupture';
 
 export interface ElementReactionDefinition {
   id: string;
@@ -65,5 +65,21 @@ export const SEED_ELEMENT_REACTIONS: ElementReactionDefinition[] = [
     bonusDamage: 22, aoeRadius: 6, consumesPrimary: true, cooldownMs: 900,
     damageType: 'energy', attackTags: ['reaction', 'overload', 'aoe'],
     propagatesStatus: { statusType: 'burning', radius: 5 }, vfxEffectId: 'fx_overload_blast', enabled: false,
+  },
+  // Wave 5 — bleed + burning → bloodburst: the heat cauterises the open wound for an AoE burst (consumes bleed).
+  {
+    id: 'rxn_bloodburst', reaction: 'bloodburst',
+    primaryStatus: 'bleed', triggerStatus: 'burning',
+    bonusDamage: 34, aoeRadius: 5, consumesPrimary: true, cooldownMs: 700,
+    damageType: 'fire', attackTags: ['reaction', 'bloodburst', 'aoe'],
+    vfxEffectId: 'fx_overload_blast', enabled: true,
+  },
+  // Wave 5 — bleed + armor-broken → rupture: the exposed armour tears the wound wide for a big single burst.
+  {
+    id: 'rxn_rupture', reaction: 'rupture',
+    primaryStatus: 'bleed', triggerStatus: 'armor-broken',
+    bonusDamage: 48, consumesPrimary: true, cooldownMs: 700,
+    damageType: 'impact', attackTags: ['reaction', 'rupture'],
+    vfxEffectId: 'fx_shatter_burst', enabled: true,
   },
 ];

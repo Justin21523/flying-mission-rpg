@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { rollAffixes, applyAffixesToTarget } from './EliteAffixRuntime';
+import { rollAffixes, applyAffixesToTarget, affixRegenedHp, berserkMoveSpeed, vampiricHeal } from './EliteAffixRuntime';
 import { useEliteAffixStore } from '../../stores/game/useEliteAffixStore';
 import { SEED_ELITE_AFFIXES, type AffixPolicy } from '../../data/combat/eliteAffixes';
 import type { CombatTarget } from '../../stores/game/combatTargetStore';
@@ -70,5 +70,36 @@ describe('applyAffixesToTarget', () => {
     const applied = applyAffixesToTarget(t, ['shielded']);
     expect(applied).toEqual([]);
     expect(t.maxShield).toBe(0);
+  });
+
+  it('Wave 5 — berserk stashes threshold + speed mult; summoner stashes count + enemy id', () => {
+    const t = makeEnemy();
+    applyAffixesToTarget(t, ['berserk', 'summoner']);
+    expect(t.aiData?.affixBerserkThreshold).toBe(0.4);
+    expect(t.aiData?.affixBerserkSpeedMult).toBe(1.6);
+    expect(t.aiData?.affixSummonCount).toBe(2);
+    expect(t.affixSummonEnemyId).toBe('zip_glitch');
+  });
+});
+
+describe('Wave 5 affix tick helpers', () => {
+  it('affixRegenedHp heals by perSec*dt and clamps to maxHp', () => {
+    expect(affixRegenedHp(50, 100, 6, 0.5)).toBeCloseTo(53); // +3
+    expect(affixRegenedHp(99, 100, 6, 1)).toBe(100); // clamped
+  });
+  it('berserkMoveSpeed frenzies only below the HP threshold', () => {
+    expect(berserkMoveSpeed(3, 30, 100, 0.4, 1.6)).toBeCloseTo(4.8); // 30% < 40% → ×1.6
+    expect(berserkMoveSpeed(3, 60, 100, 0.4, 1.6)).toBe(3); // 60% ≥ 40% → base
+  });
+
+  it('vampiricHeal heals by lifesteal fraction (clamped), no-op without the affix', () => {
+    const t = makeEnemy(); t.hp = 50; t.maxHp = 100; t.aiData = { affixLifesteal: 0.5 };
+    vampiricHeal(t, 10);
+    expect(t.hp).toBe(55); // 50 + 10*0.5
+    t.hp = 99; vampiricHeal(t, 10);
+    expect(t.hp).toBe(100); // clamped to maxHp
+    const plain = makeEnemy(); plain.hp = 50; plain.aiData = {};
+    vampiricHeal(plain, 10);
+    expect(plain.hp).toBe(50); // no affix → unchanged
   });
 });

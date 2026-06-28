@@ -17,7 +17,8 @@ export type StatusEffectType =
   | 'burning' // DoT (magnitude = damage/sec)
   | 'frozen' // slow (magnitude = move-speed multiplier)
   | 'shocked' // interrupt windups
-  | 'armor-broken'; // takes more damage (magnitude = bonus fraction)
+  | 'armor-broken' // takes more damage (magnitude = bonus fraction)
+  | 'bleed'; // Wave 5 — physical DoT (magnitude = damage/sec), mirrors burning
 
 export type ActiveStatusEffect = {
   id: string;
@@ -51,6 +52,7 @@ export const DEFAULT_STATUS_EFFECT_TUNING: Record<StatusEffectType, StatusEffect
   frozen: { type: 'frozen', durationMs: 2500, magnitude: 0.4 }, // 60% slow
   shocked: { type: 'shocked', durationMs: 1200, magnitude: 1 },
   'armor-broken': { type: 'armor-broken', durationMs: 4000, magnitude: 0.3 }, // +30% damage taken
+  bleed: { type: 'bleed', durationMs: 4000, magnitude: 5 }, // Wave 5 — 5 dmg/sec physical DoT
 };
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -92,6 +94,8 @@ export function applyStatusEffect(
   // Batch O — frozen slows movement (read by enemyAi); shocked interrupts windups.
   if (type === 'frozen') target.aiData = { ...(target.aiData ?? {}), freezeMultiplier: effect.magnitude, freezeUntil: effect.expiresAtMs / 1000 };
   if (type === 'shocked') target.aiData = { ...(target.aiData ?? {}), shockUntil: effect.expiresAtMs / 1000 };
+  // Wave 5 — slowed reuses the freeze move-speed seam (magnitude = move-speed multiplier; longer + milder than frozen).
+  if (type === 'slowed') target.aiData = { ...(target.aiData ?? {}), freezeMultiplier: effect.magnitude, freezeUntil: effect.expiresAtMs / 1000 };
   useCombatTargetStore.getState().bump();
   return effect;
 }

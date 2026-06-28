@@ -8,6 +8,7 @@ import { spawnFromSkill } from './skillBehaviors';
 import { isSpawnSkill } from './skillBehaviors';
 import { bossActivePhase, spawnEnemyFromDef } from './enemyRuntime';
 import { stepEnemyAi } from './enemyAi';
+import { vampiricHeal } from './EliteAffixRuntime';
 import { spawnGroup } from './enemySpawnDirector';
 import { applySquadTactics } from './squadCoordinator';
 import { getDecoyTargetFor } from '../support-combat/SupportThreatController';
@@ -40,9 +41,7 @@ function castEnemySkill(enemy: CombatTarget, skillId: string, playerX: number, p
   if (dx * dx + dz * dz <= reach * reach) {
     const dmg = skill.damageEvents?.[0]?.amount ?? 8;
     applyDamageToPlayer(dmg);
-    // Wave 1 — vampiric affix: heal a fraction of damage dealt to the player.
-    const ls = enemy.aiData?.affixLifesteal;
-    if (ls) enemy.hp = Math.min(enemy.maxHp, enemy.hp + dmg * ls);
+    vampiricHeal(enemy, dmg); // Wave 1 — vampiric affix: heal a fraction of damage dealt to the player.
   }
 }
 
@@ -141,17 +140,18 @@ export const CombatEnemyAiHost = () => {
         const step = stepEnemyAi(e, def, { playerX: tx, playerZ: tz, nowS: t, dt: dt * freezeMult, threats });
         if (step) {
           e.x += step.moveX; e.z += step.moveZ; e.facingRad = step.facingRad;
-          if (step.action === 'charge-hit') applyDamageToPlayer(def.charge?.damageAmount ?? 12);
-          else if (step.action === 'bash') applyDamageToPlayer(def.shield?.bashDamage ?? 10);
-          // Wave 2 — suppressor reuses the turret projectile spawn (its own skill id).
+          const hitPlayer = (d: number) => { applyDamageToPlayer(d); vampiricHeal(e, d); }; // Wave 5 — vampiric heals on every melee path
+          if (step.action === 'charge-hit') hitPlayer(def.charge?.damageAmount ?? 12);
+          else if (step.action === 'bash') hitPlayer(def.shield?.bashDamage ?? 10);
+          // Wave 2 — suppressor reuses the turret projectile spawn (its own skill id; casterId → projectile vampiric).
           else if (step.action === 'fire' && (def.turret || def.suppressor)) { const sk = getCombatSkill(def.turret?.projectileSkillId ?? def.suppressor!.projectileSkillId); if (sk) spawnFromSkill(sk, { characterId: e.id, x: e.x, y: e.y, z: e.z, headingRad: e.facingRad ?? 0 }); }
           // Batch I — new archetype actions.
           else if (step.action === 'spawn-minions' && def.spawner) spawnGroup(def.spawner.spawnGroupId, e.x, e.z);
-          else if (step.action === 'quake-slam' && def.quake) { if (Math.hypot(px - e.x, pz - e.z) <= def.quake.slamRadius) applyDamageToPlayer(def.quake.slamDamage); }
+          else if (step.action === 'quake-slam' && def.quake) { if (Math.hypot(px - e.x, pz - e.z) <= def.quake.slamRadius) hitPlayer(def.quake.slamDamage); }
           else if (step.action === 'heal-ally' && def.repairWisp) healNearestAlly(e, def.repairWisp.healRange, def.repairWisp.healAmount);
           // Wave 2 — tactical actions.
-          else if (step.action === 'melee-hit') applyDamageToPlayer(def.dodger?.meleeDamage ?? def.flanker?.meleeDamage ?? 10);
-          else if (step.action === 'self-destruct' && def.bomber) { if (Math.hypot(px - e.x, pz - e.z) <= def.bomber.blastRadius) applyDamageToPlayer(def.bomber.blastDamage); e.hp = 0; e.defeatedAt = t; }
+          else if (step.action === 'melee-hit') hitPlayer(def.dodger?.meleeDamage ?? def.flanker?.meleeDamage ?? 10);
+          else if (step.action === 'self-destruct' && def.bomber) { if (Math.hypot(px - e.x, pz - e.z) <= def.bomber.blastRadius) hitPlayer(def.bomber.blastDamage); e.hp = 0; e.defeatedAt = t; }
           else if (step.action === 'buff-allies' && def.buffer) shieldNearbyAllies(e, def.buffer.buffRange, def.buffer.shieldAmount);
           continue;
         }

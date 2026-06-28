@@ -11,7 +11,7 @@ export interface SpawnTickDeps {
   playerPos: () => { x: number; z: number };
   targetPos: (id: string) => { x: number; z: number } | undefined;
   damageTarget: (targetId: string, template: DamageEventTemplate) => void; // player-faction → enemy
-  damagePlayer: (amount: number) => void;                                  // enemy/boss-faction → player
+  damagePlayer: (amount: number, casterId?: string) => void;               // enemy/boss-faction → player (casterId → vampiric heal-back)
   impact: (spawn: CombatSpawn) => void; // spawn impact effect + popup
 }
 
@@ -30,7 +30,7 @@ function hitsPlayer(s: CombatSpawn): boolean {
 // Resolve an impact: deal damage to the appropriate side, fire the impact callback, mark projectile spent.
 function resolveImpact(s: CombatSpawn, deps: SpawnTickDeps, targetId?: string): void {
   if (hitsPlayer(s)) {
-    deps.damagePlayer(s.damage.amount);
+    deps.damagePlayer(s.damage.amount, s.casterId);
   } else if (targetId) {
     deps.damageTarget(targetId, s.damage);
   } else {
@@ -103,7 +103,7 @@ export function tickCombatSpawns(dt: number, deps: SpawnTickDeps): void {
         s.nextHitAt = deps.nowMs + 600;
         if (s.damage.amount > 0) {
           if (hitsPlayer(s)) {
-            if (dist2(player.x, player.z, s.x, s.z) <= s.radius * s.radius) deps.damagePlayer(s.damage.amount);
+            if (dist2(player.x, player.z, s.x, s.z) <= s.radius * s.radius) deps.damagePlayer(s.damage.amount, s.casterId);
           } else {
             resolveImpact(s, deps); // AoE on enemies (does not consume the summon)
           }

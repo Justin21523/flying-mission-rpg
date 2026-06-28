@@ -7,8 +7,9 @@ import { useCombatSpawnStore, queueSpawnImpact } from '../../stores/game/combatS
 import { useCharacterStore } from '../../stores/game/useCharacterStore';
 import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { activeSupportShieldReduction } from '../../stores/game/useSupportCombatStore';
-import { getCombatSkill, getCombatStatsPreset } from '../../stores/game/editorCombatStore';
-import { getEffectiveDamageable } from './enemyRuntime';
+import { getCombatSkill, getCombatStatsPreset, getEnemyDef } from '../../stores/game/editorCombatStore';
+import { getEffectiveDamageable, spawnEnemyFromDef } from './enemyRuntime';
+import { affixRegenedHp, berserkMoveSpeed, vampiricHeal } from './EliteAffixRuntime';
 import { statsFromPreset, type DamageEvent, type DamageEventTemplate } from '../../types/game/combat';
 import { robotHandle } from '../destination/robotHandle';
 import { castSkill, type SkillCaster, type SkillCastDeps, type SkillCastOutcome, type CastOptions } from './SkillRuntime';
@@ -334,17 +335,40 @@ export function applyDamageToTarget(event: DamageEvent): void {
 // Per-frame tick — energy/shield regen for the active combatant, effect + dead-target sweeps.
 // Batch O — burn DoT: accrue magnitude (dmg/sec) per burning enemy and apply whole-number ticks through the
 // shared damage path (so kill rewards still fire). Accumulator clears as targets die/expire.
-const burnAccum: Record<string, number> = {};
+// Wave 5 — DoT statuses share this fractional-accumulator pattern (deal whole damage once accrued ≥ 1).
+const DOT_SPECS = [
+  { type: 'burning' as const, damageType: 'fire', tags: ['burn', 'dot'] },
+  { type: 'bleed' as const, damageType: 'impact', tags: ['bleed', 'dot'] },
+];
+const dotAccum: Record<string, Record<string, number>> = {};
 function tickStatusDots(dt: number): void {
   for (const t of liveTargets) {
-    if (t.defeatedAt || !t.isEnemy) continue;
-    const burn = getTargetStatusEffects(t).find((e) => e.type === 'burning');
-    if (!burn) { delete burnAccum[t.id]; continue; }
-    burnAccum[t.id] = (burnAccum[t.id] ?? 0) + burn.magnitude * dt;
-    if (burnAccum[t.id] >= 1) {
-      const whole = Math.floor(burnAccum[t.id]);
-      burnAccum[t.id] -= whole;
-      damageTargetByTemplate(t.id, { amount: whole, damageType: 'fire', attackTags: ['burn', 'dot'] });
+    if (t.defeatedAt || !t.isEnemy) { delete dotAccum[t.id]; continue; }
+    const effects = getTargetStatusEffects(t);
+    for (const spec of DOT_SPECS) {
+      const dot = effects.find((e) => e.type === spec.type);
+      const acc = (dotAccum[t.id] ??= {});
+      if (!dot) { acc[spec.type] = 0; continue; }
+      acc[spec.type] = (acc[spec.type] ?? 0) + dot.magnitude * dt;
+      if (acc[spec.type] >= 1) {
+        const whole = Math.floor(acc[spec.type]);
+        acc[spec.type] -= whole;
+        damageTargetByTemplate(t.id, { amount: whole, damageType: spec.damageType as DamageEventTemplate['damageType'], attackTags: spec.tags });
+      }
+    }
+  }
+}
+
+// Wave 5 — per-frame elite affix effects: 'regenerating' heals; 'berserk' frenzies (move speed) once wounded.
+// Base move speed is captured lazily on first tick (after spawn-time affixes like 'swift' have applied).
+function tickEliteAffixes(dt: number): void {
+  for (const t of liveTargets) {
+    if (t.defeatedAt || !t.isEnemy || !t.aiData) continue;
+    const ai = t.aiData;
+    if (ai.affixRegenPerSec && t.hp < t.maxHp) t.hp = affixRegenedHp(t.hp, t.maxHp, ai.affixRegenPerSec, dt);
+    if (ai.affixBerserkThreshold != null && ai.affixBerserkSpeedMult != null) {
+      if (ai.affixBaseMoveSpeed == null) ai.affixBaseMoveSpeed = t.moveSpeed ?? 0;
+      t.moveSpeed = berserkMoveSpeed(ai.affixBaseMoveSpeed, t.hp, t.maxHp, ai.affixBerserkThreshold, ai.affixBerserkSpeedMult);
     }
   }
 }
@@ -366,6 +390,7 @@ export function update(dt: number): void {
   }
   cleanupExpired(nowMs());
   tickStatusDots(dt); // Batch O — burn damage-over-time
+  tickEliteAffixes(dt); // Wave 5 — regenerating heal + berserk frenzy
   decayPoise(dt); // Wave 2 — poise meter regenerates when not being staggered
 
   // Tick model-driven spawns (projectiles / summons / terrain) + sweep expired/impacted.
@@ -375,7 +400,7 @@ export function update(dt: number): void {
     playerPos: () => ({ x: robotHandle.pos.x, z: robotHandle.pos.z }),
     targetPos: (tid) => { const t = liveTargets.find((x) => x.id === tid); return t ? { x: t.x, z: t.z } : undefined; },
     damageTarget: (tid, tpl) => damageTargetByTemplate(tid, tpl),
-    damagePlayer: (amt) => applyDamageToPlayer(amt),
+    damagePlayer: (amt, casterId) => { applyDamageToPlayer(amt); if (casterId) { const c = liveTargets.find((t) => t.id === casterId); if (c) vampiricHeal(c, amt); } }, // Wave 5 — projectile/summon vampiric heal-back
     impact: (s) => queueSpawnImpact(s.x, s.y, s.z),
   });
   tickVolatileDeaths(); // Wave 1 — elite "volatile" affix: explode just-defeated enemies before they're swept.
@@ -387,11 +412,21 @@ export function update(dt: number): void {
 // the tick (not in combatTargetStore.applyResult) to avoid a store→CombatDirector import cycle.
 function tickVolatileDeaths(): void {
   for (const t of [...liveTargets]) {
-    if (!t.defeatedAt || t.affixExploded || !t.aiData?.affixVolatileRadius) continue;
-    t.affixExploded = true;
-    const radius = t.aiData.affixVolatileRadius;
-    const damage = t.aiData.affixVolatileDamage ?? 0;
-    damageTargetsInRadius(t.x, t.z, radius, { amount: damage, damageType: 'impact', attackTags: ['explosion', 'aoe', 'affix'] });
-    queueSpawnImpact(t.x, t.y, t.z);
+    if (!t.defeatedAt) continue;
+    // Wave 1 — volatile: one-shot AoE on death.
+    if (t.aiData?.affixVolatileRadius && !t.affixExploded) {
+      t.affixExploded = true;
+      damageTargetsInRadius(t.x, t.z, t.aiData.affixVolatileRadius, { amount: t.aiData.affixVolatileDamage ?? 0, damageType: 'impact', attackTags: ['explosion', 'aoe', 'affix'] });
+      queueSpawnImpact(t.x, t.y, t.z);
+    }
+    // Wave 5 — summoner: one-shot spawn a small swarm on death.
+    if (t.aiData?.affixSummonCount && t.affixSummonEnemyId && !t.affixSummoned) {
+      t.affixSummoned = true;
+      const def = getEnemyDef(t.affixSummonEnemyId);
+      if (def) for (let i = 0; i < t.aiData.affixSummonCount; i++) {
+        const a = (i / t.aiData.affixSummonCount) * Math.PI * 2;
+        spawnEnemyFromDef(def, t.x + Math.cos(a) * 2.5, t.z + Math.sin(a) * 2.5);
+      }
+    }
   }
 }

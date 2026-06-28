@@ -105,4 +105,24 @@ describe('ElementReactionRuntime', () => {
     expect(getTargetStatusEffects('p2').some((s) => s.type === 'burning')).toBe(true); // spread to near
     expect(getTargetStatusEffects('p3').some((s) => s.type === 'burning')).toBe(false); // far untouched
   });
+
+  // Wave 5 — bleed reactions.
+  it('bloodburst splashes AoE + consumes bleed when a bleeding enemy is set burning', () => {
+    const e = makeEnemy('b1');
+    useCombatTargetStore.getState().spawn(e);
+    applyStatusEffect('b1', 'bleed', 'test');
+    const deps = recordingDeps();
+    expect(tryTriggerReaction('b1', 'burning', 'test', deps)).toBe('bloodburst');
+    expect(deps.aoe.length).toBe(1); // aoeRadius 5
+    expect(getTargetStatusEffects('b1').some((s) => s.type === 'bleed')).toBe(false); // consumed
+  });
+
+  it('rupture deals a big single burst when a bleeding enemy is armor-broken', () => {
+    const e = makeEnemy('b2');
+    useCombatTargetStore.getState().spawn(e);
+    applyStatusEffect('b2', 'bleed', 'test');
+    const deps = recordingDeps();
+    expect(tryTriggerReaction('b2', 'armor-broken', 'test', deps)).toBe('rupture');
+    expect(deps.single).toEqual([48]);
+  });
 });

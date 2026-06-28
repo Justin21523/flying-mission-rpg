@@ -88,7 +88,7 @@ export function buildSpawnRequests(skill: CombatSkillDefinition, caster: SkillCa
 }
 
 export function spawnFromSkill(skill: CombatSkillDefinition, caster: SkillCaster): void {
-  for (const req of buildSpawnRequests(skill, caster)) spawnCombat(req);
+  for (const req of buildSpawnRequests(skill, caster)) spawnCombat({ ...req, casterId: caster.characterId }); // Wave 5 — tag spawns with their caster (vampiric heal-back)
 }
 
 // Batch O — the opening window of any block is a parry (full negate + fusion reward).

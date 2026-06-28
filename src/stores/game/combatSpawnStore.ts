@@ -12,6 +12,7 @@ export interface CombatSpawn {
   id: string;
   kind: CombatSpawnKind;
   faction: SkillFaction;
+  casterId?: string; // Wave 5 — enemy/boss id that spawned this (enables projectile/summon vampiric heal-back)
   modelAssetId?: string; // GLB to render (geometry fallback if absent)
   scale: number;
   color: string;
@@ -73,6 +74,7 @@ export const useCombatSpawnStore = create<CombatSpawnState>((set, get) => ({
 export interface SpawnRequest {
   kind: CombatSpawnKind;
   faction: SkillFaction;
+  casterId?: string; // Wave 5 — who spawned this (for vampiric heal-back on player hit)
   modelAssetId?: string;
   scale?: number;
   color?: string;
@@ -98,6 +100,7 @@ export function spawnCombat(req: SpawnRequest): CombatSpawn {
     id: `cs_${uid++}`,
     kind: req.kind,
     faction: req.faction,
+    casterId: req.casterId,
     modelAssetId: req.modelAssetId,
     scale: req.scale ?? 1,
     color: req.color ?? '#ffffff',

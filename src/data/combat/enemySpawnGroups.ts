@@ -43,7 +43,7 @@ export const SEED_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = [
       { enemyDefinitionId: 'shadow_flanker', count: 2, formation: 'circle' },
       { enemyDefinitionId: 'volatile_bomber', count: 1, formation: 'cluster' },
     ],
-    affixPolicy: { allowedAffixIds: ['shielded', 'swift', 'regenerating'], chancePerEnemy: 0.6, maxPerEnemy: 1 },
+    affixPolicy: { allowedAffixIds: ['shielded', 'swift', 'regenerating', 'berserk', 'summoner'], chancePerEnemy: 0.7, maxPerEnemy: 2 },
     completeWhenAllDefeated: true,
     enabled: true,
   },

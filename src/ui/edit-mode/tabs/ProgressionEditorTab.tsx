@@ -47,7 +47,7 @@ export const ProgressionEditorTab = () => {
   const room = useRoomConfigStore((s) => s.items.find((c) => c.id === 'room_config'));
   const updateRoom = useRoomConfigStore((s) => s.update);
   const patchRoom = (patch: Partial<RoomConfigDefinition>) => { if (room) updateRoom(room.id, patch); };
-  const STATUS_OPTS: StatusEffectId[] = ['burning', 'frozen', 'shocked', 'armor-broken'];
+  const STATUS_OPTS: StatusEffectId[] = ['burning', 'frozen', 'shocked', 'armor-broken', 'bleed', 'slowed'];
   const patchMode = (mode: 'endless' | 'roguelite', patch: Partial<RunConfig['endless']>) => {
     if (runCfg) updateRunCfg(runCfg.id, { [mode]: { ...runCfg[mode], ...patch } } as Partial<RunConfig>);
   };

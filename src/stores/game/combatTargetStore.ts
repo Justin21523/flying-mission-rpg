@@ -53,6 +53,9 @@ export interface CombatTarget {
   // affixRegenPerSec, affixLifesteal). affixExploded guards the one-shot volatile death explosion.
   affixIds?: string[];
   affixExploded?: boolean;
+  // Wave 5 — 'summoner' affix: spawn count minions of this enemy id on death (one-shot, guarded by affixSummoned).
+  affixSummonEnemyId?: string;
+  affixSummoned?: boolean;
   // Wave 2 — poise/break meter (accumulates from staggering hits; full → stagger via aiData.stunUntil) +
   // execution guard (executingAt set while a finisher plays).
   poiseValue?: number;

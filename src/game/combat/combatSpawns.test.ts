@@ -35,6 +35,14 @@ describe('tickCombatSpawns', () => {
     expect(state.playerHits).toBeGreaterThan(0);
   });
 
+  it('passes the casterId to damagePlayer (Wave 5 — projectile vampiric heal-back)', () => {
+    spawnCombat({ kind: 'projectile', faction: 'enemy', casterId: 'elite_7', x: 5, y: 1, z: 0, dirX: -1, dirZ: 0, speed: 20, movement: 'linear', lifetimeSeconds: 2, radius: 2, damage: { amount: 8, damageType: 'impact', attackTags: [] } });
+    let seen: string | undefined = 'none';
+    const { deps } = makeDeps({ damagePlayer: (_amt, casterId) => { seen = casterId; } });
+    for (let i = 0; i < 40 && seen === 'none'; i++) tickCombatSpawns(0.05, deps);
+    expect(seen).toBe('elite_7');
+  });
+
   it('a summon pulses AoE damage to enemies on its timer', () => {
     spawnCombat({ kind: 'summon', faction: 'player', x: 9, y: 1, z: 0, dirX: 0, dirZ: 1, speed: 0, movement: 'stationary', lifetimeSeconds: 10, radius: 4, damage: { amount: 6, damageType: 'impact', attackTags: [] }, attackIntervalSeconds: 0.1 });
     const { deps, state } = makeDeps({ nowMs: 999999 }); // far past nextHitAt → pulse fires
