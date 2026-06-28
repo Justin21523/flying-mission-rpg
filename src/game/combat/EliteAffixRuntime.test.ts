@@ -127,4 +127,11 @@ describe('Wave 6 affixes (reflect / teleport)', () => {
     // already on top of the player → no move
     expect(teleportStep(5, 5, 5, 5, 5)).toEqual({ x: 5, z: 5 });
   });
+
+  it('every seeded affix has a Codex legend description + aura colour', () => {
+    for (const a of SEED_ELITE_AFFIXES) {
+      expect(a.description, a.id).toBeTruthy();
+      expect(a.auraColor, a.id).toMatch(/^#/);
+    }
+  });
 });
