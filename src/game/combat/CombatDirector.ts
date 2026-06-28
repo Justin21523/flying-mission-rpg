@@ -379,7 +379,12 @@ function tickEliteAffixes(dt: number): void {
       if (ai.affixTeleportAccumMs >= ai.affixTeleportIntervalMs) {
         ai.affixTeleportAccumMs = 0;
         const next = teleportStep(t.x, t.z, robotHandle.pos.x, robotHandle.pos.z, ai.affixTeleportRange);
-        t.x = next.x; t.z = next.z;
+        // Wave 6 — blink VFX: a poof at the vacated spot AND the arrival spot so the jump reads clearly.
+        if (next.x !== t.x || next.z !== t.z) {
+          queueSpawnImpact(t.x, t.y, t.z);
+          t.x = next.x; t.z = next.z;
+          queueSpawnImpact(t.x, t.y, t.z);
+        }
       }
     }
   }

@@ -14,8 +14,9 @@ import type { AffixId } from '../../data/combat/eliteAffixes';
 // Batch P — colour-coded status legibility. Dominant active effect tints a feet aura ring + the body emissive.
 const STATUS_COLORS: Partial<Record<StatusEffectType, string>> = {
   burning: '#fb923c', frozen: '#67e8f9', shocked: '#fef9c3', 'armor-broken': '#f87171',
+  bleed: '#dc2626', 'poise-broken': '#fbbf24', slowed: '#93c5fd', // Wave 5/6 aura tints
 };
-const STATUS_PRIORITY: StatusEffectType[] = ['burning', 'frozen', 'shocked', 'armor-broken'];
+const STATUS_PRIORITY: StatusEffectType[] = ['poise-broken', 'armor-broken', 'burning', 'bleed', 'frozen', 'shocked', 'slowed'];
 function dominantStatusColor(target: CombatTarget): string | null {
   const active = getTargetStatusEffects(target);
   for (const type of STATUS_PRIORITY) {
@@ -46,17 +47,18 @@ const DummyTarget = ({ target }: { target: CombatTarget }) => {
   const stunRef = useRef<Mesh>(null);
   const scanRef = useRef<Mesh>(null);
   const auraRef = useRef<Mesh>(null);
-  const affixAuraRef = useRef<Mesh>(null);
+  const affixAuraRef = useRef<Group>(null);
   const poiseRef = useRef<Mesh>(null);
   const execRef = useRef<Mesh>(null);
   const def = getDamageable(target.definitionId);
   const color = def?.editorMeta?.color ?? '#94a3b8';
   const hasShield = (target.maxShield ?? 0) > 0;
-  // Wave 1 — elite-affix aura colour (first applied affix); fixed for the target's lifetime.
-  const affixColor = useMemo(() => {
-    const id = target.affixIds?.[0];
-    return id ? getAffixDef(id as AffixId)?.auraColor ?? null : null;
-  }, [target.affixIds]);
+  // Wave 1/6 — elite-affix aura colours: one ring per applied affix (so a multi-affix elite reads all its
+  // affixes at a glance, not just the first); fixed for the target's lifetime.
+  const affixColors = useMemo(
+    () => (target.affixIds ?? []).map((id) => getAffixDef(id as AffixId)?.auraColor).filter((c): c is string => !!c),
+    [target.affixIds],
+  );
 
   useFrame(() => {
     const g = groupRef.current;
@@ -80,7 +82,7 @@ const DummyTarget = ({ target }: { target: CombatTarget }) => {
       auraRef.current.visible = !!statusColor;
       if (statusColor) { (auraRef.current.material as MeshBasicMaterial).color.set(statusColor); auraRef.current.rotation.z += 0.06; }
     }
-    if (affixAuraRef.current && affixColor) affixAuraRef.current.rotation.z -= 0.04;
+    if (affixAuraRef.current && affixColors.length) affixAuraRef.current.rotation.y -= 0.04;
     const nowSec = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
     if (stunRef.current) { stunRef.current.visible = (target.aiData?.stunUntil ?? 0) > nowSec; stunRef.current.rotation.y += 0.1; }
     if (scanRef.current) scanRef.current.visible = !!target.scanned;
@@ -98,12 +100,16 @@ const DummyTarget = ({ target }: { target: CombatTarget }) => {
   const bodyColor = target.color ?? color;
   return (
     <group ref={groupRef} position={[target.x, target.y, target.z]}>
-      {/* Wave 1 — elite-affix aura ring (colour = affix). Always visible for affixed enemies. */}
-      {isEnemy && affixColor && (
-        <mesh ref={affixAuraRef} position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[1.05, 0.06, 8, 28]} />
-          <meshBasicMaterial color={affixColor} transparent opacity={0.85} depthWrite={false} />
-        </mesh>
+      {/* Wave 1/6 — elite-affix aura rings (one per affix, concentric). Always visible for affixed enemies. */}
+      {isEnemy && affixColors.length > 0 && (
+        <group ref={affixAuraRef} position={[0, 0.04, 0]}>
+          {affixColors.map((c, i) => (
+            <mesh key={i} position={[0, i * 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[1.05 + i * 0.18, 0.06, 8, 28]} />
+              <meshBasicMaterial color={c} transparent opacity={0.85} depthWrite={false} />
+            </mesh>
+          ))}
+        </group>
       )}
       {/* Batch P — status aura ring at the feet (colour = dominant status effect). */}
       {isEnemy && (
