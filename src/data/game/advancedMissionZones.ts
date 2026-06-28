@@ -340,7 +340,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [20, 0, 0], size: [28, 8, 28] },
     entryConditions: [{ id: 'enter_factory_hazard', type: 'segment-completed', segmentId: 'seg_factory_assembly' }],
-    completionConditions: [{ id: 'disable_hazard_core', type: 'defeat-enemy-group', enemyGroupId: 'factory_hazard_core_01' }],
+    completionConditions: [
+      { id: 'disable_hazard_core', type: 'defeat-enemy-group', enemyGroupId: 'factory_hazard_core_01' },
+      { id: 'contain_hazard_core', type: 'hold-zone', markerId: 'mk_factory_hazard', radius: 5, seconds: 8 }, // content-fill — contain the discharge
+    ],
     nextSegmentIds: ['seg_factory_control'],
     previousSegmentIds: ['seg_factory_assembly'],
     placeholderEnemyGroupIds: ['factory_hazard_core_01'],
@@ -375,7 +378,10 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'combat-placeholder',
     bounds: { center: [-22, 0, 0], size: [24, 8, 24] },
     entryConditions: [{ id: 'enter_tunnel_entrance', type: 'always' }],
-    completionConditions: [{ id: 'clear_tunnel_landing', type: 'defeat-enemy-group', enemyGroupId: 'tunnel_landing_ambush' }],
+    completionConditions: [
+      { id: 'clear_tunnel_landing', type: 'defeat-enemy-group', enemyGroupId: 'tunnel_landing_ambush' },
+      { id: 'survive_tunnel_entrance', type: 'survive-timer', seconds: 15 }, // content-fill
+    ],
     nextSegmentIds: ['seg_tunnel_collapse'],
     placeholderEnemyGroupIds: ['tunnel_landing_ambush'],
     markers: [{ id: 'mk_tunnel_entrance', type: 'entry', label: 'Tunnel Entrance', position: [-22, 0, 0], radius: 5, color: '#d6d3d1' }],
