@@ -8,6 +8,9 @@ import { useEquipmentModDefStore } from '../../../stores/game/useEquipmentModDef
 import { EQUIPMENT_MOD_CATEGORIES, EQUIPMENT_MOD_RARITIES, type EquipmentModDefinition } from '../../../types/game/equipmentMod';
 import { useCodexChallengeStore } from '../../../stores/game/useCodexChallengeStore';
 import { CHALLENGE_METRICS } from '../../../data/progression/codexChallenges';
+import { useEquipmentFusionRecipeStore } from '../../../stores/game/useEquipmentFusionRecipeStore';
+import { EQUIPMENT_MOD_RARITIES as FUSION_RARITIES } from '../../../types/game/equipmentMod';
+import type { EquipmentFusionRecipe } from '../../../data/progression/equipmentFusionRecipes';
 import { useRoomConfigStore } from '../../../stores/game/useRoomConfigStore';
 import type { RoomConfigDefinition } from '../../../data/progression/roomConfig';
 import type { RoomId } from '../../../stores/game/useArenaRunStore';
@@ -39,6 +42,8 @@ export const ProgressionEditorTab = () => {
   const updateMod = useEquipmentModDefStore((s) => s.update);
   const challenges = useCodexChallengeStore((s) => s.items);
   const updateChallenge = useCodexChallengeStore((s) => s.update);
+  const fusionRecipes = useEquipmentFusionRecipeStore((s) => s.items);
+  const updateRecipe = useEquipmentFusionRecipeStore((s) => s.update);
   const room = useRoomConfigStore((s) => s.items.find((c) => c.id === 'room_config'));
   const updateRoom = useRoomConfigStore((s) => s.update);
   const patchRoom = (patch: Partial<RoomConfigDefinition>) => { if (room) updateRoom(room.id, patch); };
@@ -179,6 +184,30 @@ export const ProgressionEditorTab = () => {
               </Field>
               <Field label="Enabled"><Check label="" checked={m.enabled !== false} onChange={(v) => updateMod(m.id, { enabled: v })} /></Field>
               <Field label="Description"><input value={m.description} onChange={(e) => updateMod(m.id, { description: e.target.value })} className={inp} /></Field>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className={lbl}>Fusion Recipes · {fusionRecipes.length}</div>
+        <div className="mt-1 space-y-1">
+          {fusionRecipes.map((r) => (
+            <div key={r.id} className="grid grid-cols-3 gap-1 rounded border border-slate-800 p-1.5">
+              <Field label="Name"><input value={r.name} onChange={(e) => updateRecipe(r.id, { name: e.target.value })} className={inp} /></Field>
+              <Field label="Input rarity">
+                <select value={r.inputRarity} onChange={(e) => updateRecipe(r.id, { inputRarity: e.target.value as EquipmentFusionRecipe['inputRarity'] })} className={inp}>
+                  {FUSION_RARITIES.map((x) => <option key={x} value={x}>{x}</option>)}
+                </select>
+              </Field>
+              <Field label="Output rarity">
+                <select value={r.outputRarity} onChange={(e) => updateRecipe(r.id, { outputRarity: e.target.value as EquipmentFusionRecipe['outputRarity'] })} className={inp}>
+                  {FUSION_RARITIES.map((x) => <option key={x} value={x}>{x}</option>)}
+                </select>
+              </Field>
+              <Field label="Input count"><input type="number" step={1} value={r.inputCount} onChange={(e) => updateRecipe(r.id, { inputCount: num(e.target.value) })} className={inp} /></Field>
+              <Field label="Coin cost"><input type="number" step={10} value={r.coinCost} onChange={(e) => updateRecipe(r.id, { coinCost: num(e.target.value) })} className={inp} /></Field>
+              <Field label="Enabled"><Check label="" checked={r.enabled !== false} onChange={(v) => updateRecipe(r.id, { enabled: v })} /></Field>
             </div>
           ))}
         </div>

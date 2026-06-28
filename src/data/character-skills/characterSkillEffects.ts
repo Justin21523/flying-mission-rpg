@@ -25,4 +25,9 @@ export const SEED_KIT_EFFECTS: CombatEffectDefinition[] = [
   fx('fx_order_ring', 'torus', { radius: 6, width: 0.3 }, '#2b4c8c', 'expand', 0.8),
   fx('fx_decoy', 'cylinder', { radius: 0.6, height: 2 }, '#a5f3fc', 'pulse', 0.8),
   fx('fx_exec_grid', 'torus', { radius: 7, width: 0.3 }, '#3b4a78', 'expand', 0.6),
+  // Wave 5 — element-reaction VFX (colours match the status auras in CombatDummyTarget).
+  fx('fx_shatter_burst', 'torus', { radius: 5, width: 0.5 }, '#67e8f9', 'expand', 0.6),       // frozen → shatter (cyan)
+  fx('fx_overload_blast', 'sphere', { radius: 6 }, '#fb923c', 'pulse', 0.7),                   // burning → overload (orange)
+  fx('fx_conduct_chain', 'torus', { radius: 7, width: 0.3 }, '#fef9c3', 'rotate', 0.8),        // shocked → conduct (yellow)
+  fx('fx_meltdown_implosion', 'cone', { radius: 4, angleDegrees: 120, height: 0.6 }, '#f87171', 'contract', 0.65), // frozen+burn → meltdown (red)
 ];

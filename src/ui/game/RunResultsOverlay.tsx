@@ -16,6 +16,7 @@ export const RunResultsOverlay = () => {
   const coinsAtStart = useArenaRunStore((s) => s.coinsAtStart);
   const coins = useWalletStore((s) => s.coins);
   const best = useRunRecordStore((s) => s.bestByMode[mode] ?? 0);
+  const top = useRunRecordStore((s) => s.topByMode[mode]) ?? [];
   if (!active || (status !== 'gameover' && status !== 'won')) return null;
 
   const won = status === 'won';
@@ -32,6 +33,9 @@ export const RunResultsOverlay = () => {
         </div>
         <div className="mt-1 text-xs text-slate-400">{kills} enemies defeated · 💰 {earned} coins earned</div>
         <div className="mt-1 text-[11px] text-slate-500">Best {mode === 'endless' ? 'Endless' : 'Roguelite'}: round {best}</div>
+        {top.length > 0 && (
+          <div className="mt-1 text-[10px] text-slate-500">Top: {top.map((r, i) => `#${i + 1} r${r}`).join(' · ')}</div>
+        )}
 
         <div className="mt-4 flex flex-col gap-2">
           {!won && (

@@ -23,6 +23,8 @@ import { grantReward } from '../progression/KillRewards';
 import { enrageState } from './bossEncounterState';
 import { useCodexStore } from '../../stores/game/useCodexStore';
 import { useCampaignCompletionStore } from '../../stores/game/useCampaignCompletionStore';
+import { useCampaignScoreStore } from '../../stores/game/useCampaignScoreStore';
+import { computeCampaignScore } from '../../data/progression/campaignScore';
 import { useEquipmentModInventoryStore } from '../../stores/game/useEquipmentModInventoryStore';
 import { rollBossModDrop } from '../progression/EquipmentModDropResolver';
 import { getGameSettings } from '../../stores/game/useSettingsStore';
@@ -139,7 +141,17 @@ export function defeatBoss(): void {
   // Wave 4 — codex + New Game+: record the boss as defeated; a campaign-ending boss unlocks NG+.
   useCodexStore.getState().recordBossDefeated(rt.bossDefinitionId);
   evaluateCodexChallenges();
-  if (boss?.completion.enterMissionCompleteOnDefeat) useCampaignCompletionStore.getState().markFinalBossDefeated(nowS());
+  if (boss?.completion.enterMissionCompleteOnDefeat) {
+    // Wave 5 — record a campaign leaderboard run (score from time + kills + bosses + difficulty).
+    const cc = useCampaignCompletionStore.getState();
+    const now = nowS();
+    cc.markFinalBossDefeated(now);
+    const elapsed = cc.campaignStartedAtSeconds != null ? Math.max(0, now - cc.campaignStartedAtSeconds) : 0;
+    const difficulty = getGameSettings().difficulty;
+    const codex = useCodexStore.getState();
+    const score = computeCampaignScore({ elapsedSeconds: elapsed, kills: codex.kills, bossesDefeated: codex.defeatedBossIds.length, difficulty });
+    useCampaignScoreStore.getState().recordRun({ score, difficulty, elapsedSeconds: elapsed, kills: codex.kills, completedAtIso: new Date().toISOString() });
+  }
   // Batch L — boss kill grants a large EXP/coin lump (scaled by the boss's max HP).
   const bossMaxHp = boss?.damageable.maxHp ?? 500;
   grantReward(Math.round(bossMaxHp / 4), Math.round(bossMaxHp / 6));

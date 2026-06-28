@@ -36,8 +36,9 @@ export function awardKillReward(target: CombatTarget): void {
   const baseCoins = def?.coinReward ?? Math.max(2, Math.round(hp / 16));
   // Wave 3 — Hangar 'Salvage Magnet' boosts coin drops.
   grantReward(exp, Math.round(baseCoins * getHangarBonuses().dropRateMult));
-  // Wave 4 — codex: mark this enemy archetype as discovered + check challenges.
+  // Wave 4 — codex: mark this enemy archetype as discovered + count the kill (Wave 5 score) + check challenges.
   useCodexStore.getState().recordEnemySeen(target.enemyDefId);
+  useCodexStore.getState().recordKill();
   evaluateCodexChallenges();
   // Wave 4 — small chance to drop a non-common equipment mod (only granted if not already owned).
   const drop = rollModDrop(hp, getGameSettings().difficulty);

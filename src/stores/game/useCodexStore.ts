@@ -6,12 +6,14 @@ interface CodexState {
   seenEnemyIds: string[];
   defeatedBossIds: string[];
   executions: number; // Wave 2 finisher count (a challenge metric)
+  kills: number; // Wave 5 — lifetime enemy kill count (feeds the campaign score)
   challengeDone: Record<string, boolean>;
   recordEnemySeen: (enemyId: string | undefined) => void;
   recordBossDefeated: (bossId: string | undefined) => void;
   recordExecution: () => void;
+  recordKill: () => void;
   setChallengeDone: (id: string, done: boolean) => void;
-  importState: (data: Partial<Pick<CodexState, 'seenEnemyIds' | 'defeatedBossIds' | 'executions' | 'challengeDone'>>) => void;
+  importState: (data: Partial<Pick<CodexState, 'seenEnemyIds' | 'defeatedBossIds' | 'executions' | 'kills' | 'challengeDone'>>) => void;
   reset: () => void;
 }
 
@@ -19,18 +21,21 @@ export const useCodexStore = create<CodexState>((set, get) => ({
   seenEnemyIds: [],
   defeatedBossIds: [],
   executions: 0,
+  kills: 0,
   challengeDone: {},
 
   recordEnemySeen: (enemyId) => { if (enemyId && !get().seenEnemyIds.includes(enemyId)) set({ seenEnemyIds: [...get().seenEnemyIds, enemyId] }); },
   recordBossDefeated: (bossId) => { if (bossId && !get().defeatedBossIds.includes(bossId)) set({ defeatedBossIds: [...get().defeatedBossIds, bossId] }); },
   recordExecution: () => set({ executions: get().executions + 1 }),
+  recordKill: () => set({ kills: get().kills + 1 }),
   setChallengeDone: (id, done) => set({ challengeDone: { ...get().challengeDone, [id]: done } }),
 
   importState: (data) => set({
     seenEnemyIds: Array.isArray(data.seenEnemyIds) ? data.seenEnemyIds : [],
     defeatedBossIds: Array.isArray(data.defeatedBossIds) ? data.defeatedBossIds : [],
     executions: typeof data.executions === 'number' ? data.executions : 0,
+    kills: typeof data.kills === 'number' ? data.kills : 0,
     challengeDone: data.challengeDone && typeof data.challengeDone === 'object' ? data.challengeDone : {},
   }),
-  reset: () => set({ seenEnemyIds: [], defeatedBossIds: [], executions: 0, challengeDone: {} }),
+  reset: () => set({ seenEnemyIds: [], defeatedBossIds: [], executions: 0, kills: 0, challengeDone: {} }),
 }));

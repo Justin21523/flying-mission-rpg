@@ -30,21 +30,24 @@ export const SEED_ELEMENT_REACTIONS: ElementReactionDefinition[] = [
     id: 'rxn_shatter', reaction: 'shatter',
     primaryStatus: 'frozen', triggerStatus: 'shocked',
     bonusDamage: 45, consumesPrimary: true, cooldownMs: 600,
-    damageType: 'impact', attackTags: ['reaction', 'shatter'], enabled: true,
+    damageType: 'impact', attackTags: ['reaction', 'shatter'],
+    vfxEffectId: 'fx_shatter_burst', enabled: true,
   },
   // Burning + shock → overload explosion (AoE).
   {
     id: 'rxn_overload', reaction: 'overload',
     primaryStatus: 'burning', triggerStatus: 'shocked',
     bonusDamage: 30, aoeRadius: 6, consumesPrimary: true, cooldownMs: 800,
-    damageType: 'energy', attackTags: ['reaction', 'overload', 'aoe'], enabled: true,
+    damageType: 'energy', attackTags: ['reaction', 'overload', 'aoe'],
+    vfxEffectId: 'fx_overload_blast', enabled: true,
   },
   // Shocked + another shock → conduct: chain a smaller burst to nearby enemies.
   {
     id: 'rxn_conduct', reaction: 'conduct',
     primaryStatus: 'shocked', triggerStatus: 'shocked',
     bonusDamage: 18, aoeRadius: 8, consumesPrimary: false, cooldownMs: 700,
-    damageType: 'electric', attackTags: ['reaction', 'conduct', 'aoe'], enabled: true,
+    damageType: 'electric', attackTags: ['reaction', 'conduct', 'aoe'],
+    vfxEffectId: 'fx_conduct_chain', enabled: true,
   },
   // Frozen + burn → meltdown: high burst as the target thaws violently, then leaves it armor-broken so a
   // follow-up heavy/shield-break hit chains into another reaction (Wave 4 chain).
@@ -53,7 +56,7 @@ export const SEED_ELEMENT_REACTIONS: ElementReactionDefinition[] = [
     primaryStatus: 'frozen', triggerStatus: 'burning',
     bonusDamage: 38, consumesPrimary: true, cooldownMs: 700,
     damageType: 'fire', attackTags: ['reaction', 'meltdown'],
-    resultsInStatus: 'armor-broken', enabled: true,
+    resultsInStatus: 'armor-broken', vfxEffectId: 'fx_meltdown_implosion', enabled: true,
   },
   // Wave 4 — burning + shock advanced overload: spreads burning to nearby enemies (chain into more overloads).
   {
@@ -61,6 +64,6 @@ export const SEED_ELEMENT_REACTIONS: ElementReactionDefinition[] = [
     primaryStatus: 'burning', triggerStatus: 'shocked',
     bonusDamage: 22, aoeRadius: 6, consumesPrimary: true, cooldownMs: 900,
     damageType: 'energy', attackTags: ['reaction', 'overload', 'aoe'],
-    propagatesStatus: { statusType: 'burning', radius: 5 }, enabled: false,
+    propagatesStatus: { statusType: 'burning', radius: 5 }, vfxEffectId: 'fx_overload_blast', enabled: false,
   },
 ];

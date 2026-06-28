@@ -9,6 +9,7 @@ import { completeStage as completeCampaignStage } from '../campaign/CampaignDire
 import { useStageProgressionStore } from '../../stores/game/useStageProgressionStore';
 import { applySegmentEnvironment } from '../environment/applyEnvironmentTheme';
 import { resetRandomBoss } from '../bosses/RandomBossDirector';
+import { useCampaignCompletionStore } from '../../stores/game/useCampaignCompletionStore';
 
 // Orchestrates the Advanced Mission Zone flow over the runtime store + game FSM. Pure-ish: it mutates the
 // stores through their actions (like SupportDispatchDirector) and never holds React state. The Host drives
@@ -33,6 +34,8 @@ export function startMissionZone(zoneId: string, nowMs?: number): boolean {
   if (segments.length === 0) return false;
   const start = segments.find((s) => s.id === zone.startSegmentId) ?? segments[0];
   useAdvancedMissionZoneStore.getState().startZone(zone.id, start.id, segments.map((s) => s.id), nowMs);
+  // Wave 5 — start the campaign run clock once (for the leaderboard score on final-boss defeat).
+  useCampaignCompletionStore.getState().startCampaign((typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000);
   // Batch J — reset the random-boss threat gauge for this zone visit (enabled per-zone via randomBossPoolId).
   resetRandomBoss(zone.id);
   runIncidentHooks(zone.aiIncidentHooks?.onZoneStart, { zoneId });

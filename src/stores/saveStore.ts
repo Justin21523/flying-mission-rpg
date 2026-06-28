@@ -21,6 +21,8 @@ import { useEquipmentModInventoryStore } from './game/useEquipmentModInventorySt
 import { useCodexStore } from './game/useCodexStore';
 import { useCampaignCompletionStore } from './game/useCampaignCompletionStore';
 import { useRunRecordStore } from './game/useRunRecordStore';
+import { useCampaignScoreStore } from './game/useCampaignScoreStore';
+import type { CampaignRunRecord } from '../data/progression/campaignScore';
 import { useAdvancedMissionZoneStore } from './game/useAdvancedMissionZoneStore';
 import type { ToolId } from '../types/tool';
 import type { Quest } from '../types/quest';
@@ -52,10 +54,13 @@ export interface SaveData {
   // Wave 3 — per-character equipped mods (optional; old saves load).
   equipmentMods?: { equippedByCharacterId: Record<string, string[]> };
   // Wave 4 — owned mod inventory, codex/challenges, campaign completion (all optional; old saves load).
-  equipmentInventory?: { ownedModIds: string[] };
-  codex?: { seenEnemyIds: string[]; defeatedBossIds: string[]; executions: number; challengeDone: Record<string, boolean> };
-  campaignCompletion?: { finalBossDefeated: boolean; completedAtSeconds?: number };
-  runRecords?: { bestByMode: Record<string, number> };
+  // Wave 5 — count map (Wave 4 saves used `ownedModIds: string[]`; importState reads both).
+  equipmentInventory?: { ownedCountByModId?: Record<string, number>; ownedModIds?: string[] };
+  codex?: { seenEnemyIds: string[]; defeatedBossIds: string[]; executions: number; kills?: number; challengeDone: Record<string, boolean> };
+  campaignCompletion?: { finalBossDefeated: boolean; completedAtSeconds?: number; campaignStartedAtSeconds?: number };
+  runRecords?: { bestByMode: Record<string, number>; topByMode?: Record<string, number[]> };
+  // Wave 5 — campaign score leaderboard (optional; old saves load).
+  campaignScores?: { runs: CampaignRunRecord[] };
   // Advanced Mission Zone progress (New Batch A) — optional so old saves still load.
   advancedMissionZone?: {
     activeZoneId?: string;
@@ -119,10 +124,11 @@ export function snapshotGame(): SaveData {
     skillUpgrades: { levelBySkillId: { ...useSkillUpgradeStore.getState().levelBySkillId } },
     hangarUpgrades: { levelByNodeId: { ...useHangarUpgradeStore.getState().levelByNodeId } },
     equipmentMods: { equippedByCharacterId: { ...useEquipmentModStore.getState().equippedByCharacterId } },
-    equipmentInventory: { ownedModIds: [...useEquipmentModInventoryStore.getState().ownedModIds] },
-    codex: { seenEnemyIds: [...useCodexStore.getState().seenEnemyIds], defeatedBossIds: [...useCodexStore.getState().defeatedBossIds], executions: useCodexStore.getState().executions, challengeDone: { ...useCodexStore.getState().challengeDone } },
-    campaignCompletion: { finalBossDefeated: useCampaignCompletionStore.getState().finalBossDefeated, completedAtSeconds: useCampaignCompletionStore.getState().completedAtSeconds },
-    runRecords: { bestByMode: { ...useRunRecordStore.getState().bestByMode } },
+    equipmentInventory: { ownedCountByModId: { ...useEquipmentModInventoryStore.getState().ownedCountByModId } },
+    codex: { seenEnemyIds: [...useCodexStore.getState().seenEnemyIds], defeatedBossIds: [...useCodexStore.getState().defeatedBossIds], executions: useCodexStore.getState().executions, kills: useCodexStore.getState().kills, challengeDone: { ...useCodexStore.getState().challengeDone } },
+    campaignCompletion: { finalBossDefeated: useCampaignCompletionStore.getState().finalBossDefeated, completedAtSeconds: useCampaignCompletionStore.getState().completedAtSeconds, campaignStartedAtSeconds: useCampaignCompletionStore.getState().campaignStartedAtSeconds },
+    runRecords: { bestByMode: { ...useRunRecordStore.getState().bestByMode }, topByMode: { ...useRunRecordStore.getState().topByMode } },
+    campaignScores: { runs: [...useCampaignScoreStore.getState().runs] },
     advancedMissionZone: (() => {
       const z = useAdvancedMissionZoneStore.getState();
       return { activeZoneId: z.activeZoneId, activeSegmentId: z.activeSegmentId, completedSegmentIds: [...z.completedSegmentIds], unlockedSegmentIds: [...z.unlockedSegmentIds], missionZoneStatus: z.missionZoneStatus };
@@ -157,6 +163,7 @@ export function restoreGame(d: SaveData): void {
   if (d.codex) useCodexStore.getState().importState(d.codex);
   if (d.campaignCompletion) useCampaignCompletionStore.getState().importState(d.campaignCompletion);
   if (d.runRecords) useRunRecordStore.getState().importState(d.runRecords);
+  if (d.campaignScores) useCampaignScoreStore.getState().importState(d.campaignScores);
   if (d.advancedMissionZone) {
     const z = d.advancedMissionZone;
     useAdvancedMissionZoneStore.setState({

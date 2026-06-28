@@ -20,6 +20,7 @@ import { MISSION_TEMPLATES } from '../../data/game/missionTemplates';
 import { playUiSound } from '../../game/audio/uiSound';
 import { CampaignMap } from '../campaign/CampaignMap';
 import { startRun } from '../../game/arena-run/RunDirector';
+import { LeaderboardPanel } from './LeaderboardPanel';
 
 // MISSION_CONTROL — hi-tech console: world map (left) + mission notifications (right). Selecting a
 // mission advances to the briefing (GameDirector reacts to mission:selected). Data is read live from the
@@ -121,7 +122,8 @@ export const MissionControlScreen = () => {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
+          <LeaderboardPanel />
+          <div className="mt-2 min-h-0 flex-1 space-y-2 overflow-auto pr-1">
             {visible.length === 0 && <div className="text-xs text-slate-500">No missions at this location.</div>}
             {visible.map((m) => {
               const loc = getEditorLocation(m.locationId);

@@ -14,6 +14,7 @@ import { useRunBuffDefStore } from '../../stores/game/useRunBuffDefStore';
 import { useRunConfigStore } from '../../stores/game/useRunConfigStore';
 import { useRoomConfigStore } from '../../stores/game/useRoomConfigStore';
 import { useCodexChallengeStore } from '../../stores/game/useCodexChallengeStore';
+import { useEquipmentFusionRecipeStore } from '../../stores/game/useEquipmentFusionRecipeStore';
 import { useStatusRuleStore } from '../../stores/game/useStatusRuleStore';
 import { useElementReactionStore } from '../../stores/game/useElementReactionStore';
 import { useEliteAffixStore } from '../../stores/game/useEliteAffixStore';
@@ -121,6 +122,7 @@ export function seedGameContent(): void {
   useRunConfigStore.getState().mergeMissingFromSeed();
   useRoomConfigStore.getState().mergeMissingFromSeed();
   useCodexChallengeStore.getState().mergeMissingFromSeed();
+  useEquipmentFusionRecipeStore.getState().mergeMissingFromSeed();
   useStatusRuleStore.getState().mergeMissingFromSeed();
   useElementReactionStore.getState().mergeMissingFromSeed();
   useEliteAffixStore.getState().mergeMissingFromSeed();
