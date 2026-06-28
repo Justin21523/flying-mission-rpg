@@ -45,7 +45,8 @@ export const SEED_ELEMENT_REACTIONS: ElementReactionDefinition[] = [
   {
     id: 'rxn_conduct', reaction: 'conduct',
     primaryStatus: 'shocked', triggerStatus: 'shocked',
-    bonusDamage: 18, aoeRadius: 8, consumesPrimary: false, cooldownMs: 700,
+    // Balance pass — radius 8→6 (match overload) + cooldown 700→1000 so the no-consume chain can't re-trigger as fast.
+    bonusDamage: 18, aoeRadius: 6, consumesPrimary: false, cooldownMs: 1000,
     damageType: 'electric', attackTags: ['reaction', 'conduct', 'aoe'],
     vfxEffectId: 'fx_conduct_chain', enabled: true,
   },

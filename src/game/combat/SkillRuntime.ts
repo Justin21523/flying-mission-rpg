@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import type { CombatSkillDefinition, CombatStats, DamageEvent, DamageResult, DamageableDefinition } from '../../types/game/combat';
 import { queryHits, type HitTargetPoint, type HitVolumeWorld } from './HitVolumeRuntime';
 import { resolveDamage } from './DamageResolver';
+import { reflectedDamage } from './EliteAffixRuntime';
 import { isReady, cooldownEndMs } from './CooldownManager';
 import { canAfford, spendEnergy } from './EnergyManager';
 import { isSpawnSkill, isDefenseSkill } from './skillBehaviors';
@@ -39,6 +40,9 @@ export interface SkillCastDeps {
   applyDefense?: (skill: CombatSkillDefinition, caster: SkillCaster) => void;
   displaceTarget?: (targetId: string, dx: number, dz: number) => void;
   moveCaster?: (dx: number, dz: number) => void;
+  // Wave 6 — 'reflect' affix: a target may bounce a fraction of incoming damage back to the player.
+  getAffixReflectFraction?: (targetId: string) => number | undefined;
+  applyDamageToPlayer?: (amount: number) => void;
 }
 
 export interface SkillCastOutcome {
@@ -117,9 +121,13 @@ export function castSkill(skill: CombatSkillDefinition, caster: SkillCaster, dep
       const precision = template.attackTags.includes('precision') || template.attackTags.includes('weakpoint');
       const upgraded = template.amount * (options.damageMultiplier ?? 1);
       // Batch O — armor-broken targets take bonus damage (magnitude = bonus fraction).
-      const armorBreak = getTargetStatusEffects(id).find((e) => e.type === 'armor-broken');
+      const effects = getTargetStatusEffects(id);
+      const armorBreak = effects.find((e) => e.type === 'armor-broken');
       const armorMult = armorBreak ? 1 + armorBreak.magnitude : 1;
-      const amount = Math.round(((target as { scanned?: boolean }).scanned && precision ? upgraded * 1.5 : upgraded) * armorMult);
+      // Wave 6 — poise-broken opens the same kind of damage window (stacks multiplicatively with armor-broken).
+      const poiseBreak = effects.find((e) => e.type === 'poise-broken');
+      const poiseMult = poiseBreak ? 1 + poiseBreak.magnitude : 1;
+      const amount = Math.round(((target as { scanned?: boolean }).scanned && precision ? upgraded * 1.5 : upgraded) * armorMult * poiseMult);
       const event: DamageEvent = {
         id: `dmg_${nanoid(6)}`,
         sourceId: caster.characterId,
@@ -137,6 +145,9 @@ export function castSkill(skill: CombatSkillDefinition, caster: SkillCaster, dep
       const result = resolveDamage(event, def, vitals);
       deps.applyResult(result);
       deps.pushDamageResult(result);
+      // Wave 6 — 'reflect' affix: bounce a fraction of the dealt damage back to the player (one hop, not a cast).
+      const reflectFrac = deps.getAffixReflectFraction?.(id);
+      if (reflectFrac && result.finalAmount > 0) deps.applyDamageToPlayer?.(reflectedDamage(result.finalAmount, reflectFrac));
       results.push(result);
     }
   }

@@ -9,7 +9,7 @@ import { useSupportRuntimeStore } from '../../stores/game/supportRuntimeStore';
 import { activeSupportShieldReduction } from '../../stores/game/useSupportCombatStore';
 import { getCombatSkill, getCombatStatsPreset, getEnemyDef } from '../../stores/game/editorCombatStore';
 import { getEffectiveDamageable, spawnEnemyFromDef } from './enemyRuntime';
-import { affixRegenedHp, berserkMoveSpeed, vampiricHeal } from './EliteAffixRuntime';
+import { affixRegenedHp, berserkMoveSpeed, vampiricHeal, teleportStep } from './EliteAffixRuntime';
 import { statsFromPreset, type DamageEvent, type DamageEventTemplate } from '../../types/game/combat';
 import { robotHandle } from '../destination/robotHandle';
 import { castSkill, type SkillCaster, type SkillCastDeps, type SkillCastOutcome, type CastOptions } from './SkillRuntime';
@@ -26,7 +26,7 @@ import { cleanupAllClonesForPhaseChange } from '../vfx/CloneAbilityRuntime';
 import { classifyDamageFeedback, type CombatFeedbackEvent } from './CombatFeedbackClassifier';
 import { triggerGameFeelFromFeedback } from '../feel/GameFeelDirector';
 import { getHangarBonuses } from '../progression/HangarBonusResolver';
-import { getTargetStatusEffects } from './StatusEffectRuntime';
+import { getTargetStatusEffects, applyStatusEffect } from './StatusEffectRuntime';
 import { tryTriggerReaction, type ReactionDeps } from './ElementReactionRuntime';
 import { statusEffectsForSkill } from '../../stores/game/useStatusRuleStore';
 import { useFusionRuntimeStore } from '../../stores/game/useFusionRuntimeStore';
@@ -111,6 +111,8 @@ function makeDeps(): SkillCastDeps {
     getVitals: (targetId) => { const t = liveTargets.find((x) => x.id === targetId); return t ? { hp: t.hp, shield: t.shield } : undefined; },
     applyResult: (result) => useCombatTargetStore.getState().applyResult(result),
     pushDamageResult: (result) => useCombatStore.getState().pushDamageResult(result),
+    getAffixReflectFraction: (targetId) => liveTargets.find((t) => t.id === targetId)?.aiData?.affixReflectFraction, // Wave 6
+    applyDamageToPlayer: (amount) => applyDamageToPlayer(amount), // Wave 6 — reflect bounce
     playEffect: (effectDefId, skillInstanceId, caster) => playEffect(effectDefId, { skillInstanceId, x: caster.x, y: caster.y, z: caster.z, headingRad: caster.headingRad }),
     playSkillTimeline: (skill, caster) => scheduleSkillTimeline(skill.timelineEvents ?? [], {
       onEffect: (id) => playEffect(id, { skillInstanceId: `skill_${nanoid(6)}`, x: caster.x, y: caster.y, z: caster.z, headingRad: caster.headingRad }),
@@ -190,6 +192,7 @@ function accruePoise(targetId: string, amount: number): void {
     t.poiseValue = 0;
     t.poiseBreakAt = nowMs();
     (t.aiData ??= {}).stunUntil = nowSec + POISE_STUN_SECONDS;
+    applyStatusEffect(targetId, 'poise-broken', 'poise'); // Wave 6 — the break opens a +damage-taken window
     emitFeedback(makeUtilityFeedback('poise-break', targetId, undefined));
   }
 }
@@ -369,6 +372,15 @@ function tickEliteAffixes(dt: number): void {
     if (ai.affixBerserkThreshold != null && ai.affixBerserkSpeedMult != null) {
       if (ai.affixBaseMoveSpeed == null) ai.affixBaseMoveSpeed = t.moveSpeed ?? 0;
       t.moveSpeed = berserkMoveSpeed(ai.affixBaseMoveSpeed, t.hp, t.maxHp, ai.affixBerserkThreshold, ai.affixBerserkSpeedMult);
+    }
+    // Wave 6 — 'teleport' affix: blink toward the player on an interval.
+    if (ai.affixTeleportIntervalMs != null && ai.affixTeleportRange != null) {
+      ai.affixTeleportAccumMs = (ai.affixTeleportAccumMs ?? 0) + dt * 1000;
+      if (ai.affixTeleportAccumMs >= ai.affixTeleportIntervalMs) {
+        ai.affixTeleportAccumMs = 0;
+        const next = teleportStep(t.x, t.z, robotHandle.pos.x, robotHandle.pos.z, ai.affixTeleportRange);
+        t.x = next.x; t.z = next.z;
+      }
     }
   }
 }

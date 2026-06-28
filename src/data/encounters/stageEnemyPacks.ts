@@ -289,8 +289,8 @@ const RAW_STAGE_GROUPS: EnemySpawnGroupDefinition[] = [
 // (these become the seed), so an authored affixPolicy/squadPolicy on a group is preserved.
 const ALL_AFFIXES = ['shielded', 'volatile', 'swift', 'regenerating', 'vampiric'];
 const ZONE_AFFIX_TIER: Record<string, { chance: number; max: number }> = {
-  zone_downtown_traffic_collapse: { chance: 0.15, max: 1 },
-  zone_factory_core_breakdown: { chance: 0.2, max: 1 },
+  zone_downtown_traffic_collapse: { chance: 0.2, max: 1 }, // balance pass — raised floor 0.15→0.2 so early zones show affixes
+  zone_factory_core_breakdown: { chance: 0.22, max: 1 },
   zone_mountain_tunnel_rescue: { chance: 0.25, max: 1 },
   zone_skyport_core_finale: { chance: 0.3, max: 1 },
   zone_night_city_blackout: { chance: 0.3, max: 1 },

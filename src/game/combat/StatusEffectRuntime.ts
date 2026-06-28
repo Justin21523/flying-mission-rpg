@@ -18,7 +18,8 @@ export type StatusEffectType =
   | 'frozen' // slow (magnitude = move-speed multiplier)
   | 'shocked' // interrupt windups
   | 'armor-broken' // takes more damage (magnitude = bonus fraction)
-  | 'bleed'; // Wave 5 — physical DoT (magnitude = damage/sec), mirrors burning
+  | 'bleed' // Wave 5 — physical DoT (magnitude = damage/sec), mirrors burning
+  | 'poise-broken'; // Wave 6 — opened by a poise break: takes more damage (magnitude = bonus fraction), like armor-broken
 
 export type ActiveStatusEffect = {
   id: string;
@@ -53,6 +54,7 @@ export const DEFAULT_STATUS_EFFECT_TUNING: Record<StatusEffectType, StatusEffect
   shocked: { type: 'shocked', durationMs: 1200, magnitude: 1 },
   'armor-broken': { type: 'armor-broken', durationMs: 4000, magnitude: 0.3 }, // +30% damage taken
   bleed: { type: 'bleed', durationMs: 4000, magnitude: 5 }, // Wave 5 — 5 dmg/sec physical DoT
+  'poise-broken': { type: 'poise-broken', durationMs: 3000, magnitude: 0.35 }, // Wave 6 — +35% damage taken during the stagger window
 };
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());

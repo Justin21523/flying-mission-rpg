@@ -67,7 +67,7 @@ describe('ElementReactionRuntime', () => {
     expect(tryTriggerReaction('e4', 'shocked', 'test', recordingDeps(1000))).toBe('conduct');
     // within cooldown window → no second reaction
     expect(tryTriggerReaction('e4', 'shocked', 'test', recordingDeps(1200))).toBeNull();
-    // after cooldown (conduct cooldownMs 700) → fires again
+    // after cooldown (conduct cooldownMs 1000) → fires again
     expect(tryTriggerReaction('e4', 'shocked', 'test', recordingDeps(2000))).toBe('conduct');
   });
 

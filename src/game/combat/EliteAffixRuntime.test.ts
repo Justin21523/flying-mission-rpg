@@ -36,8 +36,8 @@ describe('applyAffixesToTarget', () => {
   it('shielded adds shield + scales hp and enlarges the silhouette', () => {
     const t = makeEnemy();
     applyAffixesToTarget(t, ['shielded']);
-    expect(t.maxShield).toBe(60);
-    expect(t.shield).toBe(60);
+    expect(t.maxShield).toBe(52); // shieldFraction 0.45 × boosted maxHp 115 = 51.75 → 52
+    expect(t.shield).toBe(52);
     expect(t.maxHp).toBe(115); // 100 * 1.15
     expect(t.hp).toBe(115);
     expect(t.scale).toBeCloseTo(1.2);
@@ -47,7 +47,7 @@ describe('applyAffixesToTarget', () => {
   it('swift multiplies move speed', () => {
     const t = makeEnemy();
     applyAffixesToTarget(t, ['swift']);
-    expect(t.moveSpeed).toBeCloseTo(4.5); // 3 * 1.5
+    expect(t.moveSpeed).toBeCloseTo(4.05); // 3 * 1.35
   });
 
   it('volatile stashes explosion config on the ai blackboard', () => {

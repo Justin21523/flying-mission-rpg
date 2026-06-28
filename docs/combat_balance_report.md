@@ -32,24 +32,26 @@ _Note: `hard` does not scale enemy HP (only incoming player damage ×1.4); only 
 
 ## 2. Elite affix effective-HP multipliers
 
-Shows how much tankier a given affix makes a LOW-HP enemy (`zip_glitch`, 45 HP) vs a HIGH-HP one (`quake_walker`, 160 HP). A flat shield bloats low-HP enemies the most — watch `shielded`.
+Shows how much tankier a given affix makes a LOW-HP enemy (`zip_glitch`, 45 HP) vs a HIGH-HP one (`quake_walker`, 160 HP). `shielded` now uses a %-of-maxHp shield so the multiplier is consistent across HP tiers (previously a flat +60 over-tanked low-HP enemies).
 
-| Affix | hpMult | addShield | zip ×effHP | quake ×effHP | other effects |
+| Affix | hpMult | shield | zip ×effHP | quake ×effHP | other effects |
 |---|--:|--:|--:|--:|---|
-| shielded | 1.15 | 60 | 2.48× | 1.52× | — |
+| shielded | 1.15 | 45%HP | 1.66× | 1.67× | — |
 | volatile | 1 | 0 | 1.00× | 1.00× | death boom 35@6m |
-| swift | 0.9 | 0 | 0.90× | 0.90× | speed ×1.5 |
+| swift | 0.9 | 0 | 0.90× | 0.90× | speed ×1.35 |
 | regenerating | 1.25 | 0 | 1.25× | 1.25× | regen 6/s |
 | vampiric | 1.15 | 0 | 1.15× | 1.15× | lifesteal 50% |
 | berserk | 1.1 | 0 | 1.10× | 1.10× | <40% HP → speed ×1.6 |
 | summoner | 1.1 | 0 | 1.10× | 1.10× | summon 2×zip_glitch |
+| reflect | 1.15 | 0 | 1.15× | 1.15× | — |
+| teleport | 1.1 | 0 | 1.10× | 1.10× | — |
 
 ## 3. Affix density per zone (measured from applied policies)
 
 | Zone | max chancePerEnemy |
 |---|--:|
-| zone_downtown_traffic_collapse | 0.15 |
-| zone_factory_core_breakdown | 0.2 |
+| zone_downtown_traffic_collapse | 0.2 |
+| zone_factory_core_breakdown | 0.22 |
 | zone_mountain_tunnel_rescue | 0.25 |
 | zone_skyport_core_finale | 0.3 |
 | zone_night_city_blackout | 0.3 |
@@ -67,12 +69,14 @@ Shows how much tankier a given affix makes a LOW-HP enemy (`zip_glitch`, 45 HP) 
 | seg_tunnel_maint_bypass | hack-terminals | 9 |
 | seg_landing_dock | hold-zone | 5 |
 | seg_cargo_vault | hold-zone | 5 |
+| seg_factory_hazard | hold-zone | 8 |
 | seg_tunnel_rescue | hold-zone | 6 |
 | seg_flood_landing | hold-zone | 6 |
 | seg_downtown_arrival | survive-timer | 15 |
 | seg_downtown_command | survive-timer | 14 |
 | seg_factory_entry | survive-timer | 16 |
 | seg_factory_assembly | survive-timer | 18 |
+| seg_tunnel_entrance | survive-timer | 15 |
 | seg_skyport_drop | survive-timer | 18 |
 | seg_skyport_bridge | survive-timer | 20 |
 | seg_blackout_arrival | survive-timer | 15 |
@@ -90,16 +94,20 @@ Shows how much tankier a given affix makes a LOW-HP enemy (`zip_glitch`, 45 HP) 
 |---|---|--:|--:|:--:|
 | shatter | frozen → shocked | 45 | — | yes |
 | overload | burning → shocked | 30 | 6m | yes |
-| conduct | shocked → shocked | 18 | 8m | no |
+| conduct | shocked → shocked | 18 | 6m | no |
 | meltdown | frozen → burning | 38 | — | yes |
 | overload _(off)_ | burning → shocked | 22 | 6m | yes |
 | bloodburst | bleed → burning | 34 | 5m | yes |
 | rupture | bleed → armor-broken | 48 | — | yes |
 
-## 6. Flagged for human GPU feel-check
+## 6. Balance-pass changes applied + still flagged for human feel-check
 
-- **`shielded` flat +60 shield** bloats low-HP enemies disproportionately (see `zip ×effHP` above) — consider a %-of-maxHp shield instead of flat.
-- **`swift` +50% move speed** may make light enemies frustrating to catch on a controller — verify kiting feels fair.
-- **`conduct`** chains 18 dmg in an 8 m radius and does NOT consume the primary status → can re-trigger; check it is not oppressive in dense packs.
-- **Early-zone affix density 0.15** may be too low to notice; **finale 0.5 + max 2** may spike — verify the curve feels like escalation.
+**Applied (conservative, data-driven):**
+- ✅ **`shielded`** flat +60 shield → **45%-of-maxHp** shield, so its effective-HP boost is consistent across HP tiers (see §2 — zip and quake now match).
+- ✅ **`swift`** move speed ×1.5 → **×1.35** (less frustrating to chase).
+- ✅ **`conduct`** AoE radius 8 → **6 m** + cooldown 700 → **1000 ms** so the no-consume chain can't re-trigger as fast.
+- ✅ **Early-zone affix density** floor raised (downtown 0.15 → **0.20**, factory 0.20 → **0.22**) so early zones actually show affixes.
+
+**Still needs a real GPU feel pass:**
+- The exact `shieldFraction` / `swift` values + the full density curve (finale 0.5 + max 2) — verify escalation feels right in motion.
 - TTK uses a flat reference DPS; real hero DPS varies a lot by kit/upgrades/mods — the table is a relative sanity check, not absolute balance.

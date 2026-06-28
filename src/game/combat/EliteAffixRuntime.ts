@@ -30,12 +30,17 @@ export function applyAffixesToTarget(target: CombatTarget, affixIds: AffixId[]):
     if (!def || def.enabled === false) continue;
     if (def.hpMult && def.hpMult !== 1) { target.maxHp = Math.round(target.maxHp * def.hpMult); target.hp = target.maxHp; }
     if (def.speedMult && target.moveSpeed) target.moveSpeed = target.moveSpeed * def.speedMult;
-    if (def.addShield) { target.maxShield = (target.maxShield ?? 0) + def.addShield; target.shield = (target.shield ?? 0) + def.addShield; }
+    // Shield as a fraction of maxHp (preferred) keeps the affix's effective-HP boost consistent across HP tiers;
+    // addShield (flat) is the legacy fallback.
+    const shieldAdd = def.shieldFraction ? Math.round(target.maxHp * def.shieldFraction) : (def.addShield ?? 0);
+    if (shieldAdd) { target.maxShield = (target.maxShield ?? 0) + shieldAdd; target.shield = (target.shield ?? 0) + shieldAdd; }
     if (def.onDeathExplosion) { ai.affixVolatileRadius = def.onDeathExplosion.radius; ai.affixVolatileDamage = def.onDeathExplosion.damage; }
     if (def.regenPerSec) ai.affixRegenPerSec = def.regenPerSec;
     if (def.lifestealFraction) ai.affixLifesteal = def.lifestealFraction;
     if (def.berserk) { ai.affixBerserkThreshold = def.berserk.hpThreshold; ai.affixBerserkSpeedMult = def.berserk.speedMult; } // base move speed captured lazily on first tick
     if (def.onDeathSummon) { ai.affixSummonCount = def.onDeathSummon.count; target.affixSummonEnemyId = def.onDeathSummon.enemyId; }
+    if (def.reflectFraction) ai.affixReflectFraction = def.reflectFraction; // Wave 6
+    if (def.teleport) { ai.affixTeleportIntervalMs = def.teleport.intervalMs; ai.affixTeleportRange = def.teleport.rangePerBlink; } // Wave 6
     applied.push(id);
   }
   if (applied.length > 0) {
@@ -51,6 +56,20 @@ export function affixRegenedHp(hp: number, maxHp: number, perSec: number, dt: nu
 }
 export function berserkMoveSpeed(baseSpeed: number, hp: number, maxHp: number, threshold: number, speedMult: number): number {
   return baseSpeed * (maxHp > 0 && hp / maxHp < threshold ? speedMult : 1);
+}
+
+// Wave 6 — 'reflect' affix: damage bounced back to the player (rounded).
+export function reflectedDamage(finalAmount: number, fraction: number): number {
+  return Math.round(Math.max(0, finalAmount) * fraction);
+}
+
+// Wave 6 — 'teleport' affix: blink toward the player by `range`, stopping ~2u short (no overshoot / landing on the player).
+export function teleportStep(x: number, z: number, px: number, pz: number, range: number): { x: number; z: number } {
+  const dx = px - x, dz = pz - z;
+  const d = Math.hypot(dx, dz);
+  if (d <= 0.001) return { x, z };
+  const move = Math.min(range, Math.max(0, d - 2));
+  return { x: x + (dx / d) * move, z: z + (dz / d) * move };
 }
 
 // 'vampiric' affix — heal the attacking enemy by lifestealFraction × damage it dealt to the player. No-op for

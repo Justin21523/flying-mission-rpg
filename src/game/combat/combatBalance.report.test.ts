@@ -18,8 +18,12 @@ import { SEED_ZONE_SEGMENTS } from '../../data/game/advancedMissionZones';
 const REFERENCE_DPS = 40;
 
 const baseEffectiveHp = (maxHp: number, maxShield = 0) => maxHp + maxShield;
-const affixEffectiveHp = (maxHp: number, maxShield = 0, a?: { hpMult?: number; addShield?: number }) =>
-  maxHp * (a?.hpMult ?? 1) + maxShield + (a?.addShield ?? 0);
+// Mirrors EliteAffixRuntime: hpMult applies first, then shield = round(boostedMaxHp × shieldFraction) (or flat addShield).
+const affixEffectiveHp = (maxHp: number, maxShield = 0, a?: { hpMult?: number; addShield?: number; shieldFraction?: number }) => {
+  const boostedHp = maxHp * (a?.hpMult ?? 1);
+  const shield = a?.shieldFraction ? Math.round(boostedHp * a.shieldFraction) : (a?.addShield ?? 0);
+  return boostedHp + maxShield + shield;
+};
 const ttk = (effHp: number) => Math.ceil(effHp / REFERENCE_DPS);
 
 const nonBoss = SEED_ENEMIES.filter((e) => !e.isBoss);
@@ -99,9 +103,9 @@ function buildReport(): string {
 
   L.push('## 2. Elite affix effective-HP multipliers');
   L.push('');
-  L.push('Shows how much tankier a given affix makes a LOW-HP enemy (`zip_glitch`, 45 HP) vs a HIGH-HP one (`quake_walker`, 160 HP). A flat shield bloats low-HP enemies the most — watch `shielded`.');
+  L.push('Shows how much tankier a given affix makes a LOW-HP enemy (`zip_glitch`, 45 HP) vs a HIGH-HP one (`quake_walker`, 160 HP). `shielded` now uses a %-of-maxHp shield so the multiplier is consistent across HP tiers (previously a flat +60 over-tanked low-HP enemies).');
   L.push('');
-  L.push('| Affix | hpMult | addShield | zip ×effHP | quake ×effHP | other effects |');
+  L.push('| Affix | hpMult | shield | zip ×effHP | quake ×effHP | other effects |');
   L.push('|---|--:|--:|--:|--:|---|');
   const zip = SEED_ENEMIES.find((e) => e.id === 'zip_glitch')!;
   const quake = SEED_ENEMIES.find((e) => e.id === 'quake_walker')!;
@@ -115,7 +119,8 @@ function buildReport(): string {
     if (a.onDeathExplosion) fx.push(`death boom ${a.onDeathExplosion.damage}@${a.onDeathExplosion.radius}m`);
     if (a.berserk) fx.push(`<${a.berserk.hpThreshold * 100}% HP → speed ×${a.berserk.speedMult}`);
     if (a.onDeathSummon) fx.push(`summon ${a.onDeathSummon.count}×${a.onDeathSummon.enemyId}`);
-    L.push(`| ${a.id} | ${a.hpMult ?? 1} | ${a.addShield ?? 0} | ${zr}× | ${qr}× | ${fx.join(', ') || '—'} |`);
+    const shieldCol = a.shieldFraction ? `${a.shieldFraction * 100}%HP` : `${a.addShield ?? 0}`;
+    L.push(`| ${a.id} | ${a.hpMult ?? 1} | ${shieldCol} | ${zr}× | ${qr}× | ${fx.join(', ') || '—'} |`);
   }
   L.push('');
 
@@ -142,12 +147,16 @@ function buildReport(): string {
   }
   L.push('');
 
-  L.push('## 6. Flagged for human GPU feel-check');
+  L.push('## 6. Balance-pass changes applied + still flagged for human feel-check');
   L.push('');
-  L.push('- **`shielded` flat +60 shield** bloats low-HP enemies disproportionately (see `zip ×effHP` above) — consider a %-of-maxHp shield instead of flat.');
-  L.push('- **`swift` +50% move speed** may make light enemies frustrating to catch on a controller — verify kiting feels fair.');
-  L.push('- **`conduct`** chains 18 dmg in an 8 m radius and does NOT consume the primary status → can re-trigger; check it is not oppressive in dense packs.');
-  L.push('- **Early-zone affix density 0.15** may be too low to notice; **finale 0.5 + max 2** may spike — verify the curve feels like escalation.');
+  L.push('**Applied (conservative, data-driven):**');
+  L.push('- ✅ **`shielded`** flat +60 shield → **45%-of-maxHp** shield, so its effective-HP boost is consistent across HP tiers (see §2 — zip and quake now match).');
+  L.push('- ✅ **`swift`** move speed ×1.5 → **×1.35** (less frustrating to chase).');
+  L.push('- ✅ **`conduct`** AoE radius 8 → **6 m** + cooldown 700 → **1000 ms** so the no-consume chain can\'t re-trigger as fast.');
+  L.push('- ✅ **Early-zone affix density** floor raised (downtown 0.15 → **0.20**, factory 0.20 → **0.22**) so early zones actually show affixes.');
+  L.push('');
+  L.push('**Still needs a real GPU feel pass:**');
+  L.push('- The exact `shieldFraction` / `swift` values + the full density curve (finale 0.5 + max 2) — verify escalation feels right in motion.');
   L.push('- TTK uses a flat reference DPS; real hero DPS varies a lot by kit/upgrades/mods — the table is a relative sanity check, not absolute balance.');
   L.push('');
   return L.join('\n');
