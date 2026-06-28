@@ -31,7 +31,7 @@ const WORLDBUILD_W1_GROUPS: EnemySpawnGroupDefinition[] = [
   { id: 'finale_demon_crew', zoneId: 'zone_rescue_vanguard_finale', segmentId: 'seg_finale_arrival', spawnMode: 'on-segment-enter', enemies: [{ enemyDefinitionId: 'demon_brute', count: 1, formation: 'cluster' }, { enemyDefinitionId: 'frost_stalker', count: 1, formation: 'circle' }], completeWhenAllDefeated: false, enabled: true },
 ];
 
-export const STAGE_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = [
+const RAW_STAGE_GROUPS: EnemySpawnGroupDefinition[] = [
   ...LANDING_AMBUSHES,
   ...MISSION_TYPE_GROUPS,
   ...WORLDBUILD_W1_GROUPS,
@@ -282,3 +282,41 @@ export const STAGE_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = [
     enabled: true,
   },
 ];
+
+// Content-fill pass — give zones 2–10 real use of Wave 1 elite affixes + Wave 2 squad AI. A group's affix
+// density escalates by campaign depth; squad roles are derived from the group's enemy mix (healers hang back,
+// ranged keep distance, melee swarm) and only attached when the mix is actually mixed. All additive + editable
+// (these become the seed), so an authored affixPolicy/squadPolicy on a group is preserved.
+const ALL_AFFIXES = ['shielded', 'volatile', 'swift', 'regenerating', 'vampiric'];
+const ZONE_AFFIX_TIER: Record<string, { chance: number; max: number }> = {
+  zone_downtown_traffic_collapse: { chance: 0.15, max: 1 },
+  zone_factory_core_breakdown: { chance: 0.2, max: 1 },
+  zone_mountain_tunnel_rescue: { chance: 0.25, max: 1 },
+  zone_skyport_core_finale: { chance: 0.3, max: 1 },
+  zone_night_city_blackout: { chance: 0.3, max: 1 },
+  zone_storm_coast_flood_rescue: { chance: 0.35, max: 1 },
+  zone_metro_rescue_labyrinth: { chance: 0.4, max: 1 },
+  zone_aero_tower_high_rescue: { chance: 0.45, max: 2 },
+  zone_rescue_vanguard_finale: { chance: 0.5, max: 2 },
+};
+const RANGED_ENEMIES = new Set(['pulse_turret', 'sniper_node', 'owl_scout', 'suppressor_node', 'glitch_spawner', 'barrier_node']);
+const HEALER_ENEMIES = new Set(['repair_wisp', 'aegis_buffer']);
+
+function roleFor(enemyId: string): 'healer-stay-back' | 'ranged-keep-distance' | 'melee-swarm' {
+  if (HEALER_ENEMIES.has(enemyId)) return 'healer-stay-back';
+  if (RANGED_ENEMIES.has(enemyId)) return 'ranged-keep-distance';
+  return 'melee-swarm';
+}
+
+function enrichGroup(g: EnemySpawnGroupDefinition): EnemySpawnGroupDefinition {
+  const totalCount = g.enemies.reduce((s, e) => s + e.count, 0);
+  const tier = ZONE_AFFIX_TIER[g.zoneId] ?? { chance: 0.2, max: 1 };
+  const affixPolicy = g.affixPolicy ?? (totalCount >= 2 ? { allowedAffixIds: ALL_AFFIXES, chancePerEnemy: tier.chance, maxPerEnemy: tier.max } : undefined);
+  // Squad roles per distinct enemy; only attach when the mix has ≥2 distinct roles.
+  const roles = [...new Set(g.enemies.map((e) => e.enemyDefinitionId))].map((id) => ({ enemyDefinitionId: id, role: roleFor(id) }));
+  const distinctRoles = new Set(roles.map((r) => r.role));
+  const squadPolicy = g.squadPolicy ?? (distinctRoles.size >= 2 ? { enabled: true, roles } : undefined);
+  return { ...g, affixPolicy, squadPolicy };
+}
+
+export const STAGE_ENEMY_SPAWN_GROUPS: EnemySpawnGroupDefinition[] = RAW_STAGE_GROUPS.map(enrichGroup);

@@ -307,6 +307,8 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     completionConditions: [
       { id: 'resolve_factory_incident', type: 'resolve-incident', incidentId: 'incident_seg_factory_assembly' },
       { id: 'clear_factory_support', type: 'defeat-enemy-group', enemyGroupId: 'factory_repair_support_01' },
+      // Content-fill — survive the escalating mechanical failure while the line is repaired (survive-timer).
+      { id: 'survive_factory_meltdown', type: 'survive-timer', seconds: 18 },
     ],
     nextSegmentIds: ['seg_factory_hazard'],
     previousSegmentIds: ['seg_factory_entry'],
@@ -380,7 +382,9 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
       { id: 'break_tunnel_wall', type: 'destroy-obstacle', obstacleId: 'tunnel_cracked_wall_01' },
       { id: 'clear_quake_blockade', type: 'defeat-enemy-group', enemyGroupId: 'tunnel_quake_blockade_01' },
     ],
-    nextSegmentIds: ['seg_tunnel_rescue'],
+    // Content-fill — branch: the trapped-NPC rescue (mainline) OR a quiet maintenance-shaft bypass (hack route).
+    // Original path stays first so the auto-playtester keeps the mainline; both rejoin at the Sniper Exit.
+    nextSegmentIds: ['seg_tunnel_rescue', 'seg_tunnel_maint_bypass'],
     previousSegmentIds: ['seg_tunnel_entrance'],
     placeholderEnemyGroupIds: ['tunnel_quake_blockade_01'],
     placeholderObstacleIds: ['tunnel_cracked_wall_01'],
@@ -396,12 +400,42 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'incident',
     bounds: { center: [22, 0, 0], size: [26, 8, 26] },
     entryConditions: [{ id: 'enter_tunnel_rescue', type: 'segment-completed', segmentId: 'seg_tunnel_collapse' }],
-    completionConditions: [{ id: 'resolve_trapped_npcs', type: 'resolve-incident', incidentId: 'incident_seg_tunnel_rescue' }],
+    completionConditions: [
+      { id: 'resolve_trapped_npcs', type: 'resolve-incident', incidentId: 'incident_seg_tunnel_rescue' },
+      // Content-fill — hold the extraction point to lift the trapped NPCs out (hold-zone).
+      { id: 'hold_tunnel_extraction', type: 'hold-zone', markerId: 'mk_tunnel_extraction', radius: 4, seconds: 6 },
+    ],
     nextSegmentIds: ['seg_tunnel_exit'],
     previousSegmentIds: ['seg_tunnel_collapse'],
     incidentTemplateIds: ['tmpl_npc_trapped'],
     aiIncidentHooks: { onSegmentEnter: ['tmpl_npc_trapped'] },
-    markers: [{ id: 'mk_tunnel_rescue', type: 'objective', label: 'Trapped NPCs', position: [22, 0, 0], radius: 6, color: '#34d399' }],
+    markers: [
+      { id: 'mk_tunnel_rescue', type: 'objective', label: 'Trapped NPCs', position: [22, 0, 0], radius: 6, color: '#34d399' },
+      { id: 'mk_tunnel_extraction', type: 'objective', label: 'Extraction Point', position: [26, 0, 4], radius: 3, color: '#fbbf24' },
+    ],
+    enabled: true,
+  },
+  // Content-fill — optional non-combat bypass branch off Rock Collapse. Hack 3 maintenance terminals to reroute
+  // power (no enemies), then rejoin the mainline at the Sniper Exit. Demonstrates a 2nd route + hack-terminals.
+  {
+    id: 'seg_tunnel_maint_bypass',
+    zoneId: 'zone_mountain_tunnel_rescue',
+    name: 'Maintenance Bypass',
+    description: 'Quiet route: hack the three maintenance terminals to reroute power around the collapse.',
+    order: 3.5,
+    segmentType: 'stealth-scan',
+    bounds: { center: [-24, 0, 0], size: [20, 8, 22] },
+    entryConditions: [{ id: 'enter_tunnel_bypass', type: 'segment-completed', segmentId: 'seg_tunnel_collapse' }],
+    completionConditions: [
+      { id: 'hack_tunnel_maint', type: 'hack-terminals', terminalMarkerIds: ['tunnel_maint_a', 'tunnel_maint_b', 'tunnel_maint_c'], radius: 4, secondsPerTerminal: 3 },
+    ],
+    nextSegmentIds: ['seg_tunnel_exit'],
+    previousSegmentIds: ['seg_tunnel_collapse'],
+    markers: [
+      { id: 'tunnel_maint_a', type: 'objective', label: 'Maintenance A', position: [-28, 0, -4], radius: 3, color: '#38bdf8' },
+      { id: 'tunnel_maint_b', type: 'objective', label: 'Maintenance B', position: [-24, 0, 4], radius: 3, color: '#38bdf8' },
+      { id: 'tunnel_maint_c', type: 'objective', label: 'Maintenance C', position: [-20, 0, -4], radius: 3, color: '#38bdf8' },
+    ],
     enabled: true,
   },
   {
@@ -412,10 +446,11 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     order: 4,
     segmentType: 'combat-placeholder',
     bounds: { center: [0, 0, -24], size: [30, 8, 24] },
-    entryConditions: [{ id: 'enter_tunnel_exit', type: 'segment-completed', segmentId: 'seg_tunnel_rescue' }],
+    // Entry references the branch POINT (collapse), so either the rescue or the bypass route can reach it.
+    entryConditions: [{ id: 'enter_tunnel_exit', type: 'segment-completed', segmentId: 'seg_tunnel_collapse' }],
     completionConditions: [{ id: 'clear_tunnel_exit', type: 'defeat-enemy-group', enemyGroupId: 'tunnel_sniper_exit_01' }],
     nextSegmentIds: [],
-    previousSegmentIds: ['seg_tunnel_rescue'],
+    previousSegmentIds: ['seg_tunnel_rescue', 'seg_tunnel_maint_bypass'],
     final: true,
     placeholderEnemyGroupIds: ['tunnel_sniper_exit_01'],
     markers: [{ id: 'mk_tunnel_exit', type: 'core', label: 'Tunnel Exit', position: [0, 0, -24], radius: 6, color: '#f43f5e' }],
@@ -608,11 +643,19 @@ export const SEED_ZONE_SEGMENTS: ZoneSegmentDefinition[] = [
     segmentType: 'rescue',
     bounds: { center: [24, 0, 2], size: [28, 8, 26] },
     entryConditions: [{ id: 'enter_flood_evac', type: 'segment-completed', segmentId: 'seg_flood_pump' }],
-    completionConditions: [{ id: 'clear_flood_evac_swarm', type: 'defeat-enemy-group', enemyGroupId: 'flood_swarm_rescue_01' }],
+    completionConditions: [
+      { id: 'clear_flood_evac_swarm', type: 'defeat-enemy-group', enemyGroupId: 'flood_swarm_rescue_01' },
+      // Content-fill — escort the stranded evacuee from the boardwalk to the rescue boat (escort-npc).
+      { id: 'escort_flood_evacuee', type: 'escort-npc', npcMarkerId: 'mk_flood_evacuee', destinationMarkerId: 'mk_flood_boat', speed: 3 },
+    ],
     nextSegmentIds: ['seg_flood_hazard_core'],
     previousSegmentIds: ['seg_flood_pump'],
     placeholderEnemyGroupIds: ['flood_swarm_rescue_01'],
-    markers: [{ id: 'mk_flood_evac', type: 'objective', label: 'Evacuation Boardwalk', position: [24, 0, 2], radius: 6, color: '#34d399' }],
+    markers: [
+      { id: 'mk_flood_evac', type: 'objective', label: 'Evacuation Boardwalk', position: [24, 0, 2], radius: 6, color: '#34d399' },
+      { id: 'mk_flood_evacuee', type: 'objective', label: 'Stranded Evacuee', position: [18, 0, -6], radius: 2, color: '#f472b6' },
+      { id: 'mk_flood_boat', type: 'supply', label: 'Rescue Boat', position: [32, 0, 10], radius: 3, color: '#38bdf8' },
+    ],
     enabled: true,
   },
   {

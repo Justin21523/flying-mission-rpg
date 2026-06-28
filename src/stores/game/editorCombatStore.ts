@@ -93,8 +93,10 @@ export function getCombatStatsPreset(characterId: string | undefined): CombatSta
 // A character's player-faction skills, ordered by slot (for the skill bar).
 export function getSkillsForCharacter(characterId: string | undefined): CombatSkillDefinition[] {
   if (!characterId) return [];
+  const seen = new Set<string>();
   return useEditorCombatSkillStore.getState().items
     .filter((s) => s.enabled !== false && (s.faction ?? 'player') === 'player' && s.ownerCharacterId === characterId)
+    .filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true))) // dedupe by id → no duplicate React keys in the upgrade panel
     .sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99));
 }
 export function getEnemyDefs(): EnemyDefinition[] {

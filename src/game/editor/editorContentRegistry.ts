@@ -79,6 +79,8 @@ import { useLevelLayoutStore, useLevelSegmentStore } from '../../stores/useLevel
 import { useEncounterPackStore, useEnemyEncounterStore } from '../../stores/useEncounterEditorStore';
 import { useEnvironmentThemeStore, useEnvironmentHazardPresetStore, useEnvironmentPropSetStore, useAmbientVfxPresetStore } from '../../stores/useEnvironmentEditorStore';
 import { useIncidentEditorStore } from '../../stores/useIncidentEditorStore';
+import { useRoomConfigStore } from '../../stores/game/useRoomConfigStore';
+import { useCodexChallengeStore } from '../../stores/game/useCodexChallengeStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -120,6 +122,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useStageDefinitionStore, useStageRewardStore, useCampaignDefinitionStore, useStageBalanceProfileStore, useStageContentPackStore, useStagePlaytestScenarioStore, useStagePolishPresetStore,
   useLevelLayoutStore, useLevelSegmentStore, useEncounterPackStore, useEnemyEncounterStore,
   useEnvironmentThemeStore, useEnvironmentHazardPresetStore, useEnvironmentPropSetStore, useAmbientVfxPresetStore, useIncidentEditorStore,
+  useRoomConfigStore, useCodexChallengeStore,
   // Already in EDITOR_CONTENT_DOMAINS but were missing undo subscriptions.
   useEditorQualityStore, useEditorAudioPresetStore, useEditorFlightPolishStore, useEditorTransformationPolishStore, useEditorMusicTrackStore, useEditorAmbientStore,
 ];
@@ -671,6 +674,9 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
   collectionDomain('envPropSet', 'Environment Prop Sets', useEnvironmentPropSetStore, 'prop sets'),
   collectionDomain('ambientVfx', 'Ambient VFX Presets', useAmbientVfxPresetStore, 'presets'),
   collectionDomain('incidentTemplate', 'Incident Templates', useIncidentEditorStore, 'templates'),
+  // Phase 9 — stragglers added after the Phase-6 sweep (Wave 3 rooms + Wave 4 codex).
+  collectionDomain('roomConfig', 'Roguelite Rooms', useRoomConfigStore, 'room configs'),
+  collectionDomain('codexChallenge', 'Codex Challenges', useCodexChallengeStore, 'challenges'),
 ];
 
 // ── Unified project file ────────────────────────────────────────────────────

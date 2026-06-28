@@ -30,6 +30,7 @@ export const UNDO_DOMAIN_IDS = new Set([
   'stageDef', 'stageReward', 'campaign', 'stageBalance', 'stageContentPack', 'stagePlaytest', 'stagePolish',
   'levelLayout', 'levelSegment', 'encounterPack', 'enemyEncounter',
   'envTheme', 'envHazard', 'envPropSet', 'ambientVfx', 'incidentTemplate',
+  'roomConfig', 'codexChallenge',
 ]);
 const domains = () => EDITOR_CONTENT_DOMAINS.filter((d) => UNDO_DOMAIN_IDS.has(d.id));
 

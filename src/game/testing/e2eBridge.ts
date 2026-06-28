@@ -1,4 +1,5 @@
 import { useGameStore } from '../../stores/game/useGameStore';
+import type { GamePhase } from '../../types/game/state';
 import { useGraphicsSettingsStore } from '../../stores/graphicsSettingsStore';
 import { useAudioStore } from '../../stores/audioStore';
 import { ProgressTracker } from '../progress/ProgressTracker';
@@ -12,6 +13,7 @@ declare global {
   interface Window {
     __aero?: {
       phase: () => string;
+      jumpTo: (phase: string) => void; // dev/test only — bypasses FSM validation (mount any screen)
       saveNow: () => boolean;
       saveSummary: () => ReturnType<typeof debugSaveSummary>;
       getQualityTier: () => string;
@@ -26,6 +28,7 @@ declare global {
 if (typeof window !== 'undefined') {
   window.__aero = {
     phase: () => useGameStore.getState().phase,
+    jumpTo: (phase) => useGameStore.getState().jumpTo(phase as GamePhase),
     saveNow: () => debugSaveNow(),
     saveSummary: () => debugSaveSummary(),
     getQualityTier: () => useGraphicsSettingsStore.getState().tier,
