@@ -146,6 +146,7 @@ import { PlayToolbar } from './ui/play/PlayToolbar';
 import { PoliSystemBoot } from './game/poli/PoliSystemBoot';
 import { IncidentDirector } from './game/incident/IncidentDirector';
 import { TrafficIncidentDirector } from './game/incident/TrafficIncidentDirector';
+import { StorySceneDirector } from './game/story/StorySceneDirector';
 import { YokaiDirector } from './game/poli/YokaiDirector';
 import { RescueHud } from './ui/RescueHud';
 import { ToolBeltHud } from './ui/ToolBeltHud';
@@ -328,6 +329,8 @@ export const App = () => {
   return (
     <GameErrorBoundary>
     <div className="fixed inset-0 bg-gray-900">
+      {/* Phase 14 — Story-Beat Scenes: always mounted so it catches briefing / mission-complete / rescue. */}
+      <StorySceneDirector />
       {/* Inherited POLI kit runtime + its HUD — only when the world scene is active (dormant in grey-box). */}
       {world && (
         <>

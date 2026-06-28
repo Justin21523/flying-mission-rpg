@@ -33,6 +33,7 @@ export function createDefaultSave(now: Date = new Date()): SaveData {
       completedObjectiveIds: [],
       collectedItemIds: [],
       rescuedNpcIds: [],
+      playedStorySceneIds: [],
     },
     stats: {
       totalPlayTimeSeconds: 0,

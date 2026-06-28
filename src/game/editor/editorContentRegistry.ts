@@ -81,6 +81,7 @@ import { useEnvironmentThemeStore, useEnvironmentHazardPresetStore, useEnvironme
 import { useIncidentEditorStore } from '../../stores/useIncidentEditorStore';
 import { useRoomConfigStore } from '../../stores/game/useRoomConfigStore';
 import { useCodexChallengeStore } from '../../stores/game/useCodexChallengeStore';
+import { useStorySceneStore } from '../../stores/game/useStorySceneStore';
 import { ABILITY_TYPES } from '../../types/character';
 import { COLLECTIBLE_SHAPES } from '../../types/collectible';
 import { useRescueLicenseStore } from '../../stores/rescueLicenseStore';
@@ -122,7 +123,7 @@ export const EDITOR_STORES: { subscribe: (cb: () => void) => () => void }[] = [
   useStageDefinitionStore, useStageRewardStore, useCampaignDefinitionStore, useStageBalanceProfileStore, useStageContentPackStore, useStagePlaytestScenarioStore, useStagePolishPresetStore,
   useLevelLayoutStore, useLevelSegmentStore, useEncounterPackStore, useEnemyEncounterStore,
   useEnvironmentThemeStore, useEnvironmentHazardPresetStore, useEnvironmentPropSetStore, useAmbientVfxPresetStore, useIncidentEditorStore,
-  useRoomConfigStore, useCodexChallengeStore,
+  useRoomConfigStore, useCodexChallengeStore, useStorySceneStore,
   // Already in EDITOR_CONTENT_DOMAINS but were missing undo subscriptions.
   useEditorQualityStore, useEditorAudioPresetStore, useEditorFlightPolishStore, useEditorTransformationPolishStore, useEditorMusicTrackStore, useEditorAmbientStore,
 ];
@@ -677,6 +678,7 @@ export const EDITOR_CONTENT_DOMAINS: EditorContentDomain[] = [
   // Phase 9 — stragglers added after the Phase-6 sweep (Wave 3 rooms + Wave 4 codex).
   collectionDomain('roomConfig', 'Roguelite Rooms', useRoomConfigStore, 'room configs'),
   collectionDomain('codexChallenge', 'Codex Challenges', useCodexChallengeStore, 'challenges'),
+  collectionDomain('storyScene', 'Story Scenes', useStorySceneStore, 'scenes'),
 ];
 
 // ── Unified project file ────────────────────────────────────────────────────

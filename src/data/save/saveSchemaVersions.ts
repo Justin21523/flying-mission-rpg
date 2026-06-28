@@ -79,4 +79,20 @@ const v2ToV3: SaveMigration = {
   },
 };
 
-export const SAVE_MIGRATIONS: SaveMigration[] = [v1ToV2, v2ToV3];
+// v3 → v4 (Phase 14): add progress.playedStorySceneIds (Story-Beat Scene once-gating).
+const v3ToV4: SaveMigration = {
+  fromVersion: 3,
+  toVersion: 4,
+  migrate: (input) => {
+    const o = asObj(input);
+    const progress = asObj(o.progress);
+    return {
+      ...createDefaultSave(),
+      ...o,
+      schemaVersion: 4,
+      progress: { ...createDefaultSave().progress, ...progress, playedStorySceneIds: strArr(progress.playedStorySceneIds) },
+    } as SaveData;
+  },
+};
+
+export const SAVE_MIGRATIONS: SaveMigration[] = [v1ToV2, v2ToV3, v3ToV4];

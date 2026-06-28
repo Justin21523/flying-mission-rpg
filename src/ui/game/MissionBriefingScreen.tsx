@@ -7,6 +7,7 @@ import { getEditorLocation } from '../../stores/game/editorLocationStore';
 import { getEditorCharacter } from '../../stores/game/editorCharacterStore';
 import { useStageProgressionStore } from '../../stores/game/useStageProgressionStore';
 import { StageBriefingPanel } from '../campaign/StageBriefingPanel';
+import { DialogueBox } from '../DialogueBox';
 
 // MISSION_BRIEFING — details of the selected mission. Enter accepts (→ CHARACTER_SELECTION), Esc returns.
 export const MissionBriefingScreen = () => {
@@ -28,6 +29,7 @@ export const MissionBriefingScreen = () => {
     return (
       <ScreenFrame title="Stage Briefing" subtitle="campaign">
         <StageBriefingPanel />
+        <DialogueBox />
       </ScreenFrame>
     );
   }
@@ -75,6 +77,7 @@ export const MissionBriefingScreen = () => {
           </Btn>
         </div>
       </div>
+      <DialogueBox />
     </ScreenFrame>
   );
 };

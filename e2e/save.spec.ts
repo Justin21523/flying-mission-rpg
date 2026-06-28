@@ -16,5 +16,5 @@ test('save progress persists across reload', async ({ page }) => {
 
   const summary = await page.evaluate(() => window.__aero!.saveSummary());
   expect(summary.missionsCompleted).toBeGreaterThan(0);
-  expect(summary.schemaVersion).toBe(2);
+  expect(summary.schemaVersion).toBe(4); // bump in lockstep with SAVE_VERSION (was stale at 2)
 });

@@ -6,6 +6,7 @@ import { useGameStore } from '../../stores/game/useGameStore';
 import type { MissionReward } from '../../types/game/mission';
 import { useStageProgressionStore } from '../../stores/game/useStageProgressionStore';
 import { StageRewardPanel } from '../campaign/StageRewardPanel';
+import { DialogueBox } from '../DialogueBox';
 
 const GRADE_COLOR: Record<string, string> = { S: '#fde68a', A: '#86efac', B: '#7dd3fc', C: '#cbd5e1' };
 
@@ -43,6 +44,7 @@ export const MissionResultsScreen = () => {
     return (
       <ScreenFrame title="Stage Debrief" subtitle="campaign clear">
         <StageRewardPanel />
+        <DialogueBox />
       </ScreenFrame>
     );
   }
@@ -86,6 +88,7 @@ export const MissionResultsScreen = () => {
           </div>
         </div>
       </div>
+      <DialogueBox />
     </ScreenFrame>
   );
 };
