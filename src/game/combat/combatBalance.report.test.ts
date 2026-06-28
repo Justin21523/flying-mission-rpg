@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { describe, it, expect } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -119,6 +120,8 @@ function buildReport(): string {
     if (a.onDeathExplosion) fx.push(`death boom ${a.onDeathExplosion.damage}@${a.onDeathExplosion.radius}m`);
     if (a.berserk) fx.push(`<${a.berserk.hpThreshold * 100}% HP → speed ×${a.berserk.speedMult}`);
     if (a.onDeathSummon) fx.push(`summon ${a.onDeathSummon.count}×${a.onDeathSummon.enemyId}`);
+    if (a.reflectFraction) fx.push(`reflect ${a.reflectFraction * 100}% to player`);
+    if (a.teleport) fx.push(`blink ${a.teleport.rangePerBlink}u / ${a.teleport.intervalMs / 1000}s`);
     const shieldCol = a.shieldFraction ? `${a.shieldFraction * 100}%HP` : `${a.addShield ?? 0}`;
     L.push(`| ${a.id} | ${a.hpMult ?? 1} | ${shieldCol} | ${zr}× | ${qr}× | ${fx.join(', ') || '—'} |`);
   }

@@ -43,8 +43,8 @@ Shows how much tankier a given affix makes a LOW-HP enemy (`zip_glitch`, 45 HP) 
 | vampiric | 1.15 | 0 | 1.15× | 1.15× | lifesteal 50% |
 | berserk | 1.1 | 0 | 1.10× | 1.10× | <40% HP → speed ×1.6 |
 | summoner | 1.1 | 0 | 1.10× | 1.10× | summon 2×zip_glitch |
-| reflect | 1.15 | 0 | 1.15× | 1.15× | — |
-| teleport | 1.1 | 0 | 1.10× | 1.10× | — |
+| reflect | 1.15 | 0 | 1.15× | 1.15× | reflect 20% to player |
+| teleport | 1.1 | 0 | 1.10× | 1.10× | blink 4u / 3.5s |
 
 ## 3. Affix density per zone (measured from applied policies)
 

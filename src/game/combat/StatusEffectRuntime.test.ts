@@ -25,4 +25,12 @@ describe('StatusEffectRuntime', () => {
     applyStatusEffect('b1', 'bleed', 'test');
     expect(getTargetStatusEffects('b1').some((s) => s.type === 'bleed')).toBe(true);
   });
+
+  it('Wave 6 — poise-broken is a real damage-window status (tuning + applies)', () => {
+    const e = makeEnemy('pb1');
+    useCombatTargetStore.getState().spawn(e);
+    expect(DEFAULT_STATUS_EFFECT_TUNING['poise-broken'].magnitude).toBeGreaterThan(0); // +damage-taken fraction
+    applyStatusEffect('pb1', 'poise-broken', 'poise');
+    expect(getTargetStatusEffects('pb1').some((s) => s.type === 'poise-broken')).toBe(true);
+  });
 });

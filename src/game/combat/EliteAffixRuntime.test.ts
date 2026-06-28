@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { rollAffixes, applyAffixesToTarget, affixRegenedHp, berserkMoveSpeed, vampiricHeal } from './EliteAffixRuntime';
+import { rollAffixes, applyAffixesToTarget, affixRegenedHp, berserkMoveSpeed, vampiricHeal, reflectedDamage, teleportStep } from './EliteAffixRuntime';
 import { useEliteAffixStore } from '../../stores/game/useEliteAffixStore';
 import { SEED_ELITE_AFFIXES, type AffixPolicy } from '../../data/combat/eliteAffixes';
 import type { CombatTarget } from '../../stores/game/combatTargetStore';
@@ -101,5 +101,30 @@ describe('Wave 5 affix tick helpers', () => {
     const plain = makeEnemy(); plain.hp = 50; plain.aiData = {};
     vampiricHeal(plain, 10);
     expect(plain.hp).toBe(50); // no affix → unchanged
+  });
+});
+
+describe('Wave 6 affixes (reflect / teleport)', () => {
+  it('applyAffixesToTarget stashes reflect fraction + teleport params', () => {
+    const t = makeEnemy();
+    applyAffixesToTarget(t, ['reflect', 'teleport']);
+    expect(t.aiData?.affixReflectFraction).toBe(0.2);
+    expect(t.aiData?.affixTeleportIntervalMs).toBe(3500);
+    expect(t.aiData?.affixTeleportRange).toBe(4);
+  });
+
+  it('reflectedDamage bounces a rounded fraction (never negative)', () => {
+    expect(reflectedDamage(40, 0.25)).toBe(10);
+    expect(reflectedDamage(41, 0.25)).toBe(10); // 10.25 → 10
+    expect(reflectedDamage(-5, 0.25)).toBe(0);
+  });
+
+  it('teleportStep blinks toward the player, stopping ~2u short (no overshoot)', () => {
+    // 10u away, range 5 → move 5 (10-2=8 > 5) → lands at x=5
+    expect(teleportStep(0, 0, 10, 0, 5).x).toBeCloseTo(5);
+    // 3u away, range 5 → move min(5, 3-2)=1 → lands at x=1 (never past the player)
+    expect(teleportStep(0, 0, 3, 0, 5).x).toBeCloseTo(1);
+    // already on top of the player → no move
+    expect(teleportStep(5, 5, 5, 5, 5)).toEqual({ x: 5, z: 5 });
   });
 });

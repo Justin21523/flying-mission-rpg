@@ -33,9 +33,11 @@ export const SEED_ELITE_AFFIXES: EliteAffixDefinition[] = [
   { id: 'berserk', name: 'Berserk', hpMult: 1.1, berserk: { hpThreshold: 0.4, speedMult: 1.6 }, auraColor: '#fb7185', enabled: true },
   // Wave 5 — spawns a small swarm when it dies (zip-glitch minions).
   { id: 'summoner', name: 'Summoner', hpMult: 1.1, onDeathSummon: { enemyId: 'zip_glitch', count: 2 }, auraColor: '#c084fc', enabled: true },
-  // Wave 6 — bounces a quarter of your damage back; blinks toward you on a timer.
-  { id: 'reflect', name: 'Reflect', hpMult: 1.15, reflectFraction: 0.25, auraColor: '#a78bfa', enabled: true },
-  { id: 'teleport', name: 'Blink', hpMult: 1.1, teleport: { intervalMs: 2500, rangePerBlink: 5 }, auraColor: '#22d3ee', enabled: true },
+  // Wave 6 — bounces a fifth of your damage back; blinks toward you on a timer.
+  // Balance pass — reflect 25%→20% (self-damage stacks across multiple reflect elites + AOE); teleport
+  // 2.5s/5u → 3.5s/4u (less oppressive gap-close, more telegraphed alongside the new blink VFX).
+  { id: 'reflect', name: 'Reflect', hpMult: 1.15, reflectFraction: 0.2, auraColor: '#a78bfa', enabled: true },
+  { id: 'teleport', name: 'Blink', hpMult: 1.1, teleport: { intervalMs: 3500, rangePerBlink: 4 }, auraColor: '#22d3ee', enabled: true },
 ];
 
 // Per-spawn affix policy (lives on a spawn group, or generated per arena round).
