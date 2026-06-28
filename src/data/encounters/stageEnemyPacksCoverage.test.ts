@@ -18,6 +18,17 @@ describe('stage spawn-group coverage', () => {
     expect(finale.affixPolicy!.chancePerEnemy).toBeGreaterThan(downtown.affixPolicy!.chancePerEnemy);
   });
 
+  it('advanced affixes (reflect/teleport) are gated to mid+ zones, not early ones', () => {
+    const early = STAGE_ENEMY_SPAWN_GROUPS.find((g) => g.zoneId === 'zone_downtown_traffic_collapse' && g.affixPolicy)!;
+    const late = STAGE_ENEMY_SPAWN_GROUPS.find((g) => g.zoneId === 'zone_rescue_vanguard_finale' && g.affixPolicy)!;
+    expect(early.affixPolicy!.allowedAffixIds).not.toContain('reflect');
+    expect(early.affixPolicy!.allowedAffixIds).not.toContain('teleport');
+    expect(late.affixPolicy!.allowedAffixIds).toContain('reflect');
+    expect(late.affixPolicy!.allowedAffixIds).toContain('teleport');
+    // both tiers still include the gentle originals
+    expect(early.affixPolicy!.allowedAffixIds).toContain('shielded');
+  });
+
   it('mixed groups get squad roles; healers are tagged stay-back', () => {
     const healerGroup = STAGE_ENEMY_SPAWN_GROUPS.find((g) => g.squadPolicy && g.enemies.some((e) => e.enemyDefinitionId === 'repair_wisp'));
     expect(healerGroup, 'a healer squad group exists').toBeTruthy();

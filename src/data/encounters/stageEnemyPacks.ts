@@ -287,17 +287,20 @@ const RAW_STAGE_GROUPS: EnemySpawnGroupDefinition[] = [
 // density escalates by campaign depth; squad roles are derived from the group's enemy mix (healers hang back,
 // ranged keep distance, melee swarm) and only attached when the mix is actually mixed. All additive + editable
 // (these become the seed), so an authored affixPolicy/squadPolicy on a group is preserved.
-const ALL_AFFIXES = ['shielded', 'volatile', 'swift', 'regenerating', 'vampiric'];
-const ZONE_AFFIX_TIER: Record<string, { chance: number; max: number }> = {
-  zone_downtown_traffic_collapse: { chance: 0.2, max: 1 }, // balance pass — raised floor 0.15→0.2 so early zones show affixes
-  zone_factory_core_breakdown: { chance: 0.22, max: 1 },
-  zone_mountain_tunnel_rescue: { chance: 0.25, max: 1 },
-  zone_skyport_core_finale: { chance: 0.3, max: 1 },
-  zone_night_city_blackout: { chance: 0.3, max: 1 },
-  zone_storm_coast_flood_rescue: { chance: 0.35, max: 1 },
-  zone_metro_rescue_labyrinth: { chance: 0.4, max: 1 },
-  zone_aero_tower_high_rescue: { chance: 0.45, max: 2 },
-  zone_rescue_vanguard_finale: { chance: 0.5, max: 2 },
+// Gentle originals roll everywhere; the punishing Wave 5/6 affixes (berserk/summoner/reflect/teleport) only
+// unlock from mid-game (tier.advanced) so early zones stay felt-and-fair. Both lists are Edit-Mode editable.
+const BASIC_AFFIXES = ['shielded', 'volatile', 'swift', 'regenerating', 'vampiric'];
+const ADVANCED_AFFIXES = ['berserk', 'summoner', 'reflect', 'teleport'];
+const ZONE_AFFIX_TIER: Record<string, { chance: number; max: number; advanced: boolean }> = {
+  zone_downtown_traffic_collapse: { chance: 0.2, max: 1, advanced: false }, // balance pass — raised floor 0.15→0.2 so early zones show affixes
+  zone_factory_core_breakdown: { chance: 0.22, max: 1, advanced: false },
+  zone_mountain_tunnel_rescue: { chance: 0.25, max: 1, advanced: false },
+  zone_skyport_core_finale: { chance: 0.3, max: 1, advanced: true }, // mid-game on → advanced affixes unlock
+  zone_night_city_blackout: { chance: 0.3, max: 1, advanced: true },
+  zone_storm_coast_flood_rescue: { chance: 0.35, max: 1, advanced: true },
+  zone_metro_rescue_labyrinth: { chance: 0.4, max: 1, advanced: true },
+  zone_aero_tower_high_rescue: { chance: 0.45, max: 2, advanced: true },
+  zone_rescue_vanguard_finale: { chance: 0.5, max: 2, advanced: true },
 };
 const RANGED_ENEMIES = new Set(['pulse_turret', 'sniper_node', 'owl_scout', 'suppressor_node', 'glitch_spawner', 'barrier_node']);
 const HEALER_ENEMIES = new Set(['repair_wisp', 'aegis_buffer']);
@@ -310,8 +313,9 @@ function roleFor(enemyId: string): 'healer-stay-back' | 'ranged-keep-distance' |
 
 function enrichGroup(g: EnemySpawnGroupDefinition): EnemySpawnGroupDefinition {
   const totalCount = g.enemies.reduce((s, e) => s + e.count, 0);
-  const tier = ZONE_AFFIX_TIER[g.zoneId] ?? { chance: 0.2, max: 1 };
-  const affixPolicy = g.affixPolicy ?? (totalCount >= 2 ? { allowedAffixIds: ALL_AFFIXES, chancePerEnemy: tier.chance, maxPerEnemy: tier.max } : undefined);
+  const tier = ZONE_AFFIX_TIER[g.zoneId] ?? { chance: 0.2, max: 1, advanced: false };
+  const allowed = tier.advanced ? [...BASIC_AFFIXES, ...ADVANCED_AFFIXES] : BASIC_AFFIXES;
+  const affixPolicy = g.affixPolicy ?? (totalCount >= 2 ? { allowedAffixIds: allowed, chancePerEnemy: tier.chance, maxPerEnemy: tier.max } : undefined);
   // Squad roles per distinct enemy; only attach when the mix has ≥2 distinct roles.
   const roles = [...new Set(g.enemies.map((e) => e.enemyDefinitionId))].map((id) => ({ enemyDefinitionId: id, role: roleFor(id) }));
   const distinctRoles = new Set(roles.map((r) => r.role));
